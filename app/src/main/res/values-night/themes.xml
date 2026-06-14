@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.NotePay" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowSplashScreenBackground">#101412</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
-    </style>
-</resources>
