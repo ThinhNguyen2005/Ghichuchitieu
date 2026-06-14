@@ -18,4 +18,6 @@ data class StatsUiState(
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
     val isLoading: Boolean = true,
+    // P2-15: true khi (year, month) trùng tháng hiện tại → disable nút "Tháng sau".
+    val isCurrentMonth: Boolean = false,
 )

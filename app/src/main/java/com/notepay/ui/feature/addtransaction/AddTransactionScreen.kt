@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.addtransaction
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -36,8 +38,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -212,6 +217,7 @@ private fun InfoCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WalletCard(
     wallets: List<Wallet>,
@@ -221,24 +227,68 @@ private fun WalletCard(
     modifier: Modifier = Modifier,
 ) {
     val selectedWallet = wallets.firstOrNull { it.id == selectedWalletId }
-    Card(modifier = modifier.height(88.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center) {
+    var showPicker by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier
+            .height(88.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            // P1-4: cho phép bấm vào cả card để mở picker (khi có nhiều ví).
+            .then(
+                if (wallets.size > 1) {
+                    Modifier.clickable(onClick = { showPicker = true })
+                } else {
+                    Modifier
+                },
+            ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null)
-                Text("Ví", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (wallets.size <= 1) {
-                Text(selectedWallet?.name ?: "Chưa có ví", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            } else {
-                AssistChip(
-                    onClick = {
-                        val next = wallets.dropWhile { it.id != selectedWalletId }.drop(1).firstOrNull() ?: wallets.first()
-                        onEvent(AddTransactionEvent.WalletChanged(next.id))
-                    },
-                    label = { Text(selectedWallet?.name ?: "Chọn ví") },
+                Text(
+                    "Ví",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (hasError) Text("Cần chọn ví", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            // P1-4: dùng Row + chevron để rõ "bấm được". Khi 1 ví thì vẫn hiển thị tên,
+            // không bấm được; khi nhiều ví thì click cả card mở WalletPickerSheet.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = selectedWallet?.name ?: "Chưa có ví",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
+                if (wallets.size > 1) {
+                    Icon(
+                        Icons.Rounded.ArrowDropDown,
+                        contentDescription = "Đổi ví",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            if (hasError) {
+                Text(
+                    "Cần chọn ví",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
+    }
+
+    if (showPicker) {
+        WalletPickerSheet(
+            wallets = wallets,
+            selectedWalletId = selectedWalletId,
+            onWalletSelected = { id -> onEvent(AddTransactionEvent.WalletChanged(id)) },
+            onDismiss = { showPicker = false },
+        )
     }
 }

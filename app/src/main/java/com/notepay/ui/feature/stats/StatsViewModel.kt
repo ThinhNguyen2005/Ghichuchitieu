@@ -58,6 +58,7 @@ class StatsViewModel @Inject constructor(
                     breakdown = breakdown,
                     incomeBreakdown = incomeBreakdown,
                     isLoading = false,
+                    isCurrentMonth = summary.year == now.year && summary.month == now.monthNumber,
                 )
             }
         }

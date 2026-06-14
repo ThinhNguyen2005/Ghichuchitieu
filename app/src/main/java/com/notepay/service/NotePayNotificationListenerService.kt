@@ -8,6 +8,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.notepay.di.IoDispatcher
+import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.notification.NotificationParser
 import com.notepay.domain.repository.WalletRepository
@@ -122,30 +123,32 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                     // 1. Đánh dấu đã trả
                     billSplitRepository.markAsPaid(matchingSplit.id, Clock.System.now())
                     
-                    // 2. Lấy giao dịch gốc để làm nội dung ghi chú
+                    // 2. Lấy giao dịch gốc và giảm trừ số tiền nợ
                     val parentTx = transactionRepository.getById(matchingSplit.transactionId)
-                    val parentNote = parentTx?.note ?: "khoản chia tiền"
-                    
-                    // 3. Tạo giao dịch thu nhập (INCOME) vào ví để cập nhật số dư
-                    val transaction = Transaction(
-                        id = 0L,
-                        amount = matchingSplit.amount,
-                        type = com.notepay.domain.model.TransactionType.INCOME,
-                        category = com.notepay.domain.model.Category.DEFAULT_INCOME,
-                        note = "${matchingSplit.debtorName} trả tiền: $parentNote",
-                        occurredAt = Clock.System.now(),
-                        walletId = walletToUse.id,
-                        isAutoCapture = true,
-                    )
-                    
-                    val result = addTransaction(transaction)
-                    if (result.isSuccess) {
-                        android.util.Log.d("NotePayNotif", "Lưu trả nợ thành công!")
-                        showSuccessNotification(walletToUse.name, matchingSplit.amount.amountInCents, "${matchingSplit.debtorName} trả tiền: $parentNote")
+                    if (parentTx != null) {
+                        val newAmountCents = (parentTx.amount.amountInCents - matchingSplit.amount.amountInCents).coerceAtLeast(0L)
+                        val paidNote = "${matchingSplit.debtorName} trả ${com.notepay.ui.util.MoneyFormatter.format(matchingSplit.amount)}"
+                        val newNote = if (parentTx.note.contains(" trả ")) {
+                            "${parentTx.note}, $paidNote"
+                        } else {
+                            "${parentTx.note} ($paidNote)"
+                        }.take(Transaction.MAX_NOTE_LENGTH)
+
+                        val updatedParentTx = parentTx.copy(
+                            amount = Money(newAmountCents),
+                            note = newNote
+                        )
+                        val result = runCatching { transactionRepository.upsert(updatedParentTx) }
+                        if (result.isSuccess) {
+                            android.util.Log.d("NotePayNotif", "Cập nhật giảm tiền giao dịch gốc thành công!")
+                            showSuccessNotification(walletToUse.name, matchingSplit.amount.amountInCents, "${matchingSplit.debtorName} trả tiền: ${parentTx.note}")
+                        } else {
+                            val errorMsg = result.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
+                            android.util.Log.d("NotePayNotif", "Cập nhật thất bại: $errorMsg")
+                            showErrorNotification("Lỗi ghi nhận trả nợ", errorMsg)
+                        }
                     } else {
-                        val errorMsg = result.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
-                        android.util.Log.d("NotePayNotif", "Lưu trả nợ thất bại: $errorMsg")
-                        showErrorNotification("Lỗi ghi nhận trả nợ", errorMsg)
+                        android.util.Log.d("NotePayNotif", "Không tìm thấy giao dịch gốc để giảm trừ.")
                     }
                     return@launch
                 } else {
@@ -168,23 +171,35 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                         val debtorSplits = unpaidSplits.filter { it.debtorName == matchedDebtor }
                         android.util.Log.d("NotePayNotif", "Khớp mã đối soát chia tiền gộp cho debtor: $matchedDebtor, số khoản nợ = ${debtorSplits.size}")
                         
-                        debtorSplits.forEach { split ->
-                            billSplitRepository.markAsPaid(split.id, Clock.System.now())
-                            
-                            val parentTx = transactionRepository.getById(split.transactionId)
-                            val parentNote = parentTx?.note ?: "khoản chia tiền"
-                            
-                            val transaction = Transaction(
-                                id = 0L,
-                                amount = split.amount,
-                                type = com.notepay.domain.model.TransactionType.INCOME,
-                                category = com.notepay.domain.model.Category.DEFAULT_INCOME,
-                                note = "$matchedDebtor trả tiền: $parentNote",
-                                occurredAt = Clock.System.now(),
-                                walletId = walletToUse.id,
-                                isAutoCapture = true,
-                            )
-                            addTransaction(transaction)
+                        // Group splits by transactionId to avoid concurrent read/write race conditions
+                        val splitsByTx = debtorSplits.groupBy { it.transactionId }
+
+                        splitsByTx.forEach { (transactionId, splits) ->
+                            splits.forEach { split ->
+                                billSplitRepository.markAsPaid(split.id, Clock.System.now())
+                            }
+
+                            val parentTx = transactionRepository.getById(transactionId)
+                            if (parentTx != null) {
+                                var currentAmountCents = parentTx.amount.amountInCents
+                                var currentNote = parentTx.note
+
+                                splits.forEach { split ->
+                                    currentAmountCents = (currentAmountCents - split.amount.amountInCents).coerceAtLeast(0L)
+                                    val paidNote = "$matchedDebtor trả ${com.notepay.ui.util.MoneyFormatter.format(split.amount)}"
+                                    currentNote = if (currentNote.contains(" trả ")) {
+                                        "$currentNote, $paidNote"
+                                    } else {
+                                        "$currentNote ($paidNote)"
+                                    }.take(Transaction.MAX_NOTE_LENGTH)
+                                }
+
+                                val updatedParentTx = parentTx.copy(
+                                    amount = Money(currentAmountCents),
+                                    note = currentNote
+                                )
+                                transactionRepository.upsert(updatedParentTx)
+                            }
                         }
                         
                         val totalCents = debtorSplits.sumOf { it.amount.amountInCents }

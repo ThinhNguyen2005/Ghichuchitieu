@@ -60,11 +60,35 @@ fun DayDetailDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                "${date.dayOfMonth}/${date.monthNumber}/${date.year}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
+            // P2-13: title có "Thứ X," phía trước + subtitle tương đối.
+            val weekday = when (date.dayOfWeek.ordinal) {
+                0 -> "Thứ 2"
+                1 -> "Thứ 3"
+                2 -> "Thứ 4"
+                3 -> "Thứ 5"
+                4 -> "Thứ 6"
+                5 -> "Thứ 7"
+                6 -> "Chủ nhật"
+                else -> ""
+            }
+            val diffDays = date.toEpochDays().toLong() - today.toEpochDays().toLong()
+            val relative = when {
+                diffDays == 0L -> "Hôm nay"
+                diffDays > 0L -> "Còn $diffDays ngày nữa"
+                else -> "${-diffDays} ngày trước"
+            }
+            Column {
+                Text(
+                    text = "$weekday, ${date.dayOfMonth}/${date.monthNumber}/${date.year}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = relative,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         },
         text = {
             Column(

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -106,6 +107,7 @@ fun AddSubscriptionBottomSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.End,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -119,16 +121,26 @@ fun AddSubscriptionBottomSheet(
                 }
             }
 
-            // Quick-pick từ giao dịch gần đây
+            // P1-8: chuyển từ OutlinedButton full-width thành text link nhỏ
+            // đặt phía trên OutlinedTextField tên, gọn hơn và đúng vai trò "gợi ý".
             if (recentTransactions.isNotEmpty()) {
-                OutlinedButton(
+                TextButton(
                     onClick = { showRecentTxSheet = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.align(Alignment.End),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    Icon(Icons.Rounded.History, contentDescription = null)
-                    Spacer(Modifier.size(6.dp))
-                    Text("Chọn từ giao dịch gần đây")
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        text = "Chọn từ giao dịch gần đây",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 

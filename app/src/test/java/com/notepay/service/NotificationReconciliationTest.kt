@@ -127,7 +127,7 @@ class NotificationReconciliationTest {
     }
 
     @Test
-    fun `reconciliation - income notification matching memoCode inserts INCOME transaction`() = runTest {
+    fun `reconciliation - income notification matching memoCode reduces parent transaction amount`() = runTest {
         // Given: thông báo nhận tiền +20.000đ với nội dung "NP15 BAN A"
         every { billSplitRepository.observeUnpaid() } returns flowOf(listOf(unpaidSplitBanA))
         coEvery { transactionRepository.getById(15L) } returns parentTransaction
@@ -143,11 +143,11 @@ class NotificationReconciliationTest {
 
         service.onNotificationPosted(sbn)
 
-        // Xác minh giao dịch INCOME được tạo với đúng số tiền
-        assertThat(capturedTx.captured.type).isEqualTo(TransactionType.INCOME)
-        assertThat(capturedTx.captured.amount).isEqualTo(unpaidSplitBanA.amount)
-        assertThat(capturedTx.captured.walletId).isEqualTo(tpBankWallet.id)
-        assertThat(capturedTx.captured.note).contains(unpaidSplitBanA.debtorName)
+        // Xác minh giao dịch gốc được cập nhật với số tiền giảm trừ
+        assertThat(capturedTx.captured.id).isEqualTo(parentTransaction.id)
+        assertThat(capturedTx.captured.amount).isEqualTo(Money(70_000_00L)) // 90k - 20k = 70k
+        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(unpaidSplitBanA.amount)})"
+        assertThat(capturedTx.captured.note).isEqualTo(expectedNote)
     }
 
     @Test
@@ -258,6 +258,9 @@ class NotificationReconciliationTest {
         every { billSplitRepository.observeUnpaid() } returns flowOf(listOf(split1, split2))
         coEvery { transactionRepository.getById(any()) } returns parentTransaction
 
+        val capturedTx = slot<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTx)) } returns 100L
+
         val sbn = buildIncomeNotification(
             packageName = "com.tpbank",
             amountStr = "+50,000",
@@ -269,6 +272,12 @@ class NotificationReconciliationTest {
         // Verify both splits marked as paid
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(10L, any()) }
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(20L, any()) }
+
+        // Verify parent transaction amount was reduced
+        assertThat(capturedTx.captured.id).isEqualTo(parentTransaction.id)
+        assertThat(capturedTx.captured.amount).isEqualTo(Money(40_000_00L)) // 90k - 20k - 30k = 40k
+        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split1.amount)}), Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split2.amount)}"
+        assertThat(capturedTx.captured.note).isEqualTo(expectedNote)
     }
 
 

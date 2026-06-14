@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -129,6 +131,7 @@ private fun CalendarCell(
 ) {
     val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val isToday = day.date == today
+    val hasData = !day.totalExpense.isZero() || !day.totalIncome.isZero()
 
     val backgroundColor = when {
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -144,12 +147,16 @@ private fun CalendarCell(
         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
     }
 
+    // P0-2: Box ngoài dùng clickable với ripple mặc định (bỏ indication = null)
+    // để user thấy rõ "bấm được". Bỏ Box rỗng chồng lên nhau gây lỗi 4 góc.
     Box(
         modifier = modifier
             .background(backgroundColor)
             .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-            .padding(4.dp)
-            .let { if (day.isCurrentMonth) it.then(Modifier).also { _ -> } else it },
+            .let { base ->
+                if (day.isCurrentMonth) base.clickable(onClick = onClick) else base
+            }
+            .padding(4.dp),
     ) {
         Text(
             text = day.date.dayOfMonth.toString(),
@@ -165,7 +172,7 @@ private fun CalendarCell(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(2.dp)
-                        .background(Color(0xFFFFCDD2), androidx.compose.foundation.shape.CircleShape)
+                        .background(Color(0xFFFFCDD2), CircleShape)
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
                     Text(
@@ -175,6 +182,22 @@ private fun CalendarCell(
                         fontWeight = FontWeight.Bold,
                     )
                 }
+            }
+
+            // P0-2: chấm dot màu primary dưới số ngày khi có dữ liệu
+            // (giao dịch hoặc subscription highlight) — cho người dùng biết ô có nội dung.
+            if (hasData) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 4.dp, bottom = 4.dp)
+                        .size(5.dp)
+                        .background(
+                            color = if (isToday) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            shape = CircleShape,
+                        ),
+                )
             }
 
             if (!day.totalExpense.isZero() || !day.totalIncome.isZero()) {
@@ -203,25 +226,9 @@ private fun CalendarCell(
                     }
                 }
             }
-
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Color.Transparent)
-                    .border(0.dp, Color.Transparent)
-                    .clickableSimple(onClick),
-            )
         }
     }
 }
-
-@Composable
-private fun Modifier.clickableSimple(onClick: () -> Unit): Modifier =
-    this.clickable(
-        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-        indication = null,
-        onClick = onClick,
-    )
 
 private fun getCalendarDays(
     year: Int,

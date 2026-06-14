@@ -21,11 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SentimentSatisfied
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -58,7 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Subscription
-import com.notepay.ui.component.EmptyState
+import com.notepay.ui.component.ConfirmDeleteDialog
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.time.Clock
@@ -288,6 +291,7 @@ private fun CalendarTab(
  *  - Nút lọc dropdown bên phải chiếm 1/4.
  *  - Bộ lọc: Quá hạn / Sắp đến hạn / Đã hoàn thành / Tất cả.
  *  - Tìm kiếm theo tên nhắc nhở (không phân biệt hoa thường).
+ *  - Trước khi xóa phải mở ConfirmDeleteDialog (P0-1).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -298,6 +302,7 @@ private fun ReminderListTab(
     var filter by remember { mutableStateOf(ReminderFilter.ALL) }
     var filterMenuExpanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<Subscription?>(null) }
 
     val now = Clock.System.now()
     val filtered = remember(subscriptions, filter, query) {
@@ -420,16 +425,40 @@ private fun ReminderListTab(
         }
 
         if (filtered.isEmpty()) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                val emptyMsg = when {
-                    query.isNotBlank() -> "Không có nhắc nhở nào khớp với \"$query\""
-                    filter == ReminderFilter.ALL -> "Chưa có nhắc nhở nào. Nhấn + để thêm gói đăng ký."
-                    filter == ReminderFilter.OVERDUE -> "Không có nhắc nhở nào quá hạn 🎉"
-                    filter == ReminderFilter.UPCOMING -> "Không có nhắc nhở nào sắp đến hạn"
-                    filter == ReminderFilter.COMPLETED -> "Chưa có nhắc nhở nào hoàn thành"
-                    else -> "Không có dữ liệu"
+            // P1-6: thống nhất dùng EmptyStateWithAction, bỏ emoji trong copy.
+            Box(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    query.isNotBlank() -> EmptyStateWithAction(
+                        icon = Icons.Rounded.Search,
+                        title = "Không tìm thấy",
+                        description = "Không có nhắc nhở nào khớp với \"$query\"",
+                    )
+                    filter == ReminderFilter.ALL -> EmptyStateWithAction(
+                        icon = Icons.Rounded.Notifications,
+                        title = "Chưa có nhắc nhở",
+                        description = "Thêm gói đăng ký để được nhắc trước khi đến hạn.",
+                        actionLabel = "Thêm nhắc nhở",
+                        onClick = { /* mở AddSubscriptionBottomSheet qua FAB ở trang cha */ },
+                    )
+                    filter == ReminderFilter.OVERDUE -> EmptyStateWithAction(
+                        icon = Icons.Rounded.SentimentSatisfied,
+                        title = "Không có khoản quá hạn",
+                        description = "Tất cả nhắc nhở đều còn hạn. Tuyệt vời!",
+                    )
+                    filter == ReminderFilter.UPCOMING -> EmptyStateWithAction(
+                        icon = Icons.Rounded.CalendarMonth,
+                        title = "Chưa có nhắc nhở sắp đến hạn",
+                        description = "Các nhắc nhở sẽ hiện ở đây khi gần đến ngày hết hạn.",
+                    )
+                    filter == ReminderFilter.COMPLETED -> EmptyStateWithAction(
+                        icon = Icons.Rounded.CheckCircle,
+                        title = "Chưa hoàn thành nhắc nhở nào",
+                        description = "Khi bạn đánh dấu hoàn thành, chúng sẽ xuất hiện tại đây.",
+                    )
                 }
-                EmptyState(emptyMsg)
             }
         } else {
             LazyColumn(
@@ -440,12 +469,22 @@ private fun ReminderListTab(
                 items(filtered, key = { it.id }) { sub ->
                     SubscriptionCard(
                         subscription = sub,
-                        onDelete = { onDelete(sub) },
+                        onDelete = { pendingDelete = sub },
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) }
             }
         }
+    }
+
+    pendingDelete?.let { sub ->
+        ConfirmDeleteDialog(
+            title = "Xóa nhắc nhở?",
+            itemName = sub.name,
+            message = "Nhắc nhở \"${sub.name}\" sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+            onConfirm = { onDelete(sub) },
+            onDismiss = { pendingDelete = null },
+        )
     }
 }
 

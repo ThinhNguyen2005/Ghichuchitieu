@@ -16,3 +16,6 @@ local.properties
 /.agent
 /.codegraph
 /.cursor
+/build_test.log
+/build_log2.txt
+/build_log.txt

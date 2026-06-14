@@ -1,7 +1,5 @@
 package com.notepay.ui.feature.list
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -20,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AssistChip
@@ -36,11 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,11 +50,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
+import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.DayDetailDialog
 import com.notepay.ui.component.EmptyState
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.TransactionItem
-import kotlinx.coroutines.delay
+import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +69,8 @@ fun TransactionListScreen(
 
     // Ngày được tap trên bảng lịch -> dùng để mở DayDetailDialog
     var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
+    // Lưu giao dịch đang chờ xác nhận xóa (khi user nhấn icon Delete trên card).
+    var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(state.pendingUndoTransaction) {
         val transaction = state.pendingUndoTransaction ?: return@LaunchedEffect
@@ -133,6 +129,16 @@ fun TransactionListScreen(
             onDismiss = { selectedDay = null },
         )
     }
+
+    pendingDeleteTransaction?.let { tx ->
+        ConfirmDeleteDialog(
+            title = "Xóa giao dịch?",
+            itemName = "${tx.note.ifBlank { tx.category.displayName }} • ${MoneyFormatter.format(tx.amount)}",
+            message = "Giao dịch sẽ bị xóa vĩnh viễn. Bạn có thể khôi phục từ thông báo \"Hoàn tác\" sau khi xóa.",
+            onConfirm = { viewModel.delete(tx) },
+            onDismiss = { pendingDeleteTransaction = null },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -183,22 +189,16 @@ private fun TransactionListContent(
                 state.isLoading -> item { LoadingState() }
                 state.isEmpty -> item { EmptyState("Chưa có giao dịch phù hợp. Thêm khoản chi đầu tiên để bắt đầu theo dõi dòng tiền.") }
                 else -> items(state.transactions, key = { it.id }) { transaction ->
-                    // Mỗi card được wrap trong Box có height nội bộ xác định
-                    // + padding dưới 10dp để tạo khoảng cách giữa các item
-                    // mà KHÔNG dùng Arrangement.spacedBy (gây hiệu ứng
-                    // "chồng" khi item bị xóa và item dưới snap lên).
-                    Box(
+                    // Hiển thị TransactionItem trực tiếp — bỏ SwipeToDismissBox.
+                    // Nhấn icon Delete trên card sẽ mở ConfirmDeleteDialog xác nhận.
+                    TransactionItem(
+                        transaction = transaction,
+                        onClick = { onTransactionClick(transaction.id) },
+                        onDelete = { onDelete(transaction) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 10.dp)
-                            .animateItem(),
-                    ) {
-                        SwipeableTransactionRow(
-                            transaction = transaction,
-                            onClick = { onTransactionClick(transaction.id) },
-                            onSwipeDelete = { onDelete(transaction) },
-                        )
-                    }
+                            .padding(bottom = 10.dp),
+                    )
                 }
             }
 
@@ -257,94 +257,13 @@ private fun ModernSearchBar(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-            focusedBorderColor = Color.Transparent,
+            // P2-12: khi focus, đổi sang primary.copy(alpha=0.5f) để có affordance rõ ràng,
+            // tránh cảm giác border biến mất khi nhấn vào.
+            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             unfocusedBorderColor = Color.Transparent,
             disabledBorderColor = Color.Transparent,
         ),
     )
-}
-
-/**
- * Một dòng giao dịch có thể vuốt sang trái để xóa.
- *
- * Hành vi:
- *  - Vuốt sang trái tới giữa thì snap-back về vị trí ban đầu.
- *  - Vuốt quá ngưỡng rồi **thả tay** mới xóa (không xóa khi đang giữ tay
- *    kéo qua ngưỡng).
- *  - Khi xóa, item được giữ nguyên trong layout 220ms để animation snap-out
- *    của SwipeToDismissBox chạy trọn vẹn, tránh hiện tượng "chồng" với
- *    item phía dưới.
- *  - Background xóa bo cùng góc với card nội bộ để 4 góc phẳng theo viền.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SwipeableTransactionRow(
-    transaction: Transaction,
-    onClick: () -> Unit,
-    onSwipeDelete: () -> Unit,
-) {
-    val cardShape = RoundedCornerShape(16.dp)
-    // confirmValueChange luôn trả false để KHÔNG commit ngay khi kéo qua
-    // ngưỡng. Ta sẽ tự phát hiện "đã thả tay và settled ở EndToStart"
-    // bằng LaunchedEffect phía dưới.
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { _ -> false },
-    )
-
-    // Phát hiện user đã thả tay và settled ở EndToStart thì mới gọi xóa.
-    // Khi đó currentValue == targetValue == EndToStart, không phải
-    // Settled (vuốt không đủ xa) hay EndToStart đang trong quá trình snap.
-    LaunchedEffect(dismissState.currentValue, dismissState.targetValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart &&
-            dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
-        ) {
-            // Delay nhỏ để animation snap-out chạy trọn vẹn trước khi
-            // thật sự gỡ item khỏi danh sách — tránh các item phía dưới
-            // "chồng" lên khi layout co lại quá nhanh.
-            delay(220)
-            onSwipeDelete()
-        }
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = true,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .clip(cardShape)
-                    .background(MaterialTheme.colorScheme.error)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = null,
-                        tint = Color.White,
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    Text("Xóa", color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        },
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .clip(cardShape)
-                .background(MaterialTheme.colorScheme.background),
-        ) {
-            TransactionItem(
-                transaction = transaction,
-                onClick = onClick
-            )
-        }
-    }
 }
 
 @Composable

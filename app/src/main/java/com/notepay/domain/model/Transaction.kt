@@ -25,7 +25,7 @@ data class Transaction(
     val createdAt: Instant = Clock.System.now(),
 ) {
     init {
-        require(!amount.isZero()) { "Transaction amount must not be zero" }
+        require(amount.amountInCents >= 0L) { "Transaction amount must be positive or zero" }
         require(note.length <= MAX_NOTE_LENGTH) {
             "Note too long: ${note.length} > $MAX_NOTE_LENGTH"
         }

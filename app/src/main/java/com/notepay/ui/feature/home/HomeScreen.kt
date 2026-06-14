@@ -37,6 +37,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.BalanceCard
 import com.notepay.ui.component.EmptyState
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.KpiRow
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.theme.NotePayTheme
@@ -130,13 +131,32 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                BalanceCard(
-                    walletName = state.activeWallet?.name ?: "—",
-                    balance = state.currentBalance,
-                    onClick = { showWalletSwitcher = true },
-                    budgetLimit = state.activeWallet?.budgetLimit,
-                    monthlyExpense = state.monthlyExpense,
-                )
+                // P2-10: khi chưa có ví, hiển thị EmptyStateWithAction thay cho BalanceCard trống.
+                if (state.wallets.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ),
+                    ) {
+                        EmptyStateWithAction(
+                            icon = Icons.Rounded.AccountBalanceWallet,
+                            title = "Chưa có ví nào",
+                            description = "Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.",
+                            actionLabel = "Tạo ví",
+                            onClick = { showWalletSwitcher = true },
+                        )
+                    }
+                } else {
+                    BalanceCard(
+                        walletName = state.activeWallet?.name ?: "—",
+                        balance = state.currentBalance,
+                        onClick = { showWalletSwitcher = true },
+                        budgetLimit = state.activeWallet?.budgetLimit,
+                        monthlyExpense = state.monthlyExpense,
+                    )
+                }
             }
             if (!isListenerEnabled) {
                 item {
@@ -207,14 +227,19 @@ fun HomeScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Column(modifier = Modifier.weight(1f)) {
+                                // P1-7: gộp 2 dòng thành 1 dòng + 1 dòng nhỏ dưới
+                                // để banner gọn lại, tránh chiếm quá nhiều không gian.
                                 Text(
                                     text = "Đang tự động ghi chép",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
                                 )
                                 Text(
-                                    text = "NotePay đã sẵn sàng đọc thông báo giao dịch.",
-                                    style = MaterialTheme.typography.bodySmall
+                                    text = "Sẵn sàng đọc thông báo giao dịch.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
                                 )
                             }
                             TextButton(

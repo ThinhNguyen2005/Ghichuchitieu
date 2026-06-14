@@ -77,9 +77,9 @@ class DatabaseMigrationTest {
         dbV1.execSQL("PRAGMA user_version = 1")
         dbV1.close()
 
-        // Bước 2: Dùng Room mở database với version 3 và các Migration
+        // Bước 2: Dùng Room mở database với version 4 và các Migration
         val dbV3 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration.db")
-            .addMigrations(NotePayDatabase.MIGRATION_1_2, NotePayDatabase.MIGRATION_2_3)
+            .addMigrations(NotePayDatabase.MIGRATION_1_2, NotePayDatabase.MIGRATION_2_3, NotePayDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
 
@@ -168,9 +168,9 @@ class DatabaseMigrationTest {
         dbV2.execSQL("PRAGMA user_version = 2")
         dbV2.close()
 
-        // Mở database bằng Room với version 3 và MIGRATION_2_3
+        // Mở database bằng Room với version 4 và các Migration
         val dbV3 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_2_3.db")
-            .addMigrations(NotePayDatabase.MIGRATION_2_3)
+            .addMigrations(NotePayDatabase.MIGRATION_2_3, NotePayDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
 

@@ -74,6 +74,7 @@ import androidx.compose.ui.res.painterResource
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.feature.wallet.SupportedBank
 import com.notepay.ui.util.MoneyFormatter
@@ -108,6 +109,7 @@ fun DebtorDetailScreen(
 
     val activeWallet = state.activeWallet
     var qrConfigWalletId by remember { mutableStateOf<Long?>(null) }
+    var pendingDeleteBill by remember { mutableStateOf<BillSplitItemState?>(null) }
 
     val qrConfigWallet = qrConfigWalletId?.let { id ->
         state.wallets.find { it.id == id }
@@ -149,7 +151,8 @@ fun DebtorDetailScreen(
             if (debtorSplits.isNotEmpty()) {
                 Surface(
                     tonalElevation = 3.dp,
-                    shadowElevation = 8.dp,
+                    // P2-9: giảm shadowElevation 8dp → 1dp cho gọn, tránh cảm giác nặng nề.
+                    shadowElevation = 1.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
@@ -357,7 +360,7 @@ fun DebtorDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            IconButton(onClick = { viewModel.deleteBillSplit(item.split.id) }) {
+                            IconButton(onClick = { pendingDeleteBill = item }) {
                                 Icon(Icons.Rounded.Delete, contentDescription = "Xóa nợ lẻ", tint = MaterialTheme.colorScheme.outline)
                             }
                         }
@@ -377,6 +380,16 @@ fun DebtorDetailScreen(
                 qrConfigWalletId = null
                 Toast.makeText(context, "Đã cấu hình VietQR thành công!", Toast.LENGTH_SHORT).show()
             }
+        )
+    }
+
+    pendingDeleteBill?.let { item ->
+        ConfirmDeleteDialog(
+            title = "Xóa khoản nợ?",
+            itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
+            message = "Khoản nợ lẻ này sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+            onConfirm = { viewModel.deleteBillSplit(item.split.id) },
+            onDismiss = { pendingDeleteBill = null },
         )
     }
 }

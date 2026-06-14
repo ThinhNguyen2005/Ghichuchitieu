@@ -51,9 +51,15 @@ private fun KpiCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            // P2-11: dùng surfaceContainerLow + tonalElevation 1dp cho tương phản tốt hơn,
+            // hài hòa với BalanceCard & các card khác trên màn hình chính.
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp,
         ),
     ) {
+        // Bổ sung tonalElevation 1dp ở outer Box (nếu cần) — ở đây Card đã đủ.
         Column(Modifier.padding(16.dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge)
             Text(

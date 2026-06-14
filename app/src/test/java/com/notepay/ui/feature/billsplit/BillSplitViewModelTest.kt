@@ -122,7 +122,7 @@ class BillSplitViewModelTest {
     }
 
     @Test
-    fun `markAsPaidManually marks paid and records income`() = runTest {
+    fun `markAsPaidManually marks paid and reduces parent transaction amount`() = runTest {
         val billSplitRepository = FakeBillSplitRepository(listOf(unpaidSplit))
         val transactionRepository = FakeTransactionRepository(listOf(parentTx))
         val viewModel = createViewModel(
@@ -137,17 +137,18 @@ class BillSplitViewModelTest {
         // Verify split is marked paid
         assertThat(billSplitRepository.markedPaidIds).containsExactly(10L)
 
-        // Verify income transaction was added
-        assertThat(transactionRepository.savedTransactions).hasSize(2) // parentTx + incomeTx
-        val income = transactionRepository.savedTransactions.last()
-        assertThat(income.type).isEqualTo(TransactionType.INCOME)
-        assertThat(income.amount).isEqualTo(unpaidSplit.amount)
-        assertThat(income.note).isEqualTo("Ban A trả tiền: Ăn tối")
-        assertThat(income.walletId).isEqualTo(parentTx.walletId)
+        // Verify parent transaction amount was reduced and note updated, no new INCOME transaction added
+        assertThat(transactionRepository.savedTransactions).hasSize(2)
+        val updatedTx = transactionRepository.savedTransactions.last()
+        assertThat(updatedTx.id).isEqualTo(parentTx.id)
+        assertThat(updatedTx.amount).isEqualTo(Money(70_000_00L))
+        val expectedNote = "Ăn tối (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(unpaidSplit.amount)})"
+        assertThat(updatedTx.note).isEqualTo(expectedNote)
+        assertThat(transactionRepository.savedTransactions.filter { it.type == TransactionType.INCOME }).isEmpty()
     }
 
     @Test
-    fun `markDebtorAsPaid marks all specified splits as paid and records income for each`() = runTest {
+    fun `markDebtorAsPaid marks all specified splits as paid and reduces parent transaction amount`() = runTest {
         val split1 = unpaidSplit.copy(id = 10L, amount = Money(20_000_00L))
         val split2 = unpaidSplit.copy(id = 20L, amount = Money(30_000_00L))
         val billSplitRepository = FakeBillSplitRepository(listOf(split1, split2))
@@ -164,13 +165,14 @@ class BillSplitViewModelTest {
         // Verify both marked paid
         assertThat(billSplitRepository.markedPaidIds).containsExactly(10L, 20L)
 
-        // Verify income transactions added
-        val saved = transactionRepository.savedTransactions.filter { it.type == TransactionType.INCOME }
-        assertThat(saved).hasSize(2)
-        assertThat(saved[0].amount).isEqualTo(Money(20_000_00L))
-        assertThat(saved[0].note).isEqualTo("Ban A trả tiền: Ăn tối")
-        assertThat(saved[1].amount).isEqualTo(Money(30_000_00L))
-        assertThat(saved[1].note).isEqualTo("Ban A trả tiền: Ăn tối")
+        // Verify parent transaction amount was reduced and note updated, no new INCOME transaction added
+        assertThat(transactionRepository.savedTransactions).hasSize(2)
+        val updatedTx = transactionRepository.savedTransactions.last()
+        assertThat(updatedTx.id).isEqualTo(parentTx.id)
+        assertThat(updatedTx.amount).isEqualTo(Money(40_000_00L)) // 90k - 20k - 30k = 40k
+        val expectedNote = "Ăn tối (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split1.amount)}), Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split2.amount)}"
+        assertThat(updatedTx.note).isEqualTo(expectedNote)
+        assertThat(transactionRepository.savedTransactions.filter { it.type == TransactionType.INCOME }).isEmpty()
     }
 
     private fun createViewModel(

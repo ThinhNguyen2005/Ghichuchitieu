@@ -14,9 +14,9 @@ class TransactionTest {
     }
 
     @Test
-    fun `zero amount throws at construction`() {
+    fun `negative amount throws at construction`() {
         assertFailsWith<IllegalArgumentException> {
-            TestTransactionFactory.expense(amount = Money.ZERO)
+            TestTransactionFactory.expense(amount = Money(-50_000_00L))
         }
     }
 

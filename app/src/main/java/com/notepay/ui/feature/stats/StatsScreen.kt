@@ -87,7 +87,11 @@ fun StatsScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
-                        IconButton(onClick = viewModel::onNextMonth) {
+                        // P2-15: disable "Tháng sau" khi đang ở tháng hiện tại.
+                        IconButton(
+                            onClick = viewModel::onNextMonth,
+                            enabled = !state.isCurrentMonth,
+                        ) {
                             Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau")
                         }
                     }

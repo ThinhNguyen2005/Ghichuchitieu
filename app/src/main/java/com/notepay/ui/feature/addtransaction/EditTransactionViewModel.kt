@@ -15,8 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.toInstant
 import javax.inject.Inject
 
 data class EditTransactionUiState(
@@ -27,6 +31,8 @@ data class EditTransactionUiState(
     val category: Category = Category.DEFAULT_EXPENSE,
     val note: String = "",
     val dateLabel: String = "",
+    // P2-14: lưu LocalDate để mở DatePicker chỉnh ngày.
+    val date: LocalDate? = null,
     val isSaving: Boolean = false,
     val savedSuccessfully: Boolean = false,
     val error: String? = null,
@@ -59,8 +65,8 @@ class EditTransactionViewModel @Inject constructor(
             }
 
             originalTransaction = tx
-            val dateStr = tx.occurredAt
-                .toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+            val localDateTime = tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault())
+            val dateStr = localDateTime.date.toString()
 
             _state.update {
                 it.copy(
@@ -71,6 +77,7 @@ class EditTransactionViewModel @Inject constructor(
                     category = tx.category,
                     note = tx.note,
                     dateLabel = dateStr,
+                    date = localDateTime.date,
                     availableCategories = initialCategories,
                 )
             }
@@ -97,6 +104,12 @@ class EditTransactionViewModel @Inject constructor(
 
     fun onCategoryChanged(category: Category) {
         _state.update { it.copy(category = category) }
+    }
+
+    /** P2-14: cập nhật ngày từ DatePicker. */
+    fun onDateChanged(date: LocalDate) {
+        if (_state.value.isAutoCapture) return
+        _state.update { it.copy(date = date, dateLabel = date.toString()) }
     }
 
     /** Tạo danh mục tùy biến mới từ grid của màn chỉnh sửa, đồng thời chọn luôn. */
@@ -135,10 +148,22 @@ class EditTransactionViewModel @Inject constructor(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             try {
+                // P2-14: nếu user đổi ngày thì cập nhật occurredAt (giữ nguyên giờ cũ).
+                val newDate = current.date
+                val newOccurredAt: kotlinx.datetime.Instant = if (newDate != null) {
+                    val oldLocal = tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault())
+                    LocalDateTime(
+                        date = LocalDate(newDate.year, newDate.monthNumber, newDate.dayOfMonth),
+                        time = LocalTime(oldLocal.hour, oldLocal.minute, oldLocal.second, oldLocal.nanosecond),
+                    ).toInstant(TimeZone.currentSystemDefault())
+                } else {
+                    tx.occurredAt
+                }
                 val updated = tx.copy(
                     amount = Money(cents),
                     category = current.category,
                     note = if (current.isAutoCapture) tx.note else current.note,
+                    occurredAt = newOccurredAt,
                 )
                 transactionRepository.upsert(updated)
                 _state.update { it.copy(isSaving = false, savedSuccessfully = true) }

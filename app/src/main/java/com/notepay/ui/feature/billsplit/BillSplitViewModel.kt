@@ -109,19 +109,23 @@ class BillSplitViewModel @Inject constructor(
             // 1. Đánh dấu đã trả trong DB
             billSplitRepository.markAsPaid(splitId, Clock.System.now())
 
-            // 2. Lấy ví và giao dịch gốc để ghi nhận khoản thu nhập
+            // 2. Lấy giao dịch gốc và giảm trừ số tiền nợ
             val parentTx = transactionRepository.getById(split.transactionId) ?: return@launch
+            val newAmountCents = (parentTx.amount.amountInCents - split.amount.amountInCents).coerceAtLeast(0L)
             
-            val incomeTx = Transaction(
-                id = 0L,
-                amount = split.amount,
-                type = TransactionType.INCOME,
-                category = com.notepay.domain.model.Category.DEFAULT_INCOME,
-                note = "${split.debtorName} trả tiền: ${parentTx.note}",
-                occurredAt = Clock.System.now(),
-                walletId = parentTx.walletId
+            // Cập nhật note để lưu vết thanh toán
+            val paidNote = "${split.debtorName} trả ${com.notepay.ui.util.MoneyFormatter.format(split.amount)}"
+            val newNote = if (parentTx.note.contains(" trả ")) {
+                "${parentTx.note}, $paidNote"
+            } else {
+                "${parentTx.note} ($paidNote)"
+            }.take(Transaction.MAX_NOTE_LENGTH)
+
+            val updatedParentTx = parentTx.copy(
+                amount = Money(newAmountCents),
+                note = newNote
             )
-            addTransaction(incomeTx)
+            transactionRepository.upsert(updatedParentTx)
         }
     }
 
@@ -157,26 +161,40 @@ class BillSplitViewModel @Inject constructor(
      */
     fun markDebtorAsPaid(debtorName: String, splitIds: List<Long>) {
         viewModelScope.launch {
-            splitIds.forEach { splitId ->
-                val split = billSplitRepository.getById(splitId) ?: return@forEach
-                if (split.isPaid) return@forEach
+            // Group splits by transactionId to avoid concurrent read/write race conditions
+            val splitsToProcess = splitIds.mapNotNull { splitId ->
+                val split = billSplitRepository.getById(splitId)
+                if (split != null && !split.isPaid) split else null
+            }
 
-                // 1. Đánh dấu đã trả trong DB
-                billSplitRepository.markAsPaid(splitId, Clock.System.now())
+            val splitsByTx = splitsToProcess.groupBy { it.transactionId }
 
-                // 2. Lấy giao dịch gốc để ghi nhận khoản thu nhập
-                val parentTx = transactionRepository.getById(split.transactionId) ?: return@forEach
-                
-                val incomeTx = Transaction(
-                    id = 0L,
-                    amount = split.amount,
-                    type = TransactionType.INCOME,
-                    category = com.notepay.domain.model.Category.DEFAULT_INCOME,
-                    note = "$debtorName trả tiền: ${parentTx.note}",
-                    occurredAt = Clock.System.now(),
-                    walletId = parentTx.walletId
+            splitsByTx.forEach { (transactionId, splits) ->
+                // Mark all as paid in repository
+                splits.forEach { split ->
+                    billSplitRepository.markAsPaid(split.id, Clock.System.now())
+                }
+
+                // Get parent transaction
+                val parentTx = transactionRepository.getById(transactionId) ?: return@forEach
+                var currentAmountCents = parentTx.amount.amountInCents
+                var currentNote = parentTx.note
+
+                splits.forEach { split ->
+                    currentAmountCents = (currentAmountCents - split.amount.amountInCents).coerceAtLeast(0L)
+                    val paidNote = "$debtorName trả ${com.notepay.ui.util.MoneyFormatter.format(split.amount)}"
+                    currentNote = if (currentNote.contains(" trả ")) {
+                        "$currentNote, $paidNote"
+                    } else {
+                        "$currentNote ($paidNote)"
+                    }.take(Transaction.MAX_NOTE_LENGTH)
+                }
+
+                val updatedParentTx = parentTx.copy(
+                    amount = Money(currentAmountCents),
+                    note = currentNote
                 )
-                addTransaction(incomeTx)
+                transactionRepository.upsert(updatedParentTx)
             }
         }
     }
