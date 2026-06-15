@@ -59,6 +59,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.categoryIcon
+import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import kotlinx.datetime.Instant
@@ -91,7 +92,7 @@ fun AddSubscriptionBottomSheet(
     val nextDueDate = remember(state.nextDueEpochMs) {
         Instant.fromEpochMilliseconds(state.nextDueEpochMs).toLocalDateTime(tz).date
     }
-    val nextDueLabel = "${nextDueDate.dayOfMonth}/${nextDueDate.monthNumber}/${nextDueDate.year}"
+    val nextDueLabel = "${nextDueDate.day}/${nextDueDate.month.ordinal + 1}/${nextDueDate.year}"
 
     val selectedCategory = remember(state.category) {
         Category.getAll().firstOrNull { it.id == state.category } ?: Category.OTHER
@@ -107,7 +108,7 @@ fun AddSubscriptionBottomSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.End,
+            horizontalAlignment = Alignment.Start,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -126,7 +127,7 @@ fun AddSubscriptionBottomSheet(
             if (recentTransactions.isNotEmpty()) {
                 TextButton(
                     onClick = { showRecentTxSheet = true },
-                    modifier = Modifier.align(Alignment.End),
+                    modifier = Modifier.align(Alignment.Start),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Icon(
@@ -147,7 +148,7 @@ fun AddSubscriptionBottomSheet(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = onNameChanged,
-                label = { Text("Tên dịch vụ (vd: Spotify)") },
+                label = { Text("Tên dịch vụ") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -174,20 +175,11 @@ fun AddSubscriptionBottomSheet(
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(selectedCategory.colorArgb).copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            categoryIcon(selectedCategory),
-                            contentDescription = null,
-                            tint = Color(selectedCategory.colorArgb),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
+                    CategoryAvatar(
+                        category = selectedCategory,
+                        size = 32.dp,
+                        iconSize = 16.dp,
+                    )
                     Spacer(Modifier.size(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -353,20 +345,11 @@ private fun CategoryPickerSheet(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color(category.colorArgb).copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            categoryIcon(category),
-                            contentDescription = null,
-                            tint = Color(category.colorArgb),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                    CategoryAvatar(
+                        category = category,
+                        size = 36.dp,
+                        iconSize = 18.dp,
+                    )
                     Spacer(Modifier.size(12.dp))
                     Text(
                         category.displayName,
@@ -435,20 +418,11 @@ private fun RecentTransactionsSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color(cat.colorArgb).copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                categoryIcon(cat),
-                                contentDescription = null,
-                                tint = Color(cat.colorArgb),
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
+                        CategoryAvatar(
+                            category = cat,
+                            size = 40.dp,
+                            iconSize = 20.dp,
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 tx.note.ifBlank { cat.displayName },

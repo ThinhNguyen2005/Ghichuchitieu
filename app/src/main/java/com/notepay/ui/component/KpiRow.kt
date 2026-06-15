@@ -3,18 +3,29 @@ package com.notepay.ui.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.TrendingDown
+import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Money
 import com.notepay.ui.util.MoneyFormatter
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun KpiRow(
@@ -30,13 +41,15 @@ fun KpiRow(
             modifier = Modifier.weight(1f),
             label = "Thu nhập",
             value = MoneyFormatter.format(income),
-            color = Color(0xFF2E7D32),
+            color = MaterialTheme.colorScheme.primary,
+            icon = Icons.Rounded.TrendingUp,
         )
         KpiCard(
             modifier = Modifier.weight(1f),
             label = "Chi tiêu",
             value = MoneyFormatter.format(expense),
-            color = Color(0xFFC62828),
+            color = MaterialTheme.colorScheme.error,
+            icon = Icons.Rounded.TrendingDown,
         )
     }
 }
@@ -46,25 +59,41 @@ private fun KpiCard(
     label: String,
     value: String,
     color: Color,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 92.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            // P2-11: dùng surfaceContainerLow + tonalElevation 1dp cho tương phản tốt hơn,
-            // hài hòa với BalanceCard & các card khác trên màn hình chính.
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp,
-        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        // Bổ sung tonalElevation 1dp ở outer Box (nếu cần) — ở đây Card đã đủ.
-        Column(Modifier.padding(16.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
             Text(
                 value,
                 style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = color,
             )
         }

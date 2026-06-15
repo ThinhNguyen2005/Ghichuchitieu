@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -19,6 +23,9 @@ class AddWalletViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(AddWalletUiState())
     val state = _state.asStateFlow()
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     fun onNameChanged(name: String) {
         _state.update { it.copy(name = name) }
@@ -60,7 +67,7 @@ class AddWalletViewModel @Inject constructor(
         _state.update { it.copy(accountName = accountName) }
     }
 
-    fun save(onSuccess: () -> Unit) {
+    fun save() {
         val current = _state.value
         if (!current.canSave) return
 
@@ -88,9 +95,12 @@ class AddWalletViewModel @Inject constructor(
                 )
 
                 walletRepository.upsert(wallet)
-                onSuccess()
+                _state.update { it.copy(isSaving = false, error = null) }
+                _feedback.emit(UiFeedback("Đã tạo ví", type = FeedbackType.Success))
             } catch (e: Exception) {
-                _state.update { it.copy(isSaving = false, error = e.message ?: "Không thể tạo ví") }
+                val message = "Không thể tạo ví"
+                _state.update { it.copy(isSaving = false, error = message) }
+                _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }
         }
     }

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Category
 import com.notepay.ui.component.categoryIcon
+import com.notepay.ui.component.CategoryAvatar
 
 /**
  * Lưới chọn danh mục 3 cột dùng chung cho cả AddTransaction và EditTransaction.
@@ -155,20 +156,11 @@ private fun CategoryChip(
             )
         },
         leadingIcon = {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color(category.colorArgb).copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    categoryIcon(category),
-                    contentDescription = null,
-                    tint = Color(category.colorArgb),
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            CategoryAvatar(
+                category = category,
+                size = 28.dp,
+                iconSize = 16.dp,
+            )
         },
         modifier = modifier.heightIn(min = 48.dp),
     )

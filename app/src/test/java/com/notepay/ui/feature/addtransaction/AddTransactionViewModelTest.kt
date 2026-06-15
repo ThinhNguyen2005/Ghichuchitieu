@@ -13,10 +13,16 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
+import io.mockk.mockk
+import io.mockk.every
+import com.notepay.domain.usecase.SuggestCategoryUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddTransactionViewModelTest {
@@ -83,7 +89,48 @@ class AddTransactionViewModelTest {
         viewModel.onEvent(AddTransactionEvent.Save)
 
         assertThat(viewModel.state.value.savedSuccessfully).isFalse()
-        assertThat(viewModel.state.value.saveErrorMessage).contains("db locked")
+        assertThat(viewModel.state.value.saveErrorMessage).contains("Không thể lưu giao dịch")
+    }
+
+    @Test
+    fun `save valid transaction emits success feedback`() = runTest {
+        val transactionRepository = FakeTransactionRepository(Result.success(7L))
+        val viewModel = createViewModel(
+            wallets = listOf(wallet),
+            activeWallet = wallet,
+            transactionRepository = transactionRepository,
+        )
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.onEvent(AddTransactionEvent.AmountChanged("50000"))
+        viewModel.onEvent(AddTransactionEvent.Save)
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Success }.message).isEqualTo("Đã lưu giao dịch")
+        job.cancel()
+    }
+
+    @Test
+    fun `save failure emits error feedback`() = runTest {
+        val viewModel = createViewModel(
+            wallets = listOf(wallet),
+            activeWallet = wallet,
+            transactionRepository = FakeTransactionRepository(Result.failure(IllegalStateException("db locked"))),
+        )
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.onEvent(AddTransactionEvent.AmountChanged("50000"))
+        viewModel.onEvent(AddTransactionEvent.Save)
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Error }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Error }.message).isEqualTo("Không thể lưu giao dịch")
+        job.cancel()
     }
 
     private fun createViewModel(
@@ -95,7 +142,10 @@ class AddTransactionViewModelTest {
         val walletRepository = FakeWalletRepository(wallets, activeWallet)
         val categoryRepository = FakeCategoryRepository()
         val useCase = AddTransactionUseCase(transactionRepository, walletRepository, dispatcher)
-        return AddTransactionViewModel(useCase, walletRepository, categoryRepository, dispatcher)
+        val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
+        every { suggestCategoryUseCase.suggest(any(), false) } returns Category.FOOD
+        every { suggestCategoryUseCase.suggest(any(), true) } returns Category.DEFAULT_INCOME
+        return AddTransactionViewModel(useCase, walletRepository, categoryRepository, suggestCategoryUseCase, dispatcher)
     }
 }
 

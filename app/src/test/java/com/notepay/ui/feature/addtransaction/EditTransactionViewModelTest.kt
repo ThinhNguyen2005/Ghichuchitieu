@@ -12,11 +12,16 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 import kotlin.time.Clock
+import io.mockk.mockk
+import com.notepay.domain.usecase.SuggestCategoryUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditTransactionViewModelTest {
@@ -118,16 +123,68 @@ class EditTransactionViewModelTest {
         assertThat(state.error).contains("Không tìm thấy giao dịch")
     }
 
+    @Test
+    fun `save edit successfully emits success feedback`() = runTest {
+        val transactionRepository = EditFakeTransactionRepository(listOf(sampleTx))
+        val viewModel = createViewModel(15L, transactionRepository)
+        testScheduler.advanceUntilIdle()
+
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.onAmountChanged("60000")
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Success }.message).isEqualTo("Đã cập nhật giao dịch")
+        job.cancel()
+    }
+
+    @Test
+    fun `save edit failure emits error feedback`() = runTest {
+        val transactionRepository = object : TransactionRepository {
+            val savedTransactions = mutableListOf(sampleTx)
+            override fun observeAll(): Flow<List<Transaction>> = flowOf(savedTransactions)
+            override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
+            override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
+            override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+            override suspend fun upsert(transaction: Transaction): Long {
+                throw IllegalStateException("db failed")
+            }
+            override suspend fun delete(id: Long) = Unit
+        }
+        val viewModel = createViewModel(15L, transactionRepository)
+        testScheduler.advanceUntilIdle()
+
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.onAmountChanged("60000")
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Error }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Error }.message).isEqualTo("Không thể cập nhật giao dịch")
+        job.cancel()
+    }
+
     private fun createViewModel(
         txId: Long,
         transactionRepository: TransactionRepository
     ): EditTransactionViewModel {
         val savedStateHandle = SavedStateHandle(mapOf("id" to txId))
         val categoryRepository = EditFakeCategoryRepository()
+        val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
         return EditTransactionViewModel(
             savedStateHandle = savedStateHandle,
             transactionRepository = transactionRepository,
-            categoryRepository = categoryRepository
+            categoryRepository = categoryRepository,
+            suggestCategoryUseCase = suggestCategoryUseCase
         )
     }
 }

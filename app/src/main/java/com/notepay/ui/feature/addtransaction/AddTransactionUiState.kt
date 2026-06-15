@@ -47,6 +47,10 @@ data class AddTransactionUiState(
     val savedSuccessfully: Boolean = false,
     /** Danh sách danh mục khả dụng gồm mặc định + tự tạo */
     val availableCategories: List<Category> = emptyList(),
+    /** Đánh dấu người dùng đã chủ động chọn danh mục bằng tay */
+    val isCategoryExplicitlySelected: Boolean = false,
+    /** Danh mục được gợi ý tự động thời gian thực */
+    val suggestedCategory: Category? = null,
 ) {
     /** Có thể lưu được không: amount > 0, có wallet, không có lỗi */
     val canSave: Boolean

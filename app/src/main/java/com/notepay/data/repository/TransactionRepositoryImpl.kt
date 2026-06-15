@@ -5,8 +5,10 @@ import com.notepay.data.mapper.TransactionMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.repository.CategoryRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -20,25 +22,26 @@ import javax.inject.Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
     private val mapper: TransactionMapper,
+    private val categoryRepository: CategoryRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) : TransactionRepository {
 
     override fun observeAll(): Flow<List<Transaction>> =
-        dao.observeAll()
-            .map { list -> list.map(mapper::toDomain) }
-            .flowOn(dispatcher)
+        combine(dao.observeAll(), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
 
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> {
         val (start, end) = monthRange(year, month)
-        return dao.observeByRange(start, end)
-            .map { list -> list.map(mapper::toDomain) }
-            .flowOn(dispatcher)
+        return combine(dao.observeByRange(start, end), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
     }
 
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> =
-        dao.observeByWallet(walletId)
-            .map { list -> list.map(mapper::toDomain) }
-            .flowOn(dispatcher)
+        combine(dao.observeByWallet(walletId), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
 
     override suspend fun getById(id: Long): Transaction? =
         dao.getById(id)?.let(mapper::toDomain)

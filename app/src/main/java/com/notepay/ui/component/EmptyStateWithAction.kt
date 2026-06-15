@@ -41,7 +41,7 @@ fun EmptyStateWithAction(
     description: String,
     modifier: Modifier = Modifier,
     iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconBackground: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    iconBackground: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
     actionLabel: String? = null,
     onClick: (() -> Unit)? = null,
 ) {

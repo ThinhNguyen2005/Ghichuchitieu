@@ -1,9 +1,10 @@
-﻿package com.notepay.ui.feature.stats
+package com.notepay.ui.feature.stats
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,13 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.PieChart
-import androidx.compose.material.icons.rounded.TrendingDown
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,7 +58,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.ui.geometry.Offset
+import kotlin.math.min
+import kotlin.math.sqrt
+import kotlin.math.atan2
 import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.util.MoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,7 +133,7 @@ fun StatsScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     EmptyStateWithAction(
-                        icon = Icons.Rounded.PieChart,
+                        icon = Icons.Outlined.PieChart,
                         title = "Chưa có dữ liệu thống kê",
                         description = "Thêm giao dịch thu/chi trong tháng này để xem biểu đồ cơ cấu chi tiêu và thu nhập.",
                         actionLabel = "Thêm giao dịch",
@@ -146,10 +159,12 @@ fun StatsScreen(
                         0 -> ExpenseBreakdownContent(
                             state = state,
                             onAddTransaction = onAddTransaction,
+                            onCategorySelected = viewModel::selectCategory,
                         )
                         1 -> IncomeBreakdownContent(
                             state = state,
                             onAddTransaction = onAddTransaction,
+                            onCategorySelected = viewModel::selectCategory,
                         )
                     }
                 }
@@ -162,11 +177,12 @@ fun StatsScreen(
 private fun ExpenseBreakdownContent(
     state: StatsUiState,
     onAddTransaction: () -> Unit = {},
+    onCategorySelected: (Category?) -> Unit,
 ) {
     if (state.breakdown.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyStateWithAction(
-                icon = Icons.Rounded.BarChart,
+                icon = Icons.Outlined.BarChart,
                 title = "Chưa có chi tiêu trong tháng này",
                 description = "Khi có giao dịch chi tiêu, biểu đồ cơ cấu chi tiêu theo danh mục sẽ hiển thị ở đây.",
                 actionLabel = "Thêm giao dịch",
@@ -175,10 +191,16 @@ private fun ExpenseBreakdownContent(
         }
         return
     }
+    val filteredTransactions = remember(state.transactions, state.selectedCategory) {
+        state.transactions.filter {
+            it.type == com.notepay.domain.model.TransactionType.EXPENSE && it.category == state.selectedCategory
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
         item {
@@ -206,21 +228,48 @@ private fun ExpenseBreakdownContent(
                         breakdown = state.breakdown,
                         totalExpense = state.totalExpense,
                         centerLabel = "Tổng chi tiêu",
+                        selectedCategory = state.selectedCategory,
+                        onCategorySelected = onCategorySelected,
                         modifier = Modifier.size(220.dp),
                     )
                 }
             }
         }
-        item {
-            Text(
-                text = "Chi tiết danh mục",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
-        items(state.breakdown, key = { it.category.name }) { item ->
-            CategoryBreakdownRow(item = item)
+        if (state.selectedCategory != null) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Giao dịch ${state.selectedCategory.displayName}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    IconButton(onClick = { onCategorySelected(null) }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Hủy lọc"
+                        )
+                    }
+                }
+            }
+            items(filteredTransactions, key = { it.id }) { tx ->
+                TransactionItem(transaction = tx, onClick = {})
+            }
+        } else {
+            item {
+                Text(
+                    text = "Chi tiết danh mục",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp),
+                )
+            }
+            items(state.breakdown, key = { it.category.name }) { item ->
+                CategoryBreakdownRow(item = item, onClick = { onCategorySelected(item.category) })
+            }
         }
     }
 }
@@ -229,11 +278,12 @@ private fun ExpenseBreakdownContent(
 private fun IncomeBreakdownContent(
     state: StatsUiState,
     onAddTransaction: () -> Unit = {},
+    onCategorySelected: (Category?) -> Unit,
 ) {
     if (state.incomeBreakdown.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyStateWithAction(
-                icon = Icons.Rounded.TrendingUp,
+                icon = Icons.AutoMirrored.Outlined.TrendingUp,
                 title = "Chưa có thu nhập trong tháng này",
                 description = "Khi có giao dịch thu nhập, biểu đồ cơ cấu thu nhập theo danh mục sẽ hiển thị ở đây.",
                 actionLabel = "Thêm giao dịch",
@@ -242,10 +292,16 @@ private fun IncomeBreakdownContent(
         }
         return
     }
+    val filteredTransactions = remember(state.transactions, state.selectedCategory) {
+        state.transactions.filter {
+            it.type == com.notepay.domain.model.TransactionType.INCOME && it.category == state.selectedCategory
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
         item {
@@ -273,21 +329,48 @@ private fun IncomeBreakdownContent(
                         breakdown = state.incomeBreakdown,
                         totalExpense = state.totalIncome,
                         centerLabel = "Tổng thu nhập",
+                        selectedCategory = state.selectedCategory,
+                        onCategorySelected = onCategorySelected,
                         modifier = Modifier.size(220.dp),
                     )
                 }
             }
         }
-        item {
-            Text(
-                text = "Chi tiết danh mục",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
-        items(state.incomeBreakdown, key = { it.category.name }) { item ->
-            CategoryBreakdownRow(item = item)
+        if (state.selectedCategory != null) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Giao dịch ${state.selectedCategory.displayName}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    IconButton(onClick = { onCategorySelected(null) }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Hủy lọc"
+                        )
+                    }
+                }
+            }
+            items(filteredTransactions, key = { it.id }) { tx ->
+                TransactionItem(transaction = tx, onClick = {})
+            }
+        } else {
+            item {
+                Text(
+                    text = "Chi tiết danh mục",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp),
+                )
+            }
+            items(state.incomeBreakdown, key = { it.category.name }) { item ->
+                CategoryBreakdownRow(item = item, onClick = { onCategorySelected(item.category) })
+            }
         }
     }
 }
@@ -314,7 +397,7 @@ private fun SummaryCards(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Rounded.TrendingUp,
+                        imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                         contentDescription = null,
                         tint = Color(0xFF2E7D32),
                         modifier = Modifier.size(18.dp),
@@ -347,7 +430,7 @@ private fun SummaryCards(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Rounded.TrendingDown,
+                        imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                         contentDescription = null,
                         tint = Color(0xFFC62828),
                         modifier = Modifier.size(18.dp),
@@ -375,9 +458,16 @@ private fun DonutChart(
     breakdown: List<CategoryBreakdownItem>,
     totalExpense: Money,
     centerLabel: String,
+    selectedCategory: Category?,
+    onCategorySelected: (Category?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val animationProgress = remember { Animatable(0f) }
+    val selectionProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (selectedCategory != null) 1f else 0f,
+        animationSpec = tween(durationMillis = 250),
+        label = "selection"
+    )
 
     LaunchedEffect(breakdown) {
         animationProgress.snapTo(0f)
@@ -388,18 +478,67 @@ private fun DonutChart(
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            var startAngle = -90f
-            val strokeWidth = 24.dp.toPx()
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(breakdown, selectedCategory) {
+                    detectTapGestures { offset ->
+                        val width = size.width
+                        val height = size.height
+                        val center = Offset(width / 2f, height / 2f)
+                        val dx = offset.x - center.x
+                        val dy = offset.y - center.y
+                        val distance = sqrt(dx * dx + dy * dy)
 
+                        val outerRadius = min(width, height) / 2f
+                        val strokeWidthPx = 24.dp.toPx()
+                        val tolerancePx = 30.dp.toPx() // Generous touch target padding
+
+                        if (distance >= (outerRadius - strokeWidthPx - tolerancePx) && distance <= (outerRadius + tolerancePx)) {
+                            val angleDeg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                            var normalizedAngle = angleDeg + 90f
+                            if (normalizedAngle < 0f) normalizedAngle += 360f
+
+                            var currentAngle = 0f
+                            var clickedCategory: Category? = null
+                            for (item in breakdown) {
+                                val sweepAngle = item.percentage * 360f
+                                if (normalizedAngle >= currentAngle && normalizedAngle <= currentAngle + sweepAngle) {
+                                    clickedCategory = item.category
+                                    break
+                                }
+                                currentAngle += sweepAngle
+                            }
+                            if (clickedCategory == selectedCategory) {
+                                onCategorySelected(null)
+                            } else {
+                                onCategorySelected(clickedCategory)
+                            }
+                        } else {
+                            onCategorySelected(null)
+                        }
+                    }
+                }
+        ) {
+            var startAngle = -90f
             breakdown.forEach { item ->
+                val isSelected = selectedCategory == item.category
+                val isAnySelected = selectedCategory != null
+                
+                val currentStrokeWidth = if (isSelected) {
+                    (24f + 8f * selectionProgress).dp.toPx()
+                } else {
+                    24.dp.toPx()
+                }
+                
+                val alpha = if (isAnySelected && !isSelected) 0.4f else 1f
                 val sweepAngle = item.percentage * 360f * animationProgress.value
                 drawArc(
-                    color = Color(item.category.colorArgb),
+                    color = Color(item.category.colorArgb).copy(alpha = alpha),
                     startAngle = startAngle,
                     sweepAngle = sweepAngle,
                     useCenter = false,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    style = Stroke(width = currentStrokeWidth, cap = StrokeCap.Round),
                 )
                 startAngle += item.percentage * 360f
             }
@@ -430,57 +569,70 @@ private fun DonutChart(
 @Composable
 private fun CategoryBreakdownRow(
     item: CategoryBreakdownItem,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(12.dp)
-                .background(Color(item.category.colorArgb), CircleShape)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = item.category.displayName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = MoneyFormatter.format(item.amount),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                LinearProgressIndicator(
-                    progress = { item.percentage },
-                    modifier = Modifier.weight(1f).height(6.dp),
-                    color = Color(item.category.colorArgb),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Round,
-                )
-                Text(
-                    text = "%.1f%%".format(item.percentage * 100f),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.width(36.dp),
-                    textAlign = TextAlign.End,
-                )
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CategoryAvatar(
+                category = item.category,
+                size = 40.dp,
+                iconSize = 18.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = item.category.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = MoneyFormatter.format(item.amount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LinearProgressIndicator(
+                        progress = { item.percentage },
+                        modifier = Modifier.weight(1f).height(6.dp),
+                        color = Color(item.category.colorArgb),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Round,
+                    )
+                    Text(
+                        text = "%.1f%%".format(item.percentage * 100f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.width(36.dp),
+                        textAlign = TextAlign.End,
+                    )
+                }
             }
         }
     }

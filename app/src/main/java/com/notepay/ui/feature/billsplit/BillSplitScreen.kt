@@ -1,8 +1,10 @@
 package com.notepay.ui.feature.billsplit
 
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -23,25 +26,34 @@ import androidx.compose.material.icons.rounded.CallReceived
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.notepay.ui.feedback.UiFeedback
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,18 +63,30 @@ import com.notepay.domain.model.Money
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyState
 import com.notepay.ui.util.MoneyFormatter
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun BillSplitScreen(
     onDebtorClick: (String) -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
+    navigationBarOffset: Float = 0f,
+    initialShowCreate: Boolean = false,
     viewModel: BillSplitViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    var selectedTab by remember { mutableStateOf(0) }
-    var showCreateDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        viewModel.feedback.collect { feedback ->
+            onFeedback(feedback)
+        }
+    }
+
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    var showCreateDialog by remember { mutableStateOf(initialShowCreate) }
     var qrConfigWalletId by remember { mutableStateOf<Long?>(null) }
     var pendingDeleteBill by remember { mutableStateOf<BillSplitItemState?>(null) }
 
@@ -81,28 +105,32 @@ fun BillSplitScreen(
                         },
                         enabled = state.activeWallet != null,
                     ) {
-                        Icon(Icons.Rounded.QrCode2, contentDescription = "Cấu hình VietQR")
+                        Icon(
+                            painter = painterResource(id = com.notepay.R.drawable.logo_vietqr),
+                            contentDescription = "Cấu hình VietQR",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showCreateDialog = true },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text("Chia hóa đơn") }
-            )
         }
     ) { padding ->
+        val layoutDirection = LocalLayoutDirection.current
+        val bottomPadding = padding.calculateBottomPadding() + 96.dp
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(
+                    start = padding.calculateStartPadding(layoutDirection),
+                    top = padding.calculateTopPadding(),
+                    end = padding.calculateEndPadding(layoutDirection)
+                )
         ) {
-            androidx.compose.material3.TabRow(selectedTabIndex = selectedTab) {
-                androidx.compose.material3.Tab(
+            PrimaryTabRow(selectedTabIndex = selectedTab) {
+                Tab(
                     selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    onClick = { viewModel.selectTab(0) },
                     text = {
                         val count = state.unpaidSplits.groupBy { it.split.debtorName }.size
                         if (count > 0) {
@@ -127,9 +155,9 @@ fun BillSplitScreen(
                         }
                     }
                 )
-                androidx.compose.material3.Tab(
+                Tab(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = { viewModel.selectTab(1) },
                     text = { Text("Đã thanh toán") }
                 )
             }
@@ -141,12 +169,20 @@ fun BillSplitScreen(
 
                 if (unpaidGroups.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        EmptyState(message = "Không có khoản nợ nào chờ thanh toán.")
+                        EmptyState(
+                            message = "Không có khoản nợ nào chờ thanh toán.",
+                            icon = Icons.Rounded.CallReceived
+                        )
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            start = 16.dp,
+                            top = 16.dp,
+                            end = 16.dp,
+                            bottom = bottomPadding
+                        ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(unpaidGroups.entries.toList(), key = { it.key }) { (debtorName, splits) ->
@@ -164,18 +200,26 @@ fun BillSplitScreen(
             } else {
                 if (state.paidSplits.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        EmptyState(message = "Chưa có khoản nợ nào được trả.")
+                        EmptyState(
+                            message = "Chưa có khoản nợ nào được trả.",
+                            icon = Icons.Rounded.CheckCircle
+                        )
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            start = 16.dp,
+                            top = 16.dp,
+                            end = 16.dp,
+                            bottom = bottomPadding
+                        ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(state.paidSplits, key = { it.split.id }) { item ->
+                        items(state.paidSplits, key = { item -> item.split.id }) { item ->
                             BillSplitItemRow(
                                 itemState = item,
-                                onClick = {},
+                                onClick = { onDebtorClick(item.split.debtorName) },
                                 onDelete = { pendingDeleteBill = item }
                             )
                         }
@@ -200,8 +244,15 @@ fun BillSplitScreen(
 
     // Modal Bottom Sheet tạo hóa đơn chia tiền (P0-3: thay cho AlertDialog lồng)
     if (showCreateDialog) {
+        val allDebtorNames = remember(state.unpaidSplits, state.paidSplits) {
+            (state.unpaidSplits.map { it.split.debtorName } + state.paidSplits.map { it.split.debtorName })
+                .distinct()
+                .filter { it.isNotBlank() }
+                .sorted()
+        }
         BillSplitCreateSheet(
             recentTransactions = state.recentTransactions,
+            allDebtorNames = allDebtorNames,
             onConfirm = { parentTxId, entries ->
                 viewModel.createBillSplits(parentTxId, entries)
                 showCreateDialog = false
@@ -234,7 +285,7 @@ private fun DebtorGroupRow(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
         ),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -280,6 +331,7 @@ private fun DebtorGroupRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BillSplitItemRow(
     itemState: BillSplitItemState,
@@ -291,87 +343,140 @@ private fun BillSplitItemRow(
     val amountStr = MoneyFormatter.format(split.amount)
     val note = parent?.note ?: "Hóa đơn chia tiền"
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+    if (split.isPaid) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onDelete
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        if (split.isPaid) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        else MaterialTheme.colorScheme.error.copy(alpha = 0.18f),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = if (split.isPaid) Icons.Rounded.CheckCircle else Icons.Rounded.CallReceived,
-                    contentDescription = null,
-                    tint = if (split.isPaid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (split.isPaid) "${split.debtorName} đã trả" else "${split.debtorName} nợ",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Gốc: $note",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (split.isPaid) {
-                    Text(
-                        text = "Mã: ${split.memoCode} (Đã trả)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else {
-                    Text(
-                        text = "Nội dung QR: ${split.memoCode}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFE8F5E9), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = "Success",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-            }
 
-            Column(horizontalAlignment = Alignment.End) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${split.debtorName} đã trả nợ",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gốc: $note • Trả: ${formatInstantDayMonth(split.paidAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
                 Text(
                     text = amountStr,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (split.isPaid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                // P1-5: padding(end = 4dp) tránh IconButton dính mép card,
-                // tăng touch-target trong vùng an toàn, tránh chạm nhầm.
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.padding(end = 4.dp),
+            }
+        }
+    } else {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onDelete
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = "Xóa",
-                        tint = MaterialTheme.colorScheme.outline
+                        imageVector = Icons.Rounded.CallReceived,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${split.debtorName} nợ",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gốc: $note • Mượn: ${formatInstantDayMonth(split.createdAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Text(
+                    text = amountStr,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
+}
+
+private fun formatInstantDayMonth(instant: kotlinx.datetime.Instant?): String {
+    if (instant == null) return ""
+    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
+    val localDateTime = instant.toLocalDateTime(tz)
+    val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
+    val month = localDateTime.monthNumber.toString().padStart(2, '0')
+    return "$day/$month"
+}
+
+private fun formatInstant(instant: kotlinx.datetime.Instant?): String {
+    if (instant == null) return ""
+    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
+    val localDateTime = instant.toLocalDateTime(tz)
+    val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
+    val month = localDateTime.monthNumber.toString().padStart(2, '0')
+    val year = localDateTime.year
+    return "$day/$month/$year"
 }
 

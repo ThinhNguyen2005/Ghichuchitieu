@@ -8,11 +8,16 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -27,11 +32,15 @@ class AddTransactionViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val walletRepository: WalletRepository,
     private val categoryRepository: CategoryRepository,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val suggestCategoryUseCase: SuggestCategoryUseCase,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddTransactionUiState())
     val state = _state.asStateFlow()
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     init {
         loadWallets()
@@ -107,22 +116,48 @@ class AddTransactionViewModel @Inject constructor(
     }
 
     private fun updateType(type: TransactionType) {
-        val category = when (type) {
-            TransactionType.EXPENSE -> Category.DEFAULT_EXPENSE
-            TransactionType.INCOME -> Category.DEFAULT_INCOME
+        val suggested = suggestCategoryUseCase.suggest(_state.value.note, type == TransactionType.INCOME)
+        _state.update {
+            it.copy(
+                type = type,
+                category = suggested,
+                isCategoryExplicitlySelected = false,
+                suggestedCategory = suggested
+            )
         }
-        _state.update { it.copy(type = type, category = category) }
     }
 
     private fun updateCategory(category: Category) {
-        _state.update { it.copy(category = category) }
+        _state.update {
+            it.copy(
+                category = category,
+                isCategoryExplicitlySelected = true
+            )
+        }
     }
 
     private fun updateNote(note: String) {
         val errors = _state.value.errors
             .minus(FieldError.NOTE_TOO_LONG)
             .let { if (note.length > Transaction.MAX_NOTE_LENGTH) it + FieldError.NOTE_TOO_LONG else it }
-        _state.update { it.copy(note = note, errors = errors, saveErrorMessage = null) }
+
+        val isIncome = _state.value.type == TransactionType.INCOME
+        val suggested = suggestCategoryUseCase.suggest(note, isIncome)
+        val finalCategory = if (!_state.value.isCategoryExplicitlySelected) {
+            suggested
+        } else {
+            _state.value.category
+        }
+
+        _state.update {
+            it.copy(
+                note = note,
+                category = finalCategory,
+                suggestedCategory = suggested,
+                errors = errors,
+                saveErrorMessage = null
+            )
+        }
     }
 
     private fun updateDate(instant: Instant) {
@@ -163,9 +198,20 @@ class AddTransactionViewModel @Inject constructor(
                 } else {
                     it.copy(
                         isSaving = false,
-                        saveErrorMessage = result.exceptionOrNull()?.message ?: "Không thể lưu giao dịch",
+                        saveErrorMessage = "Không thể lưu giao dịch",
                     )
                 }
+            }
+            if (result.isSuccess) {
+                suggestCategoryUseCase.learn(current.note.trim(), current.category.id)
+                _feedback.emit(UiFeedback("Đã lưu giao dịch", type = FeedbackType.Success))
+            } else {
+                _feedback.emit(
+                    UiFeedback(
+                        message = "Không thể lưu giao dịch",
+                        type = FeedbackType.Error,
+                    ),
+                )
             }
         }
     }
@@ -189,8 +235,8 @@ class AddTransactionViewModel @Inject constructor(
                 errors = emptySet(),
                 saveErrorMessage = null,
                 savedSuccessfully = false,
+                suggestedCategory = null,
             )
         }
     }
 }
-

@@ -1,6 +1,11 @@
 package com.notepay.ui.feature.addtransaction
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,8 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -51,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.TransactionType
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -60,21 +65,21 @@ import kotlin.time.Clock
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTransactionScreen(
-    onSaved: () -> Unit,
+    onSaved: suspend (UiFeedback) -> Unit,
     onBack: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     viewModel: EditTransactionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.savedSuccessfully) {
-        if (state.savedSuccessfully) onSaved()
-    }
-
-    LaunchedEffect(state.error) {
-        state.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
+    LaunchedEffect(Unit) {
+        viewModel.feedback.collect { feedback ->
+            if (feedback.type == FeedbackType.Success) {
+                onSaved(feedback)
+            } else {
+                onFeedback(feedback)
+                viewModel.clearError()
+            }
         }
     }
 
@@ -91,7 +96,6 @@ fun EditTransactionScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
 
         if (state.isLoading) {
@@ -175,16 +179,59 @@ fun EditTransactionScreen(
 
             // Ghi chú
             item {
-                OutlinedTextField(
-                    value = state.note,
-                    onValueChange = { viewModel.onNoteChanged(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Ghi chú") },
-                    minLines = 2,
-                    readOnly = state.isAutoCapture,
-                    enabled = !state.isAutoCapture,
-                    supportingText = { if (!state.isAutoCapture) Text("${state.note.length}/200") },
-                )
+                val suggestedCategory = state.suggestedCategory
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !state.isAutoCapture && suggestedCategory != null && suggestedCategory != state.category,
+                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { suggestedCategory?.let { viewModel.onCategoryChanged(it) } }
+                                .background(
+                                    color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "💡 Đề xuất danh mục:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            com.notepay.ui.component.CategoryAvatar(category = suggestedCategory!!, size = 20.dp)
+                            Text(
+                                text = suggestedCategory.displayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = androidx.compose.ui.graphics.Color(suggestedCategory.colorArgb)
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = state.note,
+                        onValueChange = { viewModel.onNoteChanged(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Ghi chú") },
+                        minLines = 2,
+                        readOnly = state.isAutoCapture,
+                        enabled = !state.isAutoCapture,
+                        supportingText = { if (!state.isAutoCapture) Text("${state.note.length}/200") },
+                    )
+                }
             }
 
             // P2-14: thay Text ngày bằng AssistChip có icon CalendarMonth,
@@ -243,6 +290,8 @@ fun EditTransactionScreen(
                 ) {
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Đang lưu...")
                     } else {
                         Text("Lưu thay đổi")
                     }

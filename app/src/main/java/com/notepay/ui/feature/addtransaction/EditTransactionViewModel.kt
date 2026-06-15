@@ -9,8 +9,13 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.usecase.SuggestCategoryUseCase
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
@@ -37,6 +42,7 @@ data class EditTransactionUiState(
     val savedSuccessfully: Boolean = false,
     val error: String? = null,
     val availableCategories: List<Category> = emptyList(),
+    val suggestedCategory: Category? = null,
 )
 
 @HiltViewModel
@@ -44,6 +50,7 @@ class EditTransactionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val suggestCategoryUseCase: SuggestCategoryUseCase,
 ) : ViewModel() {
 
     private val txId: Long = checkNotNull(savedStateHandle["id"])
@@ -51,6 +58,9 @@ class EditTransactionViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(EditTransactionUiState())
     val state = _state.asStateFlow()
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -68,6 +78,9 @@ class EditTransactionViewModel @Inject constructor(
             val localDateTime = tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault())
             val dateStr = localDateTime.date.toString()
 
+            val isIncome = tx.type == TransactionType.INCOME
+            val initialSuggested = suggestCategoryUseCase.suggest(tx.note, isIncome)
+
             _state.update {
                 it.copy(
                     isLoading = false,
@@ -79,6 +92,7 @@ class EditTransactionViewModel @Inject constructor(
                     dateLabel = dateStr,
                     date = localDateTime.date,
                     availableCategories = initialCategories,
+                    suggestedCategory = initialSuggested,
                 )
             }
         }
@@ -99,7 +113,15 @@ class EditTransactionViewModel @Inject constructor(
 
     fun onNoteChanged(note: String) {
         if (_state.value.isAutoCapture) return
-        _state.update { it.copy(note = note.take(200)) }
+        val cleanNote = note.take(200)
+        val isIncome = _state.value.type == TransactionType.INCOME
+        val suggested = suggestCategoryUseCase.suggest(cleanNote, isIncome)
+        _state.update {
+            it.copy(
+                note = cleanNote,
+                suggestedCategory = suggested
+            )
+        }
     }
 
     fun onCategoryChanged(category: Category) {
@@ -141,7 +163,9 @@ class EditTransactionViewModel @Inject constructor(
         }
         
         if (cents <= 0) {
-            _state.update { it.copy(error = "Số tiền phải lớn hơn 0") }
+            val message = "Số tiền phải lớn hơn 0"
+            _state.update { it.copy(error = message) }
+            _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
             return
         }
 
@@ -166,9 +190,13 @@ class EditTransactionViewModel @Inject constructor(
                     occurredAt = newOccurredAt,
                 )
                 transactionRepository.upsert(updated)
+                suggestCategoryUseCase.learn(updated.note.trim(), updated.category.id)
                 _state.update { it.copy(isSaving = false, savedSuccessfully = true) }
+                _feedback.emit(UiFeedback("Đã cập nhật giao dịch", type = FeedbackType.Success))
             } catch (e: Exception) {
-                _state.update { it.copy(isSaving = false, error = e.message) }
+                val message = "Không thể cập nhật giao dịch"
+                _state.update { it.copy(isSaving = false, error = message) }
+                _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }
         }
     }

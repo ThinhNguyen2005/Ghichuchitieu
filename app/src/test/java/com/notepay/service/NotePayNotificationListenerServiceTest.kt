@@ -12,6 +12,7 @@ import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.usecase.SuggestCategoryUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -25,15 +26,24 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
+import org.junit.Rule
+import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+
+import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.NotificationSettings
+import com.notepay.data.preferences.KnownBankApps
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(sdk = [34])
 class NotePayNotificationListenerServiceTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
     
     private val walletRepository = mockk<WalletRepository>(relaxed = true)
     private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
+    private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
     private lateinit var addTransaction: AddTransactionUseCase
     private lateinit var service: NotePayNotificationListenerService
 
@@ -51,14 +61,28 @@ class NotePayNotificationListenerServiceTest {
         addTransaction = AddTransactionUseCase(
             transactionRepository,
             walletRepository,
-            testDispatcher
+            mainDispatcherRule.testDispatcher
         )
-        service = org.robolectric.Robolectric.buildService(NotePayNotificationListenerService::class.java).create().get()
+        val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
+        every { suggestCategoryUseCase.suggest(any(), any()) } returns Category.DEFAULT_EXPENSE
+
+        every { notificationSettingsStore.settings } returns flowOf(NotificationSettings())
+
+        val controller = org.robolectric.Robolectric.buildService(NotePayNotificationListenerService::class.java)
+        service = controller.get()
+        controller.create()
+
         service.walletRepository = walletRepository
         service.addTransaction = addTransaction
-        service.ioDispatcher = testDispatcher
+        service.suggestCategoryUseCase = suggestCategoryUseCase
+        service.ioDispatcher = mainDispatcherRule.testDispatcher
+        service.notificationSettingsStore = notificationSettingsStore
+        service.trackAllBanks = true
+        service.enabledPackages = KnownBankApps.packages
+        service.autoCaptureEnabled = true
         
         every { walletRepository.observeActive() } returns flowOf(activeWallet)
+        every { walletRepository.observeAll() } returns flowOf(emptyList())
     }
 
     @Test
@@ -98,6 +122,7 @@ class NotePayNotificationListenerServiceTest {
 
         // Trigger notification post
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Verify transaction added
         coVerify(exactly = 1) { transactionRepository.upsert(any()) }
@@ -147,6 +172,7 @@ class NotePayNotificationListenerServiceTest {
         coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { transactionRepository.upsert(any()) }
         assertThat(capturedTransactions).hasSize(1)
@@ -195,6 +221,7 @@ class NotePayNotificationListenerServiceTest {
         coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { transactionRepository.upsert(any()) }
         assertThat(capturedTransactions).hasSize(1)
@@ -231,4 +258,108 @@ class NotePayNotificationListenerServiceTest {
 
         coVerify(exactly = 0) { transactionRepository.upsert(any()) }
     }
+
+    @Test
+    fun `onNotificationPosted handles test notification from NotePay package`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", """
+                (TPBank): 14/06/26;06:25
+                TK: xxxx5539020
+                PS:-30.000VND
+                SD: 410.054VND
+                SD KHA DUNG: 410.054VND
+                ND: NAP TIEN VI MOMO - 0945553902
+                - 133366724699
+                SO GD: 661TTMB261662918
+            """.trimIndent())
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.notepay",
+            "com.notepay",
+            3,
+            "tag",
+            1000,
+            1000,
+            0,
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+        
+        coEvery { walletRepository.getById(activeWallet.id) } returns activeWallet
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        
+        val tx = capturedTransactions.first()
+        assertThat(tx.amount).isEqualTo(Money(30_000_00))
+        assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(tx.note).isEqualTo("NAP TIEN VI MOMO - 0945553902")
+        assertThat(tx.walletId).isEqualTo(activeWallet.id)
+    }
+
+    @Test
+    fun `onNotificationPosted falls back to first wallet when no active wallet is set`() = runTest {
+        every { walletRepository.observeActive() } returns flowOf(null)
+        every { walletRepository.observeAll() } returns flowOf(listOf(activeWallet))
+        
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: NAP TIEN VI MOMO")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        val sbn = StatusBarNotification(
+            "com.tpbank", "com.tpbank", 3, "tag", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis()
+        )
+        
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        assertThat(capturedTransactions.first().walletId).isEqualTo(activeWallet.id)
+    }
+
+    @Test
+    fun `onNotificationPosted auto creates default wallet when database is completely empty`() = runTest {
+        every { walletRepository.observeActive() } returns flowOf(null)
+        every { walletRepository.observeAll() } returns flowOf(emptyList())
+        coEvery { walletRepository.upsert(any()) } returns 99L
+        
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: NAP TIEN VI MOMO")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        val sbn = StatusBarNotification(
+            "com.tpbank", "com.tpbank", 3, "tag", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis()
+        )
+        
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { walletRepository.upsert(any()) }
+        coVerify(exactly = 1) { walletRepository.setActive(99L) }
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        assertThat(capturedTransactions.first().walletId).isEqualTo(99L)
+    }
 }
+

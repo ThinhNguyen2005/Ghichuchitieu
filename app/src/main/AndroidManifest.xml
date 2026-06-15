@@ -5,6 +5,36 @@
     <!-- Phase 1: KHÔNG xin bất kỳ permission nào.
          Phase 2 mới thêm POST_NOTIFICATIONS + BIND_NOTIFICATION_LISTENER_SERVICE. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <queries>
+        <package android:name="com.tpb.mb.gprsandroid" />
+        <package android:name="com.tpb.mb.android" />
+        <package android:name="com.tpbank" />
+        <package android:name="com.VCB" />
+        <package android:name="com.vietcombank.digibank" />
+        <package android:name="com.vietcombank.vietcombankdetail" />
+        <package android:name="com.vietcombank.cardoproduct" />
+        <package android:name="com.technologies.tcb" />
+        <package android:name="com.technologiessoftech.tcb" />
+        <package android:name="com.mbmobile" />
+        <package android:name="com.vpbank.neo" />
+        <package android:name="com.bidv.smartbanking" />
+        <package android:name="com.vnpay.bidv" />
+        <package android:name="com.vnpay.Agribank3g" />
+        <package android:name="vn.com.agribank.emobilebanking" />
+        <package android:name="com.vnpay.agribank" />
+        <package android:name="com.sacombank.mbanking" />
+        <package android:name="com.sacombank.ewallet" />
+        <package android:name="com.sacombank.isacombank" />
+        <package android:name="com.sacombank.mb" />
+        <package android:name="vn.com.acb.mbanking" />
+        <package android:name="acb.app.acbone" />
+        <package android:name="com.acb.dcb" />
+        <package android:name="com.mservice.momotransfer" />
+        <package android:name="com.mservice.momo" />
+    </queries>
 
     <application
         android:name=".NotePayApp"
@@ -17,6 +47,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NotePay"
         android:usesCleartextTraffic="false"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="36">
         <activity
             android:name=".MainActivity"
@@ -48,6 +79,18 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
+        </provider>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <!-- Tắt bộ khởi tạo mặc định của WorkManager -->
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
     </application>
 

@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.categoryIcon
+import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -133,7 +134,7 @@ fun TransactionDetailScreen(
 private fun SummaryCard(transaction: com.notepay.domain.model.Transaction) {
     val isIncome = transaction.type == TransactionType.INCOME
     val sign = if (isIncome) "+" else "−"
-    val amountColor = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
+    val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -146,20 +147,11 @@ private fun SummaryCard(transaction: com.notepay.domain.model.Transaction) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(transaction.category.colorArgb).copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = categoryIcon(transaction.category),
-                        contentDescription = null,
-                        tint = Color(transaction.category.colorArgb),
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
+                CategoryAvatar(
+                    category = transaction.category,
+                    size = 48.dp,
+                    iconSize = 24.dp,
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         transaction.category.displayName,

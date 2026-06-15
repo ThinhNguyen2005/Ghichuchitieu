@@ -1,7 +1,8 @@
-﻿package com.notepay.ui.feature.stats
+package com.notepay.ui.feature.stats
 
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
+import com.notepay.domain.model.Transaction
 
 data class CategoryBreakdownItem(
     val category: Category,
@@ -20,4 +21,6 @@ data class StatsUiState(
     val isLoading: Boolean = true,
     // P2-15: true khi (year, month) trùng tháng hiện tại → disable nút "Tháng sau".
     val isCurrentMonth: Boolean = false,
+    val selectedCategory: Category? = null,
+    val transactions: List<Transaction> = emptyList(),
 )

@@ -1,7 +1,10 @@
 package com.notepay.ui.component
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,13 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,32 +28,55 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.util.MoneyFormatter
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionItem(
     transaction: Transaction,
+    walletName: String = "",
     onClick: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    isSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
-    val amountColor = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
+    val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     val sign = if (isIncome) "+" else "−"
+
+    val systemTz = TimeZone.currentSystemDefault()
+    val localDateTime = transaction.occurredAt.toLocalDateTime(systemTz)
+    val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+
+    val subtitleParts = listOfNotNull(
+        timeStr,
+        transaction.category.displayName,
+        walletName.takeIf { it.isNotBlank() }
+    )
+    val subtitleText = subtitleParts.joinToString(" • ")
+
+    val clickModifier = if (onClick != null || onLongClick != null) {
+        Modifier.combinedClickable(
+            onClick = { onClick?.invoke() },
+            onLongClick = { onLongClick?.invoke() }
+        )
+    } else {
+        Modifier
+    }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+            .then(clickModifier),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier
@@ -63,7 +86,11 @@ fun TransactionItem(
         ) {
             // Avatar danh mục với badge ngân hàng nếu auto-capture
             Box {
-                CategoryAvatar(category = transaction.category)
+                CategoryAvatar(
+                    category = transaction.category,
+                    size = 40.dp,
+                    iconSize = 18.dp
+                )
                 if (transaction.isAutoCapture) {
                     Box(
                         modifier = Modifier
@@ -82,60 +109,40 @@ fun TransactionItem(
                     }
                 }
             }
+            
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp),
+                    .padding(start = 12.dp, end = 8.dp),
             ) {
-                Text(
-                    text = transaction.note.ifBlank { transaction.category.displayName },
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = transaction.category.displayName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = "$sign${MoneyFormatter.format(transaction.amount)}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor,
-            )
-            if (onDelete != null) {
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(40.dp).padding(start = 4.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.DeleteOutline,
-                        contentDescription = "Xóa giao dịch",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Text(
+                        text = transaction.note.ifBlank { transaction.category.displayName },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    )
+                    Text(
+                        text = "$sign${MoneyFormatter.format(transaction.amount)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = amountColor,
                     )
                 }
+                Text(
+                    text = subtitleText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun CategoryAvatar(category: Category) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .background(Color(category.colorArgb).copy(alpha = 0.18f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = categoryIcon(category),
-            contentDescription = null,
-            tint = Color(category.colorArgb),
-            modifier = Modifier.size(22.dp),
-        )
     }
 }
 

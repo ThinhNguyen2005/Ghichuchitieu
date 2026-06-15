@@ -1,6 +1,7 @@
 package com.notepay.ui.util
 
 import java.util.Locale
+import com.notepay.util.StringUtils
 
 object VietQrGenerator {
 
@@ -43,7 +44,7 @@ object VietQrGenerator {
         
         // Tag 62: Additional Data Field Template (Tag 08 chứa nội dung chuyển khoản)
         // Loại bỏ dấu tiếng Việt để tránh lỗi hiển thị/parse trên một số ngân hàng
-        val cleanMemo = removeVietnameseAccents(memo).uppercase(Locale.ROOT)
+        val cleanMemo = StringUtils.removeVietnameseAccents(memo).uppercase(Locale.ROOT)
         val tag62Value = formatTag("08", cleanMemo)
         val tag62 = formatTag("62", tag62Value)
         
@@ -76,31 +77,5 @@ object VietQrGenerator {
         }
         crc = crc and 0xFFFF
         return String.format(Locale.US, "%04X", crc)
-    }
-
-    private fun removeVietnameseAccents(text: String): String {
-        val map = mapOf(
-            'a' to "aàáảãạăằắẳẵặâầấẩẫậ",
-            'A' to "AÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬ",
-            'd' to "dđ",
-            'D' to "DĐ",
-            'e' to "eèéẻẽẹêềếểễệ",
-            'E' to "EÈÉẺẼẸÊỀẾỂỄỆ",
-            'i' to "iìíỉĩị",
-            'I' to "IÌÍỈĨỊ",
-            'o' to "oòóỏõọôồốổỗộơờớởỡợ",
-            'O' to "OÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ",
-            'u' to "uùúủũụưừứửữự",
-            'U' to "UÙÚỦŨỤƯỪỨỬỮỰ",
-            'y' to "yỳýỷỹỵ",
-            'Y' to "YỲÝỶỸỴ"
-        )
-        var result = text
-        for ((replaceChar, charList) in map) {
-            for (c in charList) {
-                result = result.replace(c, replaceChar)
-            }
-        }
-        return result
     }
 }

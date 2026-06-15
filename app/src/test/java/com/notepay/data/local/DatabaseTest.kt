@@ -104,4 +104,43 @@ class DatabaseTest {
         assertThat(wallets.first { it.id == 1L }.isActive).isFalse()
         assertThat(wallets.first { it.id == 2L }.isActive).isTrue()
     }
+
+    @Test
+    fun insertAndObserveTransactions() = runTest {
+        val w1 = WalletEntity(
+            id = 1L,
+            name = "Ví chính",
+            initialBalanceCents = 0L,
+            iconKey = "cash",
+            colorKey = "primary",
+            isActive = true,
+            createdAt = 1000L
+        )
+        walletDao.upsert(w1)
+
+        val t1 = TransactionEntity(
+            id = 15L,
+            amountCents = 5000000L,
+            type = "EXPENSE",
+            category = "OTHER",
+            note = "Mua sach",
+            occurredAt = 1000L,
+            walletId = 1L,
+            createdAt = 1000L,
+            isAutoCapture = false
+        )
+        transactionDao.upsert(t1)
+
+        val initialTxs = transactionDao.observeAll().first()
+        assertThat(initialTxs).hasSize(1)
+        assertThat(initialTxs[0].category).isEqualTo("OTHER")
+
+        // Update the category to FOOD
+        val updatedT1 = t1.copy(category = "FOOD")
+        transactionDao.upsert(updatedT1)
+
+        val updatedTxs = transactionDao.observeAll().first()
+        assertThat(updatedTxs).hasSize(1)
+        assertThat(updatedTxs[0].category).isEqualTo("FOOD")
+    }
 }

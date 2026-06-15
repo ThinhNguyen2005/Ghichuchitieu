@@ -64,4 +64,32 @@ class CategoryRepositoryTest {
         assertThat(retrieved.displayName).isEqualTo("Từ thiện")
         assertThat(retrieved.isCustom).isTrue()
     }
+
+    @Test
+    fun testEditCustomCategory() = runTest {
+        val customCat1 = Category(
+            id = "CUSTOM_TEST",
+            displayName = "Từ thiện",
+            colorArgb = 0xFFBA68C8L,
+            isIncome = false,
+            isCustom = true
+        )
+        repository.addCustomCategory(customCat1)
+        
+        val customCat2 = Category(
+            id = "CUSTOM_TEST",
+            displayName = "Ủng hộ",
+            colorArgb = 0xFFBA68C8L,
+            isIncome = false,
+            isCustom = true
+        )
+        repository.addCustomCategory(customCat2)
+
+        val categories = repository.observeCategories().first()
+        val found = categories.find { it.id == "CUSTOM_TEST" }
+        assertThat(found?.displayName).isEqualTo("Ủng hộ")
+
+        val retrieved = Category.safeValueOf("CUSTOM_TEST")
+        assertThat(retrieved.displayName).isEqualTo("Ủng hộ")
+    }
 }

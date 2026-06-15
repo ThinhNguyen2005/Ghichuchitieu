@@ -14,6 +14,7 @@ import com.notepay.domain.repository.BillSplitRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.domain.usecase.SuggestCategoryUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -30,6 +31,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Robolectric
 
+import org.junit.Rule
+import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+
+import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.NotificationSettings
+import com.notepay.data.preferences.KnownBankApps
+
 /**
  * Unit tests cho cơ chế đối soát tự động (Auto-Reconciliation) khi nhận thông báo ngân hàng
  * chứa mã chuyển khoản (memo_code) khớp với khoản chia tiền chưa thanh toán.
@@ -41,11 +49,13 @@ import org.robolectric.Robolectric
 @org.robolectric.annotation.Config(sdk = [34])
 class NotificationReconciliationTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private val walletRepository = mockk<WalletRepository>(relaxed = true)
     private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
     private val billSplitRepository = mockk<BillSplitRepository>(relaxed = true)
+    private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
     private lateinit var addTransaction: AddTransactionUseCase
     private lateinit var service: NotePayNotificationListenerService
 
@@ -90,15 +100,27 @@ class NotificationReconciliationTest {
         addTransaction = AddTransactionUseCase(
             transactionRepository,
             walletRepository,
-            testDispatcher
+            mainDispatcherRule.testDispatcher
         )
-        service = Robolectric.buildService(NotePayNotificationListenerService::class.java)
-            .create().get()
+        val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
+        every { suggestCategoryUseCase.suggest(any(), any()) } returns Category.DEFAULT_EXPENSE
+
+        every { notificationSettingsStore.settings } returns flowOf(NotificationSettings())
+
+        val controller = Robolectric.buildService(NotePayNotificationListenerService::class.java)
+        service = controller.get()
+        controller.create()
+
         service.walletRepository = walletRepository
         service.addTransaction = addTransaction
         service.billSplitRepository = billSplitRepository
         service.transactionRepository = transactionRepository
-        service.ioDispatcher = testDispatcher
+        service.suggestCategoryUseCase = suggestCategoryUseCase
+        service.ioDispatcher = mainDispatcherRule.testDispatcher
+        service.notificationSettingsStore = notificationSettingsStore
+        service.trackAllBanks = true
+        service.enabledPackages = KnownBankApps.packages
+        service.autoCaptureEnabled = true
 
         every { walletRepository.observeActive() } returns flowOf(tpBankWallet)
         every { walletRepository.observeAll() } returns flowOf(listOf(tpBankWallet))
@@ -121,6 +143,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Verify đánh dấu đã trả
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(unpaidSplitBanA.id, any()) }
@@ -142,6 +165,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Xác minh giao dịch gốc được cập nhật với số tiền giảm trừ
         assertThat(capturedTx.captured.id).isEqualTo(parentTransaction.id)
@@ -162,6 +186,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Không được đánh dấu đã trả
         coVerify(exactly = 0) { billSplitRepository.markAsPaid(any(), any()) }
@@ -179,6 +204,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Không được đánh dấu đã trả dù memo khớp (vì là giao dịch chi tiêu)
         coVerify(exactly = 0) { billSplitRepository.markAsPaid(any(), any()) }
@@ -196,6 +222,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Không gọi markAsPaid
         coVerify(exactly = 0) { billSplitRepository.markAsPaid(any(), any()) }
@@ -225,6 +252,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Chỉ Ban B được đánh dấu
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(unpaidSplitBanB.id, any()) }
@@ -245,6 +273,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Phải đánh dấu đã trả dù memo viết thường
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(unpaidSplitBanA.id, any()) }
@@ -268,6 +297,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Verify both splits marked as paid
         coVerify(exactly = 1) { billSplitRepository.markAsPaid(10L, any()) }
@@ -306,6 +336,7 @@ class NotificationReconciliationTest {
         )
 
         service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
 
         // Phải dùng ví TPBank (ID=1) chứ không phải ví mặc định (ID=2)
         assertThat(capturedTx.captured.walletId).isEqualTo(tpBankWallet.id)

@@ -3,6 +3,8 @@ package com.notepay.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +23,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
@@ -57,12 +62,32 @@ fun MonthlyCalendarView(
     transactions: List<Transaction>,
     modifier: Modifier = Modifier,
     highlightDates: Set<LocalDate> = emptySet(),
+    selectedDate: LocalDate? = null,
+    bottomContentPadding: Dp = 0.dp,
     onDayClick: (LocalDate) -> Unit = {},
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
 ) {
-    val calendarDays = remember(year, month, transactions, highlightDates) {
-        getCalendarDays(year, month, transactions, highlightDates)
+    val targetPage = (year - 2020) * 12 + (month - 1)
+    val pagerState = rememberPagerState(initialPage = targetPage) { 2000 }
+
+    // Đồng bộ trang từ ngoài truyền vào (ví dụ khi nhấn nút mũi tên chuyển tháng)
+    LaunchedEffect(year, month) {
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // Đồng bộ Year/Month ra ngoài khi người dùng vuốt chuyển trang ngang
+    LaunchedEffect(pagerState.currentPage) {
+        val page = pagerState.currentPage
+        if (page != targetPage) {
+            if (page > targetPage) {
+                onNextMonth()
+            } else {
+                onPreviousMonth()
+            }
+        }
     }
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 8.dp)) {
@@ -71,16 +96,30 @@ fun MonthlyCalendarView(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onPreviousMonth) {
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Tháng trước")
+            IconButton(
+                onClick = onPreviousMonth,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                    contentDescription = "Tháng trước",
+                    modifier = Modifier.size(28.dp)
+                )
             }
             Text(
                 text = "Tháng $month / $year",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
-            IconButton(onClick = onNextMonth) {
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Tháng sau")
+            IconButton(
+                onClick = onNextMonth,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "Tháng sau",
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
 
@@ -88,8 +127,8 @@ fun MonthlyCalendarView(
             val daysOfWeek = listOf("Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN")
             daysOfWeek.forEachIndexed { index, day ->
                 val textColor = when (index) {
-                    5 -> Color(0xFF40C4FF)
-                    6 -> Color(0xFFFF5722)
+                    5 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    6 -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurface
                 }
                 Box(
@@ -106,16 +145,36 @@ fun MonthlyCalendarView(
             }
         }
 
-        val rows = calendarDays.chunked(7)
-        Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 16.dp)) {
-            rows.forEach { week ->
-                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    week.forEach { day ->
-                        CalendarCell(
-                            day = day,
-                            onClick = { if (day.isCurrentMonth) onDayClick(day.date) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        )
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) { page ->
+            val pageYear = 2020 + page / 12
+            val pageMonth = page % 12 + 1
+
+            // Tạo danh sách ngày riêng biệt cho từng trang của lịch để hiệu ứng chuyển tiếp không bị giật
+            val pageCalendarDays = remember(pageYear, pageMonth, transactions, highlightDates) {
+                getCalendarDays(pageYear, pageMonth, transactions, highlightDates)
+            }
+
+            val rows = pageCalendarDays.chunked(7)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 16.dp + bottomContentPadding)
+            ) {
+                rows.forEach { week ->
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        week.forEach { day ->
+                            CalendarCell(
+                                day = day,
+                                selectedDate = selectedDate,
+                                onClick = { if (day.isCurrentMonth) onDayClick(day.date) },
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                            )
+                        }
                     }
                 }
             }
@@ -126,29 +185,41 @@ fun MonthlyCalendarView(
 @Composable
 private fun CalendarCell(
     day: CalendarDay,
+    selectedDate: LocalDate?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val isToday = day.date == today
+    val isSelected = selectedDate == day.date
     val hasData = !day.totalExpense.isZero() || !day.totalIncome.isZero()
 
     val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         !day.isCurrentMonth -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
         else -> Color.Transparent
     }
 
-    val contentAlpha = if (day.isCurrentMonth) 1f else 0.38f
     val dayNumberColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary
         isToday -> MaterialTheme.colorScheme.primary
-        day.date.dayOfWeek.ordinal + 1 == 6 -> Color(0xFF40C4FF).copy(alpha = contentAlpha)
-        day.date.dayOfWeek.ordinal + 1 == 7 -> Color(0xFFFF5722).copy(alpha = contentAlpha)
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
+        !day.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        day.date.dayOfWeek.ordinal + 1 == 6 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        day.date.dayOfWeek.ordinal + 1 == 7 -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
-    // P0-2: Box ngoài dùng clickable với ripple mặc định (bỏ indication = null)
-    // để user thấy rõ "bấm được". Bỏ Box rỗng chồng lên nhau gây lỗi 4 góc.
+    val dayNumberModifier = Modifier
+        .size(28.dp)
+        .let { base ->
+            when {
+                isSelected -> base.background(MaterialTheme.colorScheme.primary, CircleShape)
+                isToday -> base.border(1.2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                else -> base
+            }
+        }
+
     Box(
         modifier = modifier
             .background(backgroundColor)
@@ -158,13 +229,17 @@ private fun CalendarCell(
             }
             .padding(4.dp),
     ) {
-        Text(
-            text = day.date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-            color = dayNumberColor,
-            modifier = Modifier.align(Alignment.TopStart),
-        )
+        Box(
+            modifier = dayNumberModifier.align(Alignment.TopStart),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = dayNumberColor,
+            )
+        }
 
         if (day.isCurrentMonth) {
             if (day.hasUpcomingSubscription) {
@@ -172,13 +247,13 @@ private fun CalendarCell(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(2.dp)
-                        .background(Color(0xFFFFCDD2), CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
                     Text(
                         text = "!",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFB71C1C),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -201,27 +276,25 @@ private fun CalendarCell(
             }
 
             if (!day.totalExpense.isZero() || !day.totalIncome.isZero()) {
-                Column(
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (!day.totalExpense.isZero()) {
-                        Text(
-                            text = "-${MoneyFormatter.formatCompact(day.totalExpense)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFE57373),
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(color = MaterialTheme.colorScheme.error, shape = CircleShape)
                         )
                     }
                     if (!day.totalIncome.isZero()) {
-                        Text(
-                            text = "+${MoneyFormatter.formatCompact(day.totalIncome)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF81C784),
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape)
                         )
                     }
                 }

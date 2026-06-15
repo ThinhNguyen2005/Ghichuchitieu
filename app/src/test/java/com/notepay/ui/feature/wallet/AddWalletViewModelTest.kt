@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.launch
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 import org.junit.Rule
 import org.junit.Test
 
@@ -62,7 +65,10 @@ class AddWalletViewModelTest {
     @Test
     fun `save with budget limit inserts correct wallet`() = runTest {
         val viewModel = AddWalletViewModel(fakeWalletRepository)
-        var successCalled = false
+        val feedbacks = mutableListOf<UiFeedback>()
+        val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
 
         viewModel.onNameChanged("Ví Tiết Kiệm")
         viewModel.onInitialBalanceChanged("1000")
@@ -71,11 +77,10 @@ class AddWalletViewModelTest {
         viewModel.onIconChanged("card")
         viewModel.onColorChanged("tertiary")
 
-        viewModel.save {
-            successCalled = true
-        }
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
 
-        assertThat(successCalled).isTrue()
+        assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
         assertThat(fakeWalletRepository.savedWallets).hasSize(1)
         
         val saved = fakeWalletRepository.savedWallets.first()
@@ -85,23 +90,27 @@ class AddWalletViewModelTest {
         assertThat(saved.iconKey).isEqualTo("card")
         assertThat(saved.colorKey).isEqualTo("tertiary")
         assertThat(saved.isActive).isFalse()
+
+        collectJob.cancel()
     }
 
     @Test
     fun `save without budget limit inserts wallet with null budgetLimit`() = runTest {
         val viewModel = AddWalletViewModel(fakeWalletRepository)
-        var successCalled = false
+        val feedbacks = mutableListOf<UiFeedback>()
+        val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
 
         viewModel.onNameChanged("Quỹ Đen")
         viewModel.onInitialBalanceChanged("2000")
         viewModel.onHasBudgetLimitChanged(false)
         viewModel.onBudgetLimitChanged("5000") // Should be ignored since hasBudgetLimit is false
 
-        viewModel.save {
-            successCalled = true
-        }
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
 
-        assertThat(successCalled).isTrue()
+        assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
         assertThat(fakeWalletRepository.savedWallets).hasSize(1)
         
         val saved = fakeWalletRepository.savedWallets.first()
@@ -109,23 +118,30 @@ class AddWalletViewModelTest {
         assertThat(saved.initialBalance).isEqualTo(Money(2000L * 100))
         assertThat(saved.budgetLimit).isNull()
         assertThat(saved.isActive).isFalse()
+
+        collectJob.cancel()
     }
 
     @Test
     fun `save failure updates error state`() = runTest {
         val repositoryWithFailure = FakeWalletRepository(throwOnSave = true)
         val viewModel = AddWalletViewModel(repositoryWithFailure)
-        var successCalled = false
-
-        viewModel.onNameChanged("Ví lỗi")
-        viewModel.save {
-            successCalled = true
+        val feedbacks = mutableListOf<UiFeedback>()
+        val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
         }
 
-        assertThat(successCalled).isFalse()
+        viewModel.onNameChanged("Ví lỗi")
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Error }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Error }.message).isEqualTo("Không thể tạo ví")
         val state = viewModel.state.value
         assertThat(state.isSaving).isFalse()
-        assertThat(state.error).isEqualTo("Database error")
+        assertThat(state.error).isEqualTo("Không thể tạo ví")
+
+        collectJob.cancel()
     }
 
     private class FakeWalletRepository(

@@ -57,6 +57,8 @@ class SubscriptionViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _dialogState = MutableStateFlow(AddSubscriptionDialogState())
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab = _selectedTab.asStateFlow()
     val dialogState = _dialogState.asStateFlow()
 
     // Giới hạn 7 ngày tới cho tab "Sắp đến hạn"
@@ -150,5 +152,10 @@ class SubscriptionViewModel @Inject constructor(
 
     fun deleteSubscription(id: Long) {
         viewModelScope.launch { subscriptionRepository.delete(id) }
+    }
+
+    // Tab selection handling
+    fun setSelectedTab(index: Int) {
+        _selectedTab.value = index
     }
 }

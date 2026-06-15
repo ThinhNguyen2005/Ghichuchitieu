@@ -35,6 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -54,12 +57,23 @@ import androidx.compose.foundation.verticalScroll
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddWalletScreen(
-    onSaved: () -> Unit,
+    onSaved: suspend (UiFeedback) -> Unit,
     onBack: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     viewModel: AddWalletViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+
+    LaunchedEffect(Unit) {
+        viewModel.feedback.collect { feedback ->
+            if (feedback.type == FeedbackType.Success) {
+                onSaved(feedback)
+            } else {
+                onFeedback(feedback)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -270,14 +284,23 @@ fun AddWalletScreen(
             }
 
             Button(
-                onClick = { viewModel.save(onSaved) },
+                onClick = { viewModel.save() },
                 enabled = state.canSave,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (state.isSaving) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text("Đang lưu...", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                } else {
+                    Text("Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -291,19 +314,19 @@ data class SupportedBank(
     companion object {
         val LIST = listOf(
             SupportedBank("Không liên kết", "", null),
-            SupportedBank("TPBank", "com.tpbank", "970423"),
-            SupportedBank("Vietcombank", "com.vietcombank.cardoproduct", "970436"),
-            SupportedBank("Techcombank", "com.technologiessoftech.tcb", "970407"),
+            SupportedBank("TPBank", "com.tpb.mb.gprsandroid", "970423"),
+            SupportedBank("Vietcombank", "com.VCB", "970436"),
+            SupportedBank("Techcombank", "com.technologies.tcb", "970407"),
             SupportedBank("MB Bank", "com.mbmobile", "970422"),
             SupportedBank("BIDV", "com.bidv.smartbanking", "970418"),
             SupportedBank("VietinBank", "com.vietinbank.ipay", "970415"),
-            SupportedBank("ACB", "acb.app.acbone", "970416"),
-            SupportedBank("VIB", "com.vn.vIB.VIB", "970441"),
-            SupportedBank("Agribank", "vn.com.agribank.emobilebanking", "970405"),
-            SupportedBank("Sacombank", "com.sacombank.isacombank", "970403"),
+            SupportedBank("ACB", "vn.com.acb.mbanking", "970416"),
+            SupportedBank("VIB", "vn.com.vib.vibmobile", "970441"),
+            SupportedBank("Agribank", "com.vnpay.Agribank3g", "970405"),
+            SupportedBank("Sacombank", "com.sacombank.mbanking", "970403"),
             SupportedBank("VPBank", "com.vpbank.neo", "970432"),
-            SupportedBank("HDBank", "com.hdbank.android", "970420"),
-            SupportedBank("Timo (BVBank)", "timo.digital.bank", "970454"),
+            SupportedBank("HDBank", "vn.com.hdbank.smartbanking", "970420"),
+            SupportedBank("Timo (BVBank)", "vn.timo.digitalbank", "970454"),
             SupportedBank("SHB", "com.shb.mobile", "970443"),
             SupportedBank("SCB", "com.scb.mobile", "970429"),
             SupportedBank("BaoViet Bank", "com.baovietbank.bvmobile", "970438"),

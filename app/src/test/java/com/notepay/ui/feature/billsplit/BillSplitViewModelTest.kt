@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Clock
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BillSplitViewModelTest {
@@ -148,6 +150,84 @@ class BillSplitViewModelTest {
     }
 
     @Test
+    fun `bill split operations emit correct feedbacks`() = runTest {
+        val billSplitRepository = FakeBillSplitRepository(listOf(unpaidSplit))
+        val transactionRepository = FakeTransactionRepository(listOf(parentTx))
+        val viewModel = createViewModel(
+            billSplitRepository = billSplitRepository,
+            transactionRepository = transactionRepository,
+            wallets = listOf(wallet1)
+        )
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        // Test create
+        viewModel.createBillSplits(15L, listOf("Ban A" to 20_000_00L))
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Đã tạo khoản chia tiền")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Success)
+
+        // Test mark as paid manually
+        viewModel.markAsPaidManually(10L)
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Đã ghi nhận thanh toán")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Success)
+
+        // Test delete
+        viewModel.deleteBillSplit(10L)
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Đã xóa khoản chia tiền")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Success)
+
+        // Test update QR config
+        viewModel.updateWalletForQr(1L, "970423", "123456", "ACCOUNT 1")
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Đã cập nhật cấu hình VietQR")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Success)
+
+        job.cancel()
+    }
+
+    @Test
+    fun `bill split operations emit correct error feedbacks on failures`() = runTest {
+        val throwingSplitRepo = object : FakeBillSplitRepository() {
+            override suspend fun upsertAll(billSplits: List<BillSplit>) = throw IllegalStateException("db error")
+            override suspend fun markAsPaid(id: Long, paidAt: kotlinx.datetime.Instant) = throw IllegalStateException("db error")
+            override suspend fun delete(id: Long) = throw IllegalStateException("db error")
+        }
+        val viewModel = createViewModel(
+            billSplitRepository = throwingSplitRepo,
+            wallets = listOf(wallet1)
+        )
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        // Test create failure
+        viewModel.createBillSplits(15L, listOf("Ban A" to 20_000_00L))
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Không thể tạo khoản chia tiền")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Error)
+
+        // Test mark paid failure
+        viewModel.markAsPaidManually(10L)
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Không thể ghi nhận thanh toán")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Error)
+
+        // Test delete failure
+        viewModel.deleteBillSplit(10L)
+        testScheduler.advanceUntilIdle()
+        assertThat(feedbacks.last().message).isEqualTo("Không thể xóa khoản chia tiền")
+        assertThat(feedbacks.last().type).isEqualTo(FeedbackType.Error)
+
+        job.cancel()
+    }
+
+    @Test
     fun `markDebtorAsPaid marks all specified splits as paid and reduces parent transaction amount`() = runTest {
         val split1 = unpaidSplit.copy(id = 10L, amount = Money(20_000_00L))
         val split2 = unpaidSplit.copy(id = 20L, amount = Money(30_000_00L))
@@ -195,7 +275,7 @@ class BillSplitViewModelTest {
     }
 }
 
-private class FakeBillSplitRepository(
+private open class FakeBillSplitRepository(
     initialSplits: List<BillSplit> = emptyList()
 ) : BillSplitRepository {
     val savedSplits = initialSplits.toMutableList()
@@ -213,8 +293,8 @@ private class FakeBillSplitRepository(
         savedSplits.add(billSplit)
         return billSplit.id
     }
-    override suspend fun upsertAll(splits: List<BillSplit>) {
-        savedSplits.addAll(splits)
+    override suspend fun upsertAll(billSplits: List<BillSplit>) {
+        savedSplits.addAll(billSplits)
     }
     override suspend fun markAsPaid(id: Long, paidAt: kotlinx.datetime.Instant) {
         markedPaidIds.add(id)

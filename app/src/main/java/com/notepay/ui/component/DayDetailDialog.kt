@@ -189,20 +189,11 @@ fun DayDetailDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(tx.category.colorArgb).copy(alpha = 0.18f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = categoryIcon(tx.category),
-                                    contentDescription = null,
-                                    tint = Color(tx.category.colorArgb),
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
+                            CategoryAvatar(
+                                category = tx.category,
+                                size = 32.dp,
+                                iconSize = 16.dp,
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     tx.note.ifBlank { tx.category.displayName },
@@ -217,7 +208,7 @@ fun DayDetailDialog(
                             }
                             val isIncome = tx.type == TransactionType.INCOME
                             val sign = if (isIncome) "+" else "−"
-                            val color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
+                            val color = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             Text(
                                 "$sign${MoneyFormatter.format(tx.amount)}",
                                 style = MaterialTheme.typography.bodyMedium,

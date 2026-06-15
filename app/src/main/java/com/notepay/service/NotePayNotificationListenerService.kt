@@ -2,17 +2,24 @@ package com.notepay.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
+import com.notepay.data.preferences.KnownBankApps
+import com.notepay.data.preferences.NotificationSettingsStore
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.Wallet
 import com.notepay.domain.notification.NotificationParser
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.domain.usecase.SuggestCategoryUseCase
+import com.notepay.util.StringUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,26 +46,109 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     lateinit var transactionRepository: com.notepay.domain.repository.TransactionRepository
 
     @Inject
+    lateinit var suggestCategoryUseCase: SuggestCategoryUseCase
+
+    @Inject
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
 
+    @Inject
+    lateinit var notificationSettingsStore: NotificationSettingsStore
+
     private val job = SupervisorJob()
-    private val serviceScope by lazy { CoroutineScope(job + ioDispatcher) }
+    private val serviceScope: CoroutineScope
+        get() = CoroutineScope(job + ioDispatcher)
+
+    // Memory cache for settings to avoid persistent reads for every notification.
+    internal var trackAllBanks = true
+    internal var enabledPackages = KnownBankApps.packages
+    internal var autoCaptureEnabled = true
+    internal var excludedPackages = emptySet<String>()
 
     companion object {
         private const val CHANNEL_ID = "notepay_local_parse"
         private const val CHANNEL_NAME = "Tự động nhận diện chi tiêu"
         private const val NOTIFICATION_ID = 99
+
+        val KNOWN_PACKAGES = KnownBankApps.packages
+
+        @Volatile
+        var isConnected = false
+
+        fun heal(context: Context) {
+            val flat = android.provider.Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+            val isEnabled = flat != null && flat.contains(context.packageName)
+            if (isEnabled && !isConnected) {
+                android.util.Log.d("NotePayNotif", "Service is enabled in settings but not connected. Toggling component to force rebind.")
+                val pm = context.packageManager
+                val componentName = android.content.ComponentName(context, NotePayNotificationListenerService::class.java)
+                pm.setComponentEnabledSetting(
+                    componentName,
+                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+                pm.setComponentEnabledSetting(
+                    componentName,
+                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+            }
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+
+        serviceScope.launch {
+            notificationSettingsStore.settings.collect { settings ->
+                autoCaptureEnabled = settings.autoCaptureEnabled
+                trackAllBanks = settings.trackAllBanks
+                enabledPackages = settings.enabledPackages
+                excludedPackages = settings.excludedPackages
+            }
+        }
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        isConnected = true
+        android.util.Log.d("NotePayNotif", "NotificationListenerService Connected")
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        isConnected = false
+        android.util.Log.d("NotePayNotif", "NotificationListenerService Disconnected")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
+
+        val packageName = if (sbn.packageName.contains("com.notepay")) {
+            "com.tpb.mb.gprsandroid"
+        } else {
+            sbn.packageName
+        }
+        if (!autoCaptureEnabled) {
+            return
+        }
+
+        if (packageName in excludedPackages) {
+            android.util.Log.d("NotePayNotif", "Bỏ qua thông báo từ ứng dụng loại trừ: $packageName")
+            return
+        }
+        // Kiểm tra xem ứng dụng này có nằm trong danh sách trắng (whitelist) được cho phép hay không
+        val isWhitelisted = if (trackAllBanks) {
+            packageName in KNOWN_PACKAGES || packageName in enabledPackages
+        } else {
+            packageName in enabledPackages
+        }
+
+        if (!isWhitelisted) {
+            return
+        }
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence("android.title")?.toString()
@@ -73,8 +163,14 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         val textToParse = listOfNotNull(text, bigText, textLinesStr)
             .maxByOrNull { it.length }
 
+        // Optimization B: Fast Path Keyword Check
+        if (!isPotentiallyTransaction(textToParse)) {
+            return
+        }
+
+        // Output log only when it passes fast filter to optimize log resource
         android.util.Log.d("NotePayNotif", "--- NHẬN THÔNG BÁO ---")
-        android.util.Log.d("NotePayNotif", "Package: ${sbn.packageName}")
+        android.util.Log.d("NotePayNotif", "Package: $packageName")
         android.util.Log.d("NotePayNotif", "Title: $title")
         android.util.Log.d("NotePayNotif", "Text: $text")
         android.util.Log.d("NotePayNotif", "BigText: $bigText")
@@ -92,16 +188,26 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         serviceScope.launch {
             // Tìm ví liên kết với package name của thông báo
             val wallets = walletRepository.observeAll().firstOrNull() ?: emptyList()
-            val linkedWallet = wallets.find { it.linkedPackageName == sbn.packageName }
-            val walletToUse = linkedWallet ?: walletRepository.observeActive().firstOrNull()
+            val linkedWallet = wallets.find { 
+                KnownBankApps.getPrimaryPackageName(it.linkedPackageName.orEmpty()) == KnownBankApps.getPrimaryPackageName(packageName)
+            }
+            var walletToUse = linkedWallet ?: walletRepository.observeActive().firstOrNull()
             
             if (walletToUse == null) {
-                android.util.Log.d("NotePayNotif", "Lỗi: Không tìm thấy ví hoạt động hoặc ví liên kết.")
-                showErrorNotification(
-                    "Chưa chọn ví hoạt động",
-                    "Hãy mở ứng dụng và kích hoạt ví của bạn để tự động ghi chép."
-                )
-                return@launch
+                // Fallback 1: Lấy ví đầu tiên trong danh sách (nếu có)
+                walletToUse = wallets.firstOrNull()
+                if (walletToUse != null) {
+                    android.util.Log.d("NotePayNotif", "Không tìm thấy ví hoạt động/liên kết, sử dụng ví đầu tiên tìm thấy: ${walletToUse.name}")
+                }
+            }
+            
+            if (walletToUse == null) {
+                // Fallback 2: Nếu DB hoàn toàn trống ví, tự động tạo mới ví mặc định "Tiền mặt"
+                android.util.Log.d("NotePayNotif", "Database trống ví, tiến hành tự động tạo ví mặc định.")
+                val defaultWallet = Wallet.default()
+                val newId = walletRepository.upsert(defaultWallet)
+                walletRepository.setActive(newId)
+                walletToUse = defaultWallet.copy(id = newId)
             }
 
             android.util.Log.d("NotePayNotif", "Sử dụng ví: ${walletToUse.name} (ID: ${walletToUse.id})")
@@ -112,8 +218,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 
                 // 1. Khớp mã đối soát đơn lẻ
                 val matchingSplit = unpaidSplits.find { 
-                    val cleanSplitMemo = removeVietnameseAccents(it.memoCode).uppercase(Locale.ROOT)
-                    val cleanText = removeVietnameseAccents(textToParse.orEmpty()).uppercase(Locale.ROOT)
+                    val cleanSplitMemo = StringUtils.removeVietnameseAccents(it.memoCode).uppercase(Locale.ROOT)
+                    val cleanText = StringUtils.removeVietnameseAccents(textToParse.orEmpty()).uppercase(Locale.ROOT)
                     cleanText.contains(cleanSplitMemo)
                 }
                 
@@ -159,8 +265,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                     for (debtor in uniqueDebtors) {
                         val sanitized = debtor.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim().uppercase()
                         val combinedMemo = "NP $sanitized"
-                        val cleanMemo = removeVietnameseAccents(combinedMemo).uppercase(Locale.ROOT)
-                        val cleanText = removeVietnameseAccents(textToParse.orEmpty()).uppercase(Locale.ROOT)
+                        val cleanMemo = StringUtils.removeVietnameseAccents(combinedMemo).uppercase(Locale.ROOT)
+                        val cleanText = StringUtils.removeVietnameseAccents(textToParse.orEmpty()).uppercase(Locale.ROOT)
                         if (cleanText.contains(cleanMemo)) {
                             matchedDebtor = debtor
                             break
@@ -214,11 +320,10 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 id = 0L,
                 amount = parsed.amount,
                 type = parsed.type,
-                category = if (parsed.type == com.notepay.domain.model.TransactionType.INCOME) {
-                    com.notepay.domain.model.Category.DEFAULT_INCOME
-                } else {
-                    com.notepay.domain.model.Category.DEFAULT_EXPENSE
-                },
+                category = suggestCategoryUseCase.suggest(
+                    parsed.note,
+                    parsed.type == com.notepay.domain.model.TransactionType.INCOME
+                ),
                 note = parsed.note,
                 occurredAt = Clock.System.now(),
                 walletId = walletToUse.id,
@@ -242,7 +347,77 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isConnected = false
         job.cancel()
+    }
+
+    private fun isPotentiallyTransaction(text: String?): Boolean {
+        if (text.isNullOrBlank()) return false
+        val lower = text.lowercase(Locale.ROOT)
+        return lower.contains("vnd") || 
+               lower.contains("đ") || 
+               lower.contains("giao dich") || 
+               lower.contains("gd") || 
+               lower.contains("ps:") ||
+               lower.contains("chuyen") ||
+               lower.contains("nhan") ||
+               lower.contains("so du") ||
+               lower.contains("+") ||
+               lower.contains("-")
+    }
+
+    private fun showConfirmationNotification(walletName: String, transaction: Transaction) {
+        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(transaction.amount)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        val notifId = (transaction.amount.amountInCents + transaction.occurredAt.epochSeconds).toInt()
+        
+        val saveIntent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = "com.notepay.ACTION_SAVE_TRANSACTION"
+            putExtra("amount_cents", transaction.amount.amountInCents)
+            putExtra("type", transaction.type.name)
+            putExtra("note", transaction.note)
+            putExtra("wallet_id", transaction.walletId)
+            putExtra("notification_id", notifId)
+        }
+        
+        val savePendingIntent = PendingIntent.getBroadcast(
+            this,
+            notifId,
+            saveIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val ignoreIntent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = "com.notepay.ACTION_IGNORE_TRANSACTION"
+            putExtra("notification_id", notifId)
+        }
+        val ignorePendingIntent = PendingIntent.getBroadcast(
+            this,
+            notifId + 1,
+            ignoreIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Phát hiện giao dịch mới 💸")
+            .setContentText("Nhận diện ${parsedTypeLabel(transaction.type)} $amountFormat từ ví $walletName. Nhấp để lưu.")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(
+                "Ví: $walletName\nSố tiền: $amountFormat (${parsedTypeLabel(transaction.type)})\nNội dung: ${transaction.note}"
+            ))
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .addAction(android.R.drawable.ic_menu_save, "Lưu", savePendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Bỏ qua", ignorePendingIntent)
+            .build()
+
+        manager.notify(notifId, notification)
+    }
+
+    private fun parsedTypeLabel(type: com.notepay.domain.model.TransactionType): String = when (type) {
+        com.notepay.domain.model.TransactionType.INCOME -> "Thu nhập"
+        com.notepay.domain.model.TransactionType.EXPENSE -> "Chi tiêu"
     }
 
     private fun createNotificationChannel() {
@@ -288,31 +463,5 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .build()
 
         manager.notify(NOTIFICATION_ID + 1, notification)
-    }
-
-    private fun removeVietnameseAccents(text: String): String {
-        val map = mapOf(
-            'a' to "aàáảãạăằắẳẵặâầấẩẫậ",
-            'A' to "AÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬ",
-            'd' to "dđ",
-            'D' to "DĐ",
-            'e' to "eèéẻẽẹêềếểễệ",
-            'E' to "EÈÉẺẼẸÊỀẾỂỄỆ",
-            'i' to "iìíỉĩị",
-            'I' to "IÌÍỈĨỊ",
-            'o' to "oòóỏõọôồốổỗộơờớởỡợ",
-            'O' to "OÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ",
-            'u' to "uùúủũụưừứửữự",
-            'U' to "UÙÚỦŨỤƯỪỨỬỮỰ",
-            'y' to "yỳýỷỹỵ",
-            'Y' to "YỲÝỶỸỴ"
-        )
-        var result = text
-        for ((replaceChar, charList) in map) {
-            for (c in charList) {
-                result = result.replace(c, replaceChar)
-            }
-        }
-        return result
     }
 }

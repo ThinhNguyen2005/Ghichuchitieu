@@ -8,8 +8,10 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +54,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import com.notepay.ui.feedback.UiFeedback
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +80,7 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.categoryIcon
+import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.feature.wallet.SupportedBank
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
@@ -85,25 +90,44 @@ import java.util.Locale
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DebtorDetailScreen(
     debtorName: String,
     onBack: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     viewModel: BillSplitViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val debtorSplits by remember(state.unpaidSplits, debtorName) {
+    LaunchedEffect(Unit) {
+        viewModel.feedback.collect { feedback ->
+            onFeedback(feedback)
+        }
+    }
+
+    val unpaidDebtorSplits by remember(state.unpaidSplits, debtorName) {
         derivedStateOf {
             state.unpaidSplits.filter { it.split.debtorName.equals(debtorName, ignoreCase = true) }
         }
     }
 
-    val totalAmountCents by remember(debtorSplits) {
+    val paidDebtorSplits by remember(state.paidSplits, debtorName) {
         derivedStateOf {
-            debtorSplits.sumOf { it.split.amount.amountInCents }
+            state.paidSplits.filter { it.split.debtorName.equals(debtorName, ignoreCase = true) }
+        }
+    }
+
+    val allDebtorSplits by remember(unpaidDebtorSplits, paidDebtorSplits) {
+        derivedStateOf {
+            (unpaidDebtorSplits + paidDebtorSplits).sortedByDescending { it.split.createdAt }
+        }
+    }
+
+    val totalAmountCents by remember(unpaidDebtorSplits) {
+        derivedStateOf {
+            unpaidDebtorSplits.sumOf { it.split.amount.amountInCents }
         }
     }
 
@@ -148,7 +172,7 @@ fun DebtorDetailScreen(
             )
         },
         bottomBar = {
-            if (debtorSplits.isNotEmpty()) {
+            if (unpaidDebtorSplits.isNotEmpty()) {
                 Surface(
                     tonalElevation = 3.dp,
                     // P2-9: giảm shadowElevation 8dp → 1dp cho gọn, tránh cảm giác nặng nề.
@@ -163,7 +187,7 @@ fun DebtorDetailScreen(
                     ) {
                         Button(
                             onClick = {
-                                viewModel.markDebtorAsPaid(debtorName, debtorSplits.map { it.split.id })
+                                viewModel.markDebtorAsPaid(debtorName, unpaidDebtorSplits.map { it.split.id })
                                 Toast.makeText(context, "Đã thu tiền nợ gộp thành công!", Toast.LENGTH_SHORT).show()
                                 onBack()
                             },
@@ -186,12 +210,12 @@ fun DebtorDetailScreen(
             return@Scaffold
         }
 
-        if (debtorSplits.isEmpty()) {
+        if (allDebtorSplits.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("Người này đã trả hết nợ! ✨", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Người này không có lịch sử nợ! ✨", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onBack) {
                         Text("Quay lại")
@@ -218,7 +242,7 @@ fun DebtorDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Tổng số tiền nợ gộp",
+                        text = if (totalAmountCents > 0) "Tổng dư nợ hiện tại" else "Dư nợ hiện tại",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -227,19 +251,20 @@ fun DebtorDetailScreen(
                         text = MoneyFormatter.format(Money(totalAmountCents)),
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.error
+                        color = if (totalAmountCents > 0) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
                     )
                     Text(
-                        text = "${debtorSplits.size} khoản nợ chưa thanh toán",
+                        text = if (totalAmountCents > 0) "${unpaidDebtorSplits.size} khoản nợ chưa thanh toán" else "Đã thanh toán hết nợ ✨",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (totalAmountCents > 0) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF4CAF50),
+                        fontWeight = if (totalAmountCents > 0) FontWeight.Normal else FontWeight.Bold
                     )
                 }
             }
 
             // VietQR Card
             item {
-                if (qrCodeString != null && activeWallet != null) {
+                if (qrCodeString != null && activeWallet != null && totalAmountCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         VietQrTemplateCard(
                             bankName = bankName,
@@ -311,23 +336,29 @@ fun DebtorDetailScreen(
             // List header
             item {
                 Text(
-                    text = "Danh sách phiếu nợ chi tiết",
+                    text = "Lịch sử nợ chi tiết",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
-            // Unpaid splits list
-            items(debtorSplits, key = { it.split.id }) { item ->
+            // Unpaid & Paid splits list (Sao kê sổ nợ)
+            items(allDebtorSplits, key = { it.split.id }) { item ->
                 val parentTx = item.parentTransaction
                 val note = parentTx?.note ?: "Giao dịch chia tiền"
-                val tz = TimeZone.currentSystemDefault()
-                val date = item.split.createdAt.toLocalDateTime(tz).date.toString()
+                val isPaid = item.split.isPaid
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { /* No-op */ },
+                            onLongClick = { pendingDeleteBill = item }
+                        ),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
@@ -339,31 +370,52 @@ fun DebtorDetailScreen(
                         CategoryAvatar(category = category)
 
                         Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = note,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                if (isPaid) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFFE8F5E9))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Đã trả",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF4CAF50),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                            val mượnDate = formatInstant(item.split.createdAt)
+                            val dateSubtext = if (isPaid) {
+                                val trảDate = formatInstant(item.split.paidAt)
+                                "Mượn: $mượnDate • Trả: $trảDate"
+                            } else {
+                                "Mượn: $mượnDate • Chờ thanh toán"
+                            }
                             Text(
-                                text = note,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Ngày tạo: $date • Mã đối soát: ${item.split.memoCode}",
+                                text = dateSubtext,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = MoneyFormatter.format(item.split.amount),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            IconButton(onClick = { pendingDeleteBill = item }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = "Xóa nợ lẻ", tint = MaterialTheme.colorScheme.outline)
-                            }
-                        }
+                        Text(
+                            text = MoneyFormatter.format(item.split.amount),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPaid) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
@@ -556,7 +608,7 @@ private fun TransferDetailsCopyCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -887,20 +939,13 @@ private fun shareVietQrImage(
     }
 }
 
-@Composable
-private fun CategoryAvatar(category: Category) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .background(Color(category.colorArgb).copy(alpha = 0.18f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = categoryIcon(category),
-            contentDescription = null,
-            tint = Color(category.colorArgb),
-            modifier = Modifier.size(22.dp),
-        )
-    }
+private fun formatInstant(instant: kotlinx.datetime.Instant?): String {
+    if (instant == null) return ""
+    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
+    val localDateTime = instant.toLocalDateTime(tz)
+    val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
+    val month = localDateTime.monthNumber.toString().padStart(2, '0')
+    val year = localDateTime.year
+    return "$day/$month/$year"
 }
 

@@ -1,21 +1,60 @@
 package com.notepay.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.notepay.ui.component.CradleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.CallSplit
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.outlined.CallSplit
+import androidx.compose.material.icons.filled.CallSplit
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.Velocity
+import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.width
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -34,135 +73,565 @@ import com.notepay.ui.feature.list.TransactionListScreen
 import com.notepay.ui.feature.stats.StatsScreen
 import com.notepay.ui.feature.subscription.SubscriptionScreen
 import com.notepay.ui.feature.wallet.AddWalletScreen
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackDuration
+import com.notepay.ui.feature.utilities.UtilitiesScreen
 
+// Thêm các thư viện cần dùng cho giao diện tùy biến mới
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.CircleShape
 
-private data class BottomTab(val route: Route, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-
-private val bottomTabs = listOf(
-    BottomTab(Route.Home, "Trang chủ", Icons.Rounded.Home),
-    BottomTab(Route.TransactionList, "Danh sách", Icons.Rounded.Receipt),
-    BottomTab(Route.Stats, "Thống kê", Icons.Rounded.BarChart),
-    BottomTab(Route.BillSplit, "Chia tiền", Icons.Rounded.CallSplit),
-    BottomTab(Route.Subscription, "Nhắc nhở", Icons.Rounded.NotificationsActive),
+private data class BottomTab(
+    val route: Route,
+    val label: String,
+    val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
+private val bottomTabs = listOf(
+    BottomTab(Route.Home, "Trang chủ", Icons.Outlined.Home, Icons.Filled.Home),
+    BottomTab(Route.TransactionList, "Giao dịch", Icons.Outlined.ReceiptLong, Icons.Filled.ReceiptLong),
+    BottomTab(Route.AddDummy, "Thêm", Icons.Rounded.Add, Icons.Rounded.Add),
+    BottomTab(Route.Stats, "Thống kê", Icons.Outlined.BarChart, Icons.Filled.BarChart),
+    BottomTab(Route.BillSplit, "Chia tiền", Icons.Outlined.CallSplit, Icons.Filled.CallSplit),
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val isMainTab = currentRoute in bottomTabs.map { it.route.path }
+    val isMainTab = currentRoute != null && bottomTabs.any { tab ->
+        currentRoute == tab.route.path || currentRoute.startsWith("${tab.route.path}?")
+    }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showQuickAddSheet by remember { mutableStateOf(false) }
+
+    // Chiều cao thanh điều hướng gồm 76dp (Bar) + 28dp (bottom padding) = 104dp.
+    val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
+    var navigationBarOffset by remember { mutableFloatStateOf(0f) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(currentRoute) {
+        navigationBarOffset = 0f
+    }
+
+    val nestedScrollConnection = remember(barHeightPx, isMainTab) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (isMainTab) {
+                    val delta = available.y
+                    navigationBarOffset = (navigationBarOffset - delta).coerceIn(0f, barHeightPx)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (isMainTab) {
+                    val targetOffset = if (navigationBarOffset > barHeightPx / 2f) barHeightPx else 0f
+                    coroutineScope.launch {
+                        Animatable(navigationBarOffset).animateTo(
+                            targetValue = targetOffset,
+                            animationSpec = tween(durationMillis = 200)
+                        ) {
+                            navigationBarOffset = this.value
+                        }
+                    }
+                }
+                return super.onPostFling(consumed, available)
+            }
+        }
+    }
+
+    suspend fun showFeedback(feedback: UiFeedback): Boolean {
+        snackbarHostState.currentSnackbarData?.dismiss()
+        val result = snackbarHostState.showSnackbar(
+            message = feedback.message,
+            actionLabel = feedback.actionLabel,
+            duration = when (feedback.duration) {
+                FeedbackDuration.Short -> SnackbarDuration.Short
+                FeedbackDuration.Long -> SnackbarDuration.Long
+                FeedbackDuration.Indefinite -> SnackbarDuration.Indefinite
+            },
+        )
+        return result == SnackbarResult.ActionPerformed
+    }
 
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            if (isMainTab) {
-                NavigationBar {
-                    bottomTabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = currentRoute == tab.route.path,
-                            onClick = {
-                                navController.navigate(tab.route.path) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = 104.dp)
+            )
+        },
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = Route.Home.path,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                composable(Route.Home.path) {
+                    HomeScreen(
+                        onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
+                        onSeeAll = {
+                            navController.navigate(Route.TransactionList.path) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
                                 }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onAddWallet = { navController.navigate(Route.AddWallet.path) },
+                        onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
+                        onTransactionClick = { txId ->
+                            navController.navigate(Route.EditTransaction(txId).path)
+                        },
+                        navigationBarOffset = navigationBarOffset
+                    )
+                }
+                composable(Route.AddTransaction.path) {
+                    AddTransactionScreen(
+                        onSaved = {
+                            navController.popBackStack()
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(
+                    route = Route.EditTransaction.ROUTE,
+                    arguments = listOf(navArgument(Route.EditTransaction.ARG_ID) { type = NavType.LongType }),
+                ) {
+                    EditTransactionScreen(
+                        onSaved = { feedback ->
+                            navController.popBackStack()
+                            showFeedback(feedback)
+                        },
+                        onBack = { navController.popBackStack() },
+                        onFeedback = ::showFeedback,
+                    )
+                }
+                composable(
+                    route = Route.TransactionDetail.ROUTE,
+                    arguments = listOf(navArgument(Route.TransactionDetail.ARG_ID) { type = NavType.LongType }),
+                ) {
+                    TransactionDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onEdit = { id -> navController.navigate(Route.EditTransaction(id).path) },
+                        onCreateBillSplit = {
+                            navController.navigate(Route.BillSplit.path) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onCreateSubscription = { _, _ ->
+                            navController.navigate(Route.Subscription.path) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(Route.TransactionList.path) {
+                    TransactionListScreen(
+                        onTransactionClick = { txId ->
+                            navController.navigate(Route.EditTransaction(txId).path)
+                        },
+                        onFeedback = ::showFeedback,
+                    )
+                }
+                composable(Route.Stats.path) {
+                    StatsScreen(
+                        onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
+                    )
+                }
+                composable(Route.AddWallet.path) {
+                    AddWalletScreen(
+                        onSaved = { feedback ->
+                            navController.popBackStack()
+                            showFeedback(feedback)
+                        },
+                        onBack = { navController.popBackStack() },
+                        onFeedback = ::showFeedback,
+                    )
+                }
+                composable(
+                    route = "bill-split?showCreate={showCreate}",
+                    arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
+                ) { backStackEntry ->
+                    val showCreate = backStackEntry.arguments?.getBoolean("showCreate") ?: false
+                    BillSplitScreen(
+                        onDebtorClick = { debtorName ->
+                            navController.navigate(Route.DebtorDetail(debtorName).path)
+                        },
+                        onFeedback = ::showFeedback,
+                        navigationBarOffset = navigationBarOffset,
+                        initialShowCreate = showCreate,
+                    )
+                }
+                composable(
+                    route = Route.DebtorDetail.ROUTE,
+                    arguments = listOf(navArgument(Route.DebtorDetail.ARG_NAME) { type = NavType.StringType }),
+                ) { backStackEntry ->
+                    val debtorName = backStackEntry.arguments?.getString(Route.DebtorDetail.ARG_NAME).orEmpty()
+                    DebtorDetailScreen(
+                        debtorName = debtorName,
+                        onBack = { navController.popBackStack() },
+                        onFeedback = ::showFeedback,
+                    )
+                }
+                composable(
+                    route = "subscription?showCreate={showCreate}",
+                    arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
+                ) { backStackEntry ->
+                    val showCreate = backStackEntry.arguments?.getBoolean("showCreate") ?: false
+                    SubscriptionScreen(
+                        navigationBarOffset = navigationBarOffset,
+                        initialShowCreate = showCreate,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(Route.Utilities.path) {
+                    UtilitiesScreen(
+                        onNavigateToBillSplit = {
+                            navController.navigate(Route.BillSplit.path) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToSubscription = {
+                            navController.navigate(Route.Subscription.path) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+            }
+
+            if (isMainTab) {
+                val BottomBarShape = remember { CradleShape() }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .offset {
+                            IntOffset(
+                                x = 0,
+                                y = navigationBarOffset.roundToInt()
+                            )
+                        },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                elevation = 16.dp,
+                                shape = BottomBarShape,
+                                clip = false
+                            ),
+                        shape = BottomBarShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp)
+                                    .padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                // Left tabs (Home & TransactionList)
+                                bottomTabs.take(2).forEach { tab ->
+                                    val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clickable(
+                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                navController.navigate(tab.route.path) {
+                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        // Top horizontal indicator bar
+                                        if (isSelected) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(40.dp)
+                                                    .height(3.dp)
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        shape = RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)
+                                                    )
+                                                    .align(Alignment.TopCenter)
+                                            )
+                                        }
+
+                                        // Icon & Label Column
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.fillMaxHeight().padding(top = 4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.label,
+                                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = tab.label,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 10.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                ),
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                                
+                                // Center spacer for the cutout "cradle"
+                                Spacer(modifier = Modifier.weight(0.8f))
+                                
+                                // Right tabs (Stats & BillSplit)
+                                bottomTabs.takeLast(2).forEach { tab ->
+                                    val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
+                                    val shouldColorTab = isSelected
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clickable(
+                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                navController.navigate(tab.route.path) {
+                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        // Top horizontal indicator bar
+                                        if (shouldColorTab) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(40.dp)
+                                                    .height(3.dp)
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        shape = RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)
+                                                    )
+                                                    .align(Alignment.TopCenter)
+                                            )
+                                        }
+
+                                        // Icon & Label Column
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.fillMaxHeight().padding(top = 4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.label,
+                                                tint = if (shouldColorTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = tab.label,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 10.sp,
+                                                    fontWeight = if (shouldColorTab) FontWeight.Bold else FontWeight.Normal
+                                                ),
+                                                color = if (shouldColorTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.navigationBarsPadding())
+                        }
+                    }
+                    
+                    // Floating Center Creator Add Button
+                    Box(
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .offset(y = (-24).dp)
+                            .size(64.dp)
+                            .shadow(8.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable {
+                                showQuickAddSheet = true
                             },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "Thêm mới",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
             }
-        },
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Route.Home.path,
-            modifier = Modifier.padding(padding),
-        ) {
-            composable(Route.Home.path) {
-                HomeScreen(
-                    onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
-                    onSeeAll = { navController.navigate(Route.TransactionList.path) },
-                    onAddWallet = { navController.navigate(Route.AddWallet.path) },
-                    onTransactionClick = { txId ->
-                        navController.navigate(Route.EditTransaction(txId).path)
-                    },
-                )
-            }
-            composable(Route.AddTransaction.path) {
-                AddTransactionScreen(
-                    onSaved = { navController.popBackStack() },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(
-                route = Route.EditTransaction.ROUTE,
-                arguments = listOf(navArgument(Route.EditTransaction.ARG_ID) { type = NavType.LongType }),
-            ) {
-                EditTransactionScreen(
-                    onSaved = { navController.popBackStack() },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(
-                route = Route.TransactionDetail.ROUTE,
-                arguments = listOf(navArgument(Route.TransactionDetail.ARG_ID) { type = NavType.LongType }),
-            ) {
-                TransactionDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onEdit = { id -> navController.navigate(Route.EditTransaction(id).path) },
-                    onCreateBillSplit = {
-                        navController.navigate(Route.BillSplit.path) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onCreateSubscription = { _, _ ->
-                        navController.navigate(Route.Subscription.path) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable(Route.TransactionList.path) {
-                TransactionListScreen(
-                    onTransactionClick = { txId ->
-                        navController.navigate(Route.EditTransaction(txId).path)
-                    },
-                )
-            }
-            composable(Route.Stats.path) {
-                StatsScreen(
-                    onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
-                )
-            }
-            composable(Route.AddWallet.path) {
-                AddWalletScreen(
-                    onSaved = { navController.popBackStack() },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Route.BillSplit.path) {
-                BillSplitScreen(
-                    onDebtorClick = { debtorName ->
-                        navController.navigate(Route.DebtorDetail(debtorName).path)
+
+            // Render Bottom Sheet
+            if (showQuickAddSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showQuickAddSheet = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Tạo mới",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // Option 1: Thêm chi tiêu
+                        QuickAddOption(
+                            icon = Icons.Outlined.ReceiptLong,
+                            title = "Thêm chi tiêu",
+                            description = "Ghi nhận giao dịch mua sắm, ăn uống hàng ngày",
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                showQuickAddSheet = false
+                                navController.navigate(Route.AddTransaction.path)
+                            }
+                        )
+
+                        // Option 2: Chia hóa đơn
+                        QuickAddOption(
+                            icon = Icons.Outlined.CallSplit,
+                            title = "Chia hóa đơn",
+                            description = "Chia tiền ăn chung, mua sắm nhóm với bạn bè",
+                            color = MaterialTheme.colorScheme.tertiary,
+                            onClick = {
+                                showQuickAddSheet = false
+                                navController.navigate("bill-split?showCreate=true") {
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
+
+                        // Option 3: Hóa đơn định kỳ
+                        QuickAddOption(
+                            icon = Icons.Outlined.Notifications,
+                            title = "Thêm hóa đơn định kỳ",
+                            description = "Đặt lịch đóng tiền nhà, Netflix, bảo hiểm...",
+                            color = MaterialTheme.colorScheme.secondary,
+                            onClick = {
+                                showQuickAddSheet = false
+                                navController.navigate("subscription?showCreate=true") {
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickAddOption(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(color.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            composable(
-                route = Route.DebtorDetail.ROUTE,
-                arguments = listOf(navArgument(Route.DebtorDetail.ARG_NAME) { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val debtorName = backStackEntry.arguments?.getString(Route.DebtorDetail.ARG_NAME).orEmpty()
-                DebtorDetailScreen(
-                    debtorName = debtorName,
-                    onBack = { navController.popBackStack() },
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            }
-            composable(Route.Subscription.path) {
-                SubscriptionScreen()
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

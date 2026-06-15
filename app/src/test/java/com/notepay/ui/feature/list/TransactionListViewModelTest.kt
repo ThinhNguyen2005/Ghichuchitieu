@@ -18,6 +18,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.feedback.FeedbackType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransactionListViewModelTest {
@@ -101,6 +103,53 @@ class TransactionListViewModelTest {
         collectJob.cancel()
     }
 
+    @Test
+    fun `delete transaction emits undo feedback containing action callback`() = runTest {
+        val repo = FakeTransactionRepository(listOf(t1))
+        val viewModel = createViewModel(transactionRepository = repo)
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.delete(t1)
+        testScheduler.advanceUntilIdle()
+
+        assertThat(feedbacks).hasSize(1)
+        val feedback = feedbacks.first()
+        assertThat(feedback.message).isEqualTo("Đã xóa giao dịch")
+        assertThat(feedback.actionLabel).isEqualTo("Hoàn tác")
+        assertThat(feedback.onAction).isNotNull()
+
+        // Trigger onAction and check it calls undo
+        feedback.onAction?.invoke()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(repo.savedTransactions).contains(t1.copy(id = 0L))
+        job.cancel()
+    }
+
+    @Test
+    fun `undo delete successfully emits success feedback`() = runTest {
+        val repo = FakeTransactionRepository(listOf(t1))
+        val viewModel = createViewModel(transactionRepository = repo)
+        val feedbacks = mutableListOf<UiFeedback>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+
+        viewModel.delete(t1)
+        testScheduler.advanceUntilIdle()
+        feedbacks.clear()
+
+        viewModel.undoDelete()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
+        assertThat(feedbacks.first { it.type == FeedbackType.Success }.message).isEqualTo("Đã khôi phục giao dịch")
+        job.cancel()
+    }
+
     private fun createViewModel(
         transactions: List<Transaction> = emptyList(),
         transactionRepository: FakeTransactionRepository = FakeTransactionRepository(transactions),
@@ -112,7 +161,7 @@ class TransactionListViewModelTest {
         val walletRepo = FakeWalletRepository()
         val addUseCase = AddTransactionUseCase(transactionRepository, walletRepo, dispatcher)
 
-        return TransactionListViewModel(getUseCase, deleteUseCase, addUseCase, dispatcher)
+        return TransactionListViewModel(getUseCase, deleteUseCase, addUseCase, walletRepo, dispatcher)
     }
 }
 

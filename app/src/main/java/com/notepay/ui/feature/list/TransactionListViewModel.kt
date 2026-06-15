@@ -5,14 +5,22 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Money
+import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetTransactionsUseCase
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.FeedbackDuration
+import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -28,15 +36,29 @@ class TransactionListViewModel @Inject constructor(
     getTransactions: GetTransactionsUseCase,
     private val deleteTransaction: DeleteTransactionUseCase,
     private val addTransaction: AddTransactionUseCase,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val walletRepository: WalletRepository,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val filters = MutableStateFlow(TransactionListFilters())
     private val actionState = MutableStateFlow(TransactionListActionState())
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
-    val state = combine(getTransactions(), filters, actionState) { transactions, filters, action ->
+    val state = combine(getTransactions(), filters, actionState, walletRepository.observeAll()) { transactions, filters, action, wallets ->
+        val filtered = filterTransactions(transactions, filters)
+        val walletsMap = wallets.associate { it.id to it.name }
+        
+        val currentTz = TimeZone.currentSystemDefault()
+        val monthTransactions = transactions.filter { tx ->
+            val date = tx.occurredAt.toLocalDateTime(currentTz).date
+            date.year == filters.calendarYear && date.month.ordinal + 1 == filters.calendarMonth
+        }
+        val monthlyIncome = monthTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount.amountInCents }
+        val monthlyExpense = monthTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount.amountInCents }
+
         TransactionListUiState(
-            transactions = filterTransactions(transactions, filters),
+            transactions = filtered,
             query = filters.query,
             selectedCategory = filters.category,
             isLoading = false,
@@ -46,8 +68,11 @@ class TransactionListViewModel @Inject constructor(
             calendarYear = filters.calendarYear,
             calendarMonth = filters.calendarMonth,
             transactionsByDate = transactions.groupBy { tx ->
-                tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                tx.occurredAt.toLocalDateTime(currentTz).date
             },
+            walletsMap = walletsMap,
+            totalIncomeForSelectedMonth = Money(monthlyIncome),
+            totalExpenseForSelectedMonth = Money(monthlyExpense),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -90,21 +115,41 @@ class TransactionListViewModel @Inject constructor(
                 if (result.isSuccess) {
                     it.copy(pendingUndoTransaction = transaction, errorMessage = null)
                 } else {
-                    it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Không thể xóa giao dịch")
+                    val message = "Không thể xóa giao dịch"
+                    _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
+                    it.copy(errorMessage = message)
                 }
+            }
+            if (result.isSuccess) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = "Đã xóa giao dịch",
+                        actionLabel = "Hoàn tác",
+                        type = FeedbackType.Success,
+                        duration = FeedbackDuration.Long,
+                        onAction = { undoDelete(transaction) }
+                    )
+                )
             }
         }
     }
 
     fun undoDelete() {
         val transaction = actionState.value.pendingUndoTransaction ?: return
+        undoDelete(transaction)
+    }
+
+    private fun undoDelete(transaction: Transaction) {
         viewModelScope.launch(ioDispatcher) {
             val result = addTransaction(transaction.copy(id = 0L))
             actionState.update {
                 if (result.isSuccess) {
+                    _feedback.tryEmit(UiFeedback("Đã khôi phục giao dịch", type = FeedbackType.Success))
                     it.copy(pendingUndoTransaction = null, errorMessage = null)
                 } else {
-                    it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Không thể khôi phục giao dịch")
+                    val message = "Không thể khôi phục giao dịch"
+                    _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
+                    it.copy(errorMessage = message)
                 }
             }
         }
@@ -124,7 +169,7 @@ private data class TransactionListFilters(
     val category: Category? = null,
     val isCalendarView: Boolean = false,
     val calendarYear: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year,
-    val calendarMonth: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).monthNumber,
+    val calendarMonth: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).month.ordinal + 1,
 )
 
 private data class TransactionListActionState(
