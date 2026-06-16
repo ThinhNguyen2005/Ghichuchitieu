@@ -6,20 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.notepay.ui.component.CradleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Widgets
-import androidx.compose.material.icons.filled.Widgets
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.outlined.CallSplit
-import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -93,12 +82,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SheetState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.outlined.Analytics
 
 private data class BottomTab(
     val route: Route,
@@ -109,10 +104,13 @@ private data class BottomTab(
 
 private val bottomTabs = listOf(
     BottomTab(Route.Home, "Trang chủ", Icons.Outlined.Home, Icons.Filled.Home),
-    BottomTab(Route.TransactionList, "Giao dịch", Icons.Outlined.ReceiptLong, Icons.Filled.ReceiptLong),
+    BottomTab(Route.TransactionList, "Giao dịch",
+        Icons.AutoMirrored.Outlined.ReceiptLong, Icons.AutoMirrored.Filled.ReceiptLong),
     BottomTab(Route.AddDummy, "Thêm", Icons.Rounded.Add, Icons.Rounded.Add),
-    BottomTab(Route.Stats, "Thống kê", Icons.Outlined.BarChart, Icons.Filled.BarChart),
-    BottomTab(Route.BillSplit, "Chia tiền", Icons.Outlined.CallSplit, Icons.Filled.CallSplit),
+    BottomTab(Route.Stats, "Thống kê",
+        Icons.Outlined.Analytics, Icons.Filled.Analytics),
+    BottomTab(Route.BillSplit, "Chia tiền",
+        Icons.AutoMirrored.Outlined.CallSplit, Icons.AutoMirrored.Filled.CallSplit),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -213,6 +211,7 @@ fun NotePayNavHost(
                             }
                         },
                         onAddWallet = { navController.navigate(Route.AddWallet.path) },
+                        onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
                         onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
                         onTransactionClick = { txId ->
@@ -285,9 +284,35 @@ fun NotePayNavHost(
                     )
                 }
                 composable(
+                    route = Route.EditWallet.ROUTE,
+                    arguments = listOf(
+                        navArgument(Route.EditWallet.ARG_ID) { type = NavType.LongType }
+                    )
+                ) {
+                    AddWalletScreen(
+                        onSaved = { feedback ->
+                            navController.popBackStack()
+                            showFeedback(feedback)
+                        },
+                        onBack = { navController.popBackStack() },
+                        onFeedback = ::showFeedback,
+                    )
+                }
+                composable(
                     route = "bill-split?showCreate={showCreate}",
                     arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
                 ) { backStackEntry ->
+                    val arguments = backStackEntry.arguments
+                    val showCreateArg = arguments?.getBoolean("showCreate") ?: false
+                    val isHandled = backStackEntry.savedStateHandle.get<Boolean>("showCreateHandled") ?: false
+
+                    if (showCreateArg && !isHandled) {
+                        backStackEntry.savedStateHandle["showCreate"] = true
+                        backStackEntry.savedStateHandle["showCreateHandled"] = true
+                    } else if (!showCreateArg) {
+                        backStackEntry.savedStateHandle["showCreateHandled"] = false
+                    }
+
                     val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
                     val showCreate by showCreateFlow.collectAsState()
                     BillSplitScreen(
@@ -317,6 +342,17 @@ fun NotePayNavHost(
                     route = "subscription?showCreate={showCreate}",
                     arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
                 ) { backStackEntry ->
+                    val arguments = backStackEntry.arguments
+                    val showCreateArg = arguments?.getBoolean("showCreate") ?: false
+                    val isHandled = backStackEntry.savedStateHandle.get<Boolean>("showCreateHandled") ?: false
+
+                    if (showCreateArg && !isHandled) {
+                        backStackEntry.savedStateHandle["showCreate"] = true
+                        backStackEntry.savedStateHandle["showCreateHandled"] = true
+                    } else if (!showCreateArg) {
+                        backStackEntry.savedStateHandle["showCreateHandled"] = false
+                    }
+
                     val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
                     val showCreate by showCreateFlow.collectAsState()
                     SubscriptionScreen(
@@ -556,7 +592,7 @@ fun NotePayNavHost(
 
                         // Option 1: Thêm chi tiêu
                         QuickAddOption(
-                            icon = Icons.Outlined.ReceiptLong,
+                            icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                             title = "Thêm chi tiêu",
                             description = "Ghi nhận giao dịch mua sắm, ăn uống hàng ngày",
                             color = MaterialTheme.colorScheme.primary,
@@ -568,16 +604,27 @@ fun NotePayNavHost(
 
                         // Option 2: Chia hóa đơn
                         QuickAddOption(
-                            icon = Icons.Outlined.CallSplit,
+                            icon = Icons.AutoMirrored.Outlined.CallSplit,
                             title = "Chia hóa đơn",
                             description = "Chia tiền ăn chung, mua sắm nhóm với bạn bè",
                             color = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 showQuickAddSheet = false
-                                navController.navigate("bill-split?showCreate=true") {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
+                                if (isAlreadyOnBillSplit) {
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
+                                } else {
+                                    navController.navigate("bill-split?showCreate=true") {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    try {
+                                        navController.getBackStackEntry("bill-split?showCreate={showCreate}")
+                                            .savedStateHandle["showCreate"] = true
+                                    } catch (e: Exception) {
+                                        // Ignore
+                                    }
                                 }
                             }
                         )
@@ -590,8 +637,19 @@ fun NotePayNavHost(
                             color = MaterialTheme.colorScheme.secondary,
                             onClick = {
                                 showQuickAddSheet = false
-                                navController.navigate("subscription?showCreate=true") {
-                                    launchSingleTop = true
+                                val isAlreadyOnSubscription = currentRoute?.startsWith("subscription") == true
+                                if (isAlreadyOnSubscription) {
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
+                                } else {
+                                    navController.navigate("subscription?showCreate=true") {
+                                        launchSingleTop = true
+                                    }
+                                    try {
+                                        navController.getBackStackEntry("subscription?showCreate={showCreate}")
+                                            .savedStateHandle["showCreate"] = true
+                                    } catch (e: Exception) {
+                                        // Ignore
+                                    }
                                 }
                             }
                         )

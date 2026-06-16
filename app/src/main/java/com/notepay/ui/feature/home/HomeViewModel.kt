@@ -150,11 +150,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setTrackAllBanks(enabled: Boolean) {
-        viewModelScope.launch {
-            notificationSettingsStore.setTrackAllBanks(enabled)
-        }
-    }
+//    fun setTrackAllBanks(enabled: Boolean) {
+//        viewModelScope.launch {
+//            notificationSettingsStore.setTrackAllBanks(enabled)
+//        }
+//    }
 
     fun setPackageEnabled(packageName: String, enabled: Boolean) {
         viewModelScope.launch {
@@ -162,11 +162,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setExcludedPackages(packages: Set<String>) {
-        viewModelScope.launch {
-            notificationSettingsStore.setExcludedPackages(packages)
-        }
-    }
+//    fun setExcludedPackages(packages: Set<String>) {
+//        viewModelScope.launch {
+//            notificationSettingsStore.setExcludedPackages(packages)
+//        }
+//    }
 
     fun addCustomBankApp(packageName: String, label: String) {
         viewModelScope.launch {

@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.wallet
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.model.Money
@@ -15,17 +16,49 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Clock
 
 @HiltViewModel
 class AddWalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    private val walletId: Long? = savedStateHandle.get<Long>("id")
+    private var loadedWallet: Wallet? = null
 
     private val _state = MutableStateFlow(AddWalletUiState())
     val state = _state.asStateFlow()
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
+
+    init {
+        if (walletId != null && walletId > 0L) {
+            viewModelScope.launch {
+                val wallet = walletRepository.getById(walletId)
+                if (wallet != null) {
+                    loadedWallet = wallet
+                    _state.update {
+                        it.copy(
+                            name = wallet.name,
+                            initialBalanceInput = (wallet.initialBalance.amountInCents / 100).toString(),
+                            hasBudgetLimit = wallet.budgetLimit != null && wallet.budgetLimit.amountInCents > 0L,
+                            budgetLimitInput = if (wallet.budgetLimit != null) (wallet.budgetLimit.amountInCents / 100).toString() else "",
+                            budgetPeriod = BudgetPeriod.MONTHLY,
+                            iconKey = wallet.iconKey,
+                            colorKey = wallet.colorKey,
+                            linkedPackageName = wallet.linkedPackageName ?: "",
+                            bankBin = wallet.bankBin,
+                            accountNumber = wallet.accountNumber ?: "",
+                            accountName = wallet.accountName ?: "",
+                            isEditMode = true
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     fun onNameChanged(name: String) {
         _state.update { it.copy(name = name) }
@@ -43,6 +76,10 @@ class AddWalletViewModel @Inject constructor(
     fun onBudgetLimitChanged(input: String) {
         val clean = input.filter(Char::isDigit)
         _state.update { it.copy(budgetLimitInput = clean) }
+    }
+
+    fun onBudgetPeriodChanged(period: BudgetPeriod) {
+        _state.update { it.copy(budgetPeriod = period) }
     }
 
     fun onIconChanged(iconKey: String) {
@@ -76,29 +113,37 @@ class AddWalletViewModel @Inject constructor(
             try {
                 val initialBalanceCents = current.initialBalanceInput.toLongOrNull()?.let { it * 100 } ?: 0L
                 val budgetLimit = if (current.hasBudgetLimit) {
-                    current.budgetLimitInput.toLongOrNull()?.let { Money(it * 100) }
+                    val rawLimit = current.budgetLimitInput.toLongOrNull() ?: 0L
+                    val monthlyLimit = when (current.budgetPeriod) {
+                        BudgetPeriod.DAILY -> rawLimit * 30
+                        BudgetPeriod.WEEKLY -> rawLimit * 4
+                        BudgetPeriod.MONTHLY -> rawLimit
+                    }
+                    Money(monthlyLimit * 100)
                 } else {
                     null
                 }
 
                 val wallet = Wallet(
+                    id = walletId ?: 0L,
                     name = current.name,
                     initialBalance = Money(initialBalanceCents),
                     iconKey = current.iconKey,
                     colorKey = current.colorKey,
-                    isActive = false, // Ví mới mặc định inactive, người dùng sẽ chọn active sau
+                    isActive = loadedWallet?.isActive ?: false,
                     budgetLimit = budgetLimit,
                     linkedPackageName = current.linkedPackageName.ifBlank { null },
                     bankBin = current.bankBin,
                     accountNumber = current.accountNumber.ifBlank { null },
-                    accountName = current.accountName.ifBlank { null }
+                    accountName = current.accountName.ifBlank { null },
+                    createdAt = loadedWallet?.createdAt ?: Clock.System.now()
                 )
 
                 walletRepository.upsert(wallet)
                 _state.update { it.copy(isSaving = false, error = null) }
-                _feedback.emit(UiFeedback("Đã tạo ví", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(if (current.isEditMode) "Đã cập nhật ví" else "Đã tạo ví", type = FeedbackType.Success))
             } catch (e: Exception) {
-                val message = "Không thể tạo ví"
+                val message = if (current.isEditMode) "Không thể cập nhật ví" else "Không thể tạo ví"
                 _state.update { it.copy(isSaving = false, error = message) }
                 _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }

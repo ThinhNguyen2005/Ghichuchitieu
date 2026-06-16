@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.wallet
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
@@ -27,7 +28,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `initial state has default values`() {
-        val viewModel = AddWalletViewModel(fakeWalletRepository)
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
         val state = viewModel.state.value
 
         assertThat(state.name).isEmpty()
@@ -43,7 +44,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `input changes update UI state`() {
-        val viewModel = AddWalletViewModel(fakeWalletRepository)
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
 
         viewModel.onNameChanged("Ví chi tiêu")
         viewModel.onInitialBalanceChanged("500000")
@@ -64,7 +65,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `save with budget limit inserts correct wallet`() = runTest {
-        val viewModel = AddWalletViewModel(fakeWalletRepository)
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -96,7 +97,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `save without budget limit inserts wallet with null budgetLimit`() = runTest {
-        val viewModel = AddWalletViewModel(fakeWalletRepository)
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -125,7 +126,7 @@ class AddWalletViewModelTest {
     @Test
     fun `save failure updates error state`() = runTest {
         val repositoryWithFailure = FakeWalletRepository(throwOnSave = true)
-        val viewModel = AddWalletViewModel(repositoryWithFailure)
+        val viewModel = AddWalletViewModel(repositoryWithFailure, SavedStateHandle())
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -142,6 +143,32 @@ class AddWalletViewModelTest {
         assertThat(state.error).isEqualTo("Không thể tạo ví")
 
         collectJob.cancel()
+    }
+
+    @Test
+    fun `initial state in edit mode loads existing wallet data`() = runTest {
+        val wallet = Wallet(
+            id = 42L,
+            name = "Ví Cũ",
+            initialBalance = Money(1500_00),
+            iconKey = "bank",
+            colorKey = "secondary",
+            budgetLimit = Money(5000_00)
+        )
+        fakeWalletRepository.savedWallets.add(wallet)
+
+        val savedStateHandle = SavedStateHandle(mapOf("id" to 42L))
+        val viewModel = AddWalletViewModel(fakeWalletRepository, savedStateHandle)
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertThat(state.name).isEqualTo("Ví Cũ")
+        assertThat(state.initialBalanceInput).isEqualTo("1500")
+        assertThat(state.hasBudgetLimit).isTrue()
+        assertThat(state.budgetLimitInput).isEqualTo("5000")
+        assertThat(state.iconKey).isEqualTo("bank")
+        assertThat(state.colorKey).isEqualTo("secondary")
+        assertThat(state.isEditMode).isTrue()
     }
 
     private class FakeWalletRepository(

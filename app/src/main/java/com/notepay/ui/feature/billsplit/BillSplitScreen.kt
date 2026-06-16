@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.notepay.ui.feedback.UiFeedback
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.Image
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -107,17 +109,25 @@ fun BillSplitScreen(
             TopAppBar(
                 title = { Text("Quản lý Chia tiền") },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            qrConfigWalletId = state.activeWallet?.id
-                        },
-                        enabled = state.activeWallet != null,
+                    Box(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(
+                                enabled = state.activeWallet != null,
+                                onClick = {
+                                    qrConfigWalletId = state.activeWallet?.id
+                                }
+                            )
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = com.notepay.R.drawable.logo_vietqr),
                             contentDescription = "Cấu hình VietQR",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier
+                                .height(26.dp)
+                                .graphicsLayer(alpha = if (state.activeWallet != null) 1f else 0.38f)
                         )
                     }
                 }
@@ -135,101 +145,117 @@ fun BillSplitScreen(
                     end = padding.calculateEndPadding(layoutDirection)
                 )
         ) {
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { viewModel.selectTab(0) },
-                    text = {
-                        val count = state.unpaidSplits.groupBy { it.split.debtorName }.size
-                        if (count > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Chờ thanh toán")
-                                Spacer(Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(18.dp)
-                                        .background(MaterialTheme.colorScheme.error, CircleShape),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        "$count",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                    )
-                                }
-                            }
-                        } else {
-                            Text("Chờ thanh toán")
-                        }
-                    }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { viewModel.selectTab(1) },
-                    text = { Text("Đã thanh toán") }
-                )
-            }
+            val allEmpty = state.unpaidSplits.isEmpty() && state.paidSplits.isEmpty()
 
-            if (selectedTab == 0) {
-                val unpaidGroups = remember(state.unpaidSplits) {
-                    state.unpaidSplits.groupBy { it.split.debtorName }
-                }
-
-                if (unpaidGroups.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        EmptyState(
-                            message = "Không có khoản nợ nào chờ thanh toán.",
-                            icon = Icons.Rounded.CallReceived
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            start = 16.dp,
-                            top = 16.dp,
-                            end = 16.dp,
-                            bottom = bottomPadding
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(unpaidGroups.entries.toList(), key = { it.key }) { (debtorName, splits) ->
-                            val totalAmount = splits.sumOf { it.split.amount.amountInCents }
-                            val splitCount = splits.size
-                            DebtorGroupRow(
-                                debtorName = debtorName,
-                                totalAmountCents = totalAmount,
-                                splitCount = splitCount,
-                                onClick = { onDebtorClick(debtorName) }
-                            )
-                        }
-                    }
+            if (allEmpty) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = bottomPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        message = "Chưa có hóa đơn nào.\nNhấn nút (+) để tạo phiếu chia tiền đầu tiên.",
+                        icon = Icons.Rounded.CallReceived
+                    )
                 }
             } else {
-                if (state.paidSplits.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        EmptyState(
-                            message = "Chưa có khoản nợ nào được trả.",
-                            icon = Icons.Rounded.CheckCircle
-                        )
+                PrimaryTabRow(selectedTabIndex = selectedTab) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { viewModel.selectTab(0) },
+                        text = {
+                            val count = state.unpaidSplits.groupBy { it.split.debtorName }.size
+                            if (count > 0) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Chờ thanh toán")
+                                    Spacer(Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            "$count",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White,
+                                        )
+                                    }
+                                }
+                            } else {
+                                Text("Chờ thanh toán")
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { viewModel.selectTab(1) },
+                        text = { Text("Đã thanh toán") }
+                    )
+                }
+
+                if (selectedTab == 0) {
+                    val unpaidGroups = remember(state.unpaidSplits) {
+                        state.unpaidSplits.groupBy { it.split.debtorName }
+                    }
+
+                    if (unpaidGroups.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), Alignment.Center) {
+                            EmptyState(
+                                message = "Không có khoản nợ nào chờ thanh toán.",
+                                icon = Icons.Rounded.CallReceived
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                start = 16.dp,
+                                top = 16.dp,
+                                end = 16.dp,
+                                bottom = bottomPadding
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(unpaidGroups.entries.toList(), key = { it.key }) { (debtorName, splits) ->
+                                val totalAmount = splits.sumOf { it.split.amount.amountInCents }
+                                val splitCount = splits.size
+                                DebtorGroupRow(
+                                    debtorName = debtorName,
+                                    totalAmountCents = totalAmount,
+                                    splitCount = splitCount,
+                                    onClick = { onDebtorClick(debtorName) }
+                                )
+                            }
+                        }
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            start = 16.dp,
-                            top = 16.dp,
-                            end = 16.dp,
-                            bottom = bottomPadding
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.paidSplits, key = { item -> item.split.id }) { item ->
-                            BillSplitItemRow(
-                                itemState = item,
-                                onClick = { onDebtorClick(item.split.debtorName) },
-                                onDelete = { pendingDeleteBill = item }
+                    if (state.paidSplits.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), Alignment.Center) {
+                            EmptyState(
+                                message = "Chưa có khoản nợ nào được trả.",
+                                icon = Icons.Rounded.CheckCircle
                             )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                start = 16.dp,
+                                top = 16.dp,
+                                end = 16.dp,
+                                bottom = bottomPadding
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.paidSplits, key = { item -> item.split.id }) { item ->
+                                BillSplitItemRow(
+                                    itemState = item,
+                                    onClick = { onDebtorClick(item.split.debtorName) },
+                                    onDelete = { pendingDeleteBill = item }
+                                )
+                            }
                         }
                     }
                 }

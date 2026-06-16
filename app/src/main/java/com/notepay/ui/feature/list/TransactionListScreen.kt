@@ -339,16 +339,27 @@ private fun TransactionListContent(
             // ModernSearchBar has been moved to TopAppBar!
 
             item {
-                CategoryFilterRow(
-                    selectedCategory = state.selectedCategory,
-                    onCategorySelected = onCategorySelected,
-                )
-                Spacer(Modifier.height(10.dp))
+                if (!state.isLoading && !state.isEmpty) {
+                    CategoryFilterRow(
+                        selectedCategory = state.selectedCategory,
+                        onCategorySelected = onCategorySelected,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
             }
 
             when {
                 state.isLoading -> item { LoadingState() }
-                state.isEmpty -> item { EmptyState("Chưa có giao dịch phù hợp. Thêm khoản chi đầu tiên để bắt đầu theo dõi dòng tiền.") }
+                state.isEmpty -> item {
+                    Box(
+                        modifier = Modifier
+                            .fillParentMaxSize()
+                            .padding(bottom = 80.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyState("Chưa có giao dịch phù hợp.\nThêm khoản chi đầu tiên để bắt đầu\ntheo dõi dòng tiền.")
+                    }
+                }
                 else -> {
                     groupedTransactions.forEach { (date, dayTxList) ->
                         @OptIn(ExperimentalFoundationApi::class)

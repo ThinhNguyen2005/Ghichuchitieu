@@ -26,6 +26,31 @@ data class CategoryBreakdownItem(
     val percentage: Float,
 )
 
+data class DynamicDailyBudgetData(
+    val dailyBudget: Money,
+    val spentToday: Money,
+    val remainingToday: Money,
+    val tomorrowBudget: Money,
+    val isExceeded: Boolean
+)
+
+data class AiAdviceItem(
+    val id: String,
+    val type: String, // "warning", "info", "success"
+    val title: String,
+    val content: String,
+    val categoryId: String? = null,
+    val feedback: Int = 0 // 0: none, 1: thumb up, -1: thumb down
+)
+
+data class DetectedSubscription(
+    val name: String,
+    val amount: Money,
+    val category: Category,
+    val repeatMonths: Int = 1,
+    val possibleNextDueDate: Long // epoch ms
+)
+
 data class StatsUiState(
     val year: Int = 0,
     val month: Int = 0,
@@ -50,4 +75,9 @@ data class StatsUiState(
     val budgetSpent: Money = Money.ZERO,
     val budgetPercentage: Float = 0f,
     val spendingForecast: BudgetForecast? = null,
+
+    // AI & Trợ lý thông minh
+    val dynamicDailyBudget: DynamicDailyBudgetData? = null,
+    val aiAdvices: List<AiAdviceItem> = emptyList(),
+    val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
 )

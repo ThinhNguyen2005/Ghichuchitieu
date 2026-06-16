@@ -1,9 +1,11 @@
 package com.notepay.ui.feature.stats
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
@@ -11,6 +13,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -30,12 +34,15 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import javax.inject.Inject
+import kotlin.math.max
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val walletRepo: WalletRepository,
+    private val subscriptionRepo: SubscriptionRepository,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -74,11 +81,25 @@ class StatsViewModel @Inject constructor(
         FilterState(monthYear, selectedWalletId, timeFilter, customDateRange, selectedCategory)
     }
 
+    private val advicePrefs = context.getSharedPreferences("notepay_ai_feedback", Context.MODE_PRIVATE)
+    private val _adviceFeedbacks = MutableStateFlow<Map<String, Int>>(
+        advicePrefs.all.mapValues { it.value as? Int ?: 0 }
+    )
+
+    fun sendAdviceFeedback(adviceId: String, score: Int) {
+        advicePrefs.edit().putInt(adviceId, score).apply()
+        _adviceFeedbacks.update { current ->
+            current.toMutableMap().apply { this[adviceId] = score }
+        }
+    }
+
     val state: StateFlow<StatsUiState> = combine(
         transactionRepo.observeAll(),
         walletRepo.observeAll(),
+        subscriptionRepo.observeAll(),
+        _adviceFeedbacks,
         filterState
-    ) { allTransactions, wallets, filters ->
+    ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
         val monthYear = filters.monthYear
         val selectedWalletId = filters.selectedWalletId
         val timeFilter = filters.timeFilter
@@ -269,6 +290,156 @@ class StatsViewModel @Inject constructor(
             null
         }
 
+        // 8. Tính toán Dynamic Daily Budget
+        val daysInMonth = getDaysInMonth(now.year, now.monthNumber)
+        val currentDay = now.dayOfMonth.coerceIn(1, daysInMonth)
+
+        val todayStart = LocalDateTime(now.year, now.monthNumber, currentDay, 0, 0)
+            .toInstant(zone).toEpochMilliseconds()
+        val todayEnd = LocalDateTime(now.year, now.monthNumber, currentDay, 23, 59, 59, 999000000)
+            .toInstant(zone).toEpochMilliseconds()
+
+        val spentToday = currentMonthTxs.filter {
+            it.type == TransactionType.EXPENSE &&
+            (selectedWalletId == null || it.walletId == selectedWalletId) &&
+            it.occurredAt.toEpochMilliseconds() in todayStart..todayEnd
+        }.fold(Money.ZERO) { acc, t -> acc + t.amount }
+
+        val remainingDays = daysInMonth - currentDay + 1
+        val spentExceptToday = Money(max(0L, walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents))
+        
+        val dynamicDailyBudget = if (limit != null && limit.amountInCents > 0 && isViewingCurrentMonth) {
+            val remainingBudget = max(0L, limit.amountInCents - spentExceptToday.amountInCents)
+            val dailyBudgetVal = remainingBudget / remainingDays
+            val remainingToday = max(0L, dailyBudgetVal - spentToday.amountInCents)
+            
+            val tomorrowBudget = if (remainingDays > 1) {
+                val remainingForTomorrow = max(0L, limit.amountInCents - walletExpenseInCurrentMonth.amountInCents)
+                remainingForTomorrow / (remainingDays - 1)
+            } else {
+                0L
+            }
+            
+            DynamicDailyBudgetData(
+                dailyBudget = Money(dailyBudgetVal),
+                spentToday = spentToday,
+                remainingToday = Money(remainingToday),
+                tomorrowBudget = Money(tomorrowBudget),
+                isExceeded = spentToday.amountInCents > dailyBudgetVal
+            )
+        } else {
+            null
+        }
+
+        // 9. Smart Subscription Detection
+        val detectedSubscriptions = mutableListOf<DetectedSubscription>()
+        if (isViewingCurrentMonth) {
+            val expenses = allTransactions.filter { it.type == TransactionType.EXPENSE }
+            val groupedExpenses = expenses.groupBy { 
+                it.category.id to (it.amount.amountInCents / 500000L) // Group within 5,000 VND range
+            }
+
+            for ((_, txList) in groupedExpenses) {
+                if (txList.size >= 2) {
+                    val sortedTx = txList.sortedBy { it.occurredAt }
+                    for (i in 0 until sortedTx.size - 1) {
+                        val tx1 = sortedTx[i]
+                        val tx2 = sortedTx[i + 1]
+                        val daysBetween = (tx2.occurredAt - tx1.occurredAt).inWholeDays
+                        if (daysBetween in 27..33) {
+                            val possibleName = cleanSubscriptionName(tx2.note.ifBlank { tx2.category.displayName })
+                            
+                            val alreadyRegistered = subscriptions.any { sub ->
+                                sub.isActive && (
+                                    sub.name.contains(possibleName, ignoreCase = true) || 
+                                    possibleName.contains(sub.name, ignoreCase = true)
+                                )
+                            }
+                            
+                            if (!alreadyRegistered) {
+                                val nextDueDateEpoch = tx2.occurredAt.plus(DatePeriod(months = 1), zone)
+                                detectedSubscriptions.add(
+                                    DetectedSubscription(
+                                        name = possibleName,
+                                        amount = tx2.amount,
+                                        category = tx2.category,
+                                        repeatMonths = 1,
+                                        possibleNextDueDate = nextDueDateEpoch.toEpochMilliseconds()
+                                    )
+                                )
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 10. Rule Engine Lời khuyên tài chính thông minh
+        val aiAdvices = mutableListOf<AiAdviceItem>()
+        if (isViewingCurrentMonth) {
+            // Quy tắc A: FOOD > 35%
+            val foodBreakdown = breakdown.find { it.category == Category.FOOD }
+            if (foodBreakdown != null && foodBreakdown.percentage > 0.35f && (feedbacks["advice_food"] ?: 0) == 0) {
+                val percentStr = "%.1f%%".format(foodBreakdown.percentage * 100)
+                aiAdvices.add(
+                    AiAdviceItem(
+                        id = "advice_food",
+                        type = "warning",
+                        title = "Cảnh báo ăn uống",
+                        content = "Chi tiêu ăn uống của bạn chiếm $percentStr tổng chi tiêu tháng này. Hãy thử tự nấu ăn tại nhà để tiết kiệm chi phí nhé!",
+                        categoryId = Category.FOOD.id,
+                        feedback = feedbacks["advice_food"] ?: 0
+                    )
+                )
+            }
+
+            // Quy tắc B: Phí sắp đến hạn & Số dư ví không đủ
+            val nowInstant = Clock.System.now()
+            val upcomingSubs = subscriptions.filter { sub ->
+                sub.isActive && (sub.nextDueDate - nowInstant).inWholeDays in 0..3
+            }
+            if (upcomingSubs.isNotEmpty()) {
+                val balanceVal = income.amountInCents - expense.amountInCents
+                for (sub in upcomingSubs) {
+                    val feedbackKey = "advice_bill_balance_${sub.id}"
+                    if (balanceVal < sub.amount.amountInCents && (feedbacks[feedbackKey] ?: 0) == 0) {
+                        aiAdvices.add(
+                            AiAdviceItem(
+                                id = feedbackKey,
+                                type = "warning",
+                                title = "Chuẩn bị tiền đóng phí",
+                                content = "Hóa đơn '${sub.name}' (${MoneyFormatter.format(sub.amount)}) sẽ đến hạn sau vài ngày nữa. Số dư ví hiện tại không đủ, bạn hãy bổ sung tiền nhé!",
+                                feedback = feedbacks[feedbackKey] ?: 0
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Quy tắc C: Tiêu dùng tiết kiệm (Daily average < 85% safe daily limit ban đầu)
+            if (limit != null && limit.amountInCents > 0 && remainingDays >= 5 && (feedbacks["advice_saving"] ?: 0) == 0) {
+                val initialDailyBudget = limit.amountInCents / daysInMonth
+                val currentDailyAverage = if (currentDay > 1) {
+                    (walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents) / (currentDay - 1)
+                } else {
+                    spentToday.amountInCents
+                }
+                
+                if (currentDailyAverage < initialDailyBudget * 0.85f && currentDailyAverage > 0) {
+                    aiAdvices.add(
+                        AiAdviceItem(
+                            id = "advice_saving",
+                            type = "success",
+                            title = "Tiêu dùng thông minh",
+                            content = "Thật tuyệt vời! Bạn đang chi tiêu rất tiết kiệm (trung bình chỉ bằng 85% hạn mức ngày an toàn). Hãy tiếp tục duy trì thói quen tốt này nhé!",
+                            feedback = feedbacks["advice_saving"] ?: 0
+                        )
+                    )
+                }
+            }
+        }
+
         StatsUiState(
             year = monthYear.year,
             month = monthYear.month,
@@ -290,7 +461,10 @@ class StatsViewModel @Inject constructor(
             budgetLimit = limit,
             budgetSpent = walletExpenseInCurrentMonth,
             budgetPercentage = budgetPercentage,
-            spendingForecast = forecast
+            spendingForecast = forecast,
+            dynamicDailyBudget = dynamicDailyBudget,
+            aiAdvices = aiAdvices,
+            detectedSubscriptions = detectedSubscriptions
         )
     }.stateIn(
         scope = viewModelScope,
@@ -366,5 +540,101 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    private fun cleanSubscriptionName(note: String): String {
+        val lower = note.lowercase()
+        return when {
+            lower.contains("netflix") -> "Netflix"
+            lower.contains("spotify") -> "Spotify"
+            lower.contains("youtube") -> "YouTube Premium"
+            lower.contains("icloud") -> "iCloud"
+            lower.contains("google") -> "Google One"
+            lower.contains("canva") -> "Canva"
+            lower.contains("microsoft") || lower.contains("office365") -> "Microsoft 365"
+            else -> note.trim().replaceFirstChar { it.uppercase() }
+        }
+    }
+
+    private val _addSubForm = MutableStateFlow(StatsAddSubscriptionFormState())
+    val addSubForm: StateFlow<StatsAddSubscriptionFormState> = _addSubForm.asStateFlow()
+
+    fun showAddSubscription(name: String, amountCents: Long, categoryId: String, nextDueMs: Long) {
+        val amountStr = (amountCents / 100).toString()
+        _addSubForm.value = StatsAddSubscriptionFormState(
+            name = name,
+            amountInput = amountStr,
+            category = categoryId,
+            nextDueEpochMs = nextDueMs,
+            isVisible = true
+        )
+    }
+
+    fun updateSubFormName(name: String) {
+        _addSubForm.update { it.copy(name = name) }
+    }
+
+    fun updateSubFormAmount(amountInput: String) {
+        _addSubForm.update { it.copy(amountInput = amountInput) }
+    }
+
+    fun updateSubFormRepeatMonths(months: Int) {
+        _addSubForm.update { it.copy(repeatMonths = months) }
+    }
+
+    fun updateSubFormRemindDays(days: Int) {
+        _addSubForm.update { it.copy(remindDaysBefore = days) }
+    }
+
+    fun updateSubFormNote(note: String) {
+        _addSubForm.update { it.copy(note = note) }
+    }
+
+    fun updateSubFormCategory(categoryId: String) {
+        _addSubForm.update { it.copy(category = categoryId) }
+    }
+
+    fun updateSubFormNextDueDate(dateMs: Long) {
+        _addSubForm.update { it.copy(nextDueEpochMs = dateMs) }
+    }
+
+    fun dismissSubForm() {
+        _addSubForm.value = StatsAddSubscriptionFormState()
+    }
+
+    fun saveSubscription() {
+        val form = _addSubForm.value
+        if (!form.canSave) return
+        
+        viewModelScope.launch {
+            val cleanAmountInput = form.amountInput.replace(Regex("[^0-9]"), "")
+            val cents = (cleanAmountInput.toLongOrNull() ?: 0L) * 100
+            val newSub = com.notepay.domain.model.Subscription(
+                id = 0L,
+                name = form.name,
+                amount = Money(cents),
+                category = form.category,
+                nextDueDate = Instant.fromEpochMilliseconds(form.nextDueEpochMs),
+                repeatMonths = form.repeatMonths,
+                remindDaysBefore = form.remindDaysBefore,
+                note = form.note,
+                isActive = true
+            )
+            subscriptionRepo.upsert(newSub)
+            dismissSubForm()
+        }
+    }
+
     private data class MonthYear(val year: Int, val month: Int)
+}
+
+data class StatsAddSubscriptionFormState(
+    val name: String = "",
+    val amountInput: String = "",
+    val repeatMonths: Int = 1,
+    val remindDaysBefore: Int = 3,
+    val note: String = "",
+    val category: String = "subscription",
+    val nextDueEpochMs: Long = Clock.System.now().toEpochMilliseconds(),
+    val isVisible: Boolean = false
+) {
+    val canSave: Boolean get() = name.isNotBlank() && amountInput.isNotEmpty()
 }

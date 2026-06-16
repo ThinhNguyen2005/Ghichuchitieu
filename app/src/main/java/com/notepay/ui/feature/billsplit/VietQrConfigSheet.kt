@@ -51,6 +51,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.feature.wallet.SupportedBank
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.CreditCard
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 
 /**
  * BottomSheet cấu hình VietQR cho 1 ví. Cho phép:
@@ -69,6 +77,7 @@ fun VietQrConfigSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val realBanks = remember { SupportedBank.LIST.filter { it.bin != null } }
 
+    val context = LocalContext.current
     var selectedBank by remember {
         mutableStateOf(realBanks.find { it.bin == wallet.bankBin } ?: realBanks.first())
     }
@@ -83,9 +92,9 @@ fun VietQrConfigSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -100,7 +109,7 @@ fun VietQrConfigSheet(
                     Text(
                         "Cấu hình VietQR",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                     )
                     Text(
                         "Ví: ${wallet.name}",
@@ -114,47 +123,59 @@ fun VietQrConfigSheet(
             }
 
             Text(
-                "Mã QR sẽ tự động tạo cho mỗi lần Chia tiền. Tên chủ tài khoản phải khớp ngân hàng (in hoa, không dấu).",
+                "Mã QR nhận tiền sẽ được tạo tự động khi chia hóa đơn. Thông tin tài khoản cần chính xác để hiển thị đúng mã chuyển tiền.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            // Chọn ngân hàng
-            Text("Ngân hàng", style = MaterialTheme.typography.labelLarge)
+            // Chọn ngân hàng nhận
+            Text("Ngân hàng nhận", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            val selectedBankIcon = remember(selectedBank.packageName) {
+                try {
+                    context.packageManager.getApplicationIcon(selectedBank.packageName).toBitmap().asImageBitmap()
+                } catch (e: Exception) {
+                    null
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .clickable { showBankPicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Rounded.AccountBalance,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
+                    if (selectedBankIcon != null) {
+                        Image(
+                            bitmap = selectedBankIcon,
+                            contentDescription = selectedBank.name,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Rounded.AccountBalance,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                     Spacer(Modifier.size(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = selectedBank.name,
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "BIN: ${selectedBank.bin}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                     Icon(
@@ -168,10 +189,24 @@ fun VietQrConfigSheet(
             OutlinedTextField(
                 value = accountNumber,
                 onValueChange = { accountNumber = it.filter(Char::isDigit) },
-                label = { Text("Số tài khoản") },
+                label = { Text("Số tài khoản nhận") },
                 placeholder = { Text("VD: 0123456789") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.CreditCard,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -180,8 +215,28 @@ fun VietQrConfigSheet(
                 onValueChange = { accountName = it.uppercase() },
                 label = { Text("Tên chủ tài khoản") },
                 placeholder = { Text("NGUYEN VAN A") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 singleLine = true,
-                supportingText = { Text("In hoa, không dấu") },
+                supportingText = {
+                    Text(
+                        "Nhập tiếng Việt in hoa, không dấu (khớp với tài khoản ngân hàng)",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -212,13 +267,13 @@ fun VietQrConfigSheet(
     if (showBankPicker) {
         AlertDialog(
             onDismissRequest = { showBankPicker = false },
-            title = { Text("Chọn ngân hàng") },
+            title = { Text("Chọn ngân hàng liên kết", fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    items(realBanks, key = { it.name }) { bank ->
+                    items(realBanks, key = { it.packageName }) { bank ->
                         BankRow(
                             bank = bank,
                             isSelected = bank.bin == selectedBank.bin,
@@ -243,49 +298,62 @@ private fun BankRow(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val appIcon = remember(bank.packageName) {
+        try {
+            context.packageManager.getApplicationIcon(bank.packageName).toBitmap().asImageBitmap()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     val containerColor = if (isSelected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
-        Color.Transparent
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(containerColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Rounded.AccountBalance,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
+        if (appIcon != null) {
+            Image(
+                bitmap = appIcon,
+                contentDescription = bank.name,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
         Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                bank.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                "BIN: ${bank.bin}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            bank.name,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
         if (isSelected) {
             Icon(
                 Icons.Rounded.Check,

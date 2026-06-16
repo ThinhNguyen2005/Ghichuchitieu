@@ -134,6 +134,7 @@ fun DebtorDetailScreen(
     val activeWallet = state.activeWallet
     var qrConfigWalletId by remember { mutableStateOf<Long?>(null) }
     var pendingDeleteBill by remember { mutableStateOf<BillSplitItemState?>(null) }
+    var showReconciliationSheet by remember { mutableStateOf(false) }
 
     val qrConfigWallet = qrConfigWalletId?.let { id ->
         state.wallets.find { it.id == id }
@@ -187,16 +188,14 @@ fun DebtorDetailScreen(
                     ) {
                         Button(
                             onClick = {
-                                viewModel.markDebtorAsPaid(debtorName, unpaidDebtorSplits.map { it.split.id })
-                                Toast.makeText(context, "Đã thu tiền nợ gộp thành công!", Toast.LENGTH_SHORT).show()
-                                onBack()
+                                showReconciliationSheet = true
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(Icons.Rounded.Payments, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Đã nhận tiền mặt", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                            Text("Xác nhận đã thu tiền nợ", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
                         }
                     }
                 }
@@ -442,6 +441,25 @@ fun DebtorDetailScreen(
             message = "Khoản nợ lẻ này sẽ bị xóa vĩnh viễn và không thể khôi phục.",
             onConfirm = { viewModel.deleteBillSplit(item.split.id) },
             onDismiss = { pendingDeleteBill = null },
+        )
+    }
+
+    if (showReconciliationSheet) {
+        PaymentReconciliationSheet(
+            debtorName = debtorName,
+            totalDebt = Money(totalAmountCents),
+            recentTransactions = state.recentTransactions,
+            wallets = state.wallets,
+            onDismiss = { showReconciliationSheet = false },
+            onConfirm = { incomeTxId ->
+                showReconciliationSheet = false
+                viewModel.markDebtorAsPaidWithReconciliation(
+                    debtorName = debtorName,
+                    splitIds = unpaidDebtorSplits.map { it.split.id },
+                    incomeTxId = incomeTxId
+                )
+                onBack()
+            }
         )
     }
 }

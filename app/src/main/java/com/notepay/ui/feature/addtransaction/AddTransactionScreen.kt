@@ -1,12 +1,8 @@
+@file:Suppress("DEPRECATION")
 package com.notepay.ui.feature.addtransaction
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,12 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.text.input.KeyboardType
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -42,7 +36,6 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.*
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -55,9 +48,9 @@ fun AddTransactionScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showWalletPicker by remember { mutableStateOf(false) }
-    var showAllCategories by remember { mutableStateOf(false) }
+    val showDatePicker = remember { mutableStateOf(false) }
+    val showWalletPicker = remember { mutableStateOf(false) }
+    val showAllCategories = remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
@@ -135,44 +128,9 @@ fun AddTransactionScreen(
                                 keyboardController?.show()
                             }
                     ) {
-                        Text(
-                            text = "Nhập số tiền",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
+                        TransactionAmountDisplay(
+                            amountInput = state.amountInput
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "₫",
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.padding(end = 6.dp)
-                            )
-
-                            val formattedAmount = remember(state.amountInput) {
-                                if (state.amountInput.isEmpty() || state.amountInput == "0") "0" else {
-                                    val amountLong = state.amountInput.toLongOrNull() ?: 0L
-                                    val formatter = java.text.DecimalFormat("#,###")
-                                    formatter.format(amountLong).replace(",", ".")
-                                }
-                            }
-                            Text(
-                                text = formattedAmount,
-                                style = MaterialTheme.typography.displayLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
 
                         // Đọc số tiền bằng chữ mờ bên dưới
                         val amountLong = remember(state.amountInput) { state.amountInput.toLongOrNull() ?: 0L }
@@ -209,7 +167,7 @@ fun AddTransactionScreen(
                     onSeeAllClick = {
                         focusManager.clearFocus()
                         keyboardController?.hide()
-                        showAllCategories = true
+                        showAllCategories.value = true
                     }
                 )
 
@@ -222,7 +180,7 @@ fun AddTransactionScreen(
                     onClick = {
                         focusManager.clearFocus()
                         keyboardController?.hide()
-                        showDatePicker = true
+                        showDatePicker.value = true
                     }
                 )
 
@@ -237,7 +195,7 @@ fun AddTransactionScreen(
                         focusManager.clearFocus()
                         keyboardController?.hide()
                         if (state.availableWallets.size > 1) {
-                            showWalletPicker = true
+                            showWalletPicker.value = true
                         } else {
                             android.widget.Toast.makeText(
                                 context,
@@ -319,37 +277,37 @@ fun AddTransactionScreen(
     }
 
     // Các BottomSheet và Dialog picker
-    if (showDatePicker) {
+    if (showDatePicker.value) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = state.occurredAt.toEpochMilliseconds())
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDatePicker.value = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         viewModel.onEvent(AddTransactionEvent.DateChanged(Instant.fromEpochMilliseconds(millis)))
                     }
-                    showDatePicker = false
+                    showDatePicker.value = false
                 }) { Text("Xong") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Hủy") }
             },
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    if (showWalletPicker) {
+    if (showWalletPicker.value) {
         WalletPickerSheet(
             wallets = state.availableWallets,
             selectedWalletId = state.walletId,
             onWalletSelected = { id -> viewModel.onEvent(AddTransactionEvent.WalletChanged(id)) },
-            onDismiss = { showWalletPicker = false },
+            onDismiss = { showWalletPicker.value = false },
         )
     }
-    if (showAllCategories) {
+    if (showAllCategories.value) {
         ModalBottomSheet(
-            onDismissRequest = { showAllCategories = false },
+            onDismissRequest = { showAllCategories.value = false },
             dragHandle = { BottomSheetDefaults.DragHandle() },
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
@@ -365,7 +323,7 @@ fun AddTransactionScreen(
                     isIncome = state.type == TransactionType.INCOME,
                     onCategoryChanged = {
                         viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
-                        showAllCategories = false
+                        showAllCategories.value = false
                     },
                     onCreateCategory = { name, color, isIncome ->
                         viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, isIncome))
@@ -519,14 +477,11 @@ private fun convertNumberToVietnameseWords(number: Long): String {
                 sb.append(units[ten]).append(" mươi ")
             }
             if (unit > 0) {
-                if (unit == 1 && ten > 1) {
-                    sb.append("mốt ")
-                } else if (unit == 5) {
-                    sb.append("lăm ")
-                } else if (unit == 4 && ten > 1) {
-                    sb.append("tư ")
-                } else {
-                    sb.append(units[unit])
+                when {
+                    unit == 1 && ten > 1 -> sb.append("mốt ")
+                    unit == 5 -> sb.append("lăm ")
+                    unit == 4 && ten > 1 -> sb.append("tư ")
+                    else -> sb.append(units[unit])
                 }
             }
         } else {

@@ -118,7 +118,7 @@ class NotificationReconciliationTest {
         service.suggestCategoryUseCase = suggestCategoryUseCase
         service.ioDispatcher = mainDispatcherRule.testDispatcher
         service.notificationSettingsStore = notificationSettingsStore
-        service.trackAllBanks = true
+//        service.trackAllBanks = true
         service.enabledPackages = KnownBankApps.packages
         service.autoCaptureEnabled = true
 

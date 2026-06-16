@@ -15,13 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,15 +38,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.horizontalScroll
+import com.notepay.ui.util.WalletUiHelper
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.domain.model.Wallet
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,10 +76,10 @@ fun AddWalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thêm ví mới") },
+                title = { Text(if (state.isEditMode) "Chỉnh sửa ví" else "Thêm ví mới") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Trở lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Trở lại")
                     }
                 }
             )
@@ -119,17 +117,35 @@ fun AddWalletScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "Đặt hạn mức cảnh báo",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Cảnh báo khi tiêu lố tay ngân sách",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NotificationsActive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Đặt hạn mức cảnh báo",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Cảnh báo khi tiêu lố tay ngân sách",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
                 Switch(
                     checked = state.hasBudgetLimit,
@@ -138,15 +154,75 @@ fun AddWalletScreen(
             }
 
             if (state.hasBudgetLimit) {
-                OutlinedTextField(
-                    value = state.budgetLimitInput,
-                    onValueChange = viewModel::onBudgetLimitChanged,
-                    label = { Text("Hạn mức ngân sách") },
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = currencyTransformation,
-                    singleLine = true
-                )
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Period Selector (Day, Week, Month)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val periods = listOf(
+                            BudgetPeriod.DAILY to "Hàng ngày",
+                            BudgetPeriod.WEEKLY to "Hàng tuần",
+                            BudgetPeriod.MONTHLY to "Hàng tháng"
+                        )
+                        periods.forEach { (period, label) ->
+                            val isSelected = state.budgetPeriod == period
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .clickable { viewModel.onBudgetPeriodChanged(period) }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = state.budgetLimitInput,
+                        onValueChange = viewModel::onBudgetLimitChanged,
+                        label = { Text("Số tiền hạn mức") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        visualTransformation = currencyTransformation,
+                        singleLine = true
+                    )
+
+                    // Converted monthly amount display
+                    val rawLimit = state.budgetLimitInput.toLongOrNull() ?: 0L
+                    if (rawLimit > 0L) {
+                        val monthlyEquivalent = when (state.budgetPeriod) {
+                            BudgetPeriod.DAILY -> rawLimit * 30
+                            BudgetPeriod.WEEKLY -> rawLimit * 4
+                            BudgetPeriod.MONTHLY -> rawLimit
+                        }
+                        val formattedMonthly = remember(monthlyEquivalent) {
+                            val formatter = java.text.DecimalFormat("#,###")
+                            formatter.format(monthlyEquivalent).replace(",", ".")
+                        }
+                        Text(
+                            text = "Quy đổi sang hàng tháng để cảnh báo: $formattedMonthly đ/tháng",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
+                }
             }
 
             // Chọn Icon
@@ -156,22 +232,18 @@ fun AddWalletScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val icons = listOf(
-                    Triple(Wallet.ICON_CASH, Icons.Rounded.Payments, "Tiền mặt"),
-                    Triple(Wallet.ICON_BANK, Icons.Rounded.AccountBalance, "Chuyển khoản"),
-                    Triple("momo", Icons.Rounded.AccountBalanceWallet, "Ví điện tử"),
-                    Triple(Wallet.ICON_CARD, Icons.Rounded.CreditCard, "Thẻ")
-                )
-                icons.forEach { (key, vector, label) ->
+                WalletUiHelper.iconList.forEach { (key, vector, label) ->
                     val isSelected = state.iconKey == key
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .weight(1f)
                             .clickable { viewModel.onIconChanged(key) }
+                            .padding(vertical = 4.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -208,15 +280,12 @@ fun AddWalletScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val colors = listOf(
-                    Wallet.COLOR_PRIMARY to MaterialTheme.colorScheme.primary,
-                    Wallet.COLOR_SECONDARY to MaterialTheme.colorScheme.secondary,
-                    Wallet.COLOR_TERTIARY to MaterialTheme.colorScheme.tertiary
-                )
-                colors.forEach { (key, colorValue) ->
+                WalletUiHelper.colorList.forEach { (key, colorValue) ->
                     val isSelected = state.colorKey == key
                     Box(
                         modifier = Modifier
@@ -299,7 +368,7 @@ fun AddWalletScreen(
                     Spacer(Modifier.size(8.dp))
                     Text("Đang lưu...", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 } else {
-                    Text("Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(if (state.isEditMode) "Lưu thay đổi" else "Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }

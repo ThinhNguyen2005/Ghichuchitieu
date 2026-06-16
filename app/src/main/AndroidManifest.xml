@@ -5,8 +5,7 @@
     <!-- Phase 1: KHÔNG xin bất kỳ permission nào.
          Phase 2 mới thêm POST_NOTIFICATIONS + BIND_NOTIFICATION_LISTENER_SERVICE. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
+
 
     <queries>
         <!-- ========================================== -->

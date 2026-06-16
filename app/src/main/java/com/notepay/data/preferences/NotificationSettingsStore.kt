@@ -107,9 +107,7 @@ object KnownBankApps {
 
 data class NotificationSettings(
     val autoCaptureEnabled: Boolean = true,
-    val trackAllBanks: Boolean = true,
     val enabledPackages: Set<String> = KnownBankApps.packages,
-    val excludedPackages: Set<String> = emptySet(),
     val customBankApps: Set<String> = emptySet(),
 )
 
@@ -126,9 +124,7 @@ class NotificationSettingsStore @Inject constructor(
     val settings: Flow<NotificationSettings> = dataStore.data.map { preferences ->
         NotificationSettings(
             autoCaptureEnabled = preferences[Keys.AUTO_CAPTURE_ENABLED] ?: true,
-            trackAllBanks = preferences[Keys.TRACK_ALL_BANKS] ?: true,
             enabledPackages = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages,
-            excludedPackages = preferences[Keys.EXCLUDED_PACKAGES] ?: emptySet(),
             customBankApps = preferences[Keys.CUSTOM_BANK_APPS] ?: emptySet(),
         )
     }
@@ -136,12 +132,6 @@ class NotificationSettingsStore @Inject constructor(
     suspend fun setAutoCaptureEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[Keys.AUTO_CAPTURE_ENABLED] = enabled
-        }
-    }
-
-    suspend fun setTrackAllBanks(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[Keys.TRACK_ALL_BANKS] = enabled
         }
     }
 
@@ -154,12 +144,6 @@ class NotificationSettingsStore @Inject constructor(
             } else {
                 current - packagesToModify
             }
-        }
-    }
-
-    suspend fun setExcludedPackages(packages: Set<String>) {
-        dataStore.edit { preferences ->
-            preferences[Keys.EXCLUDED_PACKAGES] = packages
         }
     }
 
@@ -194,9 +178,7 @@ class NotificationSettingsStore @Inject constructor(
 
     private object Keys {
         val AUTO_CAPTURE_ENABLED = booleanPreferencesKey("auto_save_notifications")
-        val TRACK_ALL_BANKS = booleanPreferencesKey("pref_track_all_banks")
         val ENABLED_PACKAGES = stringSetPreferencesKey("enabled_notification_packages")
-        val EXCLUDED_PACKAGES = stringSetPreferencesKey("excluded_notification_packages")
         val CUSTOM_BANK_APPS = stringSetPreferencesKey("custom_bank_apps")
     }
 }

@@ -31,6 +31,11 @@ class SuggestCategoryUseCaseTest {
             fakePrefsMap[keySlot.captured] as? Int ?: 0
         }
 
+        val getStringSetKey = slot<String>()
+        every { sharedPrefs.getStringSet(capture(getStringSetKey), any()) } answers {
+            fakePrefsMap[getStringSetKey.captured] as? Set<String> ?: emptySet()
+        }
+
         // Mock editor
         val editor = mockk<SharedPreferences.Editor>(relaxed = true)
         every { sharedPrefs.edit() } returns editor
@@ -41,6 +46,14 @@ class SuggestCategoryUseCaseTest {
             fakePrefsMap[putKey.captured] = putValue.captured
             editor
         }
+
+        val putStringSetKey = slot<String>()
+        val putStringSetVal = slot<Set<String>>()
+        every { editor.putStringSet(capture(putStringSetKey), capture(putStringSetVal)) } answers {
+            fakePrefsMap[putStringSetKey.captured] = putStringSetVal.captured
+            editor
+        }
+
         every { editor.apply() } returns Unit
 
         useCase = SuggestCategoryUseCase(context)

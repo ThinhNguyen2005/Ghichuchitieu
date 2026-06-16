@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.util.WalletUiHelper
 
 /**
  * P1-4: Bottom sheet chọn ví — thay cho AssistChip xoay vòng nhiều lần.
@@ -126,10 +127,9 @@ private fun WalletPickerRow(
                 .padding(2.dp),
         ) {
             Icon(
-                imageVector = Icons.Rounded.AccountBalanceWallet,
+                imageVector = WalletUiHelper.getIcon(wallet.iconKey),
                 contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = WalletUiHelper.getColor(wallet.colorKey),
             )
         }
         Column(modifier = Modifier.weight(1f)) {

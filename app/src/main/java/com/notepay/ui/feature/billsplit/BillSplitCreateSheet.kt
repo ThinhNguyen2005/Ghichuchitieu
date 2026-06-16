@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -25,11 +26,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,21 +41,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,16 +66,6 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 
-/**
- * Sheet tạo hóa đơn chia tiền — refactor từ AlertDialog lồng AlertDialog (P0-3).
- *
- * Ưu điểm so với phiên bản AlertDialog cũ:
- *  - 1 sheet duy nhất, không còn nested dialog khó chịu.
- *  - Khu vực chọn giao dịch dùng `LazyColumn` scroll độc lập, có thể chứa nhiều mục.
- *  - Khi đã chọn giao dịch, phần nhập người nợ chiếm phần còn lại của sheet
- *    (tự co giãn theo nội dung, có thể scroll mượt).
- *  - Bottom button "Lưu" sticky ở dưới cùng sheet.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BillSplitCreateSheet(
@@ -92,37 +81,7 @@ fun BillSplitCreateSheet(
     var selectedTx by remember { mutableStateOf<Transaction?>(null) }
     var showTxPicker by remember { mutableStateOf(false) }
     val debtors = remember { mutableStateListOf<DebtorEntry>() }
-    var numSplits by remember { mutableStateOf(2) }
-
-    // Tự động chia tiền và cập nhật số lượng dòng nợ
-    LaunchedEffect(selectedTx, numSplits) {
-        if (selectedTx != null) {
-            val targetSize = numSplits
-            val currentSize = debtors.size
-            val equalCents = selectedTx!!.amount.amountInCents / targetSize
-            val equalInput = (equalCents / 100).toString()
-
-            if (currentSize < targetSize) {
-                for (i in currentSize until targetSize) {
-                    debtors.add(DebtorEntry("Người nợ ${i + 1}", equalInput))
-                }
-            } else if (currentSize > targetSize) {
-                while (debtors.size > targetSize) {
-                    debtors.removeAt(debtors.size - 1)
-                }
-            }
-
-            for (i in 0 until debtors.size) {
-                val currentEntry = debtors[i]
-                val newName = if (currentEntry.name.isBlank() || currentEntry.name.startsWith("Người nợ ")) {
-                    "Người nợ ${i + 1}"
-                } else {
-                    currentEntry.name
-                }
-                debtors[i] = currentEntry.copy(name = newName, amountInput = equalInput)
-            }
-        }
-    }
+    var newDebtorName by remember { mutableStateOf("") }
 
     val totalCents by remember {
         derivedStateOf {
@@ -130,10 +89,27 @@ fun BillSplitCreateSheet(
         }
     }
     val parentCents = selectedTx?.amount?.amountInCents ?: 0L
+    val remainingCents = parentCents - totalCents
     val isOverLimit = totalCents > parentCents
-    val hasName = debtors.isNotEmpty() && debtors.all { it.name.isNotBlank() }
-    val hasAmount = debtors.isNotEmpty() && debtors.all { (it.amountInput.toLongOrNull() ?: 0L) > 0L }
-    val canSave = selectedTx != null && hasName && hasAmount && !isOverLimit
+
+    val availableSuggestions = remember(allDebtorNames, debtors) {
+        allDebtorNames.filter { name ->
+            debtors.none { it.name.equals(name, ignoreCase = true) }
+        }
+    }
+
+    val canSave = selectedTx != null && debtors.isNotEmpty() && 
+            debtors.all { it.name.isNotBlank() && (it.amountInput.toLongOrNull() ?: 0L) > 0L } && 
+            !isOverLimit
+
+    fun addDebtor(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isNotBlank() && debtors.none { it.name.equals(trimmed, ignoreCase = true) }) {
+            // Suggest remaining split amount as placeholder helper
+            val suggestAmount = if (remainingCents > 0) (remainingCents / 100).toString() else ""
+            debtors.add(DebtorEntry(trimmed, suggestAmount))
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -143,9 +119,9 @@ fun BillSplitCreateSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 8.dp)
+                .padding(bottom = 12.dp)
                 .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
             Row(
@@ -179,20 +155,20 @@ fun BillSplitCreateSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showTxPicker = !showTxPicker },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CategoryAvatar(
                             category = cat,
-                            size = 36.dp,
-                            iconSize = 18.dp,
+                            size = 40.dp,
+                            iconSize = 20.dp,
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -203,7 +179,7 @@ fun BillSplitCreateSheet(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Danh mục: ${cat.displayName}",
+                                text = cat.displayName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -215,7 +191,7 @@ fun BillSplitCreateSheet(
                             Text(
                                 text = MoneyFormatter.format(tx.amount),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Icon(
@@ -228,25 +204,55 @@ fun BillSplitCreateSheet(
                 }
             }
 
-            // Lazy danh sách giao dịch — thay cho AlertDialog lồng
-            if (selectedTx == null || showTxPicker) {
-                if (expenses.isEmpty()) {
-                    Text(
-                        "Chưa có giao dịch chi tiêu nào gần đây.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
+            // Danh sách giao dịch để chọn
+            if (expenses.isEmpty()) {
+                // Khi không có giao dịch nào, hiển thị hướng dẫn tạo giao dịch thủ công
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "Chưa có giao dịch chi tiêu",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Để chia tiền, trước hết bạn cần tạo ít nhất một giao dịch chi tiêu (Expense) thủ công bằng nút (+) ở màn hình chính.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Khi có giao dịch, hiển thị danh sách chọn giao dịch hoặc chi tiết giao dịch đã chọn
+                if (selectedTx == null || showTxPicker) {
                     Card(
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                         ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 220.dp),
+                                .heightIn(max = 200.dp),
                         ) {
                             items(expenses.take(20), key = { it.id }) { tx ->
                                 val cat = tx.category
@@ -258,7 +264,7 @@ fun BillSplitCreateSheet(
                                             showTxPicker = false
                                             debtors.clear()
                                         }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
@@ -288,7 +294,7 @@ fun BillSplitCreateSheet(
                                     )
                                 }
                                 HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
                                 )
                             }
                         }
@@ -296,147 +302,175 @@ fun BillSplitCreateSheet(
                 }
             }
 
-            // Bước 2: nhập người nợ
+
+            // Bước 2: Thêm người nợ và phân chia tiền
             if (selectedTx != null) {
-                HorizontalDivider()
-                val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Bộ chọn số người chia tiền tự động
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Số người chia",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Tự động tính toán chia đều",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Nút giảm
+                // Input thêm người nợ mới
+                OutlinedTextField(
+                    value = newDebtorName,
+                    onValueChange = { newDebtorName = it },
+                    label = { Text("Tên người nợ") },
+                    placeholder = { Text("Nhập tên để thêm vào danh sách...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = {
                         IconButton(
-                            onClick = { if (numSplits > 2) numSplits-- },
-                            enabled = numSplits > 2,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(if (numSplits > 2) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Remove,
-                                contentDescription = "Giảm số người",
-                                tint = if (numSplits > 2) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-
-                        Text(
-                            text = numSplits.toString(),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        // Nút tăng
-                        IconButton(
-                            onClick = { numSplits++ },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            onClick = {
+                                if (newDebtorName.isNotBlank()) {
+                                    addDebtor(newDebtorName)
+                                    newDebtorName = ""
+                                }
+                            }
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Add,
-                                contentDescription = "Tăng số người",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                contentDescription = "Thêm người nợ",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Chips gợi ý người nợ gần đây
+                if (availableSuggestions.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Người nợ gần đây:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 2.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(availableSuggestions) { name ->
+                                AssistChip(
+                                    onClick = { addDebtor(name) },
+                                    label = { Text(name) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                                        labelColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    border = null,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Người nợ đã chọn (${debtors.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
+                val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+
+                // List các debtor đã chọn
+                if (debtors.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Chưa chọn người nợ nào. Vui lòng thêm ở trên!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(debtors.size) { index ->
+                            val entry = debtors[index]
+                            SelectedDebtorCard(
+                                entry = entry,
+                                onAmountChange = { input ->
+                                    debtors[index] = entry.copy(amountInput = input)
+                                },
+                                onRemove = {
+                                    debtors.removeAt(index)
+                                },
+                                currencyTransformation = currencyTransformation
                             )
                         }
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Danh sách dòng nợ (${debtors.size})",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    AssistChip(
-                        onClick = { numSplits++ },
-                        label = { Text("Thêm người nợ") },
-                        leadingIcon = {
-                            Icon(Icons.Rounded.Add, contentDescription = null)
-                        },
-                        colors = AssistChipDefaults.assistChipColors(),
-                    )
-                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 280.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(debtors.size) { index ->
-                        DebtorRow(
-                            index = index,
-                            debtors = debtors,
-                            currencyTransformation = currencyTransformation,
-                            allDebtorNames = allDebtorNames,
-                            onRemove = { if (numSplits > 2) numSplits-- }
+                // Summary info
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("Tổng hóa đơn gốc", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            MoneyFormatter.format(Money(parentCents)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("Đã phân chia", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            MoneyFormatter.format(Money(totalCents)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOverLimit) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("Còn lại", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            MoneyFormatter.format(Money(remainingCents)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                remainingCents < 0 -> MaterialTheme.colorScheme.error
+                                remainingCents == 0L -> Color(0xFF4CAF50)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
                     }
                 }
 
-                HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Tổng hóa đơn", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        MoneyFormatter.format(Money(parentCents)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Tổng chia", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        MoneyFormatter.format(Money(totalCents)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isOverLimit) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary,
-                    )
-                }
                 if (isOverLimit) {
                     Text(
                         "Tổng số tiền chia vượt quá tổng hóa đơn gốc.",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            // Sticky bottom button
+            // Save Button
             Button(
                 onClick = {
                     val list = debtors.mapNotNull { entry ->
@@ -446,91 +480,86 @@ fun BillSplitCreateSheet(
                     selectedTx?.let { onConfirm(it.id, list) }
                 },
                 enabled = canSave,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Lưu", fontWeight = FontWeight.SemiBold)
+                Text("Lưu cấu hình chia hóa đơn", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
 }
 
+
 data class DebtorEntry(val name: String, val amountInput: String)
 
 @Composable
-fun DebtorRow(
-    index: Int,
-    debtors: SnapshotStateList<DebtorEntry>,
-    currencyTransformation: VietnamCurrencyVisualTransformation,
-    allDebtorNames: List<String> = emptyList(),
+fun SelectedDebtorCard(
+    entry: DebtorEntry,
+    onAmountChange: (String) -> Unit,
     onRemove: () -> Unit,
+    currencyTransformation: VietnamCurrencyVisualTransformation,
 ) {
-    val entry = debtors[index]
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        ),
-        shape = RoundedCornerShape(12.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Người nợ #${index + 1}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(
-                    onClick = onRemove,
-                    enabled = debtors.size > 2,
-                ) {
-                    Icon(
-                        Icons.Rounded.Close,
-                        contentDescription = "Xóa",
-                        tint = if (debtors.size > 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    )
-                }
-            }
-            OutlinedTextField(
-                value = entry.name,
-                onValueChange = { debtors[index] = entry.copy(name = it) },
-                label = { Text("Tên") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-
-            if (allDebtorNames.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 2.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(allDebtorNames) { name ->
-                        AssistChip(
-                            onClick = { debtors[index] = entry.copy(name = name) },
-                            label = { Text(name) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            ),
-                            border = null
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = entry.name.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = entry.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Xóa",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
             OutlinedTextField(
                 value = entry.amountInput,
-                onValueChange = {
-                    debtors[index] = entry.copy(amountInput = it.filter(Char::isDigit))
-                },
-                label = { Text("Số tiền (VND)") },
+                onValueChange = { onAmountChange(it.filter(Char::isDigit)) },
+                label = { Text("Số tiền chia (VND)") },
+                placeholder = { Text("Nhập số tiền...") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
         }
     }

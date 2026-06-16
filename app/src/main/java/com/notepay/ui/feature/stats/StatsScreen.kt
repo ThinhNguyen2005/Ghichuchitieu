@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.PieChart
@@ -37,6 +39,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -54,6 +57,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Category
@@ -85,11 +89,15 @@ import androidx.compose.material.icons.rounded.Wallet
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
+import com.notepay.ui.feature.subscription.AddSubscriptionBottomSheet
+import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +106,7 @@ fun StatsScreen(
     onAddTransaction: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var showWalletDropdown by remember { mutableStateOf(false) }
     var showTimeDropdown by remember { mutableStateOf(false) }
@@ -112,33 +121,8 @@ fun StatsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Thống kê", fontWeight = FontWeight.Bold)
-                        Text(
-                            text = state.dateRangeLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    if (state.timeFilter == TimeFilterType.MONTH) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            IconButton(onClick = viewModel::onPreviousMonth) {
-                                Icon(Icons.Rounded.ChevronLeft, contentDescription = "Tháng trước")
-                            }
-                            IconButton(
-                                onClick = viewModel::onNextMonth,
-                                enabled = !state.isCurrentMonth,
-                            ) {
-                                Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau")
-                            }
-                        }
-                    }
-                },
+                    Text("Thống kê", fontWeight = FontWeight.Bold)
+                }
             )
         },
     ) { padding ->
@@ -184,54 +168,43 @@ fun StatsScreen(
                         )
                     }
 
-                    // Thanh bộ lọc phụ (Ví và Thời gian) - Chuyển xuống dưới TabRow để hợp lý hơn
+                    // Compact custom chips for Wallet and Period filter
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 1. Dropdown ví
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedButton(
+                        // 1. Wallet Selector Chip
+                        Box {
+                            Surface(
                                 onClick = { showWalletDropdown = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Wallet,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Text(
-                                            text = state.selectedWallet?.name ?: "Tất cả ví",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Rounded.Wallet,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = state.selectedWallet?.name ?: "Tất cả ví",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                     Icon(
                                         imageVector = Icons.Rounded.ArrowDropDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -239,7 +212,6 @@ fun StatsScreen(
                             DropdownMenu(
                                 expanded = showWalletDropdown,
                                 onDismissRequest = { showWalletDropdown = false },
-                                modifier = Modifier.fillMaxWidth(0.45f)
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Tất cả ví", fontWeight = FontWeight.Bold) },
@@ -260,46 +232,35 @@ fun StatsScreen(
                             }
                         }
 
-                        // 2. Dropdown thời gian
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedButton(
+                        // 2. Period Filter Chip
+                        Box {
+                            Surface(
                                 onClick = { showTimeDropdown = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.CalendarMonth,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Text(
-                                            text = state.timeFilter.label,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Rounded.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = state.timeFilter.label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                     Icon(
                                         imageVector = Icons.Rounded.ArrowDropDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -307,7 +268,6 @@ fun StatsScreen(
                             DropdownMenu(
                                 expanded = showTimeDropdown,
                                 onDismissRequest = { showTimeDropdown = false },
-                                modifier = Modifier.fillMaxWidth(0.45f)
                             ) {
                                 TimeFilterType.values().forEach { filter ->
                                     DropdownMenuItem(
@@ -324,6 +284,29 @@ fun StatsScreen(
                                 }
                             }
                         }
+
+                        // 3. Inline Month Switcher Navigation
+                        if (state.timeFilter == TimeFilterType.MONTH) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                IconButton(
+                                    onClick = viewModel::onPreviousMonth,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Rounded.ChevronLeft, contentDescription = "Tháng trước", modifier = Modifier.size(20.dp))
+                                }
+                                IconButton(
+                                    onClick = viewModel::onNextMonth,
+                                    enabled = !state.isCurrentMonth,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau", modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        }
                     }
 
                     when (selectedTab) {
@@ -333,6 +316,8 @@ fun StatsScreen(
                             onDismissForecast = { isForecastDismissed = true },
                             onAddTransaction = onAddTransaction,
                             onCategorySelected = viewModel::selectCategory,
+                            onAdviceFeedback = viewModel::sendAdviceFeedback,
+                            onAddSubscription = viewModel::showAddSubscription
                         )
                         1 -> IncomeBreakdownContent(
                             state = state,
@@ -378,6 +363,30 @@ fun StatsScreen(
             )
         }
     }
+
+    if (addSubFormState.isVisible) {
+        val dialogState = AddSubscriptionDialogState(
+            name = addSubFormState.name,
+            amountInput = addSubFormState.amountInput,
+            repeatMonths = addSubFormState.repeatMonths,
+            remindDaysBefore = addSubFormState.remindDaysBefore,
+            note = addSubFormState.note,
+            category = addSubFormState.category,
+            nextDueEpochMs = addSubFormState.nextDueEpochMs
+        )
+        AddSubscriptionBottomSheet(
+            state = dialogState,
+            onNameChanged = viewModel::updateSubFormName,
+            onAmountChanged = viewModel::updateSubFormAmount,
+            onRepeatMonthsChanged = viewModel::updateSubFormRepeatMonths,
+            onRemindDaysChanged = viewModel::updateSubFormRemindDays,
+            onNoteChanged = viewModel::updateSubFormNote,
+            onCategoryChanged = viewModel::updateSubFormCategory,
+            onNextDueDateChanged = viewModel::updateSubFormNextDueDate,
+            onConfirm = viewModel::saveSubscription,
+            onDismiss = viewModel::dismissSubForm
+        )
+    }
 }
 
 @Composable
@@ -387,6 +396,8 @@ private fun ExpenseBreakdownContent(
     onDismissForecast: () -> Unit,
     onAddTransaction: () -> Unit = {},
     onCategorySelected: (Category?) -> Unit,
+    onAdviceFeedback: (String, Int) -> Unit,
+    onAddSubscription: (String, Long, String, Long) -> Unit,
 ) {
     if (state.breakdown.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -411,24 +422,7 @@ private fun ExpenseBreakdownContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
-        if (state.budgetLimit != null) {
-            item {
-                BudgetProgressBar(
-                    spent = state.budgetSpent,
-                    limit = state.budgetLimit,
-                    percentage = state.budgetPercentage
-                )
-            }
-        }
-        if (state.spendingForecast != null && !isForecastDismissed) {
-            item {
-                SpendingForecastCard(
-                    forecast = state.spendingForecast,
-                    onDismiss = onDismissForecast
-                )
-            }
-        }
+        // 1. Donut Chart card at the very top
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -443,22 +437,74 @@ private fun ExpenseBreakdownContent(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = "Cơ cấu chi tiêu",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Phân bổ danh mục",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        val periodText = if (state.timeFilter == TimeFilterType.MONTH) {
+                            "Tháng %02d, %d".format(state.month, state.year)
+                        } else {
+                            state.dateRangeLabel
+                        }
+                        
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = periodText,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(20.dp))
                     DonutChart(
                         breakdown = state.breakdown,
                         totalExpense = state.totalExpense,
-                        centerLabel = "Tổng chi tiêu",
+                        centerLabel = "TỔNG CHI TIÊU",
                         selectedCategory = state.selectedCategory,
                         onCategorySelected = onCategorySelected,
                         modifier = Modifier.size(220.dp),
                     )
                 }
+            }
+        }
+
+        // 2. SummaryCards
+        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
+
+        // 3. Budget limits progress
+        if (state.budgetLimit != null) {
+            item {
+                BudgetProgressBar(
+                    spent = state.budgetSpent,
+                    limit = state.budgetLimit,
+                    percentage = state.budgetPercentage
+                )
+            }
+        }
+
+        // 4. AI Insights & Suggestions
+        if (state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
+            item {
+                AiInsightsCarousel(
+                    state = state,
+                    onAdviceFeedback = onAdviceFeedback,
+                    onAddSubscription = onAddSubscription
+                )
             }
         }
         if (state.selectedCategory != null) {
@@ -529,7 +575,7 @@ private fun IncomeBreakdownContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
+        // 1. Donut Chart card at the very top
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -544,17 +590,44 @@ private fun IncomeBreakdownContent(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = "Cơ cấu thu nhập",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Phân bổ danh mục",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        val periodText = if (state.timeFilter == TimeFilterType.MONTH) {
+                            "Tháng %02d, %d".format(state.month, state.year)
+                        } else {
+                            state.dateRangeLabel
+                        }
+                        
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = periodText,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(20.dp))
                     DonutChart(
                         breakdown = state.incomeBreakdown,
                         totalExpense = state.totalIncome,
-                        centerLabel = "Tổng thu nhập",
+                        centerLabel = "TỔNG THU NHẬP",
                         selectedCategory = state.selectedCategory,
                         onCategorySelected = onCategorySelected,
                         modifier = Modifier.size(220.dp),
@@ -562,6 +635,9 @@ private fun IncomeBreakdownContent(
                 }
             }
         }
+
+        // 2. SummaryCards
+        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
         if (state.selectedCategory != null) {
             item {
                 Row(
@@ -694,6 +770,7 @@ private fun DonutChart(
         animationSpec = tween(durationMillis = 250),
         label = "selection"
     )
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
     LaunchedEffect(breakdown) {
         animationProgress.snapTo(0f)
@@ -746,6 +823,14 @@ private fun DonutChart(
                     }
                 }
         ) {
+            val strokeWidthPx = 24.dp.toPx()
+            // Draw background track ring
+            drawCircle(
+                color = trackColor,
+                radius = (size.minDimension - strokeWidthPx) / 2f,
+                style = Stroke(width = strokeWidthPx)
+            )
+
             var startAngle = -90f
             breakdown.forEach { item ->
                 val isSelected = selectedCategory == item.category
@@ -776,14 +861,14 @@ private fun DonutChart(
             modifier = Modifier.padding(32.dp),
         ) {
             Text(
-                text = centerLabel,
-                style = MaterialTheme.typography.labelMedium,
+                text = centerLabel.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = MoneyFormatter.format(totalExpense),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -944,69 +1029,317 @@ private fun BudgetProgressBar(
     }
 }
 
+
+private fun Float.format(digits: Int): String = "%.${digits}f".format(this)
+
 @Composable
-private fun SpendingForecastCard(
-    forecast: BudgetForecast,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun AiInsightsCarousel(
+    state: StatsUiState,
+    onAdviceFeedback: (String, Int) -> Unit,
+    onAddSubscription: (String, Long, String, Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val color = if (forecast.isProjectedToExceed) Color(0xFFC62828) else MaterialTheme.colorScheme.primary
-    val cardBgColor = if (forecast.isProjectedToExceed) {
-        Color(0xFFC62828).copy(alpha = 0.08f)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    }
-    val borderStroke = if (forecast.isProjectedToExceed) {
-        BorderStroke(1.dp, Color(0xFFC62828).copy(alpha = 0.3f))
-    } else {
-        null
+    val localView = androidx.compose.ui.platform.LocalView.current
+    val playHaptic = {
+        try {
+            localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        } catch (_: Exception) {}
     }
 
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = cardBgColor
-        ),
-        border = borderStroke
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
+        Text(
+            text = "AI Insights & Gợi ý",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        
+        androidx.compose.foundation.lazy.LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = if (forecast.isProjectedToExceed) Icons.Rounded.Warning else Icons.Rounded.Info,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(20.dp).padding(top = 2.dp)
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = if (forecast.isProjectedToExceed) "Cảnh báo chi tiêu!" else "Dự báo chi tiêu",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-                Text(
-                    text = forecast.forecastMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+            // Card 1: Ngân sách ngày linh hoạt
+            state.dynamicDailyBudget?.let { budget ->
+                item {
+                    DynamicDailyBudgetCard(
+                        budget = budget,
+                        modifier = Modifier.width(280.dp)
+                    )
+                }
+            }
+
+            // Card 2: Các hóa đơn định kỳ phát hiện được
+            items(state.detectedSubscriptions) { sub ->
+                SubscriptionProposalCard(
+                    sub = sub,
+                    onAdd = {
+                        playHaptic()
+                        onAddSubscription(sub.name, sub.amount.amountInCents, sub.category.id, sub.possibleNextDueDate)
+                    },
+                    modifier = Modifier.width(280.dp)
                 )
             }
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Ẩn dự báo",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(16.dp)
+
+            // Card 3: Lời khuyên tài chính
+            items(state.aiAdvices) { advice ->
+                AiAdviceCard(
+                    advice = advice,
+                    onFeedback = { score ->
+                        playHaptic()
+                        onAdviceFeedback(advice.id, score)
+                    },
+                    modifier = Modifier.width(280.dp)
                 )
             }
         }
     }
 }
 
-private fun Float.format(digits: Int): String = "%.${digits}f".format(this)
+@Composable
+private fun DynamicDailyBudgetCard(
+    budget: DynamicDailyBudgetData,
+    modifier: Modifier = Modifier
+) {
+    val progress = if (budget.dailyBudget.amountInCents > 0) {
+        (budget.spentToday.amountInCents.toFloat() / budget.dailyBudget.amountInCents).coerceIn(0f, 1f)
+    } else {
+        1f
+    }
+    
+    val cardColor = if (budget.isExceeded) {
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+    }
+    
+    val borderColor = if (budget.isExceeded) {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    }
+
+    Card(
+        modifier = modifier.height(165.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Wallet,
+                    contentDescription = null,
+                    tint = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Ngân sách ngày linh hoạt",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (budget.isExceeded) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Column {
+                Text(
+                    text = "Hôm nay: " + MoneyFormatter.format(budget.remainingToday) + " còn lại",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Hạn mức ngày: " + MoneyFormatter.format(budget.dailyBudget) + " (Đã tiêu: " + MoneyFormatter.format(budget.spentToday) + ")",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            )
+
+            if (budget.isExceeded) {
+                Text(
+                    text = "⚠️ Bạn đã tiêu quá hạn mức ngày! Dự kiến ngân sách ngày mai sẽ giảm còn " + MoneyFormatter.format(budget.tomorrowBudget) + " để bù lại.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else {
+                Text(
+                    text = "💡 Chi tiêu thông minh giúp bảo toàn ngân sách tháng.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiAdviceCard(
+    advice: AiAdviceItem,
+    onFeedback: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val cardColor = when (advice.type) {
+        "warning" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+        "success" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
+    }
+
+    val iconColor = when (advice.type) {
+        "warning" -> MaterialTheme.colorScheme.error
+        "success" -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondary
+    }
+
+    Card(
+        modifier = modifier.height(165.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = BorderStroke(1.dp, iconColor.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (advice.type == "warning") Icons.Rounded.Warning else Icons.Rounded.Info,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = advice.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Text(
+                text = advice.content,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier.weight(1f)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Lời khuyên hữu ích?",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                
+                IconButton(
+                    onClick = { onFeedback(1) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ThumbUp,
+                        contentDescription = "Hữu ích",
+                        tint = if (advice.feedback == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = { onFeedback(-1) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ThumbDown,
+                        contentDescription = "Không hữu ích",
+                        tint = if (advice.feedback == -1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionProposalCard(
+    sub: DetectedSubscription,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(165.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Phát hiện hóa đơn định kỳ",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = sub.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Số tiền: " + MoneyFormatter.format(sub.amount) + " / tháng",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            androidx.compose.material3.Button(
+                onClick = onAdd,
+                modifier = Modifier.fillMaxWidth().height(36.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    text = "Thêm subscription",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}

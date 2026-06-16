@@ -60,10 +60,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         get() = CoroutineScope(job + ioDispatcher)
 
     // Memory cache for settings to avoid persistent reads for every notification.
-    internal var trackAllBanks = true
     internal var enabledPackages = KnownBankApps.packages
     internal var autoCaptureEnabled = true
-    internal var excludedPackages = emptySet<String>()
 
     companion object {
         private const val CHANNEL_ID = "notepay_local_parse"
@@ -103,9 +101,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         serviceScope.launch {
             notificationSettingsStore.settings.collect { settings ->
                 autoCaptureEnabled = settings.autoCaptureEnabled
-                trackAllBanks = settings.trackAllBanks
                 enabledPackages = settings.enabledPackages
-                excludedPackages = settings.excludedPackages
             }
         }
     }
@@ -131,24 +127,11 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         } else {
             sbn.packageName
         }
-        if (!autoCaptureEnabled) {
-            return
-        }
+        if (!autoCaptureEnabled) return
 
-        if (packageName in excludedPackages) {
-            android.util.Log.d("NotePayNotif", "Bỏ qua thông báo từ ứng dụng loại trừ: $packageName")
-            return
-        }
-        // Kiểm tra xem ứng dụng này có nằm trong danh sách trắng (whitelist) được cho phép hay không
-        val isWhitelisted = if (trackAllBanks) {
-            packageName in KNOWN_PACKAGES || packageName in enabledPackages
-        } else {
-            packageName in enabledPackages
-        }
-
-        if (!isWhitelisted) {
-            return
-        }
+        // Chỉ xử lý thông báo từ các package ngân hàng đã biết (whitelist)
+        val isWhitelisted = packageName in KNOWN_PACKAGES || packageName in enabledPackages
+        if (!isWhitelisted) return
 
         // Chuyển toàn bộ các tác vụ xử lý chuỗi và tương tác DB xuống luồng ngầm ioDispatcher
         serviceScope.launch(ioDispatcher) {

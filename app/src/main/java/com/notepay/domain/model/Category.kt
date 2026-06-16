@@ -39,6 +39,21 @@ data class Category(
         val INVESTMENT = Category("INVESTMENT", "Đầu tư", 0xFF80CBC4L, isIncome = true)
         val FAMILY = Category("FAMILY", "Gia đình", 0xFFFFE082L, isIncome = false)
         val TRAVEL = Category("TRAVEL", "Du lịch", 0xFF9FA8DAL, isIncome = false)
+
+        val CLOTHES = Category("CLOTHES", "Quần áo", 0xFFEC407AL, isIncome = false)
+        val HOME = Category("HOME", "Nhà cửa", 0xFF5C6BC0L, isIncome = false)
+        val GAS = Category("GAS", "Xăng xe", 0xFF26A69AL, isIncome = false)
+        val REPAIR = Category("REPAIR", "Sửa chữa", 0xFF78909CL, isIncome = false)
+        val ELECTRICITY = Category("ELECTRICITY", "Điện", 0xFFFFCA28L, isIncome = false)
+        val WATER = Category("WATER", "Nước", 0xFF42A5F5L, isIncome = false)
+        val INTERNET = Category("INTERNET", "Internet", 0xFF26C6DAL, isIncome = false)
+        val CHILDREN = Category("CHILDREN", "Con cái", 0xFFAB47BCL, isIncome = false)
+        val CHARITY = Category("CHARITY", "Từ thiện", 0xFF26A69AL, isIncome = false)
+        val BONUS = Category("BONUS", "Thưởng", 0xFF66BB6AL, isIncome = true)
+        val SAVINGS = Category("SAVINGS", "Tiết kiệm", 0xFF8D6E63L, isIncome = false)
+        val DEBT_LOAN = Category("DEBT_LOAN", "Nợ/Vay", 0xFF90A4AEL, isIncome = false)
+        val INSURANCE = Category("INSURANCE", "Bảo hiểm", 0xFF4DB6ACL, isIncome = false)
+        val TAX = Category("TAX", "Thuế", 0xFFE57373L, isIncome = false)
         
         val OTHER = Category("OTHER", "Khác", 0xFF90A4AEL, isIncome = false)
 
@@ -46,11 +61,13 @@ data class Category(
         val DEFAULT_INCOME: Category = SALARY
 
         /** Category hợp lệ cho giao dịch thu nhập. */
-        val INCOME_CATEGORIES: Set<Category> = setOf(SALARY, GIFT, INVESTMENT, OTHER)
+        val INCOME_CATEGORIES: Set<Category> = setOf(SALARY, GIFT, INVESTMENT, BONUS, OTHER)
 
         private val defaultEntries = listOf(
             FOOD, TRANSPORT, SHOPPING, BILL, ENTERTAINMENT, HEALTH, EDUCATION,
             COFFEE, BEAUTY, PETS, SPORTS, FAMILY, TRAVEL,
+            CLOTHES, HOME, GAS, REPAIR, ELECTRICITY, WATER, INTERNET, CHILDREN, CHARITY,
+            BONUS, SAVINGS, DEBT_LOAN, INSURANCE, TAX,
             SALARY, GIFT, INVESTMENT, OTHER
         )
 

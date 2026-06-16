@@ -156,8 +156,15 @@ class BillSplitViewModel @Inject constructor(
     }
 
     fun markDebtorAsPaid(debtorName: String, splitIds: List<Long>) {
+        markDebtorAsPaidWithReconciliation(debtorName, splitIds, null)
+    }
+
+    fun markDebtorAsPaidWithReconciliation(debtorName: String, splitIds: List<Long>, incomeTxId: Long?) {
         viewModelScope.launch {
             try {
+                if (incomeTxId != null) {
+                    transactionRepository.delete(incomeTxId)
+                }
                 val splitsToProcess = splitIds.mapNotNull { splitId ->
                     billSplitRepository.getById(splitId)?.takeUnless { it.isPaid }
                 }
@@ -169,7 +176,8 @@ class BillSplitViewModel @Inject constructor(
                     }
                     reduceParentTransaction(debtorName, splits)
                 }
-                _feedback.emit(UiFeedback("Đã ghi nhận thanh toán", type = FeedbackType.Success))
+                val msg = if (incomeTxId != null) "Đã ghi nhận thanh toán & đối soát thành công" else "Đã ghi nhận thanh toán"
+                _feedback.emit(UiFeedback(msg, type = FeedbackType.Success))
             } catch (e: Exception) {
                 _feedback.emit(UiFeedback("Không thể ghi nhận thanh toán", type = FeedbackType.Error))
             }

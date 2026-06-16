@@ -10,6 +10,9 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import android.content.Context
+import com.notepay.domain.repository.SubscriptionRepository
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -138,8 +141,21 @@ class StatsViewModelTest {
         repo: TransactionRepository,
         walletRepo: WalletRepository = FakeWalletRepository()
     ): StatsViewModel {
-        return StatsViewModel(repo, walletRepo)
+        val fakeContext = mockk<Context>(relaxed = true)
+        val fakeSubRepo = FakeSubscriptionRepository()
+        return StatsViewModel(repo, walletRepo, fakeSubRepo, fakeContext)
     }
+}
+
+private class FakeSubscriptionRepository(
+    private val subscriptions: List<com.notepay.domain.model.Subscription> = emptyList()
+) : SubscriptionRepository {
+    override fun observeAll(): Flow<List<com.notepay.domain.model.Subscription>> = flowOf(subscriptions)
+    override fun observeUpcoming(beforeDate: kotlinx.datetime.Instant): Flow<List<com.notepay.domain.model.Subscription>> = flowOf(subscriptions)
+    override suspend fun upsert(subscription: com.notepay.domain.model.Subscription): Long = 0L
+    override suspend fun getById(id: Long): com.notepay.domain.model.Subscription? = subscriptions.find { it.id == id }
+    override suspend fun delete(id: Long) = Unit
+    override suspend fun updateNextDueDate(id: Long, newDueDate: kotlinx.datetime.Instant) = Unit
 }
 
 private class FakeWalletRepository(

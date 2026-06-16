@@ -36,24 +36,35 @@ class SuggestCategoryUseCase @Inject constructor(
         }
 
         val tokens = tokenize(normalizedNote)
-        val allHabits = prefs.all
-        val scores = mutableMapOf<String, Int>()
+        val categories = Category.getAll().filter { it.isIncome == isIncome }
+        val totalLearnedCount = prefs.getInt("total_learned_count", 0)
 
-        for (token in tokens) {
-            for ((key, value) in allHabits) {
-                if (key.startsWith("habit_${token}_") && value is Int) {
-                    val categoryId = key.substringAfter("habit_${token}_")
-                    scores[categoryId] = (scores[categoryId] ?: 0) + value
+        // If no training data has been learned yet, fallback to static rules
+        val suggestedCategory = if (totalLearnedCount > 0) {
+            val vocabSize = prefs.getStringSet("vocabulary", emptySet())?.size?.coerceAtLeast(1) ?: 1
+            val numClasses = categories.size
+            
+            categories.maxByOrNull { category ->
+                val categoryCount = prefs.getInt("category_learned_count_${category.id}", 0)
+                // P(C) with Laplace smoothing
+                val priorProb = (categoryCount + 1.0) / (totalLearnedCount + numClasses)
+                var logScore = Math.log(priorProb)
+
+                val totalWordsInCat = prefs.getInt("category_total_words_${category.id}", 0)
+
+                for (token in tokens) {
+                    val wordCountInCat = prefs.getInt("habit_${token}_${category.id}", 0)
+                    // P(W|C) with Laplace smoothing
+                    val wordProb = (wordCountInCat + 1.0) / (totalWordsInCat + vocabSize)
+                    logScore += Math.log(wordProb)
                 }
+                logScore
             }
+        } else {
+            null
         }
 
-        val bestLearnedCategory = scores.maxByOrNull { it.value }?.key
-        val suggestedCategory = bestLearnedCategory?.let { id ->
-            Category.getAll().find { it.id == id && it.isIncome == isIncome }
-        }
-
-        if (suggestedCategory != null) {
+        if (suggestedCategory != null && prefs.getInt("category_learned_count_${suggestedCategory.id}", 0) > 0) {
             return suggestedCategory
         }
 
@@ -83,12 +94,39 @@ class SuggestCategoryUseCase @Inject constructor(
         val normalized = normalize(note)
         if (normalized.isBlank()) return
         val tokens = tokenize(normalized)
+        if (tokens.isEmpty()) return
+
         val editor = prefs.edit()
+
+        // 1. Update overall learning counts
+        val currentTotalLearned = prefs.getInt("total_learned_count", 0)
+        editor.putInt("total_learned_count", currentTotalLearned + 1)
+
+        val currentCatLearned = prefs.getInt("category_learned_count_$categoryId", 0)
+        editor.putInt("category_learned_count_$categoryId", currentCatLearned + 1)
+
+        // 2. Update total words in this category
+        val currentCatTotalWords = prefs.getInt("category_total_words_$categoryId", 0)
+        editor.putInt("category_total_words_$categoryId", currentCatTotalWords + tokens.size)
+
+        // 3. Update vocabulary and token frequencies
+        val vocab = prefs.getStringSet("vocabulary", emptySet())?.toMutableSet() ?: mutableSetOf()
+        var vocabChanged = false
+
         for (token in tokens) {
             val key = "habit_${token}_$categoryId"
             val currentCount = prefs.getInt(key, 0)
             editor.putInt(key, currentCount + 1)
+
+            if (vocab.add(token)) {
+                vocabChanged = true
+            }
         }
+
+        if (vocabChanged) {
+            editor.putStringSet("vocabulary", vocab)
+        }
+
         editor.apply()
     }
 

@@ -43,6 +43,7 @@ import com.notepay.domain.model.Money
 import com.notepay.ui.component.BalanceCard
 import com.notepay.ui.component.EmptyState
 import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.util.WalletUiHelper
 import com.notepay.ui.component.KpiRow
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.theme.NotePayTheme
@@ -92,7 +93,9 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Switch
@@ -127,6 +130,7 @@ fun HomeScreen(
     onAddTransaction: () -> Unit,
     onSeeAll: () -> Unit,
     onAddWallet: () -> Unit,
+    onEditWallet: (Long) -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToNotificationSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
@@ -247,6 +251,7 @@ fun HomeScreen(
                             wallet = state.activeWallet,
                             balance = state.currentBalance,
                             onClick = { showWalletSwitcher = true },
+                            onEditWallet = onEditWallet,
                             monthlyExpense = state.monthlyExpense,
                         )
                         val budgetProjection = state.budgetProjection
@@ -351,24 +356,6 @@ fun HomeScreen(
                                     maxLines = 2,
                                 )
                             }
-                            if (com.notepay.BuildConfig.DEBUG) {
-                                TextButton(
-                                    onClick = {
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                                context,
-                                                android.Manifest.permission.POST_NOTIFICATIONS
-                                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                        } else {
-                                            simulateTpBankNotification(context)
-                                        }
-                                    }
-                                ) {
-                                    Text("Gửi test")
-                                }
-                            }
                         }
                     }
                 }
@@ -472,19 +459,8 @@ fun HomeScreen(
                 ) {
                     items(state.wallets) { wallet ->
                         val isSelected = wallet.id == state.activeWallet?.id
-                        val iconVector = when (wallet.iconKey) {
-                            Wallet.ICON_CASH -> Icons.Rounded.Payments
-                            Wallet.ICON_BANK -> Icons.Rounded.AccountBalance
-                            "momo" -> Icons.Rounded.AccountBalanceWallet
-                            Wallet.ICON_CARD -> Icons.Rounded.CreditCard
-                            else -> Icons.Rounded.Payments
-                        }
-                        val tintColor = when (wallet.colorKey) {
-                            Wallet.COLOR_PRIMARY -> MaterialTheme.colorScheme.primary
-                            Wallet.COLOR_SECONDARY -> MaterialTheme.colorScheme.secondary
-                            Wallet.COLOR_TERTIARY -> MaterialTheme.colorScheme.tertiary
-                            else -> MaterialTheme.colorScheme.primary
-                        }
+                        val iconVector = WalletUiHelper.getIcon(wallet.iconKey)
+                        val tintColor = WalletUiHelper.getColor(wallet.colorKey)
 
                         Row(
                             modifier = Modifier
@@ -498,9 +474,8 @@ fun HomeScreen(
                                     viewModel.selectWallet(wallet.id)
                                     showWalletSwitcher = false
                                 }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = iconVector,
@@ -508,12 +483,27 @@ fun HomeScreen(
                                 tint = tintColor,
                                 modifier = Modifier.size(24.dp)
                             )
+                            Spacer(modifier = Modifier.width(16.dp))
                             Text(
                                 text = wallet.name,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
                             )
+                            IconButton(
+                                onClick = {
+                                    showWalletSwitcher = false
+                                    onEditWallet(wallet.id)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = "Chỉnh sửa ví",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
 
@@ -600,9 +590,9 @@ private fun simulateTpBankNotification(context: Context) {
         .addLine("(TPBank): 14/06/26;06:25")
         .addLine("TK: xxxx5539020")
         .addLine("PS:-30.000VND")
-        .addLine("SD: 410.054VND")
-        .addLine("SD KHA DUNG: 410.054VND")
-        .addLine("ND: NAP TIEN VI MOMO - 0945553902")
+        .addLine("SD: 9.999.999.999VND")
+        .addLine("SD KHA DUNG: 9.999.999.999VND")
+        .addLine("ND: NAP TIEN VI MOMO - 094xxxxxxx")
         .addLine("- 133366724699")
         .addLine("SO GD: 661TTMB261662918")
 
