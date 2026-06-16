@@ -111,6 +111,7 @@ private enum class ReminderFilter(val label: String, val shortLabel: String) {
 fun SubscriptionScreen(
     navigationBarOffset: Float = 0f,
     initialShowCreate: Boolean = false,
+    onClearShowCreate: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: SubscriptionViewModel = hiltViewModel(),
 ) {
@@ -118,11 +119,13 @@ fun SubscriptionScreen(
     val dialogState by viewModel.dialogState.collectAsStateWithLifecycle()
     // 0 = Lịch (default), 1 = Nhắc nhở
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    var showAddSheet by remember { mutableStateOf(initialShowCreate) }
+    var showAddSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(initialShowCreate) {
         if (initialShowCreate) {
+            showAddSheet = true
             viewModel.showAddDialog()
+            onClearShowCreate()
         }
     }
 

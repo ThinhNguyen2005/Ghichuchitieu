@@ -53,6 +53,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +91,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
@@ -123,19 +128,25 @@ fun HomeScreen(
     onSeeAll: () -> Unit,
     onAddWallet: () -> Unit,
     onNavigateToReminders: () -> Unit,
+    onNavigateToNotificationSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     navigationBarOffset: Float = 0f,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showWalletSwitcher by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var isListenerEnabled by remember { mutableStateOf(isNotificationListenerEnabled(context)) }
+    var isBatteryOptimizationsIgnored by remember {
+        mutableStateOf(
+            (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+                .isIgnoringBatteryOptimizations(context.packageName)
+        )
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -146,6 +157,8 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 isListenerEnabled = isNotificationListenerEnabled(context)
+                isBatteryOptimizationsIgnored = (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+                    .isIgnoringBatteryOptimizations(context.packageName)
                 com.notepay.service.NotePayNotificationListenerService.heal(context)
             }
         }
@@ -176,7 +189,7 @@ fun HomeScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { showSettingsDialog = true }) {
+                    IconButton(onClick = onNavigateToNotificationSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = "Cài đặt thông báo"
@@ -359,6 +372,62 @@ fun HomeScreen(
                         }
                     }
                 }
+                if (!isBatteryOptimizationsIgnored) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.BatteryAlert,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = MaterialTheme.colorScheme.tertiary
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Tối ưu chạy ngầm (Khuyên dùng)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Vào Pin -> Chọn Không hạn chế để app chạy tự động mượt mà hơn.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                TextButton(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = android.net.Uri.parse("package:${context.packageName}")
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            try {
+                                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                                context.startActivity(intent)
+                                            } catch (ex: Exception) {
+                                                val intent = Intent(Settings.ACTION_SETTINGS)
+                                                context.startActivity(intent)
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text("Thiết lập")
+                                }
+                            }
+                        }
+                    }
+                }
             }
             item {
                 KpiRow(
@@ -489,12 +558,6 @@ fun HomeScreen(
         )
     }
 
-    if (showSettingsDialog) {
-        SettingsDialog(
-            onDismiss = { showSettingsDialog = false },
-            viewModel = viewModel
-        )
-    }
 }
 
 @Preview(showBackground = true)
@@ -556,526 +619,7 @@ private fun simulateTpBankNotification(context: Context) {
     manager.notify(1001, notification)
 }
 
-private fun isBankAppInstalled(context: Context, primaryPackageName: String): Boolean {
-    val packagesToCheck = KnownBankApps.equivalentPackages[primaryPackageName] ?: listOf(primaryPackageName)
-    val pm = context.packageManager
-    for (pkg in packagesToCheck) {
-        try {
-            pm.getPackageInfo(pkg, 0)
-            return true
-        } catch (e: Exception) {
-            // ignore
-        }
-    }
-    return false
-}
 
-private fun getInstalledBankAppIcon(context: Context, primaryPackageName: String): android.graphics.drawable.Drawable? {
-    val packagesToCheck = KnownBankApps.equivalentPackages[primaryPackageName] ?: listOf(primaryPackageName)
-    val pm = context.packageManager
-    for (pkg in packagesToCheck) {
-        try {
-            return pm.getApplicationIcon(pkg)
-        } catch (e: Exception) {
-            // ignore
-        }
-    }
-    return null
-}
-
-@Composable
-fun SettingsDialog(
-    onDismiss: () -> Unit,
-    viewModel: HomeViewModel,
-) {
-    val context = LocalContext.current
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
-
-    var userApps by remember { mutableStateOf<List<UserAppInfo>>(emptyList()) }
-    var isLoadingApps by remember { mutableStateOf(true) }
-
-    LaunchedEffect(context) {
-        userApps = withContext(Dispatchers.IO) {
-            getInstalledUserApps(context)
-        }
-        isLoadingApps = false
-    }
-
-    val installedBankApps = remember(context) {
-        KnownBankApps.displayApps.filter { app ->
-            isBankAppInstalled(context, app.packageName)
-        }
-    }
-
-    var filterState by remember { mutableStateOf(0) } // 0 = Tất cả, 1 = Đã loại trừ, 2 = Chưa loại trừ
-    var appSearchQuery by remember { mutableStateOf("") }
-
-    val bankPackages = remember { KnownBankApps.packages }
-    val userAppsWithoutBanks = remember(userApps, bankPackages) {
-        userApps.filter { it.packageName !in bankPackages }
-    }
-
-    val filteredApps = remember(appSearchQuery, userAppsWithoutBanks, filterState, settings.excludedPackages) {
-        val baseList = userAppsWithoutBanks.filter {
-            appSearchQuery.isBlank() ||
-                    it.label.contains(appSearchQuery, ignoreCase = true) ||
-                    it.packageName.contains(appSearchQuery, ignoreCase = true)
-        }
-
-        when (filterState) {
-            1 -> baseList.filter { it.packageName in settings.excludedPackages }
-            2 -> baseList.filter { it.packageName !in settings.excludedPackages }
-            else -> baseList
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Cấu hình đọc thông báo",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 480.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // 0. Màu sắc ứng dụng
-                item {
-                    Text(
-                        "Màu sắc chủ đạo",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    val themeOptions = listOf(
-                        "system" to Color.Gray,
-                        "green" to Color(0xFF1B7F4F),
-                        "blue" to Color(0xFF1976D2),
-                        "red" to Color(0xFFC2185B),
-                        "orange" to Color(0xFFE65100),
-                        "teal" to Color(0xFF00796B),
-                        "gold" to Color(0xFF8A6600),
-                        "brown" to Color(0xFF8D4F38),
-                        "gray" to Color(0xFF566066)
-                    )
-                    
-                    val autoGradient = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF1B7F4F),
-                            Color(0xFF1976D2),
-                            Color(0xFFC2185B)
-                        )
-                    )
-                    
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        items(themeOptions) { (key, color) ->
-                            val isSelected = ThemeManager.currentThemeColor == key
-                            val isSystem = key == "system"
-                            
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            brush = if (isSystem) autoGradient else SolidColor(color),
-                                            shape = CircleShape
-                                        )
-                                        .border(
-                                            width = if (isSelected) 2.5.dp else 1.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary 
-                                                    else MaterialTheme.colorScheme.outlineVariant,
-                                            shape = CircleShape
-                                        )
-                                        .clickable {
-                                            ThemeManager.updateThemeColor(context, key)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isSystem) {
-                                        Text(
-                                            text = "A",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
-                                
-                                if (isSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .align(Alignment.BottomEnd)
-                                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                            .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = 16.dp))
-                }
-
-                // 1. Tự động ghi chép giao dịch
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Tự động ghi chép giao dịch",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "Bật/tắt đọc thông báo giao dịch ngân hàng và ví điện tử.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = settings.autoCaptureEnabled,
-                            onCheckedChange = { viewModel.setAutoCaptureEnabled(it) }
-                        )
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = 16.dp))
-                }
-
-                // 2. Danh sách ngân hàng
-                item {
-                    Text(
-                        "Danh sách ngân hàng",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "Bật/tắt nhận diện thông báo từ các app ngân hàng đã cài đặt.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-
-                if (installedBankApps.isEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
-                        ) {
-                            Text(
-                                "Không phát hiện ứng dụng ngân hàng nào được cài đặt.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-                } else {
-                    items(installedBankApps) { app ->
-                        val isEnabled = settings.enabledPackages.contains(app.packageName)
-                        val iconDrawable = remember(app.packageName) {
-                            getInstalledBankAppIcon(context, app.packageName)
-                        }
-                        val imageBitmap = remember(iconDrawable) {
-                            iconDrawable?.toBitmap()?.asImageBitmap()
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (imageBitmap != null) {
-                                    Image(
-                                        bitmap = imageBitmap,
-                                        contentDescription = app.label,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Rounded.AccountBalance,
-                                        contentDescription = app.label,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
-                                Column {
-                                    Text(
-                                        text = app.label,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = app.packageName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Switch(
-                                checked = isEnabled,
-                                onCheckedChange = { viewModel.setPackageEnabled(app.packageName, it) }
-                            )
-                        }
-                    }
-                }
-
-                // 3. Ứng dụng loại trừ
-                item {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 4.dp))
-                    Text(
-                        "Ứng dụng loại trừ",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        "Chọn các ứng dụng bạn muốn hoàn toàn loại trừ, không phân tích thông báo.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = appSearchQuery,
-                        onValueChange = { appSearchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp)),
-                        leadingIcon = {
-                            Icon(
-                                Icons.Rounded.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                        trailingIcon = {
-                            if (appSearchQuery.isNotEmpty()) {
-                                IconButton(onClick = { appSearchQuery = "" }) {
-                                    Icon(
-                                        Icons.Rounded.Close,
-                                        contentDescription = "Xóa tìm kiếm",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        },
-                        placeholder = {
-                            Text(
-                                "Tìm kiếm ứng dụng...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            unfocusedBorderColor = Color.Transparent,
-                            disabledBorderColor = Color.Transparent,
-                        ),
-                    )
-                }
-
-                item {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                    ) {
-                        val filters = listOf("Tất cả", "Đã loại trừ", "Chưa loại trừ")
-                        filters.forEachIndexed { index, label ->
-                            val isSelected = filterState == index
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surfaceContainerLow
-                                    )
-                                    .clickable { filterState = index }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                            else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 4. Danh sách ứng dụng loại trừ
-                if (isLoadingApps) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                } else if (filteredApps.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Không tìm thấy ứng dụng phù hợp.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else {
-                    items(filteredApps, key = { it.packageName }) { app ->
-                        val isExcluded = settings.excludedPackages.contains(app.packageName)
-                        val imageBitmap = remember(app.icon) {
-                            app.icon?.toBitmap()?.asImageBitmap()
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (imageBitmap != null) {
-                                    Image(
-                                        bitmap = imageBitmap,
-                                        contentDescription = app.label,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Rounded.AccountBalanceWallet,
-                                        contentDescription = app.label,
-                                        tint = MaterialTheme.colorScheme.outline,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
-                                Column {
-                                    Text(
-                                        text = app.label,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = app.packageName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Switch(
-                                checked = isExcluded,
-                                onCheckedChange = { checked ->
-                                    val current = settings.excludedPackages
-                                    val updated = if (checked) {
-                                        current + app.packageName
-                                    } else {
-                                        current - app.packageName
-                                    }
-                                    viewModel.setExcludedPackages(updated)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Đóng", fontWeight = FontWeight.Bold)
-            }
-        }
-    )
-}
-
-private data class UserAppInfo(
-    val packageName: String,
-    val label: String,
-    val icon: android.graphics.drawable.Drawable?
-)
-
-private fun getInstalledUserApps(context: Context): List<UserAppInfo> {
-    val pm = context.packageManager
-    val intent = Intent(Intent.ACTION_MAIN, null).apply {
-        addCategory(Intent.CATEGORY_LAUNCHER)
-    }
-    return pm.queryIntentActivities(intent, 0).map { resolveInfo ->
-        val packageName = resolveInfo.activityInfo.packageName
-        val label = resolveInfo.loadLabel(pm).toString()
-        val icon = try {
-            resolveInfo.loadIcon(pm)
-        } catch (e: Exception) {
-            null
-        }
-        UserAppInfo(packageName, label, icon)
-    }.distinctBy { it.packageName }.sortedBy { it.label }
-}
 
 @Composable
 private fun CircularBudgetRing(

@@ -1,4 +1,4 @@
-﻿package com.notepay.ui.feature.stats
+package com.notepay.ui.feature.stats
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.ui.feature.addtransaction.MainDispatcherRule
@@ -7,8 +7,9 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.TransactionRepository
-import com.notepay.domain.usecase.GetMonthlySummaryUseCase
+import com.notepay.domain.repository.WalletRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,10 +99,58 @@ class StatsViewModelTest {
         collectJob.cancel()
     }
 
-    private fun createViewModel(repo: TransactionRepository): StatsViewModel {
-        val getMonthlySummary = GetMonthlySummaryUseCase(repo)
-        return StatsViewModel(getMonthlySummary)
+    @Test
+    fun `wallet filtering and budget progress limit calculation`() = runTest {
+        val wallet1 = TestData.wallet(id = 1L, name = "Ví MoMo").copy(budgetLimit = Money(1_000_000_00))
+        val wallet2 = TestData.wallet(id = 2L, name = "Ví Tiền mặt").copy(budgetLimit = Money(2_000_000_00))
+        
+        val tx1 = TestData.transaction(id = 1L, walletId = 1L, amount = Money(200_000_00), type = TransactionType.EXPENSE, category = Category.FOOD)
+        val tx2 = TestData.transaction(id = 2L, walletId = 2L, amount = Money(500_000_00), type = TransactionType.EXPENSE, category = Category.SHOPPING)
+
+        val txRepo = FakeTransactionRepository(listOf(tx1, tx2))
+        val walletRepo = FakeWalletRepository(listOf(wallet1, wallet2))
+        
+        val viewModel = createViewModel(txRepo, walletRepo)
+        
+        val collectJob = launch(UnconfinedTestDispatcher()) {
+            viewModel.state.collect {}
+        }
+        
+        var state = viewModel.state.value
+        assertThat(state.budgetLimit).isEqualTo(Money(3_000_000_00))
+        assertThat(state.budgetSpent).isEqualTo(Money(700_000_00))
+        assertThat(state.budgetPercentage).isWithin(0.01f).of(700_000_00f / 3_000_000_00f)
+        
+        viewModel.selectWallet(1L)
+        state = viewModel.state.value
+        assertThat(state.selectedWallet?.name).isEqualTo("Ví MoMo")
+        assertThat(state.budgetLimit).isEqualTo(Money(1_000_000_00))
+        assertThat(state.budgetSpent).isEqualTo(Money(200_000_00))
+        
+        assertThat(state.spendingForecast).isNotNull()
+        val forecast = state.spendingForecast!!
+        assertThat(forecast.projectedSpend.amountInCents).isGreaterThan(0L)
+        
+        collectJob.cancel()
     }
+
+    private fun createViewModel(
+        repo: TransactionRepository,
+        walletRepo: WalletRepository = FakeWalletRepository()
+    ): StatsViewModel {
+        return StatsViewModel(repo, walletRepo)
+    }
+}
+
+private class FakeWalletRepository(
+    private val wallets: List<Wallet> = emptyList(),
+) : WalletRepository {
+    override fun observeAll(): Flow<List<Wallet>> = flowOf(wallets)
+    override fun observeActive(): Flow<Wallet?> = flowOf(wallets.firstOrNull { it.isActive })
+    override suspend fun getById(id: Long): Wallet? = wallets.find { it.id == id }
+    override suspend fun upsert(wallet: Wallet): Long = 0L
+    override suspend fun delete(id: Long) = Unit
+    override suspend fun setActive(id: Long) = Unit
 }
 
 private class FakeTransactionRepository(

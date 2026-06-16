@@ -74,6 +74,7 @@ fun BillSplitScreen(
     onFeedback: suspend (UiFeedback) -> Boolean,
     navigationBarOffset: Float = 0f,
     initialShowCreate: Boolean = false,
+    onClearShowCreate: () -> Unit = {},
     viewModel: BillSplitViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,9 +87,16 @@ fun BillSplitScreen(
     }
 
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    var showCreateDialog by remember { mutableStateOf(initialShowCreate) }
+    var showCreateDialog by remember { mutableStateOf(false) }
     var qrConfigWalletId by remember { mutableStateOf<Long?>(null) }
     var pendingDeleteBill by remember { mutableStateOf<BillSplitItemState?>(null) }
+
+    LaunchedEffect(initialShowCreate) {
+        if (initialShowCreate) {
+            showCreateDialog = true
+            onClearShowCreate()
+        }
+    }
 
     val qrConfigWallet = qrConfigWalletId?.let { id ->
         state.wallets.find { it.id == id }

@@ -73,6 +73,23 @@ import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.util.MoneyFormatter
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.rounded.Wallet
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,30 +99,43 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showWalletDropdown by remember { mutableStateOf(false) }
+    var showTimeDropdown by remember { mutableStateOf(false) }
+    var showDateRangePicker by remember { mutableStateOf(false) }
+    var isForecastDismissed by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(state.selectedWallet, state.timeFilter, state.dateRangeLabel) {
+        isForecastDismissed = false
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thống kê") },
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        IconButton(onClick = viewModel::onPreviousMonth) {
-                            Icon(Icons.Rounded.ChevronLeft, contentDescription = "Tháng trước")
-                        }
+                title = {
+                    Column {
+                        Text("Thống kê", fontWeight = FontWeight.Bold)
                         Text(
-                            text = "Tháng %02d/%d".format(state.month, state.year),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            text = state.dateRangeLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        // P2-15: disable "Tháng sau" khi đang ở tháng hiện tại.
-                        IconButton(
-                            onClick = viewModel::onNextMonth,
-                            enabled = !state.isCurrentMonth,
+                    }
+                },
+                actions = {
+                    if (state.timeFilter == TimeFilterType.MONTH) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau")
+                            IconButton(onClick = viewModel::onPreviousMonth) {
+                                Icon(Icons.Rounded.ChevronLeft, contentDescription = "Tháng trước")
+                            }
+                            IconButton(
+                                onClick = viewModel::onNextMonth,
+                                enabled = !state.isCurrentMonth,
+                            ) {
+                                Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau")
+                            }
                         }
                     }
                 },
@@ -123,8 +153,6 @@ fun StatsScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            // Cả thu nhập và chi tiêu đều rỗng -> không có dữ liệu gì
-            // -> hiện empty state đầy đủ (icon + title + desc + nút thêm giao dịch)
             state.breakdown.isEmpty() && state.incomeBreakdown.isEmpty() -> {
                 Box(
                     modifier = Modifier
@@ -135,7 +163,7 @@ fun StatsScreen(
                     EmptyStateWithAction(
                         icon = Icons.Outlined.PieChart,
                         title = "Chưa có dữ liệu thống kê",
-                        description = "Thêm giao dịch thu/chi trong tháng này để xem biểu đồ cơ cấu chi tiêu và thu nhập.",
+                        description = "Thêm giao dịch thu/chi trong thời gian này để xem biểu đồ cơ cấu chi tiêu và thu nhập.",
                         actionLabel = "Thêm giao dịch",
                         onClick = onAddTransaction,
                     )
@@ -155,9 +183,154 @@ fun StatsScreen(
                             text = { Text("Cơ cấu thu nhập") },
                         )
                     }
+
+                    // Thanh bộ lọc phụ (Ví và Thời gian) - Chuyển xuống dưới TabRow để hợp lý hơn
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. Dropdown ví
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showWalletDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Wallet,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = state.selectedWallet?.name ?: "Tất cả ví",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = showWalletDropdown,
+                                onDismissRequest = { showWalletDropdown = false },
+                                modifier = Modifier.fillMaxWidth(0.45f)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Tất cả ví", fontWeight = FontWeight.Bold) },
+                                    onClick = {
+                                        viewModel.selectWallet(null)
+                                        showWalletDropdown = false
+                                    }
+                                )
+                                state.wallets.forEach { wallet ->
+                                    DropdownMenuItem(
+                                        text = { Text(wallet.name) },
+                                        onClick = {
+                                            viewModel.selectWallet(wallet.id)
+                                            showWalletDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. Dropdown thời gian
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showTimeDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.CalendarMonth,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = state.timeFilter.label,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = showTimeDropdown,
+                                onDismissRequest = { showTimeDropdown = false },
+                                modifier = Modifier.fillMaxWidth(0.45f)
+                            ) {
+                                TimeFilterType.values().forEach { filter ->
+                                    DropdownMenuItem(
+                                        text = { Text(filter.label) },
+                                        onClick = {
+                                            showTimeDropdown = false
+                                            if (filter == TimeFilterType.CUSTOM) {
+                                                showDateRangePicker = true
+                                            } else {
+                                                viewModel.selectTimeFilter(filter)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     when (selectedTab) {
                         0 -> ExpenseBreakdownContent(
                             state = state,
+                            isForecastDismissed = isForecastDismissed,
+                            onDismissForecast = { isForecastDismissed = true },
                             onAddTransaction = onAddTransaction,
                             onCategorySelected = viewModel::selectCategory,
                         )
@@ -171,11 +344,47 @@ fun StatsScreen(
             }
         }
     }
+
+    if (showDateRangePicker) {
+        val dateRangePickerState = rememberDateRangePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDateRangePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val start = dateRangePickerState.selectedStartDateMillis
+                        val end = dateRangePickerState.selectedEndDateMillis
+                        if (start != null && end != null) {
+                            viewModel.selectCustomDateRange(start, end)
+                        }
+                        showDateRangePicker = false
+                    },
+                    enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
+                ) {
+                    Text("Xác nhận", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateRangePicker = false }) {
+                    Text("Hủy")
+                }
+            }
+        ) {
+            DateRangePicker(
+                state = dateRangePickerState,
+                title = { Text("Chọn khoảng thời gian", modifier = Modifier.padding(16.dp)) },
+                showModeToggle = false,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
 }
 
 @Composable
 private fun ExpenseBreakdownContent(
     state: StatsUiState,
+    isForecastDismissed: Boolean,
+    onDismissForecast: () -> Unit,
     onAddTransaction: () -> Unit = {},
     onCategorySelected: (Category?) -> Unit,
 ) {
@@ -203,6 +412,23 @@ private fun ExpenseBreakdownContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
+        if (state.budgetLimit != null) {
+            item {
+                BudgetProgressBar(
+                    spent = state.budgetSpent,
+                    limit = state.budgetLimit,
+                    percentage = state.budgetPercentage
+                )
+            }
+        }
+        if (state.spendingForecast != null && !isForecastDismissed) {
+            item {
+                SpendingForecastCard(
+                    forecast = state.spendingForecast,
+                    onDismiss = onDismissForecast
+                )
+            }
+        }
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -637,3 +863,150 @@ private fun CategoryBreakdownRow(
         }
     }
 }
+
+@Composable
+private fun BudgetProgressBar(
+    spent: Money,
+    limit: Money,
+    percentage: Float,
+    modifier: Modifier = Modifier,
+) {
+    val progress = percentage.coerceIn(0f, 1f)
+    val color = when {
+        percentage >= 1f -> Color(0xFFC62828) // Đỏ khi vượt hạn mức
+        percentage >= 0.8f -> Color(0xFFEF6C00) // Cam khi đạt 80%
+        else -> Color(0xFF2E7D32) // Xanh mặc định
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = if (percentage >= 0.8f) Icons.Rounded.Warning else Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Hạn mức chi tiêu",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = "${(percentage * 100).coerceAtLeast(0f).format(1)}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = color,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeCap = StrokeCap.Round
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${MoneyFormatter.format(spent)} / ${MoneyFormatter.format(limit)} (Đã tiêu ${(percentage * 100).coerceAtLeast(0f).format(1)}%)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingForecastCard(
+    forecast: BudgetForecast,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val color = if (forecast.isProjectedToExceed) Color(0xFFC62828) else MaterialTheme.colorScheme.primary
+    val cardBgColor = if (forecast.isProjectedToExceed) {
+        Color(0xFFC62828).copy(alpha = 0.08f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    }
+    val borderStroke = if (forecast.isProjectedToExceed) {
+        BorderStroke(1.dp, Color(0xFFC62828).copy(alpha = 0.3f))
+    } else {
+        null
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBgColor
+        ),
+        border = borderStroke
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = if (forecast.isProjectedToExceed) Icons.Rounded.Warning else Icons.Rounded.Info,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp).padding(top = 2.dp)
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = if (forecast.isProjectedToExceed) "Cảnh báo chi tiêu!" else "Dự báo chi tiêu",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+                Text(
+                    text = forecast.forecastMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Ẩn dự báo",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+private fun Float.format(digits: Int): String = "%.${digits}f".format(this)

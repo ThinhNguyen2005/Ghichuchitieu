@@ -150,42 +150,43 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             return
         }
 
-        val extras = sbn.notification.extras
-        val title = extras.getCharSequence("android.title")?.toString()
-        val text = extras.getCharSequence("android.text")?.toString()
-        val bigText = extras.getCharSequence("android.bigText")?.toString()
-        
-        // Trích xuất android.textLines (InboxStyle) thường dùng cho tin nhắn nhiều dòng của ngân hàng
-        val textLines = extras.getCharSequenceArray("android.textLines")
-        val textLinesStr = textLines?.joinToString("\n") { it.toString() }
+        // Chuyển toàn bộ các tác vụ xử lý chuỗi và tương tác DB xuống luồng ngầm ioDispatcher
+        serviceScope.launch(ioDispatcher) {
+            val extras = sbn.notification.extras
+            val title = extras.getCharSequence("android.title")?.toString()
+            val text = extras.getCharSequence("android.text")?.toString()
+            val bigText = extras.getCharSequence("android.bigText")?.toString()
+            
+            // Trích xuất android.textLines (InboxStyle) thường dùng cho tin nhắn nhiều dòng của ngân hàng
+            val textLines = extras.getCharSequenceArray("android.textLines")
+            val textLinesStr = textLines?.joinToString("\n") { it.toString() }
 
-        // Kết hợp tất cả để tìm chuỗi chứa thông tin đầy đủ nhất
-        val textToParse = listOfNotNull(text, bigText, textLinesStr)
-            .maxByOrNull { it.length }
+            // Kết hợp tất cả để tìm chuỗi chứa thông tin đầy đủ nhất
+            val textToParse = listOfNotNull(text, bigText, textLinesStr)
+                .maxByOrNull { it.length }
 
-        // Optimization B: Fast Path Keyword Check
-        if (!isPotentiallyTransaction(textToParse)) {
-            return
-        }
+            // Optimization B: Fast Path Keyword Check
+            if (!isPotentiallyTransaction(textToParse)) {
+                return@launch
+            }
 
-        // Output log only when it passes fast filter to optimize log resource
-        android.util.Log.d("NotePayNotif", "--- NHẬN THÔNG BÁO ---")
-        android.util.Log.d("NotePayNotif", "Package: $packageName")
-        android.util.Log.d("NotePayNotif", "Title: $title")
-        android.util.Log.d("NotePayNotif", "Text: $text")
-        android.util.Log.d("NotePayNotif", "BigText: $bigText")
-        android.util.Log.d("NotePayNotif", "TextLines: $textLinesStr")
-        android.util.Log.d("NotePayNotif", "Final Text to Parse: $textToParse")
+            // Output log only when it passes fast filter to optimize log resource
+            android.util.Log.d("NotePayNotif", "--- NHẬN THÔNG BÁO ---")
+            android.util.Log.d("NotePayNotif", "Package: $packageName")
+            android.util.Log.d("NotePayNotif", "Title: $title")
+            android.util.Log.d("NotePayNotif", "Text: $text")
+            android.util.Log.d("NotePayNotif", "BigText: $bigText")
+            android.util.Log.d("NotePayNotif", "TextLines: $textLinesStr")
+            android.util.Log.d("NotePayNotif", "Final Text to Parse: $textToParse")
 
-        val parsed = NotificationParser.parse(title, textToParse)
-        if (parsed == null) {
-            android.util.Log.d("NotePayNotif", "Không thể parse thông tin giao dịch từ thông báo này.")
-            return
-        }
+            val parsed = NotificationParser.parse(title, textToParse)
+            if (parsed == null) {
+                android.util.Log.d("NotePayNotif", "Không thể parse thông tin giao dịch từ thông báo này.")
+                return@launch
+            }
 
-        android.util.Log.d("NotePayNotif", "Parsed thành công: Số tiền = ${parsed.amount.amountInCents}, Loại = ${parsed.type}, Nội dung = ${parsed.note}")
+            android.util.Log.d("NotePayNotif", "Parsed thành công: Số tiền = ${parsed.amount.amountInCents}, Loại = ${parsed.type}, Nội dung = ${parsed.note}")
 
-        serviceScope.launch {
             // Tìm ví liên kết với package name của thông báo
             val wallets = walletRepository.observeAll().firstOrNull() ?: emptyList()
             val linkedWallet = wallets.find { 

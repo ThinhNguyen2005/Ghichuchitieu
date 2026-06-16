@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +44,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -83,6 +89,12 @@ fun AddSubscriptionBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+    val localView = androidx.compose.ui.platform.LocalView.current
+    val playHaptic = {
+        try {
+            localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        } catch (_: Exception) {}
+    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategorySheet by remember { mutableStateOf(false) }
@@ -122,26 +134,63 @@ fun AddSubscriptionBottomSheet(
                 }
             }
 
-            // P1-8: chuyển từ OutlinedButton full-width thành text link nhỏ
-            // đặt phía trên OutlinedTextField tên, gọn hơn và đúng vai trò "gợi ý".
+            // Gợi ý nhanh từ giao dịch gần đây dạng ngang (LazyRow)
             if (recentTransactions.isNotEmpty()) {
-                TextButton(
-                    onClick = { showRecentTxSheet = true },
-                    modifier = Modifier.align(Alignment.Start),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                Text(
+                    text = "Gợi ý từ giao dịch gần đây",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 4.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        text = "Chọn từ giao dịch gần đây",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    items(recentTransactions.take(5), key = { it.id }) { tx ->
+                        val cat = tx.category
+                        Card(
+                            modifier = Modifier
+                                .clickable {
+                                    playHaptic()
+                                    onNameChanged(tx.note.ifBlank { cat.displayName })
+                                    onAmountChanged((tx.amount.amountInCents / 100).toString())
+                                    onCategoryChanged(cat.id)
+                                    onNextDueDateChanged(tx.occurredAt.toEpochMilliseconds())
+                                },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CategoryAvatar(
+                                    category = cat,
+                                    size = 24.dp,
+                                    iconSize = 12.dp
+                                )
+                                Column {
+                                    Text(
+                                        text = tx.note.ifBlank { cat.displayName },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.widthIn(max = 110.dp)
+                                    )
+                                    Text(
+                                        text = MoneyFormatter.format(tx.amount),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -164,8 +213,8 @@ fun AddSubscriptionBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // Category picker (tận dụng code cũ)
-            Text("Danh mục", style = MaterialTheme.typography.labelLarge)
+            // Danh mục
+            Text("Danh mục", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -192,43 +241,92 @@ fun AddSubscriptionBottomSheet(
                 }
             }
 
-            // Date picker
-            Text("Ngày đến hạn", style = MaterialTheme.typography.labelLarge)
-            OutlinedTextField(
-                value = nextDueLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Ngày đến hạn") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Rounded.CalendarMonth, contentDescription = "Chọn ngày")
-                    }
-                },
-            )
-
-            Text("Chu kỳ gia hạn", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Subscription.REPEAT_OPTIONS.forEach { months ->
-                    FilterChip(
-                        selected = state.repeatMonths == months,
-                        onClick = { onRepeatMonthsChanged(months) },
-                        label = {
-                            Text(
-                                when (months) {
-                                    1 -> "1 tháng"
-                                    3 -> "3 tháng"
-                                    6 -> "6 tháng"
-                                    else -> "1 năm"
-                                }
-                            )
-                        },
+            // Hợp nhất Ngày đến hạn & Chu kỳ gia hạn vào 1 Card "Lịch thanh toán" duy nhất
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Lịch thanh toán & Gia hạn",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
+
+                    // 1. Ngày đến hạn tiếp theo (Click toàn bộ vùng để chọn ngày)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Ngày đến hạn tiếp theo",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDatePicker = true }
+                        ) {
+                            OutlinedTextField(
+                                value = nextDueLabel,
+                                onValueChange = {},
+                                readOnly = true,
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                trailingIcon = {
+                                    Icon(Icons.Rounded.CalendarMonth, contentDescription = "Chọn ngày")
+                                },
+                            )
+                        }
+                    }
+
+                    // 2. Chu kỳ lặp lại
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Chu kỳ lặp lại",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Subscription.REPEAT_OPTIONS.forEach { months ->
+                                val label = when (months) {
+                                    1 -> "Hàng tháng"
+                                    3 -> "Hàng quý"
+                                    6 -> "6 tháng"
+                                    else -> "Hàng năm"
+                                }
+                                FilterChip(
+                                    selected = state.repeatMonths == months,
+                                    onClick = { onRepeatMonthsChanged(months) },
+                                    label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
-            Text("Nhắc trước", style = MaterialTheme.typography.labelLarge)
+            Text("Nhắc trước", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Subscription.REMIND_OPTIONS.forEach { days ->
                     FilterChip(

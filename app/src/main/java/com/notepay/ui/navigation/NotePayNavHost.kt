@@ -51,6 +51,7 @@ import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,6 +70,7 @@ import com.notepay.ui.feature.billsplit.BillSplitScreen
 import com.notepay.ui.feature.billsplit.DebtorDetailScreen
 import com.notepay.ui.feature.detail.TransactionDetailScreen
 import com.notepay.ui.feature.home.HomeScreen
+import com.notepay.ui.feature.home.NotificationSettingsScreen
 import com.notepay.ui.feature.list.TransactionListScreen
 import com.notepay.ui.feature.stats.StatsScreen
 import com.notepay.ui.feature.subscription.SubscriptionScreen
@@ -212,6 +214,7 @@ fun NotePayNavHost(
                         },
                         onAddWallet = { navController.navigate(Route.AddWallet.path) },
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
+                        onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
                         onTransactionClick = { txId ->
                             navController.navigate(Route.EditTransaction(txId).path)
                         },
@@ -285,7 +288,8 @@ fun NotePayNavHost(
                     route = "bill-split?showCreate={showCreate}",
                     arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
                 ) { backStackEntry ->
-                    val showCreate = backStackEntry.arguments?.getBoolean("showCreate") ?: false
+                    val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
+                    val showCreate by showCreateFlow.collectAsState()
                     BillSplitScreen(
                         onDebtorClick = { debtorName ->
                             navController.navigate(Route.DebtorDetail(debtorName).path)
@@ -293,6 +297,9 @@ fun NotePayNavHost(
                         onFeedback = ::showFeedback,
                         navigationBarOffset = navigationBarOffset,
                         initialShowCreate = showCreate,
+                        onClearShowCreate = {
+                            backStackEntry.savedStateHandle["showCreate"] = false
+                        }
                     )
                 }
                 composable(
@@ -310,11 +317,15 @@ fun NotePayNavHost(
                     route = "subscription?showCreate={showCreate}",
                     arguments = listOf(navArgument("showCreate") { type = NavType.BoolType; defaultValue = false })
                 ) { backStackEntry ->
-                    val showCreate = backStackEntry.arguments?.getBoolean("showCreate") ?: false
+                    val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
+                    val showCreate by showCreateFlow.collectAsState()
                     SubscriptionScreen(
                         navigationBarOffset = navigationBarOffset,
                         initialShowCreate = showCreate,
                         onBack = { navController.popBackStack() },
+                        onClearShowCreate = {
+                            backStackEntry.savedStateHandle["showCreate"] = false
+                        }
                     )
                 }
                 composable(Route.Utilities.path) {
@@ -329,6 +340,11 @@ fun NotePayNavHost(
                                 launchSingleTop = true
                             }
                         }
+                    )
+                }
+                composable(Route.NotificationSettings.path) {
+                    NotificationSettingsScreen(
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }
@@ -559,7 +575,9 @@ fun NotePayNavHost(
                             onClick = {
                                 showQuickAddSheet = false
                                 navController.navigate("bill-split?showCreate=true") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         )

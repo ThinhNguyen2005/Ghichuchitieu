@@ -167,4 +167,16 @@ class HomeViewModel @Inject constructor(
             notificationSettingsStore.setExcludedPackages(packages)
         }
     }
+
+    fun addCustomBankApp(packageName: String, label: String) {
+        viewModelScope.launch {
+            notificationSettingsStore.addCustomBankApp(packageName, label)
+        }
+    }
+
+    fun removeCustomBankApp(packageName: String) {
+        viewModelScope.launch {
+            notificationSettingsStore.removeCustomBankApp(packageName)
+        }
+    }
 }

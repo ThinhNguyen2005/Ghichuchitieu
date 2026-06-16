@@ -165,20 +165,13 @@ fun BillSplitCreateSheet(
 
             // Bước 1: chọn giao dịch
             if (selectedTx == null) {
-                OutlinedButton(
-                    onClick = { showTxPicker = !showTxPicker },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Chọn giao dịch chi tiêu", style = MaterialTheme.typography.bodyLarge)
-                        Icon(Icons.Rounded.ArrowDropDown, contentDescription = null)
-                    }
-                }
+                Text(
+                    text = "Chọn giao dịch chi tiêu gần đây để chia:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             } else {
                 val tx = selectedTx!!
                 val cat = tx.category
@@ -215,18 +208,28 @@ fun BillSplitCreateSheet(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Text(
-                            text = MoneyFormatter.format(tx.amount),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = MoneyFormatter.format(tx.amount),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowDropDown,
+                                contentDescription = "Thay đổi giao dịch",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
 
             // Lazy danh sách giao dịch — thay cho AlertDialog lồng
-            if (showTxPicker) {
+            if (selectedTx == null || showTxPicker) {
                 if (expenses.isEmpty()) {
                     Text(
                         "Chưa có giao dịch chi tiêu nào gần đây.",

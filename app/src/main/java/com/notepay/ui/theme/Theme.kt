@@ -106,6 +106,18 @@ fun getLightColorScheme(themeColor: String): ColorScheme {
             surfaceContainer = Color(0xFFEAECEE),
             outlineVariant = Color(0xFFDDE1E3),
         )
+        "custom" -> {
+            val customColor = try {
+                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
+            } catch (e: Exception) {
+                Color(0xFF1B7F4F)
+            }
+            LightColors.copy(
+                primary = customColor,
+                primaryContainer = customColor.copy(alpha = 0.12f),
+                onPrimaryContainer = customColor,
+            )
+        }
         else -> LightColors.copy(
             primary = Color(0xFF1B7F4F),
             primaryContainer = Color(0xFFB6F2CE),
@@ -183,6 +195,18 @@ fun getDarkColorScheme(themeColor: String): ColorScheme {
             surfaceContainer = Color(0xFF374151),
             outlineVariant = Color(0xFF4B5563),
         )
+        "custom" -> {
+            val customColor = try {
+                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
+            } catch (e: Exception) {
+                Color(0xFF9BD6B0)
+            }
+            DarkColors.copy(
+                primary = customColor,
+                primaryContainer = customColor.copy(alpha = 0.2f),
+                onPrimaryContainer = customColor,
+            )
+        }
         else -> DarkColors.copy(
             primary = Color(0xFF9BD6B0),
             primaryContainer = Color(0xFF005233),

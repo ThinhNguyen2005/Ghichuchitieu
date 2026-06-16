@@ -9,31 +9,95 @@
         tools:ignore="QueryAllPackagesPermission" />
 
     <queries>
-        <package android:name="com.tpb.mb.gprsandroid" />
-        <package android:name="com.tpb.mb.android" />
-        <package android:name="com.tpbank" />
-        <package android:name="com.VCB" />
-        <package android:name="com.vietcombank.digibank" />
-        <package android:name="com.vietcombank.vietcombankdetail" />
-        <package android:name="com.vietcombank.cardoproduct" />
-        <package android:name="com.technologies.tcb" />
-        <package android:name="com.technologiessoftech.tcb" />
-        <package android:name="com.mbmobile" />
-        <package android:name="com.vpbank.neo" />
-        <package android:name="com.bidv.smartbanking" />
+        <!-- ========================================== -->
+        <!-- I. NGÂN HÀNG THƯƠNG MẠI NHÀ NƯỚC (BIG 4)   -->
+        <!-- ========================================== -->
+        <!-- Vietcombank (VCB Digibank) -->
+        <package android:name="com.VCB" /> <!-- Chú ý viết hoa VCB -->
+
+        <!-- VietinBank iPay -->
+        <package android:name="com.vietinbank.ipay" />
+
+        <!-- BIDV SmartBanking -->
         <package android:name="com.vnpay.bidv" />
-        <package android:name="com.vnpay.Agribank3g" />
-        <package android:name="vn.com.agribank.emobilebanking" />
-        <package android:name="com.vnpay.agribank" />
-        <package android:name="com.sacombank.mbanking" />
+
+        <!-- Agribank Plus -->
+        <package android:name="com.vnpay.Agribank3g" /> <!-- Chú ý viết hoa Agribank3g -->
+
+
+        <!-- ========================================== -->
+        <!-- II. NGÂN HÀNG THƯƠNG MẠI CỔ PHẦN TƯ NHÂN   -->
+        <!-- ========================================== -->
+        <!-- Techcombank Mobile -->
+        <package android:name="vn.com.techcombank.bb.app" />
+
+        <!-- MB Bank -->
+        <package android:name="com.mbmobile" />
+
+        <!-- VPBank NEO -->
+        <package android:name="com.vnpay.vpbankonline" />
+
+        <!-- TPBank Mobile -->
+        <package android:name="com.tpb.mb.gprsandroid" />
+
+        <!-- ACB ONE -->
+        <package android:name="mobile.acb.com.vn" />
+
+        <!-- VIB (MyVIB 2.0) -->
+        <package android:name="com.vib.myvib2" />
+
+        <!-- MSB mBank -->
+        <package android:name="com.msb.digibank.retail" />
+
+        <!-- OCB OMNI -->
+        <package android:name="vn.com.ocb.awe" />
+
+        <!-- LPBank -->
+        <package android:name="vn.lienviet.app" />
+
+        <!-- SACOMBANK mBanking & SACOMBANK Pay -->
+        <package android:name="src.com.sacombank" />
         <package android:name="com.sacombank.ewallet" />
-        <package android:name="com.sacombank.isacombank" />
-        <package android:name="com.sacombank.mb" />
-        <package android:name="vn.com.acb.mbanking" />
-        <package android:name="acb.app.acbone" />
-        <package android:name="com.acb.dcb" />
+
+
+        <!-- ========================================== -->
+        <!-- III. NGÂN HÀNG SỐ (DIGITAL / FOREIGN BANKS) -->
+        <!-- ========================================== -->
+        <!-- Shinhan Bank Vietnam -->
+        <package android:name="com.shinhan.global.vn.bank" />
+
+        <!-- Liobank (by OCB) -->
+        <package android:name="com.ocb.liobank" />
+
+        <!-- Cake by VPBank -->
+        <package android:name="xyz.be.cake" />
+
+        <!-- Digimi (by Bản Việt) -->
+        <package android:name="vn.banvietbank.mobilebanking" />
+
+        <!-- Timo Digital Bank -->
+        <package android:name="io.lifestyle.plus" />
+
+
+        <!-- ========================================== -->
+        <!-- IV. VÍ ĐIỆN TỬ & TRUNG GIAN THANH TOÁN     -->
+        <!-- ========================================== -->
+        <!-- Ví MoMo -->
         <package android:name="com.mservice.momotransfer" />
-        <package android:name="com.mservice.momo" />
+
+        <!-- Ví ZaloPay -->
+        <package android:name="vn.com.vng.zalopay" />
+
+        <!-- Ví ShopeePay -->
+        <package android:name="com.beeasy.toppay" /> <!-- Bản chính thức tại Việt Nam -->
+        <package android:name="com.beeasy.airpay" /> <!-- Bản quốc tế / Thái Lan -->
+
+        <!-- Ví VNPAY -->
+        <package android:name="vnpay.smartacccount" /> <!-- Chú ý lỗi chính tả cố ý "acccount" -->
+
+        <!-- Viettel Money -->
+        <package android:name="com.viettelpay.android" /> <!-- Bản kế thừa gốc -->
+        <package android:name="com.bplus.vtpay" /> <!-- Bản cập nhật mới -->
     </queries>
 
     <application

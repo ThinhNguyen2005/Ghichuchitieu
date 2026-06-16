@@ -12,6 +12,7 @@ sealed interface Route {
     data object AddWallet : Route { override val path = "add-wallet" }
     data object Utilities : Route { override val path = "utilities" }
     data object AddDummy : Route { override val path = "add-dummy" }
+    data object NotificationSettings : Route { override val path = "notification-settings" }
     data class EditTransaction(val id: Long) : Route {
         override val path = "edit-transaction/$id"
         companion object {
