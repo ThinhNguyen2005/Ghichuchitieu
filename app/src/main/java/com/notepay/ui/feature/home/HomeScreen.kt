@@ -322,43 +322,43 @@ fun HomeScreen(
                     }
                 }
             } else {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.NotificationsActive,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Đang tự động ghi chép",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                )
-                                Text(
-                                    text = "Sẵn sàng đọc thông báo giao dịch.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                )
-                            }
-                        }
-                    }
-                }
+//                item {
+//                    Card(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        colors = CardDefaults.cardColors(
+//                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+//                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+//                        ),
+//                        shape = RoundedCornerShape(16.dp)
+//                    ) {
+//                        Row(
+//                            modifier = Modifier.padding(16.dp),
+//                            verticalAlignment = Alignment.CenterVertically,
+//                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+//                        ) {
+//                            Icon(
+//                                imageVector = Icons.Rounded.NotificationsActive,
+//                                contentDescription = null,
+//                                modifier = Modifier.size(32.dp),
+//                                tint = MaterialTheme.colorScheme.primary
+//                            )
+//                            Column(modifier = Modifier.weight(1f)) {
+//                                Text(
+//                                    text = "Đang tự động ghi chép",
+//                                    style = MaterialTheme.typography.titleSmall,
+//                                    fontWeight = FontWeight.Bold,
+//                                    maxLines = 1,
+//                                )
+//                                Text(
+//                                    text = "Sẵn sàng đọc thông báo giao dịch.",
+//                                    style = MaterialTheme.typography.bodySmall,
+//                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                                    maxLines = 2,
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
                 if (!isBatteryOptimizationsIgnored) {
                     item {
                         Card(

@@ -1,47 +1,19 @@
 package com.notepay.ui.feature.billsplit
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Payments
-import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,9 +26,11 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.util.MoneyFormatter
-import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,62 +57,72 @@ fun PaymentReconciliationSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = null,
-        containerColor = MaterialTheme.colorScheme.surface
+        // Giữ dragHandle chuẩn M3 để người dùng vuốt xuống đóng sheet tự nhiên
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow // Đồng bộ token nền cao cấp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                // Thêm animateContentSize giúp Bottom Sheet co giãn chiều cao cực kỳ êm ái khi đổi tab
+                .animateContentSize(animationSpec = tween(durationMillis = 250))
+                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp, top = 4.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header
+            // Header vùng thông tin dư nợ
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Thu tiền nợ từ $debtorName",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Tổng dư nợ: ${MoneyFormatter.format(totalDebt)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.error, // Dùng màu Error chuẩn hệ thống
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.offset(x = 12.dp, y = (-8).dp) // Đẩy sát góc gọn gàng
+                ) {
                     Icon(Icons.Rounded.Close, contentDescription = "Đóng")
                 }
             }
 
-            // Radio Options
+            // Thẻ lựa chọn Phương thức thanh toán (Cash / Transfer)
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    // Option 1: Cash
+                Column(modifier = Modifier.padding(6.dp)) {
+                    // Lựa chọn 1: Tiền mặt
+                    val isCash = paymentMethod == "cash"
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isCash) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable {
                                 paymentMethod = "cash"
                                 selectedIncomeTxId = null
                             }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
                     ) {
                         RadioButton(
-                            selected = paymentMethod == "cash",
+                            selected = isCash,
                             onClick = {
                                 paymentMethod = "cash"
                                 selectedIncomeTxId = null
@@ -148,68 +132,70 @@ fun PaymentReconciliationSheet(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFE8F5E9)),
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Payments,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(22.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(Modifier.width(12.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Nhận bằng Tiền mặt",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Giảm trực tiếp chi tiêu gốc, không đối soát giao dịch.",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    // Option 2: Transfer
+                    // Lựa chọn 2: Chuyển khoản (Có đối soát)
+                    val isTransfer = paymentMethod == "transfer"
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isTransfer) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable { paymentMethod = "transfer" }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
                     ) {
                         RadioButton(
-                            selected = paymentMethod == "transfer",
+                            selected = isTransfer,
                             onClick = { paymentMethod = "transfer" }
                         )
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.AccountBalance,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(Modifier.width(12.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Nhận bằng Chuyển khoản",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Đối soát và xóa giao dịch thu nhập trùng lặp từ biến động số dư.",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "Đối soát và tự động liên kết với biến động số dư từ ngân hàng.",
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -217,38 +203,38 @@ fun PaymentReconciliationSheet(
                 }
             }
 
-            // Sub-Panel for Transfer Reconciliation
+            // Phân vùng hiển thị danh sách giao dịch Ngân hàng (Chỉ bung ra khi chọn Chuyển khoản)
             if (paymentMethod == "transfer") {
                 Text(
-                    text = "Chọn giao dịch thu tiền từ ngân hàng (đối soát):",
+                    text = "Chọn giao dịch ngân hàng khớp đối soát:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                 )
 
                 if (incomeTransactions.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Info,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(28.dp)
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 text = "Không tìm thấy giao dịch thu nhập gần đây",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -257,73 +243,79 @@ fun PaymentReconciliationSheet(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
+                            .heightIn(max = 200.dp), // Dùng heightIn linh hoạt thay vì ép cứng chiều cao
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(incomeTransactions, key = { it.id }) { tx ->
                             val isSelected = selectedIncomeTxId == tx.id
                             val walletName = wallets.find { it.id == tx.walletId }?.name ?: "Ví khác"
-                            val borderModifier = if (isSelected) {
-                                Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                            } else {
-                                Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                            }
 
-                            Row(
+                            // Phối màu nền bám theo Token Theme khi item được chọn
+                            val cardBgColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerHigh
+                            val borderStroke = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .then(borderModifier)
-                                    .clickable { selectedIncomeTxId = tx.id }
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .clickable { selectedIncomeTxId = tx.id },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = cardBgColor),
+                                border = borderStroke
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (tx.isAutoCapture) Color(0xFFFFF9C4)
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = if (tx.isAutoCapture) Icons.Rounded.Smartphone else Icons.Rounded.AccountBalance,
-                                        contentDescription = null,
-                                        tint = if (tx.isAutoCapture) Color(0xFFFBC02D) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = tx.note.ifBlank { "Thu nhập" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "$walletName • ${formatInstant(tx.occurredAt)}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "+${MoneyFormatter.format(tx.amount)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF4CAF50)
-                                    )
-                                    if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (tx.isAutoCapture) MaterialTheme.colorScheme.tertiaryContainer
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = "Đã chọn",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
+                                            imageVector = if (tx.isAutoCapture) Icons.Rounded.Smartphone else Icons.Rounded.AccountBalance,
+                                            contentDescription = null,
+                                            tint = if (tx.isAutoCapture) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
                                         )
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = tx.note.ifBlank { "Nhận tiền chuyển khoản" },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "$walletName • ${formatInstant(tx.occurredAt)}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "+${MoneyFormatter.format(tx.amount)}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.primary // Màu chủ đạo đại diện cho thu nhập dương
+                                        )
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.CheckCircle,
+                                                contentDescription = "Đã chọn",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -332,9 +324,9 @@ fun PaymentReconciliationSheet(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // Action Button
+            // Nút kích hoạt hành động (Sticky Bottom Action)
             val isEnabled = paymentMethod == "cash" || selectedIncomeTxId != null
             Button(
                 onClick = { onConfirm(selectedIncomeTxId) },
@@ -342,16 +334,21 @@ fun PaymentReconciliationSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Icon(Icons.Rounded.Check, contentDescription = null)
+                Icon(
+                    imageVector = if (paymentMethod == "cash") Icons.Rounded.Check else Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = if (paymentMethod == "cash") "Ghi nhận thu tiền mặt" else "Xác nhận đối soát & thu tiền",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = if (paymentMethod == "cash") "Ghi nhận thu tiền mặt" else "Xác nhận đối soát & khớp số dư",
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -359,12 +356,15 @@ fun PaymentReconciliationSheet(
     }
 }
 
-private fun formatInstant(instant: Instant): String {
+private fun formatInstant(instant: kotlin.time.Instant): String {
     val tz = TimeZone.currentSystemDefault()
     val localDateTime = instant.toLocalDateTime(tz)
-    val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = localDateTime.monthNumber.toString().padStart(2, '0')
-    val hour = localDateTime.hour.toString().padStart(2, '0')
-    val minute = localDateTime.minute.toString().padStart(2, '0')
-    return "$day/$month $hour:$minute"
+    return String.format(
+        Locale.US,
+        "%02d/%02d %02d:%02d",
+        localDateTime.day,
+        localDateTime.month.number,
+        localDateTime.hour,
+        localDateTime.minute
+    )
 }

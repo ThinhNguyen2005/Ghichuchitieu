@@ -14,6 +14,7 @@ import com.notepay.data.preferences.NotificationSettingsStore
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.notification.NotificationParser
 import com.notepay.domain.repository.WalletRepository
@@ -197,7 +198,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             android.util.Log.d("NotePayNotif", "Sử dụng ví: ${walletToUse.name} (ID: ${walletToUse.id})")
 
             // Kiểm tra xem đây có phải giao dịch nhận tiền khớp mã đối soát chia tiền không
-            if (parsed.type == com.notepay.domain.model.TransactionType.INCOME) {
+            if (parsed.type == TransactionType.INCOME) {
                 val unpaidSplits = billSplitRepository.observeUnpaid().firstOrNull() ?: emptyList()
                 
                 // 1. Khớp mã đối soát đơn lẻ
@@ -306,7 +307,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 type = parsed.type,
                 category = suggestCategoryUseCase.suggest(
                     parsed.note,
-                    parsed.type == com.notepay.domain.model.TransactionType.INCOME
+                    parsed.type == TransactionType.INCOME
                 ),
                 note = parsed.note,
                 occurredAt = Clock.System.now(),
@@ -349,10 +350,16 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                lower.contains("+") ||
                lower.contains("-")
     }
-
+//    Hàm này dùng để xây dựng một Thông báo tương tác (Interactive Notification) có đính kèm 2 nút bấm hành động (Action Buttons) ngay trên thanh thông báo của điện thoại: "Lưu" và "Bỏ qua".
+//
+//    Khi nhận được tin nhắn ngân hàng: Thay vì lưu thẳng vào DB, app sẽ bắn ra thông báo này để người dùng kiểm tra xem AI bóc tách số tiền, nội dung có đúng không.
+//
+//    Nếu bấm "Bỏ qua": Thông báo biến mất, không có gì được ghi nhận vào máy.
+//
+//    Nếu bấm "Lưu": Hệ thống sẽ kích hoạt file NotificationActionReceiver chạy ngầm để thực hiện việc ghi DB và hiển thị Toast "Đã lưu giao dịch thành công! ✨".
     private fun showConfirmationNotification(walletName: String, transaction: Transaction) {
         val amountFormat = com.notepay.ui.util.MoneyFormatter.format(transaction.amount)
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         
         val notifId = (transaction.amount.amountInCents + transaction.occurredAt.epochSeconds).toInt()
         
@@ -399,9 +406,9 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         manager.notify(notifId, notification)
     }
 
-    private fun parsedTypeLabel(type: com.notepay.domain.model.TransactionType): String = when (type) {
-        com.notepay.domain.model.TransactionType.INCOME -> "Thu nhập"
-        com.notepay.domain.model.TransactionType.EXPENSE -> "Chi tiêu"
+    private fun parsedTypeLabel(type: TransactionType): String = when (type) {
+        TransactionType.INCOME -> "Thu nhập"
+        TransactionType.EXPENSE -> "Chi tiêu"
     }
 
     private fun createNotificationChannel() {
@@ -413,29 +420,70 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             ).apply {
                 description = "Kênh thông báo tự động ghi nhận giao dịch của NotePay"
             }
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
     }
 
-    private fun showSuccessNotification(walletName: String, amountCents: Long, note: String) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(com.notepay.domain.model.Money(amountCents))
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Đã tự động nhận diện giao dịch ✨")
-            .setContentText("Ghi nhận $amountFormat vào ví \"$walletName\" ($note)")
-            .setSmallIcon(android.R.drawable.stat_notify_chat) // Tạm thời dùng icon hệ thống
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setAutoCancel(true)
-            .build()
+//    private fun showSuccessNotification(walletName: String, amountCents: Long, note: String) {
+//        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(com.notepay.domain.model.Money(amountCents))
+//        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//
+//        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+//            .setContentTitle("Đã tự động nhận diện giao dịch ✨")
+//            .setContentText("Ghi nhận $amountFormat vào ví \"$walletName\" ($note)")
+//            .setSmallIcon(android.R.drawable.stat_notify_chat) // Tạm thời dùng icon hệ thống
+//            .setPriority(NotificationCompat.PRIORITY_HIGH)
+//            .setDefaults(NotificationCompat.DEFAULT_ALL)
+//            .setAutoCancel(true)
+//            .build()
+//
+//        manager.notify(NOTIFICATION_ID, notification)
+//    }
 
-        manager.notify(NOTIFICATION_ID, notification)
-    }
+private fun showSuccessNotification(
+    walletName: String,
+    amountCents: Long,
+    note: String,
+    type: TransactionType = TransactionType.EXPENSE // Mặc định là chi tiêu nếu không truyền
+) {
+    val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+    val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+    // 1. Phân loại trạng thái để xử lý bộ nhận diện thị giác (+/-)
+    val isIncome = type == TransactionType.INCOME
+    val prefix = if (isIncome) "+" else "-"
+    val typeLabel = if (isIncome) "Thu nhập" else "Chi tiêu"
+
+    // 2. Tạo giao diện mở rộng (Expanded View) dạng cấu trúc danh sách
+    val bigTextStyle = NotificationCompat.BigTextStyle()
+        .setBigContentTitle("Tự động ghi nhận $typeLabel ✨")
+        .bigText(
+            "• Số tiền: $prefix$amountFormat\n" +
+                    "• Tài khoản: $walletName\n" +
+                    "• Nội dung: $note"
+        )
+
+    // 3. Xây dựng thông báo chuẩn Material 3
+    val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        // Tiêu đề ngắn gọn, rõ nghĩa
+        .setContentTitle("Đã lưu $typeLabel thành công")
+        // Nội dung khi thu gọn (Collapsed view): Ưu tiên hiển thị Biến động tiền | Tên ví
+        .setContentText("$prefix$amountFormat  |  $walletName")
+        // Gắn bộ style mở rộng vào
+        .setStyle(bigTextStyle)
+        // Icon hệ thống (Sau này bạn nên đổi sang ic_launcher hoặc icon đặc trưng của app nhé)
+        .setSmallIcon(android.R.drawable.stat_notify_chat)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setDefaults(NotificationCompat.DEFAULT_ALL)
+        .setAutoCancel(true)
+        .build()
+
+    manager.notify(NOTIFICATION_ID, notification)
+}
 
     private fun showErrorNotification(title: String, message: String) {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
