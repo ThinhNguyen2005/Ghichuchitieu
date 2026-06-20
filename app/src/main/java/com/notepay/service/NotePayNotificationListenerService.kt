@@ -17,6 +17,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.notification.NotificationParser
+import com.notepay.domain.notification.NotificationClassifier
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
@@ -27,7 +28,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import java.util.Locale
 import javax.inject.Inject
 
@@ -47,6 +51,9 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     lateinit var transactionRepository: com.notepay.domain.repository.TransactionRepository
 
     @Inject
+    lateinit var subscriptionRepository: com.notepay.domain.repository.SubscriptionRepository
+
+    @Inject
     lateinit var suggestCategoryUseCase: SuggestCategoryUseCase
 
     @Inject
@@ -63,6 +70,18 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     // Memory cache for settings to avoid persistent reads for every notification.
     internal var enabledPackages = KnownBankApps.packages
     internal var autoCaptureEnabled = true
+    internal var monthlyBudgetCents = 0L
+
+    // Pending Transfer cache for Internal Transfer leg matching (Case 7)
+    private val pendingTransferCache = mutableMapOf<Long, PendingTransfer>()
+
+    data class PendingTransfer(
+        val amountCents: Long,
+        val type: TransactionType,
+        val timestamp: Long,
+        val transactionId: Long,
+        val packageName: String
+    )
 
     companion object {
         private const val CHANNEL_ID = "notepay_local_parse"
@@ -103,6 +122,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             notificationSettingsStore.settings.collect { settings ->
                 autoCaptureEnabled = settings.autoCaptureEnabled
                 enabledPackages = settings.enabledPackages
+                monthlyBudgetCents = settings.monthlyBudgetCents
             }
         }
     }
@@ -154,7 +174,6 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 return@launch
             }
 
-            // Output log only when it passes fast filter to optimize log resource
             android.util.Log.d("NotePayNotif", "--- NHẬN THÔNG BÁO ---")
             android.util.Log.d("NotePayNotif", "Package: $packageName")
             android.util.Log.d("NotePayNotif", "Title: $title")
@@ -163,12 +182,13 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             android.util.Log.d("NotePayNotif", "TextLines: $textLinesStr")
             android.util.Log.d("NotePayNotif", "Final Text to Parse: $textToParse")
 
-            val parsed = NotificationParser.parse(title, textToParse)
-            if (parsed == null) {
+            val parsedResult = NotificationParser.parse(title, textToParse)
+            if (parsedResult == null) {
                 android.util.Log.d("NotePayNotif", "Không thể parse thông tin giao dịch từ thông báo này.")
                 return@launch
             }
 
+            val parsed = parsedResult.copy(sourcePackage = packageName)
             android.util.Log.d("NotePayNotif", "Parsed thành công: Số tiền = ${parsed.amount.amountInCents}, Loại = ${parsed.type}, Nội dung = ${parsed.note}")
 
             // Tìm ví liên kết với package name của thông báo
@@ -179,15 +199,10 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             var walletToUse = linkedWallet ?: walletRepository.observeActive().firstOrNull()
             
             if (walletToUse == null) {
-                // Fallback 1: Lấy ví đầu tiên trong danh sách (nếu có)
                 walletToUse = wallets.firstOrNull()
-                if (walletToUse != null) {
-                    android.util.Log.d("NotePayNotif", "Không tìm thấy ví hoạt động/liên kết, sử dụng ví đầu tiên tìm thấy: ${walletToUse.name}")
-                }
             }
             
             if (walletToUse == null) {
-                // Fallback 2: Nếu DB hoàn toàn trống ví, tự động tạo mới ví mặc định "Tiền mặt"
                 android.util.Log.d("NotePayNotif", "Database trống ví, tiến hành tự động tạo ví mặc định.")
                 val defaultWallet = Wallet.default()
                 val newId = walletRepository.upsert(defaultWallet)
@@ -197,11 +212,73 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
             android.util.Log.d("NotePayNotif", "Sử dụng ví: ${walletToUse.name} (ID: ${walletToUse.id})")
 
-            // Kiểm tra xem đây có phải giao dịch nhận tiền khớp mã đối soát chia tiền không
+            val currentTime = System.currentTimeMillis()
+            // Clean up old cached items
+            pendingTransferCache.entries.removeIf { currentTime - it.value.timestamp > 60000 }
+
+            // Check Case 7 (Internal Transfer detection)
+            var isMatchedTransfer = false
+            var matchedTransferTxId: Long? = null
+            var matchedTransferPending: PendingTransfer? = null
+
+            val matchingKey = pendingTransferCache.keys.firstOrNull { key ->
+                val p = pendingTransferCache[key]!!
+                p.amountCents == parsed.amount.amountInCents &&
+                p.type != parsed.type &&
+                p.packageName != parsed.sourcePackage &&
+                (currentTime - p.timestamp) < 60000
+            }
+
+            if (matchingKey != null) {
+                matchedTransferPending = pendingTransferCache.remove(matchingKey)
+                isMatchedTransfer = true
+                matchedTransferTxId = matchingKey
+            }
+
+            if (isMatchedTransfer && matchedTransferTxId != null && matchedTransferPending != null) {
+                // Save current transaction as internal transfer
+                val currentTx = Transaction(
+                    id = 0L,
+                    amount = parsed.amount,
+                    type = parsed.type,
+                    category = suggestCategoryUseCase.suggest(parsed.note, parsed.type == TransactionType.INCOME),
+                    note = parsed.note,
+                    occurredAt = Clock.System.now(),
+                    walletId = walletToUse.id,
+                    isAutoCapture = true,
+                    isInternalTransfer = true
+                )
+                val currentTxId = addTransaction(currentTx).getOrNull() ?: 0L
+
+                // Update previous transaction to be internal transfer
+                val prevTx = transactionRepository.getById(matchedTransferTxId)
+                if (prevTx != null) {
+                    transactionRepository.upsert(prevTx.copy(isInternalTransfer = true))
+                }
+
+                android.util.Log.d("NotePayNotif", "Phát hiện chuyển khoản nội bộ thành công!")
+                
+                val sourceWallet = wallets.find { 
+                    KnownBankApps.getPrimaryPackageName(it.linkedPackageName.orEmpty()) == KnownBankApps.getPrimaryPackageName(matchedTransferPending.packageName)
+                }
+                val sourceWalletName = sourceWallet?.name ?: "Tài khoản nguồn"
+                
+                val fromWallet = if (parsed.type == TransactionType.EXPENSE) walletToUse.name else sourceWalletName
+                val toWallet = if (parsed.type == TransactionType.INCOME) walletToUse.name else sourceWalletName
+
+                showInternalTransferNotification(
+                    amountCents = parsed.amount.amountInCents,
+                    fromWalletName = fromWallet,
+                    toWalletName = toWallet
+                )
+                return@launch
+            }
+
+            // Kiểm tra xem đây có phải giao dịch nhận tiền khớp mã đối soát chia tiền không (Case 3 / Case 4)
             if (parsed.type == TransactionType.INCOME) {
                 val unpaidSplits = billSplitRepository.observeUnpaid().firstOrNull() ?: emptyList()
                 
-                // 1. Khớp mã đối soát đơn lẻ
+                // 1. Khớp mã đối soát đơn lẻ (Case 3)
                 val matchingSplit = unpaidSplits.find { 
                     val cleanSplitMemo = StringUtils.removeVietnameseAccents(it.memoCode).uppercase(Locale.ROOT)
                     val cleanText = StringUtils.removeVietnameseAccents(textToParse.orEmpty()).uppercase(Locale.ROOT)
@@ -211,10 +288,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 if (matchingSplit != null) {
                     android.util.Log.d("NotePayNotif", "Khớp mã đối soát chia tiền đơn lẻ: ${matchingSplit.memoCode} cho ${matchingSplit.debtorName}")
                     
-                    // 1. Đánh dấu đã trả
                     billSplitRepository.markAsPaid(matchingSplit.id, Clock.System.now())
                     
-                    // 2. Lấy giao dịch gốc và giảm trừ số tiền nợ
                     val parentTx = transactionRepository.getById(matchingSplit.transactionId)
                     if (parentTx != null) {
                         val newAmountCents = (parentTx.amount.amountInCents - matchingSplit.amount.amountInCents).coerceAtLeast(0L)
@@ -229,21 +304,38 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                             amount = Money(newAmountCents),
                             note = newNote
                         )
-                        val result = runCatching { transactionRepository.upsert(updatedParentTx) }
-                        if (result.isSuccess) {
-                            android.util.Log.d("NotePayNotif", "Cập nhật giảm tiền giao dịch gốc thành công!")
-                            showSuccessNotification(walletToUse.name, matchingSplit.amount.amountInCents, "${matchingSplit.debtorName} trả tiền: ${parentTx.note}")
+                        val saveResult = runCatching { transactionRepository.upsert(updatedParentTx) }
+                        if (saveResult.isSuccess) {
+                            val savedTxId = saveResult.getOrNull() ?: 0L
+                            // Save to cache for Case 7 just in case
+                            pendingTransferCache[savedTxId] = PendingTransfer(
+                                amountCents = parsed.amount.amountInCents,
+                                type = parsed.type,
+                                timestamp = currentTime,
+                                transactionId = savedTxId,
+                                packageName = packageName
+                            )
+
+                            // Tính dư nợ còn lại
+                            val currentUnpaidSplits = billSplitRepository.observeUnpaid().firstOrNull() ?: emptyList()
+                            val debtorRemainingDebt = currentUnpaidSplits
+                                .filter { it.debtorName == matchingSplit.debtorName }
+                                .sumOf { it.amount.amountInCents }
+
+                            showDebtRepaymentSingleNotification(
+                                debtorName = matchingSplit.debtorName,
+                                paidAmountCents = matchingSplit.amount.amountInCents,
+                                remainingDebtCents = debtorRemainingDebt,
+                                walletName = walletToUse.name
+                            )
                         } else {
-                            val errorMsg = result.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
-                            android.util.Log.d("NotePayNotif", "Cập nhật thất bại: $errorMsg")
+                            val errorMsg = saveResult.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
                             showErrorNotification("Lỗi ghi nhận trả nợ", errorMsg)
                         }
-                    } else {
-                        android.util.Log.d("NotePayNotif", "Không tìm thấy giao dịch gốc để giảm trừ.")
                     }
                     return@launch
                 } else {
-                    // 2. Khớp mã đối soát gộp: NP <TÊN_NGƯỜI_NỢ>
+                    // 2. Khớp mã đối soát gộp: NP <TÊN_NGƯỜI_NỢ> (Case 4)
                     val uniqueDebtors = unpaidSplits.map { it.debtorName }.distinct()
                     var matchedDebtor: String? = null
                     
@@ -262,7 +354,6 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                         val debtorSplits = unpaidSplits.filter { it.debtorName == matchedDebtor }
                         android.util.Log.d("NotePayNotif", "Khớp mã đối soát chia tiền gộp cho debtor: $matchedDebtor, số khoản nợ = ${debtorSplits.size}")
                         
-                        // Group splits by transactionId to avoid concurrent read/write race conditions
                         val splitsByTx = debtorSplits.groupBy { it.transactionId }
 
                         splitsByTx.forEach { (transactionId, splits) ->
@@ -294,38 +385,85 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                         }
                         
                         val totalCents = debtorSplits.sumOf { it.amount.amountInCents }
-                        showSuccessNotification(walletToUse.name, totalCents, "$matchedDebtor trả nợ gộp (${debtorSplits.size} khoản)")
+                        // Save to cache for Case 7 just in case
+                        pendingTransferCache[currentTime] = PendingTransfer(
+                            amountCents = parsed.amount.amountInCents,
+                            type = parsed.type,
+                            timestamp = currentTime,
+                            transactionId = 0L,
+                            packageName = packageName
+                        )
+
+                        showDebtRepaymentBulkNotification(
+                            debtorName = matchedDebtor,
+                            totalAmountCents = totalCents,
+                            billCount = debtorSplits.size,
+                            walletName = walletToUse.name
+                        )
                         return@launch
                     }
                 }
             }
 
-            // Giao dịch thông thường (không phải trả nợ)
+            // Giao dịch thông thường (không phải trả nợ) (Case 1 / Case 2)
+            val category = suggestCategoryUseCase.suggest(
+                parsed.note,
+                parsed.type == TransactionType.INCOME
+            )
             val transaction = Transaction(
                 id = 0L,
                 amount = parsed.amount,
                 type = parsed.type,
-                category = suggestCategoryUseCase.suggest(
-                    parsed.note,
-                    parsed.type == TransactionType.INCOME
-                ),
+                category = category,
                 note = parsed.note,
                 occurredAt = Clock.System.now(),
                 walletId = walletToUse.id,
                 isAutoCapture = true,
+                isInternalTransfer = false
             )
 
             val result = addTransaction(transaction)
             if (result.isSuccess) {
-                android.util.Log.d("NotePayNotif", "Lưu giao dịch thành công!")
-                showSuccessNotification(walletToUse.name, parsed.amount.amountInCents, parsed.note)
+                val savedTxId = result.getOrNull() ?: 0L
+                android.util.Log.d("NotePayNotif", "Lưu giao dịch thành công! Tx ID: $savedTxId")
+
+                // Lưu vào cache cho khớp chuyển khoản nội bộ
+                pendingTransferCache[savedTxId] = PendingTransfer(
+                    amountCents = parsed.amount.amountInCents,
+                    type = parsed.type,
+                    timestamp = currentTime,
+                    transactionId = savedTxId,
+                    packageName = packageName
+                )
+
+                if (parsed.type == TransactionType.INCOME) {
+                    // Case 2: Standard Income
+                    showIncomeNotification(
+                        walletName = walletToUse.name,
+                        amountCents = parsed.amount.amountInCents,
+                        note = parsed.note
+                    )
+                } else {
+                    // Case 1: Standard Expense
+                    val emoji = NotificationClassifier.getCategoryEmoji(category.id)
+                    showExpenseNotification(
+                        walletName = walletToUse.name,
+                        amountCents = parsed.amount.amountInCents,
+                        note = parsed.note,
+                        categoryName = category.displayName,
+                        categoryEmoji = emoji
+                    )
+
+                    // Case 5: Cảnh báo ngân sách
+                    checkBudgetAlert(parsed.amount.amountInCents)
+
+                    // Case 6: Phát hiện gói đăng ký định kỳ
+                    checkSubscriptionDetection(transaction)
+                }
             } else {
                 val errorMsg = result.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
                 android.util.Log.d("NotePayNotif", "Lưu giao dịch thất bại: $errorMsg")
-                showErrorNotification(
-                    "Lỗi ghi nhận giao dịch",
-                    errorMsg
-                )
+                showErrorNotification("Lỗi ghi nhận giao dịch", errorMsg)
             }
         }
     }
@@ -350,37 +488,252 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                lower.contains("+") ||
                lower.contains("-")
     }
-//    Hàm này dùng để xây dựng một Thông báo tương tác (Interactive Notification) có đính kèm 2 nút bấm hành động (Action Buttons) ngay trên thanh thông báo của điện thoại: "Lưu" và "Bỏ qua".
-//
-//    Khi nhận được tin nhắn ngân hàng: Thay vì lưu thẳng vào DB, app sẽ bắn ra thông báo này để người dùng kiểm tra xem AI bóc tách số tiền, nội dung có đúng không.
-//
-//    Nếu bấm "Bỏ qua": Thông báo biến mất, không có gì được ghi nhận vào máy.
-//
-//    Nếu bấm "Lưu": Hệ thống sẽ kích hoạt file NotificationActionReceiver chạy ngầm để thực hiện việc ghi DB và hiển thị Toast "Đã lưu giao dịch thành công! ✨".
-    private fun showConfirmationNotification(walletName: String, transaction: Transaction) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(transaction.amount)
+
+    private suspend fun checkBudgetAlert(addedAmountCents: Long) {
+        if (monthlyBudgetCents <= 0L) return
+
+        val zone = TimeZone.currentSystemDefault()
+        val now = Clock.System.now().toLocalDateTime(zone)
+        val transactions = transactionRepository.observeByMonth(now.year, now.monthNumber).firstOrNull() ?: emptyList()
+        
+        val totalSpentCents = transactions
+            .filter { it.type == TransactionType.EXPENSE && !it.isInternalTransfer }
+            .sumOf { it.amount.amountInCents }
+
+        if (totalSpentCents >= monthlyBudgetCents) {
+            val percentUsed = (totalSpentCents * 100 / monthlyBudgetCents).toInt()
+            showBudgetAlertNotification(
+                spentCents = totalSpentCents,
+                budgetCents = monthlyBudgetCents,
+                percentUsed = percentUsed,
+                isLimitExceeded = true
+            )
+        } else if (totalSpentCents >= (monthlyBudgetCents * 80 / 100)) {
+            val percentUsed = (totalSpentCents * 100 / monthlyBudgetCents).toInt()
+            showBudgetAlertNotification(
+                spentCents = totalSpentCents,
+                budgetCents = monthlyBudgetCents,
+                percentUsed = percentUsed,
+                isLimitExceeded = false
+            )
+        }
+    }
+
+    private suspend fun checkSubscriptionDetection(transaction: Transaction) {
+        val subscriptions = subscriptionRepository.observeAll().firstOrNull() ?: emptyList()
+        
+        val isAlreadySubscribed = subscriptions.any {
+            it.name.contains(transaction.note, ignoreCase = true) || 
+            transaction.note.contains(it.name, ignoreCase = true)
+        }
+        if (isAlreadySubscribed) return
+
+        val zone = TimeZone.currentSystemDefault()
+        val now = Clock.System.now()
+        val fromInstant = now - 32.days
+        val toInstant = now - 28.days
+
+        val similarTxList = transactionRepository.findRecentSimilar(
+            noteKeyword = transaction.note,
+            fromMillis = fromInstant.toEpochMilliseconds(),
+            toMillis = toInstant.toEpochMilliseconds()
+        )
+
+        val similarTx = similarTxList.firstOrNull {
+            val diff = kotlin.math.abs(it.amount.amountInCents - transaction.amount.amountInCents)
+            diff <= (transaction.amount.amountInCents * 10 / 100)
+        }
+
+        if (similarTx != null) {
+            showSubscriptionDetectedNotification(
+                name = transaction.note,
+                amountCents = transaction.amount.amountInCents
+            )
+        }
+    }
+
+    private fun showExpenseNotification(
+        walletName: String,
+        amountCents: Long,
+        note: String,
+        categoryName: String,
+        categoryEmoji: String
+    ) {
+        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        
-        val notifId = (transaction.amount.amountInCents + transaction.occurredAt.epochSeconds).toInt()
-        
-        val saveIntent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = "com.notepay.ACTION_SAVE_TRANSACTION"
-            putExtra("amount_cents", transaction.amount.amountInCents)
-            putExtra("type", transaction.type.name)
-            putExtra("note", transaction.note)
-            putExtra("wallet_id", transaction.walletId)
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Ghi nhận chi tiêu thành công ✨")
+            .bigText(
+                "• Số tiền: -$amountFormat\n" +
+                "• Tài khoản: $walletName\n" +
+                "• Danh mục: $categoryEmoji $categoryName\n" +
+                "• Nội dung: $note"
+            )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Đã tự động lưu chi tiêu")
+            .setContentText("-$amountFormat  |  $walletName · $categoryEmoji $categoryName")
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun showIncomeNotification(
+        walletName: String,
+        amountCents: Long,
+        note: String
+    ) {
+        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Tài khoản tăng số dư! 🎉")
+            .bigText(
+                "• Số tiền: +$amountFormat\n" +
+                "• Tài khoản: $walletName\n" +
+                "• Nội dung: $note"
+            )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Nhận tiền thành công 🎉")
+            .setContentText("+$amountFormat  |  $walletName")
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun showDebtRepaymentSingleNotification(
+        debtorName: String,
+        paidAmountCents: Long,
+        remainingDebtCents: Long,
+        walletName: String
+    ) {
+        val paidFormat = com.notepay.ui.util.MoneyFormatter.format(Money(paidAmountCents))
+        val remainingFormat = com.notepay.ui.util.MoneyFormatter.format(Money(remainingDebtCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Ghi nhận trả nợ đơn lẻ 🤝")
+            .bigText(
+                "• Người trả: $debtorName\n" +
+                "• Số tiền nhận: +$paidFormat (Vào ví $walletName)\n" +
+                "• Dư nợ còn lại: $remainingFormat"
+            )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("$debtorName đã trả nợ")
+            .setContentText("Nhận +$paidFormat | Dư nợ còn lại: $remainingFormat")
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID + 2, notification)
+    }
+
+    private fun showDebtRepaymentBulkNotification(
+        debtorName: String,
+        totalAmountCents: Long,
+        billCount: Int,
+        walletName: String
+    ) {
+        val totalFormat = com.notepay.ui.util.MoneyFormatter.format(Money(totalAmountCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Ghi nhận thanh toán gộp thành công! 🤝")
+            .bigText(
+                "• Người trả: $debtorName\n" +
+                "• Tổng tiền nhận: +$totalFormat (Vào ví $walletName)\n" +
+                "• Số lượng hóa đơn đã xóa sạch: $billCount hóa đơn"
+            )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("$debtorName đã xóa sạch nợ")
+            .setContentText("Nhận +$totalFormat | Xóa gộp $billCount hóa đơn")
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID + 3, notification)
+    }
+
+    private fun showBudgetAlertNotification(
+        spentCents: Long,
+        budgetCents: Long,
+        percentUsed: Int,
+        isLimitExceeded: Boolean
+    ) {
+        val spentFormat = com.notepay.ui.util.MoneyFormatter.format(Money(spentCents))
+        val budgetFormat = com.notepay.ui.util.MoneyFormatter.format(Money(budgetCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val title = if (isLimitExceeded) "⚠️ Cảnh báo: Vượt hạn mức chi tiêu!" else "⚠️ Nhắc nhở: Sắp chạm hạn mức chi tiêu!"
+        val content = if (isLimitExceeded) {
+            "Bạn đã tiêu $spentFormat vượt hạn mức $budgetFormat ($percentUsed%)"
+        } else {
+            "Bạn đã tiêu $spentFormat chạm $percentUsed% hạn mức $budgetFormat"
+        }
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle(title)
+            .bigText(
+                "$content\n" +
+                "Hãy cân nhắc điều chỉnh kế hoạch chi tiêu hợp lý hơn nhé."
+            )
+
+        val notification = NotificationCompat.Builder(this, "notepay_budget_alert")
+            .setContentTitle(title)
+            .setContentText(content)
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID + 4, notification)
+    }
+
+    private fun showSubscriptionDetectedNotification(
+        name: String,
+        amountCents: Long
+    ) {
+        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notifId = (amountCents + System.currentTimeMillis() / 1000).toInt()
+
+        val addIntent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = "com.notepay.ACTION_ADD_SUBSCRIPTION"
+            putExtra("name", name)
+            putExtra("amount_cents", amountCents)
             putExtra("notification_id", notifId)
         }
-        
-        val savePendingIntent = PendingIntent.getBroadcast(
+        val addPendingIntent = PendingIntent.getBroadcast(
             this,
             notifId,
-            saveIntent,
+            addIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val ignoreIntent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = "com.notepay.ACTION_IGNORE_TRANSACTION"
+            action = "com.notepay.ACTION_IGNORE_SUBSCRIPTION"
             putExtra("notification_id", notifId)
         }
         val ignorePendingIntent = PendingIntent.getBroadcast(
@@ -391,24 +744,50 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Phát hiện giao dịch mới 💸")
-            .setContentText("Nhận diện ${parsedTypeLabel(transaction.type)} $amountFormat từ ví $walletName. Nhấp để lưu.")
+            .setContentTitle("Phát hiện hóa đơn định kỳ? 📅")
+            .setContentText("Chúng tôi thấy giao dịch $name giá $amountFormat lặp lại.")
             .setStyle(NotificationCompat.BigTextStyle().bigText(
-                "Ví: $walletName\nSố tiền: $amountFormat (${parsedTypeLabel(transaction.type)})\nNội dung: ${transaction.note}"
+                "Giao dịch $name với số tiền $amountFormat xuất hiện định kỳ.\n" +
+                "Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay tự động theo dõi không?"
             ))
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .addAction(android.R.drawable.ic_menu_save, "Lưu", savePendingIntent)
+            .addAction(android.R.drawable.ic_menu_add, "Thêm vào lịch", addPendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Bỏ qua", ignorePendingIntent)
             .build()
 
         manager.notify(notifId, notification)
     }
 
-    private fun parsedTypeLabel(type: TransactionType): String = when (type) {
-        TransactionType.INCOME -> "Thu nhập"
-        TransactionType.EXPENSE -> "Chi tiêu"
+    private fun showInternalTransferNotification(
+        amountCents: Long,
+        fromWalletName: String,
+        toWalletName: String
+    ) {
+        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Phát hiện chuyển khoản nội bộ 🔄")
+            .bigText(
+                "• Số tiền: $amountFormat\n" +
+                "• Nguồn: $fromWalletName\n" +
+                "• Đích: $toWalletName\n" +
+                "Giao dịch này đã được ghi nhận là chuyển khoản nội bộ và không tính vào báo cáo thống kê chi tiêu."
+            )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Chuyển khoản nội bộ 🔄")
+            .setContentText("$fromWalletName ➔ $toWalletName: $amountFormat")
+            .setStyle(bigTextStyle)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID + 5, notification)
     }
 
     private fun createNotificationChannel() {
@@ -420,67 +799,18 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             ).apply {
                 description = "Kênh thông báo tự động ghi nhận giao dịch của NotePay"
             }
+            val budgetChannel = NotificationChannel(
+                "notepay_budget_alert",
+                "Cảnh báo ngân sách chi tiêu",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Kênh gửi cảnh báo khi bạn chi tiêu vượt ngưỡng ngân sách tháng"
+            }
             val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(budgetChannel)
         }
     }
-
-//    private fun showSuccessNotification(walletName: String, amountCents: Long, note: String) {
-//        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(com.notepay.domain.model.Money(amountCents))
-//        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//
-//        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-//            .setContentTitle("Đã tự động nhận diện giao dịch ✨")
-//            .setContentText("Ghi nhận $amountFormat vào ví \"$walletName\" ($note)")
-//            .setSmallIcon(android.R.drawable.stat_notify_chat) // Tạm thời dùng icon hệ thống
-//            .setPriority(NotificationCompat.PRIORITY_HIGH)
-//            .setDefaults(NotificationCompat.DEFAULT_ALL)
-//            .setAutoCancel(true)
-//            .build()
-//
-//        manager.notify(NOTIFICATION_ID, notification)
-//    }
-
-private fun showSuccessNotification(
-    walletName: String,
-    amountCents: Long,
-    note: String,
-    type: TransactionType = TransactionType.EXPENSE // Mặc định là chi tiêu nếu không truyền
-) {
-    val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
-    val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
-    // 1. Phân loại trạng thái để xử lý bộ nhận diện thị giác (+/-)
-    val isIncome = type == TransactionType.INCOME
-    val prefix = if (isIncome) "+" else "-"
-    val typeLabel = if (isIncome) "Thu nhập" else "Chi tiêu"
-
-    // 2. Tạo giao diện mở rộng (Expanded View) dạng cấu trúc danh sách
-    val bigTextStyle = NotificationCompat.BigTextStyle()
-        .setBigContentTitle("Tự động ghi nhận $typeLabel ✨")
-        .bigText(
-            "• Số tiền: $prefix$amountFormat\n" +
-                    "• Tài khoản: $walletName\n" +
-                    "• Nội dung: $note"
-        )
-
-    // 3. Xây dựng thông báo chuẩn Material 3
-    val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-        // Tiêu đề ngắn gọn, rõ nghĩa
-        .setContentTitle("Đã lưu $typeLabel thành công")
-        // Nội dung khi thu gọn (Collapsed view): Ưu tiên hiển thị Biến động tiền | Tên ví
-        .setContentText("$prefix$amountFormat  |  $walletName")
-        // Gắn bộ style mở rộng vào
-        .setStyle(bigTextStyle)
-        // Icon hệ thống (Sau này bạn nên đổi sang ic_launcher hoặc icon đặc trưng của app nhé)
-        .setSmallIcon(android.R.drawable.stat_notify_chat)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setDefaults(NotificationCompat.DEFAULT_ALL)
-        .setAutoCancel(true)
-        .build()
-
-    manager.notify(NOTIFICATION_ID, notification)
-}
 
     private fun showErrorNotification(title: String, message: String) {
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager

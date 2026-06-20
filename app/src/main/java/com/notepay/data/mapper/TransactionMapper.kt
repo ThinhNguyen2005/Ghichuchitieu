@@ -19,6 +19,7 @@ class TransactionMapper @Inject constructor() {
         occurredAt = Instant.fromEpochMilliseconds(entity.occurredAt),
         walletId = entity.walletId,
         isAutoCapture = entity.isAutoCapture,
+        isInternalTransfer = entity.isInternalTransfer,
         createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
     )
 
@@ -31,6 +32,7 @@ class TransactionMapper @Inject constructor() {
         occurredAt = transaction.occurredAt.toEpochMilliseconds(),
         walletId = transaction.walletId,
         isAutoCapture = transaction.isAutoCapture,
+        isInternalTransfer = transaction.isInternalTransfer,
         createdAt = transaction.createdAt.toEpochMilliseconds(),
     )
 }

@@ -7,12 +7,11 @@ plugins {
 
 android {
     namespace = "com.notepay"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.notepay"
         minSdk = 24
-        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -39,7 +38,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // AGP 9 built-in Kotlin dùng compilerOptions DSL mới
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

@@ -51,6 +51,13 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun delete(id: Long) = dao.delete(id)
 
+    override suspend fun findRecentSimilar(
+        noteKeyword: String,
+        fromMillis: Long,
+        toMillis: Long
+    ): List<Transaction> =
+        dao.findRecentSimilar(noteKeyword, fromMillis, toMillis).map(mapper::toDomain)
+
     companion object {
         /**
          * Trả về (startMillis, endMillis) của tháng [month] (1..12) năm [year],

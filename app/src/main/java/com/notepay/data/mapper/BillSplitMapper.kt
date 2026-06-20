@@ -3,7 +3,6 @@ package com.notepay.data.mapper
 import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Money
-import kotlinx.datetime.Instant
 import javax.inject.Inject
 
 class BillSplitMapper @Inject constructor() {
@@ -15,8 +14,8 @@ class BillSplitMapper @Inject constructor() {
         amount = Money(entity.amountCents),
         isPaid = entity.isPaid,
         memoCode = entity.memoCode,
-        paidAt = entity.paidAt?.let { Instant.fromEpochMilliseconds(it) },
-        createdAt = Instant.fromEpochMilliseconds(entity.createdAt)
+        paidAt = entity.paidAt?.let { kotlin.time.Instant.fromEpochMilliseconds(it) },
+        createdAt = kotlin.time.Instant.fromEpochMilliseconds(entity.createdAt)
     )
 
     fun toEntity(domain: BillSplit): BillSplitEntity = BillSplitEntity(

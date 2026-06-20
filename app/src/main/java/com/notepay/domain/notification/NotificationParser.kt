@@ -7,6 +7,8 @@ data class ParsedNotification(
     val amount: Money,
     val type: TransactionType,
     val note: String,
+    /** Package name của app g\u1eedi th\u00f4ng b\u00e1o (ng\u00e2n h\u00e0ng/v\u00ed). D\u00f9ng \u0111\u1ec3 nh\u1eadn bi\u1ebft ngu\u1ed3n chuy\u1ec3n kho\u1ea3n n\u1ed9i b\u1ed9. */
+    val sourcePackage: String = "",
 )
 
 object NotificationParser {

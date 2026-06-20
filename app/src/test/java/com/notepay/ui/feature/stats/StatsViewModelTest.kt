@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StatsViewModelTest {
@@ -151,11 +152,11 @@ private class FakeSubscriptionRepository(
     private val subscriptions: List<com.notepay.domain.model.Subscription> = emptyList()
 ) : SubscriptionRepository {
     override fun observeAll(): Flow<List<com.notepay.domain.model.Subscription>> = flowOf(subscriptions)
-    override fun observeUpcoming(beforeDate: kotlinx.datetime.Instant): Flow<List<com.notepay.domain.model.Subscription>> = flowOf(subscriptions)
+    override fun observeUpcoming(beforeDate: Instant): Flow<List<com.notepay.domain.model.Subscription>> = flowOf(subscriptions)
     override suspend fun upsert(subscription: com.notepay.domain.model.Subscription): Long = 0L
     override suspend fun getById(id: Long): com.notepay.domain.model.Subscription? = subscriptions.find { it.id == id }
     override suspend fun delete(id: Long) = Unit
-    override suspend fun updateNextDueDate(id: Long, newDueDate: kotlinx.datetime.Instant) = Unit
+    override suspend fun updateNextDueDate(id: Long, newDueDate: Instant) = Unit
 }
 
 private class FakeWalletRepository(
@@ -178,4 +179,14 @@ private class FakeTransactionRepository(
     override suspend fun getById(id: Long): Transaction? = null
     override suspend fun upsert(transaction: Transaction): Long = 0
     override suspend fun delete(id: Long) = Unit
+    override suspend fun findRecentSimilar(
+        noteKeyword: String,
+        fromMillis: Long,
+        toMillis: Long
+    ): List<Transaction> {
+        return transactions.filter { tx ->
+            tx.note.contains(noteKeyword, ignoreCase = true) &&
+                    tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+        }
+    }
 }

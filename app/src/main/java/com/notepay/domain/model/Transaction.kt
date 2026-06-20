@@ -22,6 +22,9 @@ data class Transaction(
     val occurredAt: Instant,
     val walletId: Long,
     val isAutoCapture: Boolean = false,
+    /** Đánh dấu giao dịch chuyển khoản nội bộ (vd: TPBank → MoMo).
+     *  Khi true, giao dịch được lưu nhưng không tính vào biểu đồ Stats để tránh tính trùng. */
+    val isInternalTransfer: Boolean = false,
     val createdAt: Instant = Clock.System.now(),
 ) {
     init {

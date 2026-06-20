@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -26,6 +27,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var suggestCategoryUseCase: SuggestCategoryUseCase
+
+    @Inject
+    lateinit var subscriptionRepository: com.notepay.domain.repository.SubscriptionRepository
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -74,6 +78,44 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             }
             "com.notepay.ACTION_IGNORE_TRANSACTION" -> {
+                if (notificationId != -1) {
+                    notificationManager.cancel(notificationId)
+                }
+            }
+            "com.notepay.ACTION_ADD_SUBSCRIPTION" -> {
+                val name = intent.getStringExtra("name") ?: return
+                val amountCents = intent.getLongExtra("amount_cents", 0L)
+                if (name.isBlank() || amountCents <= 0L) return
+
+                val subscription = com.notepay.domain.model.Subscription(
+                    id = 0L,
+                    name = name,
+                    amount = Money(amountCents),
+                    category = "subscription",
+                    nextDueDate = Clock.System.now() + 30.days,
+                    repeatMonths = 1,
+                    remindDaysBefore = 1,
+                    note = "Tự động phát hiện từ thông báo",
+                    isActive = true
+                )
+
+                receiverScope.launch {
+                    val result = runCatching { subscriptionRepository.upsert(subscription) }
+                    if (result.isSuccess) {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(context, "Đã thêm hóa đơn định kỳ thành công! 📅", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(context, "Lỗi: Không thể thêm hóa đơn định kỳ.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    if (notificationId != -1) {
+                        notificationManager.cancel(notificationId)
+                    }
+                }
+            }
+            "com.notepay.ACTION_IGNORE_SUBSCRIPTION" -> {
                 if (notificationId != -1) {
                     notificationManager.cancel(notificationId)
                 }

@@ -26,7 +26,7 @@ class DatabaseMigrationTest {
 
         // Bước 1: Tạo database v1 bằng SQLite thô với đầy đủ các bảng và index của v1
         val dbV1 = context.openOrCreateDatabase("test_migration.db", Context.MODE_PRIVATE, null)
-        
+
         // Tạo bảng wallets v1
         dbV1.execSQL(
             """
@@ -61,7 +61,7 @@ class DatabaseMigrationTest {
         )
         dbV1.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
         dbV1.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
-        
+
         // Tạo room_master_table và chèn identity_hash của v1
         dbV1.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
         dbV1.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, '06e32b03c08499a5a0a9b01051501c3d')")
@@ -77,25 +77,31 @@ class DatabaseMigrationTest {
         dbV1.execSQL("PRAGMA user_version = 1")
         dbV1.close()
 
-        // Bước 2: Dùng Room mở database với version 4 và các Migration
-        val dbV3 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration.db")
-            .addMigrations(NotePayDatabase.MIGRATION_1_2, NotePayDatabase.MIGRATION_2_3, NotePayDatabase.MIGRATION_3_4)
+        // Bước 2: Dùng Room mở database với version cao nhất và nạp các bước Migration đầy đủ
+        // ĐÃ SỬA: Thêm NotePayDatabase.MIGRATION_4_5 để Room có thể biên dịch nâng cấp lên v5 thành công
+        val dbV5 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration.db")
+            .addMigrations(
+                NotePayDatabase.MIGRATION_1_2,
+                NotePayDatabase.MIGRATION_2_3,
+                NotePayDatabase.MIGRATION_3_4,
+                NotePayDatabase.MIGRATION_4_5
+            )
             .allowMainThreadQueries()
             .build()
 
-        val wallets = dbV3.walletDao().observeAll().first()
-        
+        val wallets = dbV5.walletDao().observeAll().first()
+
         // Xác minh dữ liệu ví cũ vẫn nguyên vẹn
         assertThat(wallets).hasSize(1)
         val wallet = wallets[0]
         assertThat(wallet.id).isEqualTo(42L)
         assertThat(wallet.name).isEqualTo("Ví Tiết Kiệm")
-        
+
         // Xác minh cột mới budgetLimitCents được chèn thành công với giá trị mặc định là NULL
         assertThat(wallet.budgetLimitCents).isNull()
         assertThat(wallet.linkedPackageName).isNull()
 
-        dbV3.close()
+        dbV5.close()
         context.deleteDatabase("test_migration.db")
     }
 
@@ -109,7 +115,7 @@ class DatabaseMigrationTest {
 
         // Tạo database v2 bằng SQLite thô
         val dbV2 = context.openOrCreateDatabase("test_migration_2_3.db", Context.MODE_PRIVATE, null)
-        
+
         // Tạo bảng wallets v2 (đã có budget_limit_cents)
         dbV2.execSQL(
             """
@@ -145,7 +151,7 @@ class DatabaseMigrationTest {
         )
         dbV2.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
         dbV2.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
-        
+
         // Tạo room_master_table và chèn identity_hash của v2
         dbV2.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
         dbV2.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, 'db_v2_identity_hash')")
@@ -168,14 +174,19 @@ class DatabaseMigrationTest {
         dbV2.execSQL("PRAGMA user_version = 2")
         dbV2.close()
 
-        // Mở database bằng Room với version 4 và các Migration
-        val dbV3 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_2_3.db")
-            .addMigrations(NotePayDatabase.MIGRATION_2_3, NotePayDatabase.MIGRATION_3_4)
+        // Mở database bằng Room với đầy đủ các chuỗi Migration lên version 5 mới nhất
+        // ĐÃ SỬA: Bổ sung NotePayDatabase.MIGRATION_4_5 để kết thúc chuỗi logic đối soát đĩa
+        val dbV5 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_2_3.db")
+            .addMigrations(
+                NotePayDatabase.MIGRATION_2_3,
+                NotePayDatabase.MIGRATION_3_4,
+                NotePayDatabase.MIGRATION_4_5
+            )
             .allowMainThreadQueries()
             .build()
 
         // Kiểm tra ví
-        val wallets = dbV3.walletDao().observeAll().first()
+        val wallets = dbV5.walletDao().observeAll().first()
         assertThat(wallets).hasSize(1)
         val wallet = wallets[0]
         assertThat(wallet.id).isEqualTo(42L)
@@ -195,16 +206,16 @@ class DatabaseMigrationTest {
             memoCode = "NP10A",
             createdAt = System.currentTimeMillis()
         )
-        dbV3.billSplitDao().upsert(billSplit)
+        dbV5.billSplitDao().upsert(billSplit)
 
         // Đọc lại để xác minh
-        val splits = dbV3.billSplitDao().observeByTransaction(10L).first()
+        val splits = dbV5.billSplitDao().observeByTransaction(10L).first()
         assertThat(splits).hasSize(1)
         assertThat(splits[0].debtorName).isEqualTo("Nguyen Van A")
         assertThat(splits[0].amountCents).isEqualTo(10000L)
         assertThat(splits[0].memoCode).isEqualTo("NP10A")
 
-        dbV3.close()
+        dbV5.close()
         context.deleteDatabase("test_migration_2_3.db")
     }
 }

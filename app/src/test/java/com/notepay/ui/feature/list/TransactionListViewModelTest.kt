@@ -183,6 +183,17 @@ private class FakeTransactionRepository(
         deletedIds.add(id)
         savedTransactions.removeAll { it.id == id }
     }
+    // Thêm hàm này vào bên trong FakeTransactionRepository của các file test khác
+    override suspend fun findRecentSimilar(
+        noteKeyword: String,
+        fromMillis: Long,
+        toMillis: Long
+    ): List<Transaction> {
+        return savedTransactions.filter { tx ->
+            tx.note.contains(noteKeyword, ignoreCase = true) &&
+                    tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+        }
+    }
 }
 
 private class FakeWalletRepository : com.notepay.domain.repository.WalletRepository {

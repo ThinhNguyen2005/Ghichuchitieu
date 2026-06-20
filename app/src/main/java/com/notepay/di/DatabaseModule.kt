@@ -34,6 +34,7 @@ object DatabaseModule {
             NotePayDatabase.MIGRATION_1_2,
             NotePayDatabase.MIGRATION_2_3,
             NotePayDatabase.MIGRATION_3_4,
+            NotePayDatabase.MIGRATION_4_5,
         )
         .build()
 

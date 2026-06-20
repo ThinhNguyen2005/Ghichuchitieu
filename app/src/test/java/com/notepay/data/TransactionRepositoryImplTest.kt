@@ -117,5 +117,17 @@ class TransactionRepositoryImplTest {
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
         override suspend fun upsert(entity: TransactionEntity): Long = 0L
         override suspend fun delete(id: Long) = Unit
+
+        // --- BỔ SUNG HÀM NÀY ĐỂ SỬA LỖI BIÊN DỊCH VÀ KHỚP VỚI INTERFACE MỚI ---
+        override suspend fun findRecentSimilar(
+            noteKeyword: String,
+            startMillis: Long,
+            endMillis: Long
+        ): List<TransactionEntity> {
+            return flow.value.filter { entity ->
+                entity.note.contains(noteKeyword, ignoreCase = true) &&
+                        entity.occurredAt in startMillis..endMillis
+            }
+        }
     }
 }

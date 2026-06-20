@@ -30,4 +30,21 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun delete(id: Long)
+
+    /**
+     * Tìm giao dịch có note chứa chuỗi [noteKeyword] trong khoảng thời gian chỉ định.
+     * Dùng cho phát hiện hóa đơn định kỳ (Case 6: Smart Subscription Detection).
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE note LIKE '%' || :noteKeyword || '%'
+        AND occurred_at BETWEEN :startMillis AND :endMillis
+        ORDER BY occurred_at DESC
+        LIMIT 5
+    """)
+    suspend fun findRecentSimilar(
+        noteKeyword: String,
+        startMillis: Long,
+        endMillis: Long
+    ): List<TransactionEntity>
 }

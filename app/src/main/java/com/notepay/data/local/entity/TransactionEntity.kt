@@ -31,4 +31,5 @@ data class TransactionEntity(
     @ColumnInfo(name = "wallet_id") val walletId: Long,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "is_auto_capture", defaultValue = "0") val isAutoCapture: Boolean = false,
+    @ColumnInfo(name = "is_internal_transfer", defaultValue = "0") val isInternalTransfer: Boolean = false,
 )

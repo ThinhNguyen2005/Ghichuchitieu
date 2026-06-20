@@ -13,7 +13,7 @@ import com.notepay.data.local.entity.SubscriptionEntity
 
 @Database(
     entities = [TransactionEntity::class, WalletEntity::class, BillSplitEntity::class, SubscriptionEntity::class],
-    version = 4,
+    version = 5, // Nâng cấp lên phiên bản 5 quản lý dòng tiền nội bộ
     exportSchema = true,
 )
 abstract class NotePayDatabase : RoomDatabase() {
@@ -27,16 +27,16 @@ abstract class NotePayDatabase : RoomDatabase() {
 
         val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE wallets ADD COLUMN budget_limit_cents INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN budget_limit_cents INTEGER")
             }
         }
 
         val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE wallets ADD COLUMN linked_package_name TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE wallets ADD COLUMN bank_bin TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE wallets ADD COLUMN account_number TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE wallets ADD COLUMN account_name TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN linked_package_name TEXT")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN bank_bin TEXT")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN account_number TEXT")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN account_name TEXT")
 
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `bill_splits` (
@@ -76,6 +76,13 @@ abstract class NotePayDatabase : RoomDatabase() {
                         `created_at` INTEGER NOT NULL
                     )
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Thêm cột is_internal_transfer phục vụ cơ chế lọc chặn trùng lặp dòng tiền nội bộ (Case 7)
+                db.execSQL("ALTER TABLE transactions ADD COLUMN is_internal_transfer INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

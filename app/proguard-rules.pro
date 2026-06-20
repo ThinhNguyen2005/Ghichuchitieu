@@ -17,9 +17,13 @@
 -keep class * extends androidx.lifecycle.ViewModel {
     <init>(...);
 }
-
+# Giữ nguyên vẹn dịch vụ đọc thông báo của hệ thống
+-keep class * extends android.service.notification.NotificationListenerService { *; }
 # Keep domain models for serialization safety (though we use Room types)
 -keep class com.notepay.domain.model.** { *; }
 
 # Compose
 -keep class androidx.compose.runtime.** { *; }
+-keep class com.notepay.service.NotePayNotificationListenerService { *; }
+-keep class com.notepay.** { *; }
+-keepattributes InnerClasses,EnclosingMethod,Signature

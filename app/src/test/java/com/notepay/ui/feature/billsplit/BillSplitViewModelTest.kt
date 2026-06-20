@@ -24,6 +24,7 @@ import org.junit.Test
 import kotlin.time.Clock
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BillSplitViewModelTest {
@@ -194,7 +195,7 @@ class BillSplitViewModelTest {
     fun `bill split operations emit correct error feedbacks on failures`() = runTest {
         val throwingSplitRepo = object : FakeBillSplitRepository() {
             override suspend fun upsertAll(billSplits: List<BillSplit>) = throw IllegalStateException("db error")
-            override suspend fun markAsPaid(id: Long, paidAt: kotlinx.datetime.Instant) = throw IllegalStateException("db error")
+            override suspend fun markAsPaid(id: Long, paidAt: Instant) = throw IllegalStateException("db error")
             override suspend fun delete(id: Long) = throw IllegalStateException("db error")
         }
         val viewModel = createViewModel(
@@ -296,7 +297,7 @@ private open class FakeBillSplitRepository(
     override suspend fun upsertAll(billSplits: List<BillSplit>) {
         savedSplits.addAll(billSplits)
     }
-    override suspend fun markAsPaid(id: Long, paidAt: kotlinx.datetime.Instant) {
+    override suspend fun markAsPaid(id: Long, paidAt: Instant) {
         markedPaidIds.add(id)
         val idx = savedSplits.indexOfFirst { it.id == id }
         if (idx != -1) {
@@ -340,6 +341,17 @@ private class FakeTransactionRepository(
     override suspend fun upsert(transaction: Transaction): Long {
         savedTransactions.add(transaction)
         return transaction.id
+    }
+    // Thêm hàm này vào bên trong FakeTransactionRepository của các file test khác
+    override suspend fun findRecentSimilar(
+        noteKeyword: String,
+        fromMillis: Long,
+        toMillis: Long
+    ): List<Transaction> {
+        return savedTransactions.filter { tx ->
+            tx.note.contains(noteKeyword, ignoreCase = true) &&
+                    tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+        }
     }
     override suspend fun delete(id: Long) = Unit
 }

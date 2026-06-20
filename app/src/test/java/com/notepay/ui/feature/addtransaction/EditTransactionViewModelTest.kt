@@ -95,11 +95,11 @@ class EditTransactionViewModelTest {
         // Try changing amount and note (should be ignored)
         viewModel.onAmountChanged("150000")
         viewModel.onNoteChanged("TRICK NOTE")
-        
+
         // Change category (should be allowed)
         val customCategory = Category.getAll().first { it.id == "FOOD" }
         viewModel.onCategoryChanged(customCategory)
-        
+
         viewModel.save()
         testScheduler.advanceUntilIdle()
 
@@ -155,6 +155,18 @@ class EditTransactionViewModelTest {
                 throw IllegalStateException("db failed")
             }
             override suspend fun delete(id: Long) = Unit
+
+            // ĐÃ SỬA: Thêm hàm override cho anonymous object để sửa lỗi compile dòng 148
+            override suspend fun findRecentSimilar(
+                noteKeyword: String,
+                fromMillis: Long,
+                toMillis: Long
+            ): List<Transaction> {
+                return savedTransactions.filter { tx ->
+                    tx.note.contains(noteKeyword, ignoreCase = true) &&
+                            tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+                }
+            }
         }
         val viewModel = createViewModel(15L, transactionRepository)
         testScheduler.advanceUntilIdle()
@@ -214,4 +226,16 @@ private class EditFakeTransactionRepository(
         return transaction.id
     }
     override suspend fun delete(id: Long) = Unit
+
+    // ĐÃ SỬA: Thêm hàm override cho EditFakeTransactionRepository để sửa lỗi compile dòng 198
+    override suspend fun findRecentSimilar(
+        noteKeyword: String,
+        fromMillis: Long,
+        toMillis: Long
+    ): List<Transaction> {
+        return savedTransactions.filter { tx ->
+            tx.note.contains(noteKeyword, ignoreCase = true) &&
+                    tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+        }
+    }
 }

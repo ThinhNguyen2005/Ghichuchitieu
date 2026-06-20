@@ -109,6 +109,8 @@ data class NotificationSettings(
     val autoCaptureEnabled: Boolean = true,
     val enabledPackages: Set<String> = KnownBankApps.packages,
     val customBankApps: Set<String> = emptySet(),
+    /** Hạn mức chi tiêu tháng (VND * 100). 0 = chưa cài, bỏ qua Budget Alert. */
+    val monthlyBudgetCents: Long = 0L,
 )
 
 private val Context.notificationSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -126,6 +128,7 @@ class NotificationSettingsStore @Inject constructor(
             autoCaptureEnabled = preferences[Keys.AUTO_CAPTURE_ENABLED] ?: true,
             enabledPackages = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages,
             customBankApps = preferences[Keys.CUSTOM_BANK_APPS] ?: emptySet(),
+            monthlyBudgetCents = preferences[Keys.MONTHLY_BUDGET_CENTS] ?: 0L,
         )
     }
 
@@ -176,9 +179,16 @@ class NotificationSettingsStore @Inject constructor(
         }
     }
 
+    suspend fun setMonthlyBudget(amountCents: Long) {
+        dataStore.edit { preferences ->
+            preferences[Keys.MONTHLY_BUDGET_CENTS] = amountCents
+        }
+    }
+
     private object Keys {
         val AUTO_CAPTURE_ENABLED = booleanPreferencesKey("auto_save_notifications")
         val ENABLED_PACKAGES = stringSetPreferencesKey("enabled_notification_packages")
         val CUSTOM_BANK_APPS = stringSetPreferencesKey("custom_bank_apps")
+        val MONTHLY_BUDGET_CENTS = androidx.datastore.preferences.core.longPreferencesKey("monthly_budget_cents")
     }
 }

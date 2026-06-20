@@ -23,4 +23,10 @@ interface TransactionRepository {
     suspend fun upsert(transaction: Transaction): Long
 
     suspend fun delete(id: Long)
+
+    /**
+     * Tìm giao dịch có note chứa [noteKeyword] trong khoảng [fromMillis]..[toMillis].
+     * Dùng để phát hiện hóa đơn định kỳ (Case 6).
+     */
+    suspend fun findRecentSimilar(noteKeyword: String, fromMillis: Long, toMillis: Long): List<Transaction>
 }
