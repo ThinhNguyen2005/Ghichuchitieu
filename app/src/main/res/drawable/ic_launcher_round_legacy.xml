@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Round launcher icon cho Android 7 (API 24-25), nơi adaptive-icon chưa được hỗ trợ.
+  Trên Android 8+ (API 26+) ic_launcher_round.xml trong mipmap-anydpi-v26 được ưu tiên.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item
+        android:drawable="@drawable/ic_launcher_foreground"
+        android:gravity="center" />
+</layer-list>

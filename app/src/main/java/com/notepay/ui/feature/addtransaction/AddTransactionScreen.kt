@@ -27,11 +27,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.*
@@ -55,6 +57,26 @@ fun AddTransactionScreen(
     val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
 
+    // Resolve strings trước khi dùng (đặc biệt cho các callback ngoài Composable scope).
+    val title = stringResource(R.string.add_transaction_title)
+    val backCd = stringResource(R.string.action_back)
+    val fieldDate = stringResource(R.string.transaction_field_date)
+    val fieldWallet = stringResource(R.string.transaction_field_wallet)
+    val fieldNote = stringResource(R.string.transaction_field_note)
+    val notePlaceholder = stringResource(R.string.transaction_field_note_placeholder)
+    val noWalletSelected = stringResource(R.string.transaction_no_wallet_selected)
+    val noOtherWalletToast = stringResource(R.string.transaction_no_other_wallet)
+    val saveLabel = stringResource(R.string.transaction_save_button)
+    val cancelLabel = stringResource(R.string.action_cancel)
+    val doneLabel = stringResource(R.string.action_done)
+    val expenseLabel = stringResource(R.string.transaction_type_expense)
+    val incomeLabel = stringResource(R.string.transaction_type_income)
+    val todayPrefix = stringResource(R.string.date_today_prefix)
+    val yesterdayPrefix = stringResource(R.string.date_yesterday_prefix)
+    val monthSuffixFmt = stringResource(R.string.date_month_suffix)
+    val zeroWords = stringResource(R.string.number_words_zero)
+    val currencySuffix = stringResource(R.string.number_words_currency_suffix)
+
     LaunchedEffect(state.savedSuccessfully) {
         if (state.savedSuccessfully) {
             viewModel.onEvent(AddTransactionEvent.Reset)
@@ -73,10 +95,10 @@ fun AddTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thêm giao dịch") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = backCd)
                     }
                 },
             )
@@ -95,8 +117,12 @@ fun AddTransactionScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Selector chọn Chi tiêu / Thu nhập
-                TransactionTypeSelector(state.type, viewModel::onEvent)
+                TransactionTypeSelector(
+                    selectedType = state.type,
+                    onEvent = viewModel::onEvent,
+                    expenseLabel = expenseLabel,
+                    incomeLabel = incomeLabel,
+                )
 
                 // Nhập số tiền: Thiết kế nổi bật to ở giữa, có BasicTextField ẩn và text đọc chữ mờ bên dưới
                 Box(
@@ -134,8 +160,8 @@ fun AddTransactionScreen(
 
                         // Đọc số tiền bằng chữ mờ bên dưới
                         val amountLong = remember(state.amountInput) { state.amountInput.toLongOrNull() ?: 0L }
-                        val amountInWords = remember(amountLong) {
-                            if (amountLong > 0L) convertNumberToVietnameseWords(amountLong) + " đồng" else ""
+                        val amountInWords = remember(amountLong, currencySuffix, zeroWords) {
+                            if (amountLong > 0L) convertNumberToVietnameseWords(amountLong, zeroWords) + " " + currencySuffix else ""
                         }
                         if (amountInWords.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
@@ -172,9 +198,11 @@ fun AddTransactionScreen(
                 )
 
                 // Ô chọn ngày giờ
-                val dateLabel = remember(state.occurredAt) { formatDateLabel(state.occurredAt) }
+                val dateLabel = remember(state.occurredAt, todayPrefix, yesterdayPrefix, monthSuffixFmt) {
+                    formatDateLabel(state.occurredAt, todayPrefix, yesterdayPrefix, monthSuffixFmt)
+                }
                 TransactionInputField(
-                    label = "Ngày",
+                    label = fieldDate,
                     value = dateLabel,
                     icon = Icons.Rounded.CalendarMonth,
                     onClick = {
@@ -186,9 +214,9 @@ fun AddTransactionScreen(
 
                 // Ô chọn ví - Click vào hiện thông báo nhẹ nếu chỉ có 1 ví
                 val selectedWallet = state.availableWallets.firstOrNull { it.id == state.walletId }
-                val walletName = selectedWallet?.name ?: "Chưa chọn ví"
+                val walletName = selectedWallet?.name ?: noWalletSelected
                 TransactionInputField(
-                    label = "Ví thanh toán",
+                    label = fieldWallet,
                     value = walletName,
                     icon = Icons.Rounded.AccountBalanceWallet,
                     onClick = {
@@ -199,7 +227,7 @@ fun AddTransactionScreen(
                         } else {
                             android.widget.Toast.makeText(
                                 context,
-                                "Không có ví nào khác, hãy tạo thêm ví mới trong phần quản lý tài khoản/ví",
+                                noOtherWalletToast,
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -211,8 +239,8 @@ fun AddTransactionScreen(
                     value = state.note,
                     onValueChange = { if (it.length <= 200) viewModel.onEvent(AddTransactionEvent.NoteChanged(it)) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Ghi chú") },
-                    placeholder = { Text("Thêm chi tiết giao dịch...") },
+                    label = { Text(fieldNote) },
+                    placeholder = { Text(notePlaceholder) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Rounded.EditNote,
@@ -268,7 +296,7 @@ fun AddTransactionScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = if (state.canSave) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                            Text("Lưu giao dịch", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(saveLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -287,10 +315,10 @@ fun AddTransactionScreen(
                         viewModel.onEvent(AddTransactionEvent.DateChanged(Instant.fromEpochMilliseconds(millis)))
                     }
                     showDatePicker.value = false
-                }) { Text("Xong") }
+                }) { Text(doneLabel) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker.value = false }) { Text("Hủy") }
+                TextButton(onClick = { showDatePicker.value = false }) { Text(cancelLabel) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -338,8 +366,10 @@ fun AddTransactionScreen(
 private fun TransactionTypeSelector(
     selectedType: TransactionType,
     onEvent: (AddTransactionEvent) -> Unit,
+    expenseLabel: String,
+    incomeLabel: String,
 ) {
-    val options = listOf(TransactionType.EXPENSE to "Chi tiêu", TransactionType.INCOME to "Thu nhập")
+    val options = listOf(TransactionType.EXPENSE to expenseLabel, TransactionType.INCOME to incomeLabel)
     val selectedIndex = if (selectedType == TransactionType.EXPENSE) 0 else 1
 
     BoxWithConstraints(
@@ -420,8 +450,9 @@ private fun SuggestionChipRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
+        val suggestionLabel = stringResource(R.string.transaction_suggestion_label)
         Text(
-            text = "💡 Gợi ý:",
+            text = suggestionLabel,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -437,7 +468,12 @@ private fun SuggestionChipRow(
     }
 }
 
-private fun formatDateLabel(instant: Instant): String {
+private fun formatDateLabel(
+    instant: Instant,
+    todayPrefix: String,
+    yesterdayPrefix: String,
+    monthSuffixFmt: String,
+): String {
     val systemTz = TimeZone.currentSystemDefault()
     val now = kotlin.time.Clock.System.now().toLocalDateTime(systemTz).date
     val target = instant.toLocalDateTime(systemTz).date
@@ -445,16 +481,16 @@ private fun formatDateLabel(instant: Instant): String {
     val isYesterday = now.toEpochDays() - target.toEpochDays() == 1L
 
     val prefix = when {
-        isToday -> "Hôm nay, "
-        isYesterday -> "Hôm qua, "
+        isToday -> todayPrefix
+        isYesterday -> yesterdayPrefix
         else -> ""
     }
 
-    return "${prefix}${target.day} Th${target.month.ordinal + 1}"
+    return "${prefix}${target.day} ${monthSuffixFmt.format(target.month.ordinal + 1)}"
 }
 
-private fun convertNumberToVietnameseWords(number: Long): String {
-    if (number == 0L) return "Không"
+private fun convertNumberToVietnameseWords(number: Long, zeroWord: String): String {
+    if (number == 0L) return zeroWord
     
     val units = listOf("", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín")
     

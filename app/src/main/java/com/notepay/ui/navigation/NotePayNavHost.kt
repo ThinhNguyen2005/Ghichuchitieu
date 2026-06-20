@@ -53,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.notepay.R
 import com.notepay.ui.feature.addtransaction.AddTransactionScreen
 import com.notepay.ui.feature.addtransaction.EditTransactionScreen
 import com.notepay.ui.feature.billsplit.BillSplitScreen
@@ -83,6 +84,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
@@ -97,19 +99,19 @@ import androidx.compose.material.icons.outlined.Analytics
 
 private data class BottomTab(
     val route: Route,
-    val label: String,
+    @androidx.annotation.StringRes val labelRes: Int,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
 private val bottomTabs = listOf(
-    BottomTab(Route.Home, "Trang chủ", Icons.Outlined.Home, Icons.Filled.Home),
-    BottomTab(Route.TransactionList, "Giao dịch",
+    BottomTab(Route.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
+    BottomTab(Route.TransactionList, R.string.nav_transactions,
         Icons.AutoMirrored.Outlined.ReceiptLong, Icons.AutoMirrored.Filled.ReceiptLong),
-    BottomTab(Route.AddDummy, "Thêm", Icons.Rounded.Add, Icons.Rounded.Add),
-    BottomTab(Route.Stats, "Thống kê",
+    BottomTab(Route.AddDummy, R.string.nav_add, Icons.Rounded.Add, Icons.Rounded.Add),
+    BottomTab(Route.Stats, R.string.nav_stats,
         Icons.Outlined.Analytics, Icons.Filled.Analytics),
-    BottomTab(Route.BillSplit, "Chia tiền",
+    BottomTab(Route.BillSplit, R.string.nav_bill_split,
         Icons.AutoMirrored.Outlined.CallSplit, Icons.AutoMirrored.Filled.CallSplit),
 )
 
@@ -125,6 +127,17 @@ fun NotePayNavHost(
     }
     val snackbarHostState = remember { SnackbarHostState() }
     var showQuickAddSheet by remember { mutableStateOf(false) }
+
+    // Resolve string resources một lần để dùng cho cả bottom nav và FAB tooltip.
+    val tabLabels = bottomTabs.map { tab -> stringResource(tab.labelRes) }
+    val quickAddTitle = stringResource(R.string.quick_add_title)
+    val quickAddExpenseTitle = stringResource(R.string.quick_add_expense_title)
+    val quickAddExpenseDesc = stringResource(R.string.quick_add_expense_desc)
+    val quickAddBillSplitTitle = stringResource(R.string.quick_add_bill_split_title)
+    val quickAddBillSplitDesc = stringResource(R.string.quick_add_bill_split_desc)
+    val quickAddSubscriptionTitle = stringResource(R.string.quick_add_subscription_title)
+    val quickAddSubscriptionDesc = stringResource(R.string.quick_add_subscription_desc)
+    val fabContentDesc = stringResource(R.string.nav_add)
 
     // Chiều cao thanh điều hướng gồm 76dp (Bar) + 28dp (bottom padding) = 104dp.
     val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
@@ -187,8 +200,7 @@ fun NotePayNavHost(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-    ) { padding ->
-        Box(
+    ) { padding ->        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -421,7 +433,8 @@ fun NotePayNavHost(
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 // Left tabs (Home & TransactionList)
-                                bottomTabs.take(2).forEach { tab ->
+                                bottomTabs.take(2).forEachIndexed { index, tab ->
+                                    val tabLabel = tabLabels[index]
                                     val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
                                     Box(
                                         modifier = Modifier
@@ -461,13 +474,13 @@ fun NotePayNavHost(
                                         ) {
                                             Icon(
                                                 imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tab.label,
+                                                contentDescription = tabLabel,
                                                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = tab.label,
+                                                text = tabLabel,
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 10.sp,
                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -482,7 +495,9 @@ fun NotePayNavHost(
                                 Spacer(modifier = Modifier.weight(0.8f))
                                 
                                 // Right tabs (Stats & BillSplit)
-                                bottomTabs.takeLast(2).forEach { tab ->
+                                bottomTabs.takeLast(2).forEachIndexed { index, tab ->
+                                    val realIndex = bottomTabs.size - 2 + index
+                                    val tabLabel = tabLabels[realIndex]
                                     val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
                                     val shouldColorTab = isSelected
                                     Box(
@@ -523,13 +538,13 @@ fun NotePayNavHost(
                                         ) {
                                             Icon(
                                                 imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tab.label,
+                                                contentDescription = tabLabel,
                                                 tint = if (shouldColorTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = tab.label,
+                                                text = tabLabel,
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 10.sp,
                                                     fontWeight = if (shouldColorTab) FontWeight.Bold else FontWeight.Normal
@@ -560,7 +575,7 @@ fun NotePayNavHost(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Add,
-                            contentDescription = "Thêm mới",
+                            contentDescription = fabContentDesc,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(32.dp)
                         )
@@ -583,7 +598,7 @@ fun NotePayNavHost(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Tạo mới",
+                            text = quickAddTitle,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -593,8 +608,8 @@ fun NotePayNavHost(
                         // Option 1: Thêm chi tiêu
                         QuickAddOption(
                             icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                            title = "Thêm chi tiêu",
-                            description = "Ghi nhận giao dịch mua sắm, ăn uống hàng ngày",
+                            title = quickAddExpenseTitle,
+                            description = quickAddExpenseDesc,
                             color = MaterialTheme.colorScheme.primary,
                             onClick = {
                                 showQuickAddSheet = false
@@ -605,8 +620,8 @@ fun NotePayNavHost(
                         // Option 2: Chia hóa đơn
                         QuickAddOption(
                             icon = Icons.AutoMirrored.Outlined.CallSplit,
-                            title = "Chia hóa đơn",
-                            description = "Chia tiền ăn chung, mua sắm nhóm với bạn bè",
+                            title = quickAddBillSplitTitle,
+                            description = quickAddBillSplitDesc,
                             color = MaterialTheme.colorScheme.tertiary,
                             onClick = {
                                 showQuickAddSheet = false
@@ -632,8 +647,8 @@ fun NotePayNavHost(
                         // Option 3: Hóa đơn định kỳ
                         QuickAddOption(
                             icon = Icons.Outlined.Notifications,
-                            title = "Thêm hóa đơn định kỳ",
-                            description = "Đặt lịch đóng tiền nhà, Netflix, bảo hiểm...",
+                            title = quickAddSubscriptionTitle,
+                            description = quickAddSubscriptionDesc,
                             color = MaterialTheme.colorScheme.secondary,
                             onClick = {
                                 showQuickAddSheet = false

@@ -21,6 +21,13 @@ class TransactionTest {
     }
 
     @Test
+    fun `zero amount throws at construction`() {
+        assertFailsWith<IllegalArgumentException> {
+            TestTransactionFactory.expense(amount = Money(0L))
+        }
+    }
+
+    @Test
     fun `note longer than 200 chars throws`() {
         val longNote = "a".repeat(201)
         assertFailsWith<IllegalArgumentException> {

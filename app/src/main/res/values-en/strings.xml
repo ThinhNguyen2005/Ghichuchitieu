@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">NotePay</string>
+
+    <!-- Bottom navigation labels -->
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_add">Add</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_bill_split">Split</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
+    <string name="action_close">Close</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_setup">Set up</string>
+    <string name="action_see_all">See all</string>
+    <string name="action_back">Back</string>
+
+    <!-- Quick add bottom sheet -->
+    <string name="quick_add_title">Create new</string>
+    <string name="quick_add_expense_title">Add expense</string>
+    <string name="quick_add_expense_desc">Record daily shopping, food, transport…</string>
+    <string name="quick_add_bill_split_title">Split bill</string>
+    <string name="quick_add_bill_split_desc">Share meals, group purchases with friends</string>
+    <string name="quick_add_subscription_title">Add subscription</string>
+    <string name="quick_add_subscription_desc">Schedule rent, Netflix, insurance…</string>
+
+    <!-- Home screen -->
+    <string name="home_empty_wallet_title">No wallets yet</string>
+    <string name="home_empty_wallet_desc">Create a wallet to start tracking transactions and managing your spending.</string>
+    <string name="home_create_wallet">Create wallet</string>
+    <string name="home_notif_permission_title">Auto-capture transactions</string>
+    <string name="home_notif_permission_desc">Tap here to grant access to read bank and MoMo notifications (Local Parse).</string>
+    <string name="home_notif_permission_tip">💡 Tip: if the toggle is greyed out (restricted settings), open NotePay App info → tap the 3-dot menu → choose \"Allow restricted settings\" and try again.</string>
+    <string name="home_battery_title">Background optimization (recommended)</string>
+    <string name="home_battery_desc">Open Battery → choose Unrestricted for smoother auto-capture.</string>
+    <string name="home_recent_transactions">Recent transactions</string>
+    <string name="home_empty_transactions">No transactions yet. Tap Add to start.</string>
+    <string name="home_choose_wallet">Choose wallet</string>
+    <string name="home_edit_wallet">Edit wallet</string>
+    <string name="home_add_new_wallet">Add new wallet</string>
+    <string name="home_reminder_cd">Renewal reminders</string>
+    <string name="home_notification_settings_cd">Notification settings</string>
+
+    <!-- Budget projection messages -->
+    <string name="budget_overspent">🚨 You have overspent your wallet limit by %1$s!</string>
+    <string name="budget_will_exceed">⚠️ Projected to exceed limit by %1$s. Reduce daily spending below %2$s to stay safe.</string>
+    <string name="budget_safe">💚 Spending is on track. Projected end-of-month total: %1$s (under limit).</string>
+    <string name="budget_title">Budget forecast</string>
+
+    <!-- Add / Edit transaction screen -->
+    <string name="add_transaction_title">Add transaction</string>
+    <string name="edit_transaction_title">Edit transaction</string>
+    <string name="transaction_type_expense">Expense</string>
+    <string name="transaction_type_income">Income</string>
+    <string name="transaction_field_date">Date</string>
+    <string name="transaction_field_wallet">Wallet</string>
+    <string name="transaction_field_note">Note</string>
+    <string name="transaction_field_note_placeholder">Add transaction details…</string>
+    <string name="transaction_no_wallet_selected">No wallet selected</string>
+    <string name="transaction_no_other_wallet">No other wallet, please create one in the wallet management section.</string>
+    <string name="transaction_save_button">Save transaction</string>
+    <string name="transaction_suggestion_label">💡 Suggested:</string>
+
+    <!-- Date label prefixes -->
+    <string name="date_today_prefix">Today, </string>
+    <string name="date_yesterday_prefix">Yesterday, </string>
+    <string name="date_month_suffix">M%1$d</string>
+
+    <!-- Number-to-words helper -->
+    <string name="number_words_zero">Zero</string>
+    <string name="number_words_currency_suffix">VND</string>
+
+    <!-- Transaction list screen -->
+    <string name="transaction_list_search_hint">Search by note</string>
+    <string name="transaction_list_filter_all">All</string>
+    <string name="transaction_list_empty">No transactions in this period.</string>
+
+    <!-- Stats screen -->
+    <string name="stats_filter_month">Month</string>
+    <string name="stats_filter_week">Week</string>
+    <string name="stats_filter_quarter">Quarter</string>
+    <string name="stats_filter_year">Year</string>
+    <string name="stats_filter_custom">Custom</string>
+    <string name="stats_kpi_income">Income</string>
+    <string name="stats_kpi_expense">Expense</string>
+    <string name="stats_kpi_net">Net</string>
+    <string name="stats_section_categories">By category</string>
+    <string name="stats_section_budget">Budget</string>
+    <string name="stats_section_advice">Advice</string>
+    <string name="stats_empty">No data in the selected period.</string>
+
+    <!-- Bill split screen -->
+    <string name="bill_split_title">Bill Split</string>
+    <string name="bill_split_tab_unpaid">Pending</string>
+    <string name="bill_split_tab_paid">Paid</string>
+    <string name="bill_split_empty">No bills yet.\nTap (+) to create the first split.</string>
+    <string name="bill_split_empty_unpaid">No pending debts.</string>
+    <string name="bill_split_empty_paid">No paid debts yet.</string>
+    <string name="bill_split_vietqr_cd">VietQR configuration</string>
+    <string name="bill_split_total_count">Total: %1$d debts</string>
+    <string name="bill_split_vietqr_saved">VietQR settings saved for %1$s</string>
+
+    <!-- Subscription screen -->
+    <string name="subscription_title">Subscriptions</string>
+    <string name="subscription_empty">No subscriptions yet.</string>
+
+    <!-- AddWallet screen -->
+    <string name="add_wallet_title">Add wallet</string>
+    <string name="edit_wallet_title">Edit wallet</string>
+    <string name="wallet_field_name">Wallet name</string>
+    <string name="wallet_field_initial_balance">Initial balance</string>
+    <string name="wallet_field_icon">Icon</string>
+    <string name="wallet_field_color">Color</string>
+    <string name="wallet_field_budget">Spending limit</string>
+    <string name="wallet_budget_off">Off</string>
+
+    <!-- Confirm delete dialog -->
+    <string name="confirm_delete_transaction_title">Delete transaction?</string>
+    <string name="confirm_delete_bill_title">Delete debt?</string>
+    <string name="confirm_delete_subscription_title">Delete subscription?</string>
+    <string name="confirm_delete_permanent">This item will be permanently deleted and cannot be restored.</string>
+
+    <!-- Feedback / Snackbar messages -->
+    <string name="feedback_save_success">Saved successfully</string>
+    <string name="feedback_save_error">Couldn\'t save, please try again</string>
+    <string name="feedback_delete_success">Deleted</string>
+    <string name="feedback_undo">Undo</string>
+    <string name="feedback_bill_split_created">Bill split created</string>
+    <string name="feedback_bill_split_create_failed">Couldn\'t create bill split</string>
+    <string name="feedback_bill_split_marked_paid">Marked as paid</string>
+    <string name="feedback_bill_split_mark_failed">Couldn\'t mark as paid</string>
+    <string name="feedback_bill_split_reconciled">Marked as paid &amp; reconciled</string>
+    <string name="feedback_bill_split_deleted">Bill split deleted</string>
+    <string name="feedback_bill_split_delete_failed">Couldn\'t delete bill split</string>
+    <string name="feedback_vietqr_saved">VietQR settings updated</string>
+    <string name="feedback_vietqr_failed">Couldn\'t update VietQR settings</string>
+
+    <!-- Errors -->
+    <string name="error_wallet_not_found">Wallet not found</string>
+    <string name="error_bill_split_not_found">Bill split not found</string>
+    <string name="error_parent_tx_not_found">Parent transaction not found</string>
+
+    <!-- Accessibility / content descriptions -->
+    <string name="cd_vietqr_logo">VietQR Logo</string>
+
+    <!-- Notification listener service label (used in Android system settings) -->
+    <string name="notif_listener_service_label">NotePay Local Parse</string>
+</resources>

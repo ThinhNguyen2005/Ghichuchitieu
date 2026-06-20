@@ -1,7 +1,9 @@
 package com.notepay.ui.feature.billsplit
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
@@ -14,6 +16,7 @@ import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -29,6 +32,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class BillSplitViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val billSplitRepository: BillSplitRepository,
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
@@ -37,6 +41,9 @@ class BillSplitViewModel @Inject constructor(
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
+
+    private fun str(resId: Int): String = appContext.getString(resId)
+    private fun str(resId: Int, vararg args: Any): String = appContext.getString(resId, *args)
 
     val state = combine(
         billSplitRepository.observeUnpaid(),
@@ -99,9 +106,9 @@ class BillSplitViewModel @Inject constructor(
                     )
                 }
                 billSplitRepository.upsertAll(newSplits)
-                _feedback.emit(UiFeedback("Đã tạo khoản chia tiền", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_created), type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.emit(UiFeedback("Không thể tạo khoản chia tiền", type = FeedbackType.Error))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_create_failed), type = FeedbackType.Error))
             }
         }
     }
@@ -109,14 +116,14 @@ class BillSplitViewModel @Inject constructor(
     fun markAsPaidManually(splitId: Long) {
         viewModelScope.launch {
             try {
-                val split = billSplitRepository.getById(splitId) ?: error("Không tìm thấy khoản chia tiền")
+                val split = billSplitRepository.getById(splitId) ?: error(str(R.string.error_bill_split_not_found))
                 if (split.isPaid) return@launch
 
                 billSplitRepository.markAsPaid(splitId, Clock.System.now())
                 reduceParentTransaction(split.debtorName, listOf(split))
-                _feedback.emit(UiFeedback("Đã ghi nhận thanh toán", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_marked_paid), type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.emit(UiFeedback("Không thể ghi nhận thanh toán", type = FeedbackType.Error))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
             }
         }
     }
@@ -125,9 +132,9 @@ class BillSplitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 billSplitRepository.delete(splitId)
-                _feedback.emit(UiFeedback("Đã xóa khoản chia tiền", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_deleted), type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.emit(UiFeedback("Không thể xóa khoản chia tiền", type = FeedbackType.Error))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_delete_failed), type = FeedbackType.Error))
             }
         }
     }
@@ -141,16 +148,16 @@ class BillSplitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val current = walletRepository.observeAll().firstOrNull()?.find { it.id == walletId }
-                    ?: error("Không tìm thấy ví")
+                    ?: error(str(R.string.error_wallet_not_found))
                 val updated = current.copy(
                     bankBin = bankBin.ifBlank { null },
                     accountNumber = accountNumber.ifBlank { null },
                     accountName = accountName.ifBlank { null },
                 )
                 walletRepository.upsert(updated)
-                _feedback.emit(UiFeedback("Đã cập nhật cấu hình VietQR", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(str(R.string.feedback_vietqr_saved), type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.emit(UiFeedback("Không thể cập nhật cấu hình VietQR", type = FeedbackType.Error))
+                _feedback.emit(UiFeedback(str(R.string.feedback_vietqr_failed), type = FeedbackType.Error))
             }
         }
     }
@@ -176,17 +183,21 @@ class BillSplitViewModel @Inject constructor(
                     }
                     reduceParentTransaction(debtorName, splits)
                 }
-                val msg = if (incomeTxId != null) "Đã ghi nhận thanh toán & đối soát thành công" else "Đã ghi nhận thanh toán"
+                val msg = if (incomeTxId != null) {
+                    str(R.string.feedback_bill_split_reconciled)
+                } else {
+                    str(R.string.feedback_bill_split_marked_paid)
+                }
                 _feedback.emit(UiFeedback(msg, type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.emit(UiFeedback("Không thể ghi nhận thanh toán", type = FeedbackType.Error))
+                _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
             }
         }
     }
 
     private suspend fun reduceParentTransaction(debtorName: String, splits: List<BillSplit>) {
         val parentTx = transactionRepository.getById(splits.first().transactionId)
-            ?: error("Không tìm thấy giao dịch gốc")
+            ?: error(str(R.string.error_parent_tx_not_found))
         var currentAmountCents = parentTx.amount.amountInCents
         var currentNote = parentTx.note
 

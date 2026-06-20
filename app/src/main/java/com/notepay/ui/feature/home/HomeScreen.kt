@@ -144,6 +144,30 @@ fun HomeScreen(
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Resolve string resources trước khi dùng trong non-Composable scopes.
+    val notifPermissionTitle = stringResource(R.string.home_notif_permission_title)
+    val notifPermissionDesc = stringResource(R.string.home_notif_permission_desc)
+    val notifPermissionTip = stringResource(R.string.home_notif_permission_tip)
+    val batteryTitle = stringResource(R.string.home_battery_title)
+    val batteryDesc = stringResource(R.string.home_battery_desc)
+    val batterySetupLabel = stringResource(R.string.action_setup)
+    val recentLabel = stringResource(R.string.home_recent_transactions)
+    val seeAllLabel = stringResource(R.string.action_see_all)
+    val emptyTx = stringResource(R.string.home_empty_transactions)
+    val chooseWallet = stringResource(R.string.home_choose_wallet)
+    val closeLabel = stringResource(R.string.action_close)
+    val editWalletLabel = stringResource(R.string.home_edit_wallet)
+    val addNewWalletLabel = stringResource(R.string.home_add_new_wallet)
+    val reminderCd = stringResource(R.string.home_reminder_cd)
+    val notifSettingsCd = stringResource(R.string.home_notification_settings_cd)
+    val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
+    val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
+    val createWalletLabel = stringResource(R.string.home_create_wallet)
+    val budgetTitle = stringResource(R.string.budget_title)
+    val overspentFmt = stringResource(R.string.budget_overspent)
+    val willExceedFmt = stringResource(R.string.budget_will_exceed)
+    val safeFmt = stringResource(R.string.budget_safe)
     var isListenerEnabled by remember { mutableStateOf(isNotificationListenerEnabled(context)) }
     var isBatteryOptimizationsIgnored by remember {
         mutableStateOf(
@@ -189,14 +213,14 @@ fun HomeScreen(
                         ) {
                             Icon(
                                 imageVector = if (state.dueRemindersCount > 0) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
-                                contentDescription = "Nhắc nhở gia hạn"
+                                contentDescription = reminderCd
                             )
                         }
                     }
                     IconButton(onClick = onNavigateToNotificationSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Cài đặt thông báo"
+                            contentDescription = notifSettingsCd
                         )
                     }
                 }
@@ -239,9 +263,9 @@ fun HomeScreen(
                     ) {
                         EmptyStateWithAction(
                             icon = Icons.Outlined.AccountBalanceWallet,
-                            title = "Chưa có ví nào",
-                            description = "Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.",
-                            actionLabel = "Tạo ví",
+                            title = emptyWalletTitle,
+                            description = emptyWalletDesc,
+                            actionLabel = createWalletLabel,
                             onClick = { showWalletSwitcher = true },
                         )
                     }
@@ -259,7 +283,11 @@ fun HomeScreen(
                         if (budgetProjection != null && activeWallet?.budgetLimit != null) {
                             BudgetAnalysisCard(
                                 projection = budgetProjection,
-                                budgetLimit = activeWallet.budgetLimit
+                                budgetLimit = activeWallet.budgetLimit,
+                                title = budgetTitle,
+                                overspentFormat = overspentFmt,
+                                willExceedFormat = willExceedFmt,
+                                safeFormat = safeFmt,
                             )
                         }
                     }
@@ -300,18 +328,18 @@ fun HomeScreen(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Tự động ghi chép giao dịch",
+                                    text = notifPermissionTitle,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Nhấp vào đây để cấp quyền đọc thông báo ngân hàng và Momo (Local Parse).",
+                                    text = notifPermissionDesc,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = "💡 Mẹo: Nếu công tắc bị xám màu (Cài đặt bị hạn chế), hãy vào Thông tin ứng dụng NotePay -> Bấm dấu 3 chấm góc trên bên phải -> Chọn \"Cho phép cài đặt bị hạn chế\" rồi thử lại.",
+                                        text = notifPermissionTip,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.error,
                                         fontWeight = FontWeight.Medium
@@ -322,43 +350,6 @@ fun HomeScreen(
                     }
                 }
             } else {
-//                item {
-//                    Card(
-//                        modifier = Modifier.fillMaxWidth(),
-//                        colors = CardDefaults.cardColors(
-//                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-//                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-//                        ),
-//                        shape = RoundedCornerShape(16.dp)
-//                    ) {
-//                        Row(
-//                            modifier = Modifier.padding(16.dp),
-//                            verticalAlignment = Alignment.CenterVertically,
-//                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.Rounded.NotificationsActive,
-//                                contentDescription = null,
-//                                modifier = Modifier.size(32.dp),
-//                                tint = MaterialTheme.colorScheme.primary
-//                            )
-//                            Column(modifier = Modifier.weight(1f)) {
-//                                Text(
-//                                    text = "Đang tự động ghi chép",
-//                                    style = MaterialTheme.typography.titleSmall,
-//                                    fontWeight = FontWeight.Bold,
-//                                    maxLines = 1,
-//                                )
-//                                Text(
-//                                    text = "Sẵn sàng đọc thông báo giao dịch.",
-//                                    style = MaterialTheme.typography.bodySmall,
-//                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-//                                    maxLines = 2,
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
                 if (!isBatteryOptimizationsIgnored) {
                     item {
                         Card(
@@ -382,12 +373,12 @@ fun HomeScreen(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Tối ưu chạy ngầm (Khuyên dùng)",
+                                        text = batteryTitle,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Vào Pin -> Chọn Không hạn chế để app chạy tự động mượt mà hơn.",
+                                        text = batteryDesc,
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -409,7 +400,7 @@ fun HomeScreen(
                                         }
                                     }
                                 ) {
-                                    Text("Thiết lập")
+                                    Text(batterySetupLabel)
                                 }
                             }
                         }
@@ -428,12 +419,12 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Giao dịch gần đây", style = MaterialTheme.typography.titleMedium)
-                    androidx.compose.material3.TextButton(onClick = onSeeAll) { Text("Xem tất cả") }
+                    Text(recentLabel, style = MaterialTheme.typography.titleMedium)
+                    androidx.compose.material3.TextButton(onClick = onSeeAll) { Text(seeAllLabel) }
                 }
             }
             if (state.recentTransactions.isEmpty()) {
-                item { EmptyState(message = "Chưa có giao dịch nào. Nhấn Thêm để bắt đầu.") }
+                item { EmptyState(message = emptyTx) }
             } else {
                 items(state.recentTransactions, key = { it.id }) { tx ->
                     val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
@@ -451,7 +442,7 @@ fun HomeScreen(
     if (showWalletSwitcher) {
         AlertDialog(
             onDismissRequest = { showWalletSwitcher = false },
-            title = { Text("Chọn ví tài chính") },
+            title = { Text(chooseWallet) },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -499,7 +490,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Edit,
-                                    contentDescription = "Chỉnh sửa ví",
+                                    contentDescription = editWalletLabel,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -531,7 +522,7 @@ fun HomeScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Text(
-                                text = "Thêm ví mới",
+                                text = addNewWalletLabel,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
@@ -542,7 +533,7 @@ fun HomeScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showWalletSwitcher = false }) {
-                    Text("Đóng")
+                    Text(closeLabel)
                 }
             }
         )
@@ -569,47 +560,6 @@ private fun isNotificationListenerEnabled(context: Context): Boolean {
     val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
     return flat != null && flat.contains(context.packageName)
 }
-
-private fun simulateTpBankNotification(context: Context) {
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-    val channelId = "tpbank_simulation_channel"
-    val channelName = "Giả lập TPBank (Debug)"
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channel = android.app.NotificationChannel(
-            channelId,
-            channelName,
-            android.app.NotificationManager.IMPORTANCE_HIGH
-        )
-        manager.createNotificationChannel(channel)
-    }
-
-    val title = "TPBank Mobile"
-
-    val inboxStyle = androidx.core.app.NotificationCompat.InboxStyle()
-        .addLine("(TPBank): 14/06/26;06:25")
-        .addLine("TK: xxxx5539020")
-        .addLine("PS:-30.000VND")
-        .addLine("SD: 9.999.999.999VND")
-        .addLine("SD KHA DUNG: 9.999.999.999VND")
-        .addLine("ND: NAP TIEN VI MOMO - 094xxxxxxx")
-        .addLine("- 133366724699")
-        .addLine("SO GD: 661TTMB261662918")
-
-    val notification = androidx.core.app.NotificationCompat.Builder(context, channelId)
-        .setContentTitle(title)
-        .setContentText("(TPBank): 14/06/26;06:25...")
-        .setStyle(inboxStyle)
-        .setSmallIcon(android.R.drawable.ic_dialog_info)
-        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-        .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
-        .setAutoCancel(true)
-        .build()
-
-    manager.notify(1001, notification)
-}
-
-
 
 @Composable
 private fun CircularBudgetRing(
@@ -653,6 +603,10 @@ private fun CircularBudgetRing(
 private fun BudgetAnalysisCard(
     projection: BudgetProjection,
     budgetLimit: Money,
+    title: String,
+    overspentFormat: String,
+    willExceedFormat: String,
+    safeFormat: String,
     modifier: Modifier = Modifier
 ) {
     val spentPercentage = projection.spentPercentage
@@ -665,13 +619,16 @@ private fun BudgetAnalysisCard(
     val adviceMessage = when {
         spentPercentage >= 1.0f -> {
             val overspent = projection.spentThisWallet.amountInCents - budgetLimit.amountInCents
-            "🚨 Bạn đã tiêu quá hạn mức ví ${MoneyFormatter.format(Money(overspent))}!"
+            overspentFormat.format(MoneyFormatter.format(Money(overspent)))
         }
         projection.isProjectedToExceed -> {
-            "⚠️ Dự báo sẽ vượt hạn mức vào ngày ${projection.exhaustionDateLabel}. Bạn nên giảm chi tiêu xuống dưới ${MoneyFormatter.format(projection.safeDailyLimit)}/ngày để giữ an toàn."
+            willExceedFormat.format(
+                projection.exhaustionDateLabel,
+                MoneyFormatter.format(projection.safeDailyLimit)
+            )
         }
         else -> {
-            "💚 Chi tiêu trong tầm kiểm soát. Dự kiến tiêu dùng cuối tháng là ${MoneyFormatter.format(projection.projectedSpend)} (Dưới hạn mức)."
+            safeFormat.format(MoneyFormatter.format(projection.projectedSpend))
         }
     }
 
@@ -711,7 +668,7 @@ private fun BudgetAnalysisCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Dự báo ngân sách",
+                    text = title,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = progressColor

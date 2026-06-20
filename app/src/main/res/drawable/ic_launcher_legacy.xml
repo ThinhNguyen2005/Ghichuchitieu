@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher icon cho mọi density — dùng vector để tránh phải generate PNG
+  cho từng bucket mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi.
+  Android 7+ (minSdk 24) render vector tốt trên mọi density.
+  Trên Android 8+ (API 26+), ic_launcher.xml trong mipmap-anydpi-v26
+  được ưu tiên (adaptive icon với foreground/background riêng).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>

@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+}
+
+// Load local signing config nếu có (không commit vào git).
+// Tạo file app/signing.properties với:
+//   storeFile=release.keystore
+//   storePassword=...
+//   keyAlias=notepay
+//   keyPassword=...
+val signingProps = Properties().apply {
+    val f = rootProject.file("app/signing.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -18,6 +31,17 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        create("release") {
+            if (signingProps.isNotEmpty()) {
+                storeFile = rootProject.file("app/${signingProps.getProperty("storeFile", "release.keystore")}")
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -30,6 +54,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Nếu đã config keystore qua app/signing.properties thì dùng; nếu chưa,
+            // build vẫn pass nhưng APK sẽ chưa được ký — cần keystore để đưa lên Play Store.
+            if (signingConfigs.findByName("release")?.storeFile?.exists() == true) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -64,6 +93,19 @@ android {
             isReturnDefaultValues = true
         }
     }
+
+    // Hỗ trợ tạo Android App Bundle (.aab) cho Play Store.
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = false
+        }
+    }
 }
 
 ksp {
@@ -85,6 +127,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Splash screen
+    implementation(libs.androidx.core.splashscreen)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

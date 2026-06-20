@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NotePay" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowSplashScreenBackground">#FBFDF7</item>
+    <!--
+      Base theme cho app. Material 3 DayNight tự động switch theo system theme.
+      Toàn bộ Material 3 styling (color scheme, typography, shapes) được Compose
+      quản lý runtime qua NotePayTheme() trong ui/theme/Theme.kt.
+      Theme XML này chỉ lo:
+       - Status/navigation bar transparent (edge-to-edge)
+       - Splash screen background cho Android 12+
+       - Light/dark status bar icons theo theme
+    -->
+    <style name="Theme.NotePay" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/note_pay_splash_background_light</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
     </style>
 </resources>

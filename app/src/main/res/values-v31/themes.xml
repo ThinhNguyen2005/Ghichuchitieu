@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <style name="Theme.NotePay" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowSplashScreenBackground">#FBFDF7</item>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      SplashScreen theme cho Android 12+ (API 31+).
+      Theme.SplashScreen đến từ androidx.core:core-splashscreen.
+      Sau khi splash kết thúc, app tự động chuyển sang Theme.NotePay.
+      Đối với Android < 12 (API 24-30), core-splashscreen tự fallback về
+      Theme.NotePay (values/themes.xml) — không cần khai báo riêng.
+    -->
+    <style name="Theme.NotePay" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/note_pay_splash_background_light</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+    </style>
+
+    <style name="Theme.NotePay.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/note_pay_splash_background_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.NotePay</item>
     </style>
 </resources>

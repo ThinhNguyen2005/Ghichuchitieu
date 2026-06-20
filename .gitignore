@@ -19,3 +19,9 @@ local.properties
 /build_test.log
 /build_log2.txt
 /build_log.txt
+
+# Release signing material — KHÔNG commit vào git.
+# Tạo file signing.properties cục bộ theo hướng dẫn trong app/build.gradle.kts
+/app/release.keystore
+/app/signing.properties
+/app/*.jks

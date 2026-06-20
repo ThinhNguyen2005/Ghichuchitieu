@@ -56,11 +56,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyState
@@ -104,10 +106,21 @@ fun BillSplitScreen(
         state.wallets.find { it.id == id }
     }
 
+    val title = stringResource(R.string.bill_split_title)
+    val vietqrCd = stringResource(R.string.bill_split_vietqr_cd)
+    val emptyAll = stringResource(R.string.bill_split_empty)
+    val tabUnpaid = stringResource(R.string.bill_split_tab_unpaid)
+    val tabPaid = stringResource(R.string.bill_split_tab_paid)
+    val emptyUnpaid = stringResource(R.string.bill_split_empty_unpaid)
+    val emptyPaid = stringResource(R.string.bill_split_empty_paid)
+    val vietqrSavedFmt = stringResource(R.string.bill_split_vietqr_saved)
+    val confirmDeleteTitle = stringResource(R.string.confirm_delete_bill_title)
+    val confirmDeleteMsgFmt = stringResource(R.string.confirm_delete_permanent)
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quản lý Chia tiền") },
+                title = { Text(title) },
                 actions = {
                     Box(
                         modifier = Modifier
@@ -124,7 +137,7 @@ fun BillSplitScreen(
                     ) {
                         Image(
                             painter = painterResource(id = com.notepay.R.drawable.logo_vietqr),
-                            contentDescription = "Cấu hình VietQR",
+                            contentDescription = vietqrCd,
                             modifier = Modifier
                                 .height(26.dp)
                                 .graphicsLayer(alpha = if (state.activeWallet != null) 1f else 0.38f)
@@ -155,7 +168,7 @@ fun BillSplitScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        message = "Chưa có hóa đơn nào.\nNhấn nút (+) để tạo phiếu chia tiền đầu tiên.",
+                        message = emptyAll,
                         icon = Icons.Rounded.CallReceived
                     )
                 }
@@ -168,7 +181,7 @@ fun BillSplitScreen(
                             val count = state.unpaidSplits.groupBy { it.split.debtorName }.size
                             if (count > 0) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Chờ thanh toán")
+                                    Text(tabUnpaid)
                                     Spacer(Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
@@ -184,14 +197,14 @@ fun BillSplitScreen(
                                     }
                                 }
                             } else {
-                                Text("Chờ thanh toán")
+                                Text(tabUnpaid)
                             }
                         }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { viewModel.selectTab(1) },
-                        text = { Text("Đã thanh toán") }
+                        text = { Text(tabPaid) }
                     )
                 }
 
@@ -203,7 +216,7 @@ fun BillSplitScreen(
                     if (unpaidGroups.isEmpty()) {
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
                             EmptyState(
-                                message = "Không có khoản nợ nào chờ thanh toán.",
+                                message = emptyUnpaid,
                                 icon = Icons.Rounded.CallReceived
                             )
                         }
@@ -234,7 +247,7 @@ fun BillSplitScreen(
                     if (state.paidSplits.isEmpty()) {
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
                             EmptyState(
-                                message = "Chưa có khoản nợ nào được trả.",
+                                message = emptyPaid,
                                 icon = Icons.Rounded.CheckCircle
                             )
                         }
@@ -271,7 +284,7 @@ fun BillSplitScreen(
             onSave = { bin, accNum, accName ->
                 viewModel.updateWalletForQr(wallet.id, bin, accNum, accName)
                 qrConfigWalletId = null
-                Toast.makeText(context, "Đã lưu cấu hình VietQR cho ví ${wallet.name}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, vietqrSavedFmt.format(wallet.name), Toast.LENGTH_SHORT).show()
             },
         )
     }
@@ -297,9 +310,9 @@ fun BillSplitScreen(
 
     pendingDeleteBill?.let { item ->
         ConfirmDeleteDialog(
-            title = "Xóa khoản nợ?",
+            title = confirmDeleteTitle,
             itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
-            message = "Khoản nợ của ${item.split.debtorName} sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+            message = confirmDeleteMsgFmt.format(item.split.debtorName),
             onConfirm = { viewModel.deleteBillSplit(item.split.id) },
             onDismiss = { pendingDeleteBill = null },
         )
@@ -314,6 +327,7 @@ private fun DebtorGroupRow(
     onClick: () -> Unit
 ) {
     val amountStr = MoneyFormatter.format(Money(totalAmountCents))
+    val totalCountFmt = androidx.compose.ui.res.stringResource(R.string.bill_split_total_count)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -349,7 +363,7 @@ private fun DebtorGroupRow(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Tổng: $splitCount khoản nợ",
+                    text = totalCountFmt.format(splitCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -1,4 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App -->
     <string name="app_name">Quản lí chi tiêu</string>
+
+    <!-- Bottom navigation labels -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_transactions">Giao dịch</string>
+    <string name="nav_add">Thêm</string>
+    <string name="nav_stats">Thống kê</string>
+    <string name="nav_bill_split">Chia tiền</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Lưu</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="action_done">Xong</string>
+    <string name="action_close">Đóng</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_edit">Chỉnh sửa</string>
+    <string name="action_setup">Thiết lập</string>
+    <string name="action_see_all">Xem tất cả</string>
+    <string name="action_back">Quay lại</string>
+
+    <!-- Quick add bottom sheet -->
+    <string name="quick_add_title">Tạo mới</string>
+    <string name="quick_add_expense_title">Thêm chi tiêu</string>
+    <string name="quick_add_expense_desc">Ghi nhận giao dịch mua sắm, ăn uống hàng ngày</string>
+    <string name="quick_add_bill_split_title">Chia hóa đơn</string>
+    <string name="quick_add_bill_split_desc">Chia tiền ăn chung, mua sắm nhóm với bạn bè</string>
+    <string name="quick_add_subscription_title">Thêm hóa đơn định kỳ</string>
+    <string name="quick_add_subscription_desc">Đặt lịch đóng tiền nhà, Netflix, bảo hiểm…</string>
+
+    <!-- Home screen -->
+    <string name="home_empty_wallet_title">Chưa có ví nào</string>
+    <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
+    <string name="home_create_wallet">Tạo ví</string>
+    <string name="home_notif_permission_title">Tự động ghi chép giao dịch</string>
+    <string name="home_notif_permission_desc">Nhấp vào đây để cấp quyền đọc thông báo ngân hàng và Momo (Local Parse).</string>
+    <string name="home_notif_permission_tip">💡 Mẹo: Nếu công tắc bị xám màu (Cài đặt bị hạn chế), hãy vào Thông tin ứng dụng NotePay → Bấm dấu 3 chấm góc trên bên phải → Chọn \"Cho phép cài đặt bị hạn chế\" rồi thử lại.</string>
+    <string name="home_battery_title">Tối ưu chạy ngầm (Khuyên dùng)</string>
+    <string name="home_battery_desc">Vào Pin → Chọn Không hạn chế để app chạy tự động mượt mà hơn.</string>
+    <string name="home_recent_transactions">Giao dịch gần đây</string>
+    <string name="home_empty_transactions">Chưa có giao dịch nào. Nhấn Thêm để bắt đầu.</string>
+    <string name="home_choose_wallet">Chọn ví tài chính</string>
+    <string name="home_edit_wallet">Chỉnh sửa ví</string>
+    <string name="home_add_new_wallet">Thêm ví mới</string>
+    <string name="home_reminder_cd">Nhắc nhở gia hạn</string>
+    <string name="home_notification_settings_cd">Cài đặt thông báo</string>
+
+    <!-- Budget projection messages -->
+    <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
+    <string name="budget_will_exceed">⚠️ Dự báo sẽ vượt hạn mức vào ngày %1$s. Bạn nên giảm chi tiêu xuống dưới %2$s/ngày để giữ an toàn.</string>
+    <string name="budget_safe">💚 Chi tiêu trong tầm kiểm soát. Dự kiến tiêu dùng cuối tháng là %1$s (Dưới hạn mức).</string>
+    <string name="budget_title">Dự báo ngân sách</string>
+
+    <!-- Add / Edit transaction screen -->
+    <string name="add_transaction_title">Thêm giao dịch</string>
+    <string name="edit_transaction_title">Sửa giao dịch</string>
+    <string name="transaction_type_expense">Chi tiêu</string>
+    <string name="transaction_type_income">Thu nhập</string>
+    <string name="transaction_field_date">Ngày</string>
+    <string name="transaction_field_wallet">Ví thanh toán</string>
+    <string name="transaction_field_note">Ghi chú</string>
+    <string name="transaction_field_note_placeholder">Thêm chi tiết giao dịch…</string>
+    <string name="transaction_no_wallet_selected">Chưa chọn ví</string>
+    <string name="transaction_no_other_wallet">Không có ví nào khác, hãy tạo thêm ví mới trong phần quản lý tài khoản/ví</string>
+    <string name="transaction_save_button">Lưu giao dịch</string>
+    <string name="transaction_suggestion_label">💡 Gợi ý:</string>
+
+    <!-- Date label prefixes -->
+    <string name="date_today_prefix">Hôm nay, </string>
+    <string name="date_yesterday_prefix">Hôm qua, </string>
+    <string name="date_month_suffix">Th%1$d</string>
+
+    <!-- Number-to-words helper -->
+    <string name="number_words_zero">Không</string>
+    <string name="number_words_currency_suffix">đồng</string>
+
+    <!-- Transaction list screen -->
+    <string name="transaction_list_search_hint">Tìm theo ghi chú</string>
+    <string name="transaction_list_filter_all">Tất cả</string>
+    <string name="transaction_list_empty">Chưa có giao dịch nào trong khoảng thời gian này.</string>
+
+    <!-- Stats screen -->
+    <string name="stats_filter_month">Tháng</string>
+    <string name="stats_filter_week">Tuần</string>
+    <string name="stats_filter_quarter">Quý</string>
+    <string name="stats_filter_year">Năm</string>
+    <string name="stats_filter_custom">Tùy chọn</string>
+    <string name="stats_kpi_income">Thu nhập</string>
+    <string name="stats_kpi_expense">Chi tiêu</string>
+    <string name="stats_kpi_net">Ròng</string>
+    <string name="stats_section_categories">Theo danh mục</string>
+    <string name="stats_section_budget">Ngân sách</string>
+    <string name="stats_section_advice">Lời khuyên</string>
+    <string name="stats_empty">Chưa có dữ liệu trong khoảng thời gian đã chọn.</string>
+
+    <!-- Bill split screen -->
+    <string name="bill_split_title">Quản lý Chia tiền</string>
+    <string name="bill_split_tab_unpaid">Chờ thanh toán</string>
+    <string name="bill_split_tab_paid">Đã thanh toán</string>
+    <string name="bill_split_empty">Chưa có hóa đơn nào.\nNhấn nút (+) để tạo phiếu chia tiền đầu tiên.</string>
+    <string name="bill_split_empty_unpaid">Không có khoản nợ nào chờ thanh toán.</string>
+    <string name="bill_split_empty_paid">Chưa có khoản nợ nào được trả.</string>
+    <string name="bill_split_vietqr_cd">Cấu hình VietQR</string>
+    <string name="bill_split_total_count">Tổng: %1$d khoản nợ</string>
+    <string name="bill_split_vietqr_saved">Đã lưu cấu hình VietQR cho ví %1$s</string>
+
+    <!-- Subscription screen -->
+    <string name="subscription_title">Hóa đơn định kỳ</string>
+    <string name="subscription_empty">Chưa có hóa đơn định kỳ nào.</string>
+
+    <!-- AddWallet screen -->
+    <string name="add_wallet_title">Thêm ví</string>
+    <string name="edit_wallet_title">Sửa ví</string>
+    <string name="wallet_field_name">Tên ví</string>
+    <string name="wallet_field_initial_balance">Số dư ban đầu</string>
+    <string name="wallet_field_icon">Biểu tượng</string>
+    <string name="wallet_field_color">Màu sắc</string>
+    <string name="wallet_field_budget">Hạn mức chi tiêu</string>
+    <string name="wallet_budget_off">Tắt</string>
+
+    <!-- Confirm delete dialog -->
+    <string name="confirm_delete_transaction_title">Xóa giao dịch?</string>
+    <string name="confirm_delete_bill_title">Xóa khoản nợ?</string>
+    <string name="confirm_delete_subscription_title">Xóa hóa đơn định kỳ?</string>
+    <string name="confirm_delete_permanent">Mục này sẽ bị xóa vĩnh viễn và không thể khôi phục.</string>
+
+    <!-- Feedback / Snackbar messages -->
+    <string name="feedback_save_success">Đã lưu thành công</string>
+    <string name="feedback_save_error">Không thể lưu, vui lòng thử lại</string>
+    <string name="feedback_delete_success">Đã xóa</string>
+    <string name="feedback_undo">Hoàn tác</string>
+    <string name="feedback_bill_split_created">Đã tạo khoản chia tiền</string>
+    <string name="feedback_bill_split_create_failed">Không thể tạo khoản chia tiền</string>
+    <string name="feedback_bill_split_marked_paid">Đã ghi nhận thanh toán</string>
+    <string name="feedback_bill_split_mark_failed">Không thể ghi nhận thanh toán</string>
+    <string name="feedback_bill_split_reconciled">Đã ghi nhận thanh toán &amp; đối soát thành công</string>
+    <string name="feedback_bill_split_deleted">Đã xóa khoản chia tiền</string>
+    <string name="feedback_bill_split_delete_failed">Không thể xóa khoản chia tiền</string>
+    <string name="feedback_vietqr_saved">Đã cập nhật cấu hình VietQR</string>
+    <string name="feedback_vietqr_failed">Không thể cập nhật cấu hình VietQR</string>
+
+    <!-- Errors -->
+    <string name="error_wallet_not_found">Không tìm thấy ví</string>
+    <string name="error_bill_split_not_found">Không tìm thấy khoản chia tiền</string>
+    <string name="error_parent_tx_not_found">Không tìm thấy giao dịch gốc</string>
+
+    <!-- Accessibility / content descriptions -->
+    <string name="cd_vietqr_logo">VietQR Logo</string>
+
+    <!-- Notification listener service label (used in Android system settings) -->
+    <string name="notif_listener_service_label">NotePay Local Parse</string>
 </resources>
