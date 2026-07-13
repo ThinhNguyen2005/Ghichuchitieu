@@ -24,7 +24,11 @@ fun CategoryPickerSheet(
     isIncome: Boolean,
     onCategoryChanged: (Category) -> Unit,
     onDismiss: () -> Unit,
-    onCreateCategory: (displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) -> Unit,
+    onCreateCategory: (
+        displayName: String,
+        colorArgb: Long,
+        isIncome: Boolean
+    ) -> Unit,
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -45,9 +49,8 @@ fun CategoryPickerSheet(
                 selectedCategory = selectedCategory,
                 isIncome = isIncome,
                 onCategoryChanged = onCategoryChanged,
-                onCreateCategory = { name, color, isInc ->
-                    onCreateCategory(name, color, "category_other", isInc)
-                }
+
+                onCreateCategory = onCreateCategory
             )
         }
     }

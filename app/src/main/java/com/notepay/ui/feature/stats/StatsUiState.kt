@@ -18,9 +18,10 @@ data class BudgetForecast(
     val projectedSpend: Money,
     val forecastMessage: String,
     val isProjectedToExceed: Boolean = false,
+
     val previousMonthDailyAverage: Money? = null,
     val trendPercent: Float? = null,
-    val trendMessage: String? = null
+    val trendMessage: String? = null,
 )
 
 data class CategoryBreakdownItem(

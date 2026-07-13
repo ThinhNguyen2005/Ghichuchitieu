@@ -1,11 +1,5 @@
 package com.notepay.ui.component
 
-import com.notepay.ui.theme.AppTheme
-
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalContext
-import com.notepay.R
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +40,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+import androidx.compose.material.icons.outlined.FolderOpen
+
 /**
  * Dialog chi tiết một ngày, dùng chung cho:
  *  - Trang Nhắc nhở (subscription đến hạn + giao dịch nếu có).
@@ -60,7 +56,6 @@ fun DayDetailDialog(
     subscriptions: List<Subscription> = emptyList(),
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
     val now = remember { Clock.System.now() }
     val today = remember { now.toLocalDateTime(TimeZone.currentSystemDefault()).date }
 
@@ -69,20 +64,20 @@ fun DayDetailDialog(
         title = {
             // P2-13: title có "Thứ X," phía trước + subtitle tương đối.
             val weekday = when (date.dayOfWeek.ordinal) {
-                0 -> context.getString(R.string.day_monday)
-                1 -> context.getString(R.string.day_tuesday)
-                2 -> context.getString(R.string.day_wednesday)
-                3 -> context.getString(R.string.day_thursday)
-                4 -> context.getString(R.string.day_friday)
-                5 -> context.getString(R.string.day_saturday)
-                6 -> context.getString(R.string.day_sunday)
+                0 -> "Thứ 2"
+                1 -> "Thứ 3"
+                2 -> "Thứ 4"
+                3 -> "Thứ 5"
+                4 -> "Thứ 6"
+                5 -> "Thứ 7"
+                6 -> "Chủ nhật"
                 else -> ""
             }
             val diffDays = date.toEpochDays().toLong() - today.toEpochDays().toLong()
             val relative = when {
-                diffDays == 0L -> context.getString(R.string.date_today)
-                diffDays > 0L -> context.getString(R.string.date_days_remaining_format, diffDays)
-                else -> context.getString(R.string.date_days_ago_format, -diffDays)
+                diffDays == 0L -> "Hôm nay"
+                diffDays > 0L -> "Còn $diffDays ngày nữa"
+                else -> "${-diffDays} ngày trước"
             }
             Column {
                 Text(
@@ -105,17 +100,16 @@ fun DayDetailDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(80.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        EmptyState(stringResource(R.string.day_detail_empty_desc))
-                    }
+                    EmptyStateWithAction(
+                        icon = Icons.Outlined.FolderOpen,
+                        title = "Trống",
+                        description = "Không có giao dịch hoặc nhắc nhở nào trong ngày này."
+                    )
                 }
 
                 if (subscriptions.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.subscription_reminders_title),
+                        "Nhắc nhở",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -130,7 +124,7 @@ fun DayDetailDialog(
                         }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = containerColor),
-                            shape = AppTheme.shapes.corner12,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
@@ -141,7 +135,7 @@ fun DayDetailDialog(
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
-                                        .clip(AppTheme.shapes.circle)
+                                        .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -165,10 +159,10 @@ fun DayDetailDialog(
                                         fontWeight = FontWeight.Medium,
                                     )
                                     val dueLabel = when {
-                                        isExpired -> context.getString(R.string.subscription_overdue_format, -daysLeft)
-                                        daysLeft == 0L -> context.getString(R.string.subscription_due_today)
-                                        daysLeft == 1L -> context.getString(R.string.subscription_due_one_day)
-                                        else -> context.getString(R.string.subscription_due_days_format, daysLeft)
+                                        isExpired -> "Quá hạn ${-daysLeft} ngày"
+                                        daysLeft == 0L -> "Hết hạn hôm nay"
+                                        daysLeft == 1L -> "Còn 1 ngày"
+                                        else -> "Còn $daysLeft ngày"
                                     }
                                     Text(
                                         dueLabel,
@@ -186,7 +180,7 @@ fun DayDetailDialog(
                         HorizontalDivider()
                     }
                     Text(
-                        stringResource(R.string.day_detail_transactions_title),
+                        "Giao dịch trong ngày",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -228,7 +222,7 @@ fun DayDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+            TextButton(onClick = onDismiss) { Text("Đóng") }
         },
     )
 }

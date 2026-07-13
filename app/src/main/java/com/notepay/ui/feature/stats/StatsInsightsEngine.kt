@@ -7,8 +7,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.math.max
-import kotlinx.datetime.Instant
-import kotlinx.datetime.minus
+import kotlin.time.Instant
 
 /**
  * Pure-Kotlin engine cho Stats insights. Không có Android dependency.
@@ -42,7 +41,7 @@ object StatsInsightsEngine {
 
         val isProjectedToExceed = limit != null && projectedSpendCents > limit.amountInCents
         val exceedMsg = if (isProjectedToExceed) {
-            " ⚠️ Vượt hạn mức ${MoneyFormatter.format(limit!!)}!"
+            " ⚠️ Vượt hạn mức ${MoneyFormatter.format(limit)}!"
         } else ""
 
         // Trend so với tháng trước

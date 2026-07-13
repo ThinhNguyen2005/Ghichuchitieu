@@ -30,14 +30,12 @@ class CategoryRepositoryImpl @Inject constructor(
             val name = prefs.getString("custom_category_${id}_name", null) ?: return@mapNotNull null
             val color = prefs.getLong("custom_category_${id}_color", 0xFF90A4AEL)
             val isIncome = prefs.getBoolean("custom_category_${id}_is_income", false)
-            val iconId = prefs.getString("custom_category_${id}_icon_id", "category_other") ?: "category_other"
             Category(
                 id = id,
                 displayName = name,
                 colorArgb = color,
                 isIncome = isIncome,
-                isCustom = true,
-                iconId = iconId
+                isCustom = true
             )
         }
         Category.registerCustomCategories(list)
@@ -59,7 +57,6 @@ class CategoryRepositoryImpl @Inject constructor(
             .putString("custom_category_${category.id}_name", category.displayName)
             .putLong("custom_category_${category.id}_color", category.colorArgb)
             .putBoolean("custom_category_${category.id}_is_income", category.isIncome)
-            .putString("custom_category_${category.id}_icon_id", category.iconId)
             .apply()
             
         loadAndRegister()
