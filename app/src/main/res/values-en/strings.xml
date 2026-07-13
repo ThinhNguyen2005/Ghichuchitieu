@@ -151,4 +151,61 @@
 
     <!-- Notification listener service label (used in Android system settings) -->
     <string name="notif_listener_service_label">NotePay Local Parse</string>
+
+    <!-- Extractions -->
+    <string name="transaction_deleted">Transaction deleted</string>
+    <string name="transaction_search_placeholder">Search transactions...</string>
+    <string name="action_search">Search</string>
+    <string name="cd_switch_to_list">Switch to list</string>
+    <string name="cd_switch_to_calendar">Switch to calendar</string>
+    <string name="transaction_day_details_format">Details of %1$d/%2$d</string>
+    <string name="transaction_no_transactions_today">No transactions on this day</string>
+    <string name="transaction_none_found">No matching transactions found.\nAdd your first transaction to start\ntracking cash flow.</string>
+    <string name="date_today_format">Today, %1$d M%2$d</string>
+    <string name="date_yesterday_format">Yesterday, %1$d M%2$d</string>
+    <string name="day_monday">Monday</string>
+    <string name="day_tuesday">Tuesday</string>
+    <string name="day_wednesday">Wednesday</string>
+    <string name="day_thursday">Thursday</string>
+    <string name="day_friday">Friday</string>
+    <string name="day_saturday">Saturday</string>
+    <string name="day_sunday">Sunday</string>
+    <string name="date_other_format">%1$s, %2$d M%3$d</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="transaction_search_notes_category_placeholder">Search by notes or category</string>
+    <string name="date_today">Today</string>
+    <string name="date_days_remaining_format">%1$d days remaining</string>
+    <string name="date_days_ago_format">%1$d days ago</string>
+    <string name="day_detail_empty_desc">No transactions or reminders on this day.</string>
+    <string name="subscription_reminders_title">Reminders</string>
+    <string name="subscription_overdue_format">Overdue by %1$d days</string>
+    <string name="subscription_due_today">Due today</string>
+    <string name="subscription_due_one_day">1 day left</string>
+    <string name="subscription_due_days_format">Remaining %1$d days</string>
+    <string name="day_detail_transactions_title">Transactions today</string>
+    <string name="state_empty">Empty</string>
+    <string name="stats_empty_state">Add income/expense transactions during this period to analyze financial structure.</string>
+    <string name="stats_tab_expense_structure">Expense structure</string>
+    <string name="stats_tab_income_structure">Income structure</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="stats_select_date_range">Select date range</string>
+    <string name="wallet_all">All wallets</string>
+    <string name="stats_month_year_format">Month %1$02d/%2$d</string>
+    <string name="stats_total_expense">Total expense</string>
+    <string name="stats_expense_category_detail">Expense category details</string>
+    <string name="stats_transaction_history_format">Transaction history %1$s</string>
+    <string name="stats_total_income">Total income</string>
+    <string name="stats_income_category_detail">Income category details</string>
+    <string name="stats_income_history_format">Income history %1$s</string>
+    <string name="cd_previous">Previous</string>
+    <string name="cd_next">Next</string>
+    <string name="stats_ai_insights_title">AI Insights &amp; Smart Assistant</string>
+    <string name="stats_flexible_daily_budget">Flexible daily budget</string>
+    <string name="stats_remaining_today_format">Remaining today: %1$s</string>
+    <string name="stats_daily_budget_detail_format">Original limit: %1$s (Spent: %2$s)</string>
+    <string name="stats_budget_exceeded_advice_format">⚠️ Exceeded limit! Tomorrow is budget reduced to %1$s to compensate.</string>
+    <string name="stats_budget_safe_advice">💡 Smart spending preserves monthly budget.</string>
+    <string name="stats_subscription_detected">Subscription detected</string>
+    <string name="stats_subscription_amount_monthly_format">%1$s / month</string>
+    <string name="stats_add_subscription">Add subscription</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.addtransaction
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -213,13 +215,13 @@ private fun AddCategoryDialog(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .clip(CircleShape)
+                                .clip(AppTheme.shapes.circle)
                                 .background(Color(colorVal))
                                 .clickable { selectedColor = colorVal }
                                 .border(
                                     width = if (isSelected) 3.dp else 0.dp,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    shape = CircleShape,
+                                    shape = AppTheme.shapes.circle,
                                 ),
                         )
                     }

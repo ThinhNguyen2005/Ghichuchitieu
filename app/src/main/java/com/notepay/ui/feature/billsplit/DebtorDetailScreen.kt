@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
+import com.notepay.ui.theme.AppTheme
+
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -151,7 +153,7 @@ fun DebtorDetailScreen(
                         Button(
                             onClick = { showReconciliationSheet = true },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = AppTheme.shapes.corner16
                         ) {
                             Icon(Icons.Rounded.Payments, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -176,7 +178,7 @@ fun DebtorDetailScreen(
                     Spacer(Modifier.height(16.dp))
                     Text("Người này không có lịch sử nợ! ✨", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onBack, shape = RoundedCornerShape(12.dp)) { Text("Quay lại") }
+                    Button(onClick = onBack, shape = AppTheme.shapes.corner12) { Text("Quay lại") }
                 }
             }
             return@Scaffold
@@ -232,7 +234,7 @@ fun DebtorDetailScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = AppTheme.shapes.corner16
                         ) {
                             Icon(Icons.Rounded.Share, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -251,7 +253,7 @@ fun DebtorDetailScreen(
                 } else {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = AppTheme.shapes.corner20,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f))
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -267,7 +269,7 @@ fun DebtorDetailScreen(
                             Button(
                                 onClick = { qrConfigWalletId = activeWallet?.id },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = AppTheme.shapes.corner12,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                             ) {
                                 Icon(Icons.Rounded.QrCode2, contentDescription = null)
@@ -298,13 +300,13 @@ fun DebtorDetailScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(AppTheme.shapes.corner16)
                         .combinedClickable(
                             onClick = { /* No-op */ },
                             onLongClick = { pendingDeleteBill = item }
                         ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -324,7 +326,7 @@ fun DebtorDetailScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(AppTheme.shapes.corner8)
                                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
@@ -464,7 +466,7 @@ private fun VietQrTemplateCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -477,7 +479,7 @@ private fun VietQrTemplateCard(
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(AppTheme.shapes.corner16)
                     .background(Color.White)
                     .padding(12.dp)
             ) {
@@ -509,7 +511,7 @@ private fun TransferDetailsCopyCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {

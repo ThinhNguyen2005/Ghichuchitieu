@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +41,7 @@ fun EmptyState(
         Box(
             modifier = Modifier
                 .size(96.dp)
-                .clip(CircleShape)
+                .clip(AppTheme.shapes.circle)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {

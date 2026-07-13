@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.subscription
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -158,7 +160,7 @@ fun AddSubscriptionBottomSheet(
                                     onCategoryChanged(cat.id)
                                     onNextDueDateChanged(tx.occurredAt.toEpochMilliseconds())
                                 },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppTheme.shapes.corner12,
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             )
@@ -218,7 +220,7 @@ fun AddSubscriptionBottomSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(AppTheme.shapes.corner12)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .clickable { showCategorySheet = true }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -248,9 +250,9 @@ fun AddSubscriptionBottomSheet(
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = AppTheme.shapes.corner16
                     ),
-                shape = RoundedCornerShape(16.dp),
+                shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
                 )

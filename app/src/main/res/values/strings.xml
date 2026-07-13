@@ -151,4 +151,61 @@
 
     <!-- Notification listener service label (used in Android system settings) -->
     <string name="notif_listener_service_label">NotePay Local Parse</string>
+
+    <!-- Extractions -->
+    <string name="transaction_deleted">Đã xóa giao dịch</string>
+    <string name="transaction_search_placeholder">Tìm giao dịch...</string>
+    <string name="action_search">Tìm kiếm</string>
+    <string name="cd_switch_to_list">Chuyển sang danh sách</string>
+    <string name="cd_switch_to_calendar">Chuyển sang lịch</string>
+    <string name="transaction_day_details_format">Chi tiết ngày %1$d/%2$d</string>
+    <string name="transaction_no_transactions_today">Không có giao dịch nào trong ngày này</string>
+    <string name="transaction_none_found">Chưa có giao dịch phù hợp.\nThêm khoản chi đầu tiên để bắt đầu\ntheo dõi dòng tiền.</string>
+    <string name="date_today_format">Hôm nay, %1$d Th%2$d</string>
+    <string name="date_yesterday_format">Hôm qua, %1$d Th%2$d</string>
+    <string name="day_monday">Thứ 2</string>
+    <string name="day_tuesday">Thứ 3</string>
+    <string name="day_wednesday">Thứ 4</string>
+    <string name="day_thursday">Thứ 5</string>
+    <string name="day_friday">Thứ 6</string>
+    <string name="day_saturday">Thứ 7</string>
+    <string name="day_sunday">Chủ nhật</string>
+    <string name="date_other_format">%1$s, %2$d Th%3$d</string>
+    <string name="cd_clear_search">Xóa tìm kiếm</string>
+    <string name="transaction_search_notes_category_placeholder">Tìm theo ghi chú hoặc danh mục</string>
+    <string name="date_today">Hôm nay</string>
+    <string name="date_days_remaining_format">Còn %1$d ngày nữa</string>
+    <string name="date_days_ago_format">%1$d ngày trước</string>
+    <string name="day_detail_empty_desc">Không có giao dịch hoặc nhắc nhở nào trong ngày này.</string>
+    <string name="subscription_reminders_title">Nhắc nhở</string>
+    <string name="subscription_overdue_format">Quá hạn %1$d ngày</string>
+    <string name="subscription_due_today">Hết hạn hôm nay</string>
+    <string name="subscription_due_one_day">Còn 1 ngày</string>
+    <string name="subscription_due_days_format">Còn %1$d ngày</string>
+    <string name="day_detail_transactions_title">Giao dịch trong ngày</string>
+    <string name="state_empty">Trống</string>
+    <string name="stats_empty_state">Thêm giao dịch thu/chi trong thời gian này để phân tích cơ cấu tài chính.</string>
+    <string name="stats_tab_expense_structure">Cơ cấu chi tiêu</string>
+    <string name="stats_tab_income_structure">Cơ cấu thu nhập</string>
+    <string name="action_confirm">Xác nhận</string>
+    <string name="stats_select_date_range">Chọn khoảng thời gian</string>
+    <string name="wallet_all">Tất cả ví</string>
+    <string name="stats_month_year_format">Tháng %1$02d/%2$d</string>
+    <string name="stats_total_expense">Tổng chi tiêu</string>
+    <string name="stats_expense_category_detail">Chi tiết danh mục chi</string>
+    <string name="stats_transaction_history_format">Lịch sử giao dịch %1$s</string>
+    <string name="stats_total_income">Tổng thu nhập</string>
+    <string name="stats_income_category_detail">Chi tiết danh mục thu</string>
+    <string name="stats_income_history_format">Lịch sử thu nhập %1$s</string>
+    <string name="cd_previous">Trước</string>
+    <string name="cd_next">Sau</string>
+    <string name="stats_ai_insights_title">AI Insights &amp; Trợ lý thông minh</string>
+    <string name="stats_flexible_daily_budget">Ngân sách ngày linh hoạt</string>
+    <string name="stats_remaining_today_format">Còn lại hôm nay: %1$s</string>
+    <string name="stats_daily_budget_detail_format">Hạn mức gốc: %1$s (Đã tiêu: %2$s)</string>
+    <string name="stats_budget_exceeded_advice_format">⚠️ Tiêu quá hạn mức! Ngày mai giảm còn %1$s để bù tiền.</string>
+    <string name="stats_budget_safe_advice">💡 Chi tiêu thông minh giúp bảo toàn ngân sách tháng.</string>
+    <string name="stats_subscription_detected">Phát hiện hóa đơn định kỳ</string>
+    <string name="stats_subscription_amount_monthly_format">%1$s / tháng</string>
+    <string name="stats_add_subscription">Thêm hóa đơn</string>
 </resources>

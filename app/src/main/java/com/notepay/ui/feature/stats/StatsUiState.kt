@@ -17,7 +17,10 @@ data class BudgetForecast(
     val dailyAverage: Money,
     val projectedSpend: Money,
     val forecastMessage: String,
-    val isProjectedToExceed: Boolean = false
+    val isProjectedToExceed: Boolean = false,
+    val previousMonthDailyAverage: Money? = null,
+    val trendPercent: Float? = null,
+    val trendMessage: String? = null
 )
 
 data class CategoryBreakdownItem(
@@ -31,7 +34,8 @@ data class DynamicDailyBudgetData(
     val spentToday: Money,
     val remainingToday: Money,
     val tomorrowBudget: Money,
-    val isExceeded: Boolean
+    val isExceeded: Boolean,
+    val earlyWarning: String? = null
 )
 
 data class AiAdviceItem(

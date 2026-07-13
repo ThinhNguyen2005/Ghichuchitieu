@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.home
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -256,7 +258,7 @@ fun HomeScreen(
                 if (state.wallets.isEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppTheme.shapes.corner16,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         ),
@@ -301,7 +303,7 @@ fun HomeScreen(
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer
                         ),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppTheme.shapes.corner16,
                         onClick = {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -358,7 +360,7 @@ fun HomeScreen(
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = AppTheme.shapes.corner16
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp),
@@ -456,7 +458,7 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(AppTheme.shapes.corner12)
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                     else Color.Transparent
@@ -506,7 +508,7 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(AppTheme.shapes.corner12)
                                 .clickable {
                                     showWalletSwitcher = false
                                     onAddWallet()
@@ -638,7 +640,7 @@ private fun BudgetAnalysisCard(
             containerColor = progressColor.copy(alpha = 0.08f),
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = AppTheme.shapes.corner24,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = progressColor.copy(alpha = 0.2f)

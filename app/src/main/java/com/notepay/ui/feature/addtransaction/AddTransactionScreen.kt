@@ -1,6 +1,8 @@
 @file:Suppress("DEPRECATION")
 package com.notepay.ui.feature.addtransaction
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -248,7 +250,7 @@ fun AddTransactionScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
@@ -376,7 +378,7 @@ private fun TransactionTypeSelector(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .clip(CircleShape)
+            .clip(AppTheme.shapes.circle)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .padding(4.dp)
     ) {
@@ -398,7 +400,7 @@ private fun TransactionTypeSelector(
                 .offset(x = indicatorOffset)
                 .width(tabWidth)
                 .fillMaxHeight()
-                .clip(CircleShape)
+                .clip(AppTheme.shapes.circle)
                 .background(MaterialTheme.colorScheme.primary)
         )
 
@@ -416,7 +418,7 @@ private fun TransactionTypeSelector(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CircleShape)
+                        .clip(AppTheme.shapes.circle)
                         .clickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null

@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
+import com.notepay.ui.theme.AppTheme
+
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -125,7 +127,7 @@ fun BillSplitScreen(
                     Box(
                         modifier = Modifier
                             .height(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(AppTheme.shapes.corner8)
                             .clickable(
                                 enabled = state.activeWallet != null,
                                 onClick = {
@@ -186,7 +188,7 @@ fun BillSplitScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(18.dp)
-                                            .background(MaterialTheme.colorScheme.error, CircleShape),
+                                            .background(MaterialTheme.colorScheme.error, AppTheme.shapes.circle),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
@@ -335,7 +337,7 @@ private fun DebtorGroupRow(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = AppTheme.shapes.corner16
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -345,7 +347,7 @@ private fun DebtorGroupRow(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f), CircleShape),
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f), AppTheme.shapes.circle),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -402,7 +404,7 @@ private fun BillSplitItemRow(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
-            shape = RoundedCornerShape(16.dp)
+            shape = AppTheme.shapes.corner16
         ) {
             Row(
                 modifier = Modifier
@@ -414,7 +416,7 @@ private fun BillSplitItemRow(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(Color(0xFFE8F5E9), shape = CircleShape),
+                        .background(Color(0xFFE8F5E9), shape = AppTheme.shapes.circle),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -461,7 +463,7 @@ private fun BillSplitItemRow(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
-            shape = RoundedCornerShape(16.dp)
+            shape = AppTheme.shapes.corner16
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -471,7 +473,7 @@ private fun BillSplitItemRow(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f), CircleShape),
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f), AppTheme.shapes.circle),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

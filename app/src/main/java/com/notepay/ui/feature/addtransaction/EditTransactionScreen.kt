@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.addtransaction
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
@@ -195,12 +197,12 @@ fun EditTransactionScreen(
                                 .clickable { suggestedCategory?.let { viewModel.onCategoryChanged(it) } }
                                 .background(
                                     color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = AppTheme.shapes.corner12
                                 )
                                 .border(
                                     width = 1.dp,
                                     color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.4f),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = AppTheme.shapes.corner12
                                 )
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {

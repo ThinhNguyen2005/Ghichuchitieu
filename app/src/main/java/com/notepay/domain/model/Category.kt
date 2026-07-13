@@ -1,5 +1,6 @@
 package com.notepay.domain.model
 
+import com.notepay.domain.model.CategoryType
 /**
  * Danh mục giao dịch. Mỗi category có:
  *  - id: định danh duy nhất (tương thích với enum name trong database)
@@ -14,7 +15,25 @@ data class Category(
     val colorArgb: Long,
     val isIncome: Boolean = false,
     val isCustom: Boolean = false,
+    val iconId: String = "category_other",
+    val type: CategoryType = if (isIncome) CategoryType.INCOME else CategoryType.EXPENSE
 ) {
+    constructor(
+        id: String,
+        displayName: String,
+        colorArgb: Long,
+        isIncome: Boolean,
+        isCustom: Boolean,
+        iconId: String
+    ) : this(
+        id = id,
+        displayName = displayName,
+        colorArgb = colorArgb,
+        isIncome = isIncome,
+        isCustom = isCustom,
+        iconId = iconId,
+        type = if (isIncome) CategoryType.INCOME else CategoryType.EXPENSE
+    )
     /**
      * Thuộc tính name trả về id để giữ tương thích 100% với code cũ
      * (ví dụ mapper cũ sử dụng category.name để lưu vào SQLite).

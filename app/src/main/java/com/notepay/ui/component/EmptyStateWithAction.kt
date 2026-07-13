@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +60,7 @@ fun EmptyStateWithAction(
             Box(
                 modifier = Modifier
                     .size(96.dp)
-                    .clip(CircleShape)
+                    .clip(AppTheme.shapes.circle)
                     .background(iconBackground),
                 contentAlignment = Alignment.Center,
             ) {
@@ -88,7 +90,7 @@ fun EmptyStateWithAction(
                 Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = onClick,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    shape = AppTheme.shapes.corner12,
                 ) {
                     Text(actionLabel, fontWeight = FontWeight.SemiBold)
                 }

@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -72,7 +74,7 @@ fun TransactionItem(
         modifier = modifier
             .fillMaxWidth()
             .then(clickModifier),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -95,7 +97,7 @@ fun TransactionItem(
                     Box(
                         modifier = Modifier
                             .size(16.dp)
-                            .clip(CircleShape)
+                            .clip(AppTheme.shapes.circle)
                             .background(MaterialTheme.colorScheme.primary)
                             .align(Alignment.BottomEnd),
                         contentAlignment = Alignment.Center,

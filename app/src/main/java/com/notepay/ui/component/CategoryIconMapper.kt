@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -112,7 +114,7 @@ fun CategoryAvatar(
     Box(
         modifier = modifier
             .size(size)
-            .clip(CircleShape)
+            .clip(AppTheme.shapes.circle)
             .background(Color(category.colorArgb)),
         contentAlignment = Alignment.Center,
     ) {

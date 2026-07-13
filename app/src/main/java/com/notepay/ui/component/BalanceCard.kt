@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,7 +64,7 @@ fun BalanceCard(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = AppTheme.shapes.corner24,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -128,7 +130,7 @@ fun BalanceCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppTheme.shapes.corner8)
                         .clickable(enabled = onEditWallet != null) { onEditWallet?.invoke(wallet.id) }
                 ) {
                     Row(
@@ -198,7 +200,7 @@ fun BalanceCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppTheme.shapes.corner8)
                         .clickable(enabled = onEditWallet != null) { onEditWallet?.invoke(wallet.id) }
                         .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,

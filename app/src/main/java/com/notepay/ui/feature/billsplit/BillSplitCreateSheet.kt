@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
@@ -155,7 +157,7 @@ fun BillSplitCreateSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showTxPicker = !showTxPicker },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
@@ -212,7 +214,7 @@ fun BillSplitCreateSheet(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -247,7 +249,7 @@ fun BillSplitCreateSheet(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = AppTheme.shapes.corner16
                     ) {
                         LazyColumn(
                             modifier = Modifier
@@ -314,7 +316,7 @@ fun BillSplitCreateSheet(
                     label = { Text("Tên người nợ") },
                     placeholder = { Text("Nhập tên để thêm vào danh sách...") },
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppTheme.shapes.corner12,
                     trailingIcon = {
                         IconButton(
                             onClick = {
@@ -381,7 +383,7 @@ fun BillSplitCreateSheet(
                             .height(80.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = AppTheme.shapes.corner12
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -503,7 +505,7 @@ fun SelectedDebtorCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         )
@@ -521,7 +523,7 @@ fun SelectedDebtorCard(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .clip(CircleShape)
+                            .clip(AppTheme.shapes.circle)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -559,7 +561,7 @@ fun SelectedDebtorCard(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = AppTheme.shapes.corner12
             )
         }
     }

@@ -1,5 +1,11 @@
 package com.notepay.ui.feature.list
 
+import com.notepay.ui.theme.AppTheme
+
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.notepay.R
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -93,6 +99,7 @@ fun TransactionListScreen(
     onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Ngày được tap trên bảng lịch -> mặc định là hôm nay
@@ -107,8 +114,8 @@ fun TransactionListScreen(
         val transaction = state.pendingUndoTransaction ?: return@LaunchedEffect
         val result = onFeedback(
             UiFeedback(
-                message = "Đã xóa giao dịch",
-                actionLabel = "Hoàn tác",
+                message = context.getString(R.string.transaction_deleted),
+                actionLabel = context.getString(R.string.feedback_undo),
                 duration = FeedbackDuration.Short
             )
         )
@@ -150,7 +157,7 @@ fun TransactionListScreen(
                                 ) {
                                     if (searchQuery.isEmpty()) {
                                         Text(
-                                            "Tìm giao dịch...",
+                                            stringResource(R.string.transaction_search_placeholder),
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -161,7 +168,7 @@ fun TransactionListScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         )
                     } else {
-                        Text("Giao dịch")
+                        Text(stringResource(R.string.nav_transactions))
                     }
                 },
                 actions = {
@@ -176,13 +183,13 @@ fun TransactionListScreen(
                     ) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Rounded.Close else Icons.Rounded.Search,
-                            contentDescription = if (isSearchActive) "Đóng" else "Tìm kiếm"
+                            contentDescription = if (isSearchActive) stringResource(R.string.action_close) else stringResource(R.string.action_search)
                         )
                     }
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
                             imageVector = if (state.isCalendarView) Icons.Rounded.List else Icons.Rounded.CalendarMonth,
-                            contentDescription = if (state.isCalendarView) "Chuyển sang danh sách" else "Chuyển sang lịch",
+                            contentDescription = if (state.isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
                         )
                     }
                 },
@@ -213,9 +220,9 @@ fun TransactionListScreen(
 
     pendingDeleteTransaction?.let { tx ->
         ConfirmDeleteDialog(
-            title = "Xóa giao dịch?",
+            title = stringResource(R.string.confirm_delete_transaction_title),
             itemName = "${tx.note.ifBlank { tx.category.displayName }} • ${MoneyFormatter.format(tx.amount)}",
-            message = "Giao dịch sẽ bị xóa vĩnh viễn. Bạn có thể khôi phục từ thông báo \"Hoàn tác\" sau khi xóa.",
+            message = stringResource(R.string.confirm_delete_permanent),
             onConfirm = {
                 viewModel.delete(tx)
                 pendingDeleteTransaction = null
@@ -257,7 +264,7 @@ private fun TransactionListContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = CardDefaults.cardColors(
                         containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
                             MaterialTheme.colorScheme.surfaceContainer
@@ -282,7 +289,7 @@ private fun TransactionListContent(
             
             item {
                 Text(
-                    text = "Chi tiết ngày ${dateToShow.dayOfMonth}/${dateToShow.monthNumber}",
+                    text = stringResource(R.string.transaction_day_details_format, dateToShow.dayOfMonth, dateToShow.monthNumber),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -312,7 +319,7 @@ private fun TransactionListContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Không có giao dịch nào trong ngày này",
+                            text = stringResource(R.string.transaction_no_transactions_today),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -357,7 +364,7 @@ private fun TransactionListContent(
                             .padding(bottom = 80.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        EmptyState("Chưa có giao dịch phù hợp.\nThêm khoản chi đầu tiên để bắt đầu\ntheo dõi dòng tiền.")
+                        EmptyState(stringResource(R.string.transaction_none_found))
                     }
                 }
                 else -> {
@@ -384,7 +391,7 @@ private fun TransactionListContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = formatDateHeader(date).uppercase(),
+                                        text = formatDateHeader(date, LocalContext.current).uppercase(),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -436,31 +443,31 @@ private fun TransactionListContent(
     }
 }
 
-private fun formatDateHeader(date: LocalDate): String {
+private fun formatDateHeader(date: LocalDate, context: Context): String {
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val diff = date.toEpochDays() - today.toEpochDays()
     return when (diff) {
-        0L -> "Hôm nay, ${date.dayOfMonth} Th${date.monthNumber}"
-        -1L -> "Hôm qua, ${date.dayOfMonth} Th${date.monthNumber}"
+        0L -> context.getString(R.string.date_today_format, date.dayOfMonth, date.monthNumber)
+        -1L -> context.getString(R.string.date_yesterday_format, date.dayOfMonth, date.monthNumber)
         else -> {
             val dayOfWeekStr = when (date.dayOfWeek.ordinal + 1) {
-                1 -> "Thứ 2"
-                2 -> "Thứ 3"
-                3 -> "Thứ 4"
-                4 -> "Thứ 5"
-                5 -> "Thứ 6"
-                6 -> "Thứ 7"
-                7 -> "Chủ nhật"
+                1 -> context.getString(R.string.day_monday)
+                2 -> context.getString(R.string.day_tuesday)
+                3 -> context.getString(R.string.day_wednesday)
+                4 -> context.getString(R.string.day_thursday)
+                5 -> context.getString(R.string.day_friday)
+                6 -> context.getString(R.string.day_saturday)
+                7 -> context.getString(R.string.day_sunday)
                 else -> ""
             }
-            "$dayOfWeekStr, ${date.dayOfMonth} Th${date.monthNumber}"
+            context.getString(R.string.date_other_format, dayOfWeekStr, date.dayOfMonth, date.monthNumber)
         }
     }
 }
 
 /**
  * Thanh tìm kiếm "phong cách mới":
- *  - Bo góc lớn (RoundedCornerShape(24.dp))
+ *  - Bo góc lớn (AppTheme.shapes.corner24)
  *  - Backing fill nhẹ (surfaceVariant 30%) thay vì chỉ outline
  *  - Leading icon kính lúp, trailing icon X (clear) khi có text
  *  - Không label nổi, chỉ placeholder
@@ -476,7 +483,7 @@ private fun ModernSearchBar(
         onValueChange = onQueryChanged,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp)),
+            .clip(AppTheme.shapes.corner24),
         leadingIcon = {
             Icon(
                 Icons.Rounded.Search,
@@ -489,7 +496,7 @@ private fun ModernSearchBar(
                 IconButton(onClick = { onQueryChanged("") }) {
                     Icon(
                         Icons.Rounded.Close,
-                        contentDescription = "Xóa tìm kiếm",
+                        contentDescription = stringResource(R.string.cd_clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -497,13 +504,13 @@ private fun ModernSearchBar(
         },
         placeholder = {
             Text(
-                "Tìm theo ghi chú hoặc danh mục",
+                stringResource(R.string.transaction_search_notes_category_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         singleLine = true,
-        shape = RoundedCornerShape(24.dp),
+        shape = AppTheme.shapes.corner24,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),

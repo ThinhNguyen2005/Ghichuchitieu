@@ -1,5 +1,7 @@
 package com.notepay.ui.navigation
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -565,8 +567,8 @@ fun NotePayNavHost(
                             .navigationBarsPadding()
                             .offset(y = (-24).dp)
                             .size(64.dp)
-                            .shadow(8.dp, CircleShape)
-                            .clip(CircleShape)
+                            .shadow(8.dp, AppTheme.shapes.circle)
+                            .clip(AppTheme.shapes.circle)
                             .background(MaterialTheme.colorScheme.primary)
                             .clickable {
                                 showQuickAddSheet = true
@@ -687,7 +689,7 @@ private fun QuickAddOption(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -699,7 +701,7 @@ private fun QuickAddOption(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(color.copy(alpha = 0.12f), CircleShape),
+                    .background(color.copy(alpha = 0.12f), AppTheme.shapes.circle),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

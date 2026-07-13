@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.home
 
+import com.notepay.ui.theme.AppTheme
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -274,7 +276,7 @@ fun NotificationSettingsScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -359,7 +361,7 @@ fun NotificationSettingsScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -417,16 +419,16 @@ fun NotificationSettingsScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .clip(CircleShape)
+                                            .clip(AppTheme.shapes.circle)
                                             .background(
                                                 brush = if (isSystem) autoGradient else SolidColor(color),
-                                                shape = CircleShape
+                                                shape = AppTheme.shapes.circle
                                             )
                                             .border(
                                                 width = if (isSelected) 3.dp else 1.dp,
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary
                                                 else MaterialTheme.colorScheme.outlineVariant,
-                                                shape = CircleShape
+                                                shape = AppTheme.shapes.circle
                                             )
                                             .clickable {
                                                 playHaptic()
@@ -461,8 +463,8 @@ fun NotificationSettingsScreen(
                                             modifier = Modifier
                                                 .size(16.dp)
                                                 .align(Alignment.BottomEnd)
-                                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                                .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                                .background(MaterialTheme.colorScheme.primary, AppTheme.shapes.circle)
+                                                .border(1.5.dp, MaterialTheme.colorScheme.surface, AppTheme.shapes.circle),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
@@ -487,7 +489,7 @@ fun NotificationSettingsScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Row(
                         modifier = Modifier
@@ -531,7 +533,7 @@ fun NotificationSettingsScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = AppTheme.shapes.corner16
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -588,7 +590,7 @@ fun NotificationSettingsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(AppTheme.shapes.corner8)
                                         .clickable {
                                             playHaptic()
                                             viewModel.setPackageEnabled(app.packageName, !isEnabled)
@@ -608,7 +610,7 @@ fun NotificationSettingsScreen(
                                                 contentDescription = app.label,
                                                 modifier = Modifier
                                                     .size(40.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clip(AppTheme.shapes.corner8)
                                             )
                                         } else {
                                             Icon(
@@ -676,7 +678,7 @@ fun NotificationSettingsScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = AppTheme.shapes.corner16
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -865,7 +867,7 @@ fun NotificationSettingsScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         // Bo góc 16.dp chuẩn cấu trúc Shape M3 cho ô nhập liệu
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppTheme.shapes.corner16,
                         // Icon AppShortcut: Biểu tượng một app nhỏ nằm trong điện thoại, cực chuẩn cho "Package Name"
                         leadingIcon = {
                             Icon(
@@ -885,7 +887,7 @@ fun NotificationSettingsScreen(
                         placeholder = { Text("vd: Vietcombank") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppTheme.shapes.corner16,
                         // Icon Label của Material 3 có đường nét bo tròn mềm mại hơn bản cũ
                         leadingIcon = {
                             Icon(
@@ -980,9 +982,9 @@ fun NotificationSettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .clip(CircleShape)
+                                .clip(AppTheme.shapes.circle)
                                 .background(previewColor)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppTheme.shapes.circle)
                         )
 
                         // Hex Input
@@ -1056,7 +1058,7 @@ fun NotificationSettingsScreen(
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(AppTheme.shapes.corner8)
                                             .background(
                                                 if (isPresetSelected) MaterialTheme.colorScheme.primaryContainer
                                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
@@ -1065,7 +1067,7 @@ fun NotificationSettingsScreen(
                                                 width = if (isPresetSelected) 2.dp else 1.dp,
                                                 color = if (isPresetSelected) MaterialTheme.colorScheme.primary
                                                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                                shape = RoundedCornerShape(8.dp)
+                                                shape = AppTheme.shapes.corner8
                                             )
                                             .clickable {
                                                 playHaptic()
@@ -1082,7 +1084,7 @@ fun NotificationSettingsScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .size(20.dp)
-                                                    .clip(CircleShape)
+                                                    .clip(AppTheme.shapes.circle)
                                                     .background(colorObj)
                                             )
                                             Text(

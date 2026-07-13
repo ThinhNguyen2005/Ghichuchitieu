@@ -1,5 +1,10 @@
 package com.notepay.ui.feature.stats
 
+import com.notepay.ui.theme.AppTheme
+
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.notepay.R
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -55,6 +60,7 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
     onAddTransaction: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -63,7 +69,7 @@ fun StatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thống kê", fontWeight = FontWeight.Bold) }
+                title = { Text(stringResource(R.string.nav_stats), fontWeight = FontWeight.Bold) }
             )
         },
     ) { padding ->
@@ -78,9 +84,9 @@ fun StatsScreen(
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 EmptyStateWithAction(
                     icon = Icons.Outlined.PieChart,
-                    title = "Chưa có dữ liệu thống kê",
-                    description = "Thêm giao dịch thu/chi trong thời gian này để phân tích cơ cấu tài chính.",
-                    actionLabel = "Thêm giao dịch",
+                    title = stringResource(R.string.state_empty),
+                    description = stringResource(R.string.stats_empty_state),
+                    actionLabel = stringResource(R.string.home_create_wallet),
                     onClick = onAddTransaction,
                 )
             }
@@ -92,12 +98,12 @@ fun StatsScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0; viewModel.selectCategory(null) },
-                    text = { Text("Cơ cấu chi tiêu") },
+                    text = { Text(stringResource(R.string.stats_tab_expense_structure)) },
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1; viewModel.selectCategory(null) },
-                    text = { Text("Cơ cấu thu nhập") },
+                    text = { Text(stringResource(R.string.stats_tab_income_structure)) },
                 )
             }
 
@@ -147,13 +153,13 @@ fun StatsScreen(
                         showDateRangePicker = false
                     },
                     enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
-                ) { Text("Xác nhận", fontWeight = FontWeight.Bold) }
+                ) { Text(stringResource(R.string.action_confirm), fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showDateRangePicker = false }) { Text("Hủy") } }
+            dismissButton = { TextButton(onClick = { showDateRangePicker = false }) { Text(stringResource(R.string.action_cancel)) } }
         ) {
             DateRangePicker(
                 state = dateRangePickerState,
-                title = { Text("Chọn khoảng thời gian", modifier = Modifier.padding(16.dp)) },
+                title = { Text(stringResource(R.string.stats_select_date_range), modifier = Modifier.padding(16.dp)) },
                 showModeToggle = false,
                 modifier = Modifier.weight(1f)
             )
@@ -202,12 +208,12 @@ private fun ExpenseBreakdownContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                shape = RoundedCornerShape(20.dp),
+                shape = AppTheme.shapes.corner20,
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     FilterControlRow(
-                        walletLabel = state.selectedWallet?.name ?: "Tất cả ví",
-                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) "Tháng %02d/%d".format(state.month, state.year) else state.dateRangeLabel,
+                        walletLabel = state.selectedWallet?.name ?: stringResource(R.string.wallet_all),
+                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) stringResource(R.string.stats_month_year_format, state.month, state.year) else state.dateRangeLabel,
                         showNavigation = state.timeFilter == TimeFilterType.MONTH,
                         isNextEnabled = !state.isCurrentMonth,
                         wallets = wallets,
@@ -226,7 +232,7 @@ private fun ExpenseBreakdownContent(
                         DonutChart(
                             breakdown = state.breakdown,
                             totalExpense = state.totalExpense,
-                            centerLabel = "Tổng chi tiêu",
+                            centerLabel = stringResource(R.string.stats_total_expense),
                             selectedCategory = state.selectedCategory,
                             onCategorySelected = onCategorySelected,
                             modifier = Modifier.size(220.dp)
@@ -248,7 +254,7 @@ private fun ExpenseBreakdownContent(
 
         item {
             Text(
-                text = "Chi tiết danh mục chi",
+                text = stringResource(R.string.stats_expense_category_detail),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 4.dp, top = 4.dp)
@@ -277,7 +283,7 @@ private fun ExpenseBreakdownContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Lịch sử giao dịch ${item.category.displayName}",
+                            text = stringResource(R.string.stats_transaction_history_format, item.category.displayName),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -286,7 +292,7 @@ private fun ExpenseBreakdownContent(
 
                         if (filteredTransactions.isEmpty()) {
                             Text(
-                                text = "Không có giao dịch nào trong khoảng thời gian này.",
+                                text = stringResource(R.string.transaction_none_found),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(16.dp)
@@ -329,12 +335,12 @@ private fun IncomeBreakdownContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                shape = RoundedCornerShape(20.dp),
+                shape = AppTheme.shapes.corner20,
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     FilterControlRow(
-                        walletLabel = state.selectedWallet?.name ?: "Tất cả ví",
-                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) "Tháng %02d/%d".format(state.month, state.year) else state.dateRangeLabel,
+                        walletLabel = state.selectedWallet?.name ?: stringResource(R.string.wallet_all),
+                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) stringResource(R.string.stats_month_year_format, state.month, state.year) else state.dateRangeLabel,
                         showNavigation = state.timeFilter == TimeFilterType.MONTH,
                         isNextEnabled = !state.isCurrentMonth,
                         wallets = wallets,
@@ -347,7 +353,7 @@ private fun IncomeBreakdownContent(
                     Box(modifier = Modifier.fillMaxWidth().height(230.dp), contentAlignment = Alignment.Center) {
                         DonutChart(
                             breakdown = state.incomeBreakdown, totalExpense = state.totalIncome,
-                            centerLabel = "Tổng thu nhập", selectedCategory = state.selectedCategory,
+                            centerLabel = stringResource(R.string.stats_total_income), selectedCategory = state.selectedCategory,
                             onCategorySelected = onCategorySelected, modifier = Modifier.size(220.dp)
                         )
                     }
@@ -359,7 +365,7 @@ private fun IncomeBreakdownContent(
 
         item {
             Text(
-                text = "Chi tiết danh mục thu",
+                text = stringResource(R.string.stats_income_category_detail),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 4.dp, top = 4.dp)
@@ -372,9 +378,9 @@ private fun IncomeBreakdownContent(
                 CategoryBreakdownRow(item = item, isSelected = isSelected, onClick = { onCategorySelected(if (isSelected) null else item.category) })
                 if (isSelected) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 8.dp, end = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Lịch sử thu nhập ${item.category.displayName}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                        Text(stringResource(R.string.stats_income_history_format, item.category.displayName), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                         if (filteredTransactions.isEmpty()) {
-                            Text("Không có giao dịch nào.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
+                            Text(stringResource(R.string.transaction_none_found), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
                         } else {
                             filteredTransactions.forEach { tx -> TransactionItem(transaction = tx, onClick = {}) }
                         }
@@ -411,7 +417,7 @@ private fun FilterControlRow(
         Box {
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(AppTheme.shapes.corner12)
                     .clickable { showWalletDropdown = true }
                     .padding(vertical = 6.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -427,7 +433,7 @@ private fun FilterControlRow(
                 onDismissRequest = { showWalletDropdown = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Tất cả ví", fontWeight = FontWeight.Bold) },
+                    text = { Text(stringResource(R.string.wallet_all), fontWeight = FontWeight.Bold) },
                     onClick = {
                         onWalletSelect(null)
                         showWalletDropdown = false
@@ -452,7 +458,7 @@ private fun FilterControlRow(
         ) {
             if (showNavigation) {
                 IconButton(onClick = onPrevClick, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Rounded.ChevronLeft, "Trước", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.ChevronLeft, stringResource(R.string.cd_previous), modifier = Modifier.size(20.dp))
                 }
             }
 
@@ -463,7 +469,7 @@ private fun FilterControlRow(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppTheme.shapes.corner8)
                         .clickable { showTimeDropdown = true }
                         .padding(vertical = 4.dp, horizontal = 6.dp)
                 )
@@ -487,7 +493,7 @@ private fun FilterControlRow(
             if (showNavigation) {
                 IconButton(onClick = onNextClick, enabled = isNextEnabled, modifier = Modifier.size(28.dp)) {
                     Icon(
-                        Icons.Rounded.ChevronRight, "Sau", modifier = Modifier.size(20.dp),
+                        Icons.Rounded.ChevronRight, stringResource(R.string.cd_next), modifier = Modifier.size(20.dp),
                         tint = if (isNextEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(0.3f)
                     )
                 }
@@ -585,7 +591,7 @@ private fun CategoryBreakdownRow(
 ) {
     Card(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(0.25f) else MaterialTheme.colorScheme.surfaceContainerLow
         ),
@@ -648,12 +654,12 @@ private fun SummaryCards(totalIncome: Money, totalExpense: Money) {
 private fun BudgetProgressBar(spent: Money, limit: Money, percentage: Float) {
     val progress = percentage.coerceIn(0f, 1f)
     val color = when { percentage >= 1f -> Color(0xFFC62828); percentage >= 0.8f -> Color(0xFFEF6C00); else -> Color(0xFF2E7D32) }
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = AppTheme.shapes.corner16, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(imageVector = if (percentage >= 0.8f) Icons.Rounded.Warning else Icons.Rounded.Info, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                    Text("Hạn mức chi tiêu", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.wallet_field_budget), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     text = String.format(Locale.US, "%.1f%%", percentage * 100f),
@@ -673,7 +679,7 @@ private fun AiInsightsCarousel(state: StatsUiState, onAdviceFeedback: (String, I
     val localView = androidx.compose.ui.platform.LocalView.current
     val playHaptic = { try { localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP) } catch (_: Exception) {} }
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("AI Insights & Trợ lý thông minh", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+        Text(stringResource(R.string.stats_ai_insights_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
         androidx.compose.foundation.lazy.LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             state.dynamicDailyBudget?.let { budget -> item { DynamicDailyBudgetCard(budget = budget, modifier = Modifier.width(290.dp)) } }
             items(state.detectedSubscriptions) { sub -> SubscriptionProposalCard(sub = sub, onAdd = { playHaptic(); onAddSubscription(sub.name, sub.amount.amountInCents, sub.category.id, sub.possibleNextDueDate) }, modifier = Modifier.width(290.dp)) }
@@ -686,18 +692,18 @@ private fun AiInsightsCarousel(state: StatsUiState, onAdviceFeedback: (String, I
 private fun DynamicDailyBudgetCard(budget: DynamicDailyBudgetData, modifier: Modifier = Modifier) {
     val progress = if (budget.dailyBudget.amountInCents > 0) (budget.spentToday.amountInCents.toFloat() / budget.dailyBudget.amountInCents).coerceIn(0f, 1f) else 1f
     val cardColor = if (budget.isExceeded) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = cardColor), border = BorderStroke(1.dp, (if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary).copy(0.25f))) {
+    Card(modifier = modifier.height(170.dp), shape = AppTheme.shapes.corner20, colors = CardDefaults.cardColors(containerColor = cardColor), border = BorderStroke(1.dp, (if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary).copy(0.25f))) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.Wallet, null, tint = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text("Ngân sách ngày linh hoạt", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.stats_flexible_daily_budget), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             }
             Column {
-                Text("Còn lại hôm nay: ${MoneyFormatter.format(budget.remainingToday)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.ExtraBold)
-                Text("Hạn mức gốc: ${MoneyFormatter.format(budget.dailyBudget)} (Đã tiêu: ${MoneyFormatter.format(budget.spentToday)})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.stats_remaining_today_format, MoneyFormatter.format(budget.remainingToday)), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.ExtraBold)
+                Text(stringResource(R.string.stats_daily_budget_detail_format, MoneyFormatter.format(budget.dailyBudget), MoneyFormatter.format(budget.spentToday)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            Text(text = if (budget.isExceeded) "⚠️ Tiêu quá hạn mức! Ngày mai giảm còn ${MoneyFormatter.format(budget.tomorrowBudget)} để bù tiền." else "💡 Chi tiêu thông minh giúp bảo toàn ngân sách tháng.", style = MaterialTheme.typography.labelSmall, color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(AppTheme.shapes.circle), color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            Text(text = if (budget.isExceeded) stringResource(R.string.stats_budget_exceeded_advice_format, MoneyFormatter.format(budget.tomorrowBudget)) else stringResource(R.string.stats_budget_safe_advice), style = MaterialTheme.typography.labelSmall, color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -705,7 +711,7 @@ private fun DynamicDailyBudgetCard(budget: DynamicDailyBudgetData, modifier: Mod
 @Composable
 private fun AiAdviceCard(advice: AiAdviceItem, onFeedback: (Int) -> Unit, modifier: Modifier = Modifier) {
     val iconColor = if (advice.type == "warning") MaterialTheme.colorScheme.error else if (advice.type == "success") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = iconColor.copy(alpha = 0.08f)), border = BorderStroke(1.dp, iconColor.copy(alpha = 0.2f))) {
+    Card(modifier = modifier.height(170.dp), shape = AppTheme.shapes.corner20, colors = CardDefaults.cardColors(containerColor = iconColor.copy(alpha = 0.08f)), border = BorderStroke(1.dp, iconColor.copy(alpha = 0.2f))) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (advice.type == "warning") Icons.Rounded.Warning else Icons.Rounded.Info, null, tint = iconColor, modifier = Modifier.size(20.dp))
@@ -722,17 +728,17 @@ private fun AiAdviceCard(advice: AiAdviceItem, onFeedback: (Int) -> Unit, modifi
 
 @Composable
 private fun SubscriptionProposalCard(sub: DetectedSubscription, onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))) {
+    Card(modifier = modifier.height(170.dp), shape = AppTheme.shapes.corner20, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text("Phát hiện hóa đơn định kỳ", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.stats_subscription_detected), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(sub.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text("${MoneyFormatter.format(sub.amount)} / tháng", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.stats_subscription_amount_monthly_format, MoneyFormatter.format(sub.amount)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(0.dp)) { Text("Thêm hóa đơn", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+            Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.stats_add_subscription), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         }
     }
 }

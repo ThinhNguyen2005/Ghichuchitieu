@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -212,8 +214,8 @@ private fun CalendarCell(
         .size(28.dp)
         .let { base ->
             when {
-                isSelected -> base.background(MaterialTheme.colorScheme.primary, CircleShape)
-                isToday -> base.border(1.2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                isSelected -> base.background(MaterialTheme.colorScheme.primary, AppTheme.shapes.circle)
+                isToday -> base.border(1.2.dp, MaterialTheme.colorScheme.primary, AppTheme.shapes.circle)
                 else -> base
             }
         }
@@ -245,7 +247,7 @@ private fun CalendarCell(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(2.dp)
-                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer, AppTheme.shapes.circle)
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
                     Text(
@@ -268,7 +270,7 @@ private fun CalendarCell(
                         .background(
                             color = if (isToday) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            shape = CircleShape,
+                            shape = AppTheme.shapes.circle,
                         ),
                 )
             }
@@ -285,14 +287,14 @@ private fun CalendarCell(
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(color = MaterialTheme.colorScheme.error, shape = CircleShape)
+                                .background(color = MaterialTheme.colorScheme.error, shape = AppTheme.shapes.circle)
                         )
                     }
                     if (!day.totalIncome.isZero()) {
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape)
+                                .background(color = MaterialTheme.colorScheme.primary, shape = AppTheme.shapes.circle)
                         )
                     }
                 }

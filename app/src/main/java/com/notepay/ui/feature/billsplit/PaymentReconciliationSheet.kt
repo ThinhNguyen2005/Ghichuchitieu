@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -103,7 +105,7 @@ fun PaymentReconciliationSheet(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
-                shape = RoundedCornerShape(20.dp),
+                shape = AppTheme.shapes.corner20,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(6.dp)) {
@@ -131,7 +133,7 @@ fun PaymentReconciliationSheet(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(CircleShape)
+                                .clip(AppTheme.shapes.circle)
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -175,7 +177,7 @@ fun PaymentReconciliationSheet(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(CircleShape)
+                                .clip(AppTheme.shapes.circle)
                                 .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -216,7 +218,7 @@ fun PaymentReconciliationSheet(
                 if (incomeTransactions.isEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppTheme.shapes.corner16,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     ) {
@@ -269,7 +271,7 @@ fun PaymentReconciliationSheet(
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .clip(CircleShape)
+                                            .clip(AppTheme.shapes.circle)
                                             .background(
                                                 if (tx.isAutoCapture) MaterialTheme.colorScheme.tertiaryContainer
                                                 else MaterialTheme.colorScheme.surfaceVariant
@@ -334,7 +336,7 @@ fun PaymentReconciliationSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = AppTheme.shapes.corner16,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
