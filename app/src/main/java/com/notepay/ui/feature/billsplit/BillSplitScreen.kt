@@ -67,7 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.EmptyState
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -169,9 +169,10 @@ fun BillSplitScreen(
                         .padding(bottom = bottomPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    EmptyState(
-                        message = emptyAll,
-                        icon = Icons.Rounded.CallReceived
+                    EmptyStateWithAction(
+                        title = emptyAll,
+                        icon = Icons.Rounded.CallReceived,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             } else {
@@ -217,9 +218,10 @@ fun BillSplitScreen(
 
                     if (unpaidGroups.isEmpty()) {
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
-                            EmptyState(
-                                message = emptyUnpaid,
-                                icon = Icons.Rounded.CallReceived
+                            EmptyStateWithAction(
+                                title = emptyUnpaid,
+                                icon = Icons.Rounded.CallReceived,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     } else {
@@ -248,9 +250,10 @@ fun BillSplitScreen(
                 } else {
                     if (state.paidSplits.isEmpty()) {
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
-                            EmptyState(
-                                message = emptyPaid,
-                                icon = Icons.Rounded.CheckCircle
+                            EmptyStateWithAction(
+                                title = emptyPaid,
+                                icon = Icons.Rounded.CheckCircle,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     } else {

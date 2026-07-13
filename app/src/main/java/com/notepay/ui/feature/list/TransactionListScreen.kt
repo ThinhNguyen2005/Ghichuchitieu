@@ -86,7 +86,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.DayDetailDialog
-import com.notepay.ui.component.EmptyState
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.util.MoneyFormatter
@@ -363,10 +363,13 @@ private fun TransactionListContent(
                     Box(
                         modifier = Modifier
                             .fillParentMaxSize()
-                            .padding(bottom = 80.dp),
+                            .padding(bottom = bottomSystemPadding + 96.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        EmptyState(stringResource(R.string.transaction_none_found))
+                        EmptyStateWithAction(
+                            title = stringResource(R.string.transaction_none_found),
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
                 else -> {

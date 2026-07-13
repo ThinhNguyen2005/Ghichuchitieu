@@ -43,7 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.BalanceCard
-import com.notepay.ui.component.EmptyState
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.util.WalletUiHelper
 import com.notepay.ui.component.KpiRow
@@ -236,6 +235,25 @@ fun HomeScreen(
             return@Scaffold
         }
 
+        if (state.wallets.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                EmptyStateWithAction(
+                    icon = Icons.Outlined.AccountBalanceWallet,
+                    title = emptyWalletTitle,
+                    description = emptyWalletDesc,
+                    actionLabel = createWalletLabel,
+                    onClick = { showWalletSwitcher = true },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            return@Scaffold
+        }
+
         val layoutDirection = LocalLayoutDirection.current
         LazyColumn(
             modifier = Modifier
@@ -254,43 +272,25 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                if (state.wallets.isEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppTheme.shapes.corner16,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ),
-                    ) {
-                        EmptyStateWithAction(
-                            icon = Icons.Outlined.AccountBalanceWallet,
-                            title = emptyWalletTitle,
-                            description = emptyWalletDesc,
-                            actionLabel = createWalletLabel,
-                            onClick = { showWalletSwitcher = true },
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    BalanceCard(
+                        wallet = state.activeWallet,
+                        balance = state.currentBalance,
+                        onClick = { showWalletSwitcher = true },
+                        onEditWallet = onEditWallet,
+                        monthlyExpense = state.monthlyExpense,
+                    )
+                    val budgetProjection = state.budgetProjection
+                    val activeWallet = state.activeWallet
+                    if (budgetProjection != null && activeWallet?.budgetLimit != null) {
+                        BudgetAnalysisCard(
+                            projection = budgetProjection,
+                            budgetLimit = activeWallet.budgetLimit,
+                            title = budgetTitle,
+                            overspentFormat = overspentFmt,
+                            willExceedFormat = willExceedFmt,
+                            safeFormat = safeFmt,
                         )
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        BalanceCard(
-                            wallet = state.activeWallet,
-                            balance = state.currentBalance,
-                            onClick = { showWalletSwitcher = true },
-                            onEditWallet = onEditWallet,
-                            monthlyExpense = state.monthlyExpense,
-                        )
-                        val budgetProjection = state.budgetProjection
-                        val activeWallet = state.activeWallet
-                        if (budgetProjection != null && activeWallet?.budgetLimit != null) {
-                            BudgetAnalysisCard(
-                                projection = budgetProjection,
-                                budgetLimit = activeWallet.budgetLimit,
-                                title = budgetTitle,
-                                overspentFormat = overspentFmt,
-                                willExceedFormat = willExceedFmt,
-                                safeFormat = safeFmt,
-                            )
-                        }
                     }
                 }
             }
@@ -425,7 +425,7 @@ fun HomeScreen(
                 }
             }
             if (state.recentTransactions.isEmpty()) {
-                item { EmptyState(message = emptyTx) }
+                item { EmptyStateWithAction(title = emptyTx) }
             } else {
                 items(state.recentTransactions, key = { it.id }) { tx ->
                     val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""

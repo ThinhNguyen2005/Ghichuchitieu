@@ -81,9 +81,7 @@ fun StatsScreen(
                 EmptyStateWithAction(
                     icon = Icons.Outlined.PieChart,
                     title = "Chưa có dữ liệu thống kê",
-                    description = "Chưa có thông kê giao dịch nào.",
-                    actionLabel = "Thêm giao dịch",
-                    onClick = onAddTransaction,
+                    description = "Chưa có thống kê giao dịch nào.",
                 )
             }
             return@Scaffold

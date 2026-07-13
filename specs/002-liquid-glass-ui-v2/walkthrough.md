@@ -48,6 +48,17 @@ Tài liệu này ghi nhận quá trình thực hiện và kết quả nghiệm t
     1.  [GradientTopAppBar.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/GradientTopAppBar.kt): Tạo cấu phần dùng chung sử dụng `Brush.verticalGradient` với các điểm dừng màu (`colorStops`) giữ đục hoàn toàn ở 60% phía trên để bảo vệ khả năng hiển thị rõ nét của tiêu đề/icon, và chuyển màu mờ dần từ giữa về trong suốt 100% ở đáy dưới.
     2.  [HomeScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/home/HomeScreen.kt), [TransactionListScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/list/TransactionListScreen.kt), [StatsScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/stats/StatsScreen.kt), [BillSplitScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/billsplit/BillSplitScreen.kt): Tích hợp sử dụng `GradientTopAppBar` làm thanh tiêu đề chính.
 
+### Đồng bộ và căn giữa vị trí màn hình trống (Empty States)
+*   **Mục tiêu**: Loại bỏ hiện tượng lệch vị trí hiển thị (lệch trục đứng) của các trạng thái trống giữa các màn hình, đảm bảo tính nhất quán UI/UX toàn hệ thống.
+*   **Các tệp tin sửa đổi**:
+    1.  [EmptyStateWithAction.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/EmptyStateWithAction.kt): Thay thế container `Box` ngoài bằng `Column` nhận diện trực tiếp `modifier` và căn giữa trục đứng `verticalArrangement = Arrangement.Center`. Đồng thời thêm bộ tách chuỗi động theo ký tự xuống dòng `\n` để tự động chia tiêu đề và mô tả phụ.
+    2.  [HomeScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/home/HomeScreen.kt): Đưa logic kiểm tra ví trống ra ngoài `LazyColumn` để vẽ thẳng trong `Box(Modifier.fillMaxSize())`, giúp màn hình ví trống được căn giữa tuyệt đối.
+    3.  [TransactionListScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/list/TransactionListScreen.kt): Cải tiến căn lề của màn hình trống từ giá trị cứng `80.dp` sang `bottomSystemPadding + 96.dp` động.
+    4.  [EmptyState.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/EmptyState.kt) `[DELETE]`: Khai tử hoàn toàn mã nguồn cũ và chuyển dồn toàn bộ logic về `EmptyStateWithAction.kt` dùng chung.
+    5.  [BillSplitScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/billsplit/BillSplitScreen.kt): Tích hợp thay thế toàn bộ 3 cuộc gọi hiển thị trống cũ sang cấu phần dùng chung duy nhất mới.
+    6.  [StatsScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/stats/StatsScreen.kt): Loại bỏ nút hành động dư thừa trên màn hình trống để thống nhất trải nghiệm dữ liệu trống không nút với trang Lịch sử giao dịch và Chia tiền.
+    7.  [strings.xml](file:///d:/Ghichuchitieu/app/src/main/res/values/strings.xml): Bổ sung mô tả chi tiết ngăn cách bằng dấu xuống dòng `\n` cho các chuỗi trạng thái trống của màn hình Trang chủ, Chờ thanh toán và Đã thanh toán.
+
 ---
 
 ## 2. Kết quả kiểm thử (Validation Results)

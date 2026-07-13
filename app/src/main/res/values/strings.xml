@@ -40,7 +40,7 @@
     <string name="home_battery_title">Tối ưu pin</string>
     <string name="home_battery_desc">Giúp theo dõi thông báo tốt hơn</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
-    <string name="home_empty_transactions">Chưa có giao dịch nào. Nhấn Thêm để bắt đầu.</string>
+    <string name="home_empty_transactions">Chưa có giao dịch nào.\nNhấn nút Thêm (+) ở bên dưới để bắt đầu ghi chép.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
     <string name="home_edit_wallet">Chỉnh sửa ví</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
@@ -100,8 +100,8 @@
     <string name="bill_split_tab_unpaid">Chờ thanh toán</string>
     <string name="bill_split_tab_paid">Đã thanh toán</string>
     <string name="bill_split_empty">Chưa có hóa đơn nào.\nNhấn nút (+) để tạo phiếu chia tiền đầu tiên.</string>
-    <string name="bill_split_empty_unpaid">Không có khoản nợ nào chờ thanh toán.</string>
-    <string name="bill_split_empty_paid">Chưa có khoản nợ nào được trả.</string>
+    <string name="bill_split_empty_unpaid">Không có khoản nợ nào chờ thanh toán.\nTất cả các khoản nợ chưa trả của bạn sẽ xuất hiện tại đây.</string>
+    <string name="bill_split_empty_paid">Chưa có khoản nợ nào được trả.\nCác khoản nợ sau khi thanh toán sẽ được lưu trữ tại đây.</string>
     <string name="bill_split_vietqr_cd">Cấu hình VietQR</string>
     <string name="bill_split_total_count">Tổng: %1$d khoản nợ</string>
     <string name="bill_split_vietqr_saved">Đã lưu cấu hình VietQR cho ví %1$s</string>
