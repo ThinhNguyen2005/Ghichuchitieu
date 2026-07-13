@@ -31,6 +31,11 @@ Tài liệu này ghi nhận quá trình thực hiện và kết quả nghiệm t
     1.  [BottomSheetGlass.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/BottomSheetGlass.kt): Xây dựng cấu phần `GlassDropBox` hỗ trợ hoạt họa giãn nở phình từ tâm nút bấm nẩy rung lắc vật lý (`dampingRatio = 0.55f`). Để tránh lỗi RenderEffect dựng hình đen góc của GPU Android, bo góc được đặt cố định ở mức `32.dp` và áp dụng `.clip(shape)` đồng bộ cho cả màu nền và nội dung con.
     2.  [NotePayNavHost.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/NotePayNavHost.kt): Tích hợp `GlassDropBox` trỏ trực tiếp đến `showQuickAddSheet`, gỡ bỏ block điều kiện để hỗ trợ hoạt họa đóng (exit transition) mượt mà.
 
+### Nâng cấp giao diện QuickAddOption sang phong cách Kính mờ (Glassmorphism)
+*   **Mục tiêu**: Loại bỏ các thẻ đục cũ gây cảm giác "chìm/tối" và không tương thích thẩm mỹ với Drop Box, thay bằng thẻ kính mờ đồng bộ có khoảng thở thoáng đạt.
+*   **Các tệp tin sửa đổi**:
+    1.  [NotePayNavHost.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/NotePayNavHost.kt): Thay thế container `Surface` đục bằng `Box` có nền mờ trong suốt (`alpha = 0.55f` ở theme sáng, `0.08f` ở theme tối) kết hợp viền sáng `1.dp` (`borderStrokeColor`), bo góc `20.dp`, đệm `horizontal = 20.dp, vertical = 16.dp` rộng rãi và văn bản tương phản cao.
+
 ### Hiệu ứng chuyển động bung nẩy bong bóng (Liquid Pop) cho nút Thêm (+)
 *   **Mục tiêu**: Tạo cảm giác phản hồi cơ học nẩy mềm mại, giống bong bóng xà phòng cho nút Thêm (+) ở thanh điều hướng thay vì các hiệu ứng nhấn phẳng thông thường.
 *   **Các tệp tin sửa đổi**:

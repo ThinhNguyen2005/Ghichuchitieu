@@ -85,6 +85,10 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.backdrop.shadow.InnerShadow
 import com.notepay.ui.component.GlassDropBox
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import com.notepay.ui.navigation.utils.liquidPopClick
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.EaseOut
@@ -914,21 +918,28 @@ private fun QuickAddOption(
     color: Color,
     onClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth()
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBgColor = if (isLightTheme) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.08f)
+    val borderStrokeColor = if (isLightTheme) Color.White.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.12f)
+    val shape = RoundedCornerShape(20.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(cardBgColor)
+            .border(1.dp, borderStrokeColor, shape)
+            .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .background(color.copy(alpha = 0.12f), CircleShape),
+                    .size(48.dp)
+                    .background(color.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -944,13 +955,13 @@ private fun QuickAddOption(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (isLightTheme) Color(0xFF1A1A1A) else Color.White
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isLightTheme) Color(0xFF757575) else Color.White.copy(alpha = 0.6f)
                 )
             }
         }
