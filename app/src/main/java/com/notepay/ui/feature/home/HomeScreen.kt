@@ -27,7 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import com.notepay.ui.component.GradientTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -200,7 +200,7 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = onNavigateToReminders) {
@@ -242,13 +242,12 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(
                     start = padding.calculateStartPadding(layoutDirection),
-                    top = padding.calculateTopPadding(),
                     end = padding.calculateEndPadding(layoutDirection)
                 ),
             state = listState,
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 start = 16.dp,
-                top = 16.dp,
+                top = padding.calculateTopPadding() + 16.dp,
                 end = 16.dp,
                 bottom = padding.calculateBottomPadding() + 96.dp
             ),

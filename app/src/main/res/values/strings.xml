@@ -36,9 +36,9 @@
     <string name="home_create_wallet">Tạo ví</string>
     <string name="home_notif_permission_title">Tự động ghi chép giao dịch</string>
     <string name="home_notif_permission_desc">Nhấp vào đây để cấp quyền đọc thông báo ngân hàng và Momo (Local Parse).</string>
-    <string name="home_notif_permission_tip">💡 Mẹo: Nếu công tắc bị xám màu (Cài đặt bị hạn chế), hãy vào Thông tin ứng dụng NotePay → Bấm dấu 3 chấm góc trên bên phải → Chọn \"Cho phép cài đặt bị hạn chế\" rồi thử lại.</string>
-    <string name="home_battery_title">Tối ưu chạy ngầm (Khuyên dùng)</string>
-    <string name="home_battery_desc">Vào Pin → Chọn Không hạn chế để app chạy tự động mượt mà hơn.</string>
+    <string name="home_notif_permission_tip"> Mẹo: Nếu công tắc bị xám màu (Cài đặt bị hạn chế), hãy vào Thông tin ứng dụng NotePay → Bấm dấu 3 chấm góc trên bên phải → Chọn \"Cho phép cài đặt bị hạn chế\" rồi thử lại.</string>
+    <string name="home_battery_title">Tối ưu pin</string>
+    <string name="home_battery_desc">Giúp theo dõi thông báo tốt hơn</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
     <string name="home_empty_transactions">Chưa có giao dịch nào. Nhấn Thêm để bắt đầu.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>

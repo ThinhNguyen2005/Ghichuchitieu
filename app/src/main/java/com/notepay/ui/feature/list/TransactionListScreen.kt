@@ -40,7 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.TopAppBar
+import com.notepay.ui.component.GradientTopAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
@@ -139,7 +139,7 @@ fun TransactionListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = {
                     if (isSearchActive) {
                         androidx.compose.foundation.text.BasicTextField(
@@ -209,9 +209,9 @@ fun TransactionListScreen(
             selectedDate = selectedDay,
             modifier = Modifier.padding(
                 start = padding.calculateStartPadding(layoutDirection),
-                top = padding.calculateTopPadding(),
                 end = padding.calculateEndPadding(layoutDirection)
             ),
+            topSystemPadding = padding.calculateTopPadding(),
             bottomSystemPadding = padding.calculateBottomPadding()
         )
     }
@@ -245,6 +245,7 @@ private fun TransactionListContent(
     onDayClick: (LocalDate) -> Unit,
     selectedDate: LocalDate?,
     modifier: Modifier = Modifier,
+    topSystemPadding: Dp = 0.dp,
     bottomSystemPadding: Dp = 0.dp,
 ) {
     if (state.isCalendarView) {
@@ -255,6 +256,7 @@ private fun TransactionListContent(
             modifier = modifier
                 .fillMaxSize(),
             contentPadding = PaddingValues(
+                top = topSystemPadding + 8.dp,
                 bottom = bottomSystemPadding + 108.dp
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -338,7 +340,7 @@ private fun TransactionListContent(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp,
-                top = 12.dp,
+                top = topSystemPadding + 12.dp,
                 end = 16.dp,
                 bottom = bottomSystemPadding + 108.dp
             ),

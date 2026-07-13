@@ -42,6 +42,12 @@ Tài liệu này ghi nhận quá trình thực hiện và kết quả nghiệm t
     1.  [LiquidPhysics.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/utils/LiquidPhysics.kt): Viết hàm mở rộng `Modifier.liquidPopClick` sử dụng `Animatable` và `spring` đàn hồi cao (damping = 0.4f).
     2.  [NotePayNavHost.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/NotePayNavHost.kt): Thay thế `.clickable` bằng `.liquidPopClick` trên nút Thêm tròn chính giữa.
 
+### Thiết kế và Tích hợp thanh tiêu đề chuyển màu mờ dần (GradientTopAppBar)
+*   **Mục tiêu**: Làm cho thanh tiêu đề trong suốt ở dưới và đục/mờ dần lên phía trên (bao quát cả vùng status bar), tạo hiệu ứng chuyển tiếp trong suốt cao cấp.
+*   **Các tệp tin sửa đổi**:
+    1.  [GradientTopAppBar.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/GradientTopAppBar.kt): Tạo cấu phần dùng chung sử dụng `Brush.verticalGradient` với các điểm dừng màu (`colorStops`) giữ đục hoàn toàn ở 60% phía trên để bảo vệ khả năng hiển thị rõ nét của tiêu đề/icon, và chuyển màu mờ dần từ giữa về trong suốt 100% ở đáy dưới.
+    2.  [HomeScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/home/HomeScreen.kt), [TransactionListScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/list/TransactionListScreen.kt), [StatsScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/stats/StatsScreen.kt), [BillSplitScreen.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/billsplit/BillSplitScreen.kt): Tích hợp sử dụng `GradientTopAppBar` làm thanh tiêu đề chính.
+
 ---
 
 ## 2. Kết quả kiểm thử (Validation Results)

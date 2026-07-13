@@ -49,6 +49,8 @@ import kotlin.math.atan2
 import kotlin.math.min
 import kotlin.math.sqrt
 
+import com.notepay.ui.component.GradientTopAppBar
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -62,7 +64,7 @@ fun StatsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = { Text("Thống kê", fontWeight = FontWeight.Bold) }
             )
         },
