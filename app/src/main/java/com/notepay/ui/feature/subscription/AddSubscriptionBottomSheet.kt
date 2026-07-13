@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.subscription
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -349,7 +350,7 @@ fun AddSubscriptionBottomSheet(
 
             Spacer(Modifier.height(4.dp))
 
-            Button(
+            LiquidButton(
                 onClick = onConfirm,
                 enabled = state.canSave,
                 modifier = Modifier.fillMaxWidth().height(52.dp),

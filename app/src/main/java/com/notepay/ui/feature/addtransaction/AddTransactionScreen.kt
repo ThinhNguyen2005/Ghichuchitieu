@@ -2,6 +2,7 @@
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -272,23 +273,17 @@ fun AddTransactionScreen(
                 // Chú thích: Đã triển khai bàn phím tự chế (NumericKeypad) nhưng hiện tại tạm dừng sử dụng để dùng bàn phím hệ thống.
 
                 // Nút Lưu giao dịch nổi bật động theo canSave
-                Button(
+                LiquidButton(
                     onClick = {
                         focusManager.clearFocus()
                         keyboardController?.hide()
                         viewModel.onEvent(AddTransactionEvent.Save)
                     },
                     enabled = state.canSave,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1B7F4F), // Xanh thương hiệu nổi bật
-                        contentColor = Color.White,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    ),
+                    tint = Color(0xFF1B7F4F),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp)
+                        .height(56.dp)
                 ) {
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)

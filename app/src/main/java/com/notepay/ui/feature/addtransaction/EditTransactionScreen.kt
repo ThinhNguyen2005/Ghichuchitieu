@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width
@@ -285,7 +286,7 @@ fun EditTransactionScreen(
             // Nút Lưu
             item {
                 Spacer(Modifier.height(4.dp))
-                Button(
+                LiquidButton(
                     onClick = { viewModel.save() },
                     enabled = !state.isSaving,
                     modifier = Modifier.fillMaxWidth().height(56.dp),

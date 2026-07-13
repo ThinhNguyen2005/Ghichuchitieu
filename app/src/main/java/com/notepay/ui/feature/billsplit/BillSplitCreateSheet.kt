@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -473,7 +474,7 @@ fun BillSplitCreateSheet(
             }
 
             // Save Button
-            Button(
+            LiquidButton(
                 onClick = {
                     val list = debtors.mapNotNull { entry ->
                         val cents = entry.amountInput.toLongOrNull()?.let { it * 100 } ?: 0L
@@ -484,8 +485,7 @@ fun BillSplitCreateSheet(
                 enabled = canSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                    .height(52.dp)
             ) {
                 Text("Lưu cấu hình chia hóa đơn", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }

@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.wallet
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -354,13 +355,12 @@ fun AddWalletScreen(
                 )
             }
 
-            Button(
+            LiquidButton(
                 onClick = { viewModel.save() },
                 enabled = state.canSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = AppTheme.shapes.corner16
+                    .height(56.dp)
             ) {
                 if (state.isSaving) {
                     androidx.compose.material3.CircularProgressIndicator(
