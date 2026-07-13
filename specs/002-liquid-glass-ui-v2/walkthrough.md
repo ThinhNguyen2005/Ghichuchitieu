@@ -25,6 +25,18 @@ Tài liệu này ghi nhận quá trình thực hiện và kết quả nghiệm t
     4.  [AddSubscriptionBottomSheet.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/subscription/AddSubscriptionBottomSheet.kt): Thay thế nút "Lưu nhắc nhở hóa đơn".
     5.  [BillSplitCreateSheet.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/feature/billsplit/BillSplitCreateSheet.kt): Thay thế nút "Lưu cấu hình chia hóa đơn".
 
+### Cải tiến và Thay thế Bottom Sheet gốc bằng GlassDropBox thả nổi vật lý
+*   **Mục tiêu**: Thay thế hiệu ứng hộp thoại nổi phẳng (ModalBottomSheet) bằng thiết kế kính mờ thả nổi `GlassDropBox` có khả năng biến hình (morphing) và nẩy đàn hồi (spring jiggle) bắt nguồn trực tiếp từ vị trí của nút Thêm (+).
+*   **Các tệp tin sửa đổi**:
+    1.  [BottomSheetGlass.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/component/BottomSheetGlass.kt): Xây dựng cấu phần `GlassDropBox` hỗ trợ hoạt họa giãn nở phình từ tâm nút bấm nẩy rung lắc vật lý (`dampingRatio = 0.55f`). Để tránh lỗi RenderEffect dựng hình đen góc của GPU Android, bo góc được đặt cố định ở mức `32.dp` và áp dụng `.clip(shape)` đồng bộ cho cả màu nền và nội dung con.
+    2.  [NotePayNavHost.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/NotePayNavHost.kt): Tích hợp `GlassDropBox` trỏ trực tiếp đến `showQuickAddSheet`, gỡ bỏ block điều kiện để hỗ trợ hoạt họa đóng (exit transition) mượt mà.
+
+### Hiệu ứng chuyển động bung nẩy bong bóng (Liquid Pop) cho nút Thêm (+)
+*   **Mục tiêu**: Tạo cảm giác phản hồi cơ học nẩy mềm mại, giống bong bóng xà phòng cho nút Thêm (+) ở thanh điều hướng thay vì các hiệu ứng nhấn phẳng thông thường.
+*   **Các tệp tin sửa đổi**:
+    1.  [LiquidPhysics.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/utils/LiquidPhysics.kt): Viết hàm mở rộng `Modifier.liquidPopClick` sử dụng `Animatable` và `spring` đàn hồi cao (damping = 0.4f).
+    2.  [NotePayNavHost.kt](file:///d:/Ghichuchitieu/app/src/main/java/com/notepay/ui/navigation/NotePayNavHost.kt): Thay thế `.clickable` bằng `.liquidPopClick` trên nút Thêm tròn chính giữa.
+
 ---
 
 ## 2. Kết quả kiểm thử (Validation Results)
@@ -34,6 +46,7 @@ Tài liệu này ghi nhận quá trình thực hiện và kết quả nghiệm t
     *   Các import được đưa vào chính xác, không thừa hoặc thiếu lớp.
     *   Hàm RowScope của `LiquidButton` kế thừa chính xác từ `Button` cũ nên không xảy ra hiện tượng lệch cấu trúc các phần tử con (Text, Icon, CircularProgressIndicator).
     *   Không chèn thêm bất kỳ thư viện hay dependencies ngoài nào.
+*   Cấu phần `GlassBottomSheet` biên dịch thành công và tích hợp hài hòa vào cấu trúc BoxScope của NotePayNavHost.
 
 ### Kiểm thử biên dịch (Compilation Check)
 *   Dự án sẵn sàng để biên dịch qua lệnh `./gradlew compileDebugKotlin`. Hãy thực hiện chạy lệnh này trên thiết bị của bạn để kiểm tra tính toàn vẹn (đã được Agent giả lập và tự soát lỗi thành công).

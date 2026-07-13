@@ -84,6 +84,8 @@ import com.kyant.backdrop.backdrops.rememberBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.backdrop.shadow.InnerShadow
+import com.notepay.ui.component.GlassDropBox
+import com.notepay.ui.navigation.utils.liquidPopClick
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -797,7 +799,7 @@ fun NotePayNavHost(
                                     drawRect(primaryColor.copy(alpha = 0.25f))
                                 }
                             )
-                            .clickable {
+                            .liquidPopClick {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 showQuickAddSheet = true
                             },
@@ -813,14 +815,12 @@ fun NotePayNavHost(
                 }
             }
 
-            // Render Bottom Sheet
-            if (showQuickAddSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showQuickAddSheet = false },
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ) {
+            // Render Glass Drop Box (inline popup sheet)
+            GlassDropBox(
+                backdrop = backdrop,
+                visible = showQuickAddSheet,
+                onDismissRequest = { showQuickAddSheet = false }
+            ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -902,7 +902,6 @@ fun NotePayNavHost(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
-            }
         }
     }
 }
