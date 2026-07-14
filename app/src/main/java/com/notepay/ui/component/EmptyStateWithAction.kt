@@ -62,6 +62,7 @@ fun EmptyStateWithAction(
 
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

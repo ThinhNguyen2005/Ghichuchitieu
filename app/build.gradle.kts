@@ -24,7 +24,8 @@ android {
 
     defaultConfig {
         applicationId = "com.notepay"
-        minSdk = 24
+        // ML Kit Prompt API (Gemini Nano) yêu cầu Android 8.0 / API 26.
+        minSdk = 26
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -152,6 +153,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.datetime)
     implementation(libs.zxing.core)
+
+    // Gemini Nano qua Android AICore: inference local, không gửi dữ liệu tài chính lên cloud.
+    implementation(libs.mlkit.genai.prompt)
 
     // WorkManager + Hilt-Work
     implementation(libs.androidx.work.runtime.ktx)

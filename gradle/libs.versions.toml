@@ -27,6 +27,7 @@ dataStore = "1.2.1"
 hilt-work = "1.3.0"
 splashScreen = "1.2.0"
 backdrop = "2.0.0"
+mlkitGenaiPrompt = "1.0.0-beta2"
 
 [libraries]
 backdrop = { group = "io.github.kyant0", name = "backdrop-android", version.ref = "backdrop" }
@@ -64,6 +65,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashScreen" }
+mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 
 # Coroutines & DateTime
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

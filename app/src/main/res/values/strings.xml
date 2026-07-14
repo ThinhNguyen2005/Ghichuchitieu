@@ -40,7 +40,7 @@
     <string name="home_battery_title">Tối ưu pin</string>
     <string name="home_battery_desc">Giúp theo dõi thông báo tốt hơn</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
-    <string name="home_empty_transactions">Chưa có giao dịch nào.\nNhấn nút Thêm (+) ở bên dưới để bắt đầu ghi chép.</string>
+    <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
     <string name="home_edit_wallet">Chỉnh sửa ví</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>

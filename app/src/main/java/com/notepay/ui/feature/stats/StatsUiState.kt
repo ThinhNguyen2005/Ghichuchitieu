@@ -4,6 +4,8 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.analytics.SpendingPrediction
+import com.notepay.domain.analytics.BudgetAdvisorResult
 
 enum class TimeFilterType(val label: String) {
     MONTH("Tháng"),
@@ -22,6 +24,14 @@ data class BudgetForecast(
     val previousMonthDailyAverage: Money? = null,
     val trendPercent: Float? = null,
     val trendMessage: String? = null,
+    val prediction: SpendingPrediction? = null,
+)
+
+enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
+
+data class LocalAdvisorUiState(
+    val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
+    val result: BudgetAdvisorResult? = null,
 )
 
 data class CategoryBreakdownItem(
@@ -85,4 +95,5 @@ data class StatsUiState(
     val dynamicDailyBudget: DynamicDailyBudgetData? = null,
     val aiAdvices: List<AiAdviceItem> = emptyList(),
     val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
+    val localAdvisor: LocalAdvisorUiState = LocalAdvisorUiState(),
 )

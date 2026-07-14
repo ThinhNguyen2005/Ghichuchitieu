@@ -38,6 +38,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
+import com.notepay.domain.analytics.AdvisorProvider
+import com.notepay.domain.analytics.ForecastConfidence
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.TransactionItem
@@ -115,7 +117,8 @@ fun StatsScreen(
                         onNextMonth = viewModel::onNextMonth,
                         onCategorySelected = viewModel::selectCategory,
                         onAdviceFeedback = viewModel::sendAdviceFeedback,
-                        onAddSubscription = viewModel::showAddSubscription
+                        onAddSubscription = viewModel::showAddSubscription,
+                        onGenerateLocalAdvice = viewModel::generateLocalAdvice,
                     )
                     1 -> IncomeBreakdownContent(
                         state = state,
@@ -186,6 +189,7 @@ private fun ExpenseBreakdownContent(
     onCategorySelected: (Category?) -> Unit,
     onAdviceFeedback: (String, Int) -> Unit,
     onAddSubscription: (String, Long, String, Long) -> Unit,
+    onGenerateLocalAdvice: () -> Unit,
 ) {
     val filteredTransactions = remember(state.transactions, state.selectedCategory) {
         state.transactions.filter {
@@ -242,8 +246,19 @@ private fun ExpenseBreakdownContent(
             item { BudgetProgressBar(spent = state.budgetSpent, limit = state.budgetLimit, percentage = state.budgetPercentage) }
         }
 
-        if (state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
-            item { AiInsightsCarousel(state = state, onAdviceFeedback = onAdviceFeedback, onAddSubscription = onAddSubscription) }
+        state.spendingForecast?.prediction?.let { prediction ->
+            item { SpendingPredictionCard(prediction = prediction) }
+        }
+
+        if (state.spendingForecast != null || state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
+            item {
+                AiInsightsCarousel(
+                    state = state,
+                    onAdviceFeedback = onAdviceFeedback,
+                    onAddSubscription = onAddSubscription,
+                    onGenerateLocalAdvice = onGenerateLocalAdvice,
+                )
+            }
         }
 
         item {
@@ -669,15 +684,121 @@ private fun BudgetProgressBar(spent: Money, limit: Money, percentage: Float) {
 }
 
 @Composable
-private fun AiInsightsCarousel(state: StatsUiState, onAdviceFeedback: (String, Int) -> Unit, onAddSubscription: (String, Long, String, Long) -> Unit) {
+private fun SpendingPredictionCard(prediction: com.notepay.domain.analytics.SpendingPrediction) {
+    val probability = prediction.overBudgetProbability
+    val riskColor = when {
+        probability == null -> MaterialTheme.colorScheme.secondary
+        probability >= 0.70 -> MaterialTheme.colorScheme.error
+        probability >= 0.35 -> Color(0xFFEF6C00)
+        else -> Color(0xFF2E7D32)
+    }
+    val confidenceLabel = when (prediction.confidence) {
+        ForecastConfidence.LOW -> "thấp (${prediction.observedDays} ngày dữ liệu)"
+        ForecastConfidence.MEDIUM -> "trung bình (${prediction.observedDays} ngày dữ liệu)"
+        ForecastConfidence.HIGH -> "cao (${prediction.observedDays} ngày dữ liệu)"
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = riskColor.copy(alpha = 0.07f)),
+        border = BorderStroke(1.dp, riskColor.copy(alpha = 0.22f)),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Rounded.AutoGraph, contentDescription = null, tint = riskColor)
+                Text("Dự báo chi tiêu local", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+            Text(
+                MoneyFormatter.format(Money(prediction.predictedMonthTotalInCents)),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = riskColor,
+            )
+            Text(
+                "Khoảng dự báo: ${MoneyFormatter.format(Money(prediction.lowerBoundInCents))} – ${MoneyFormatter.format(Money(prediction.upperBoundInCents))}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                probability?.let { "Khả năng vượt định mức: ${(it * 100).toInt()}% · Tin cậy $confidenceLabel" }
+                    ?: "Hãy đặt định mức để tính xác suất vượt chi · Tin cậy $confidenceLabel",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiInsightsCarousel(
+    state: StatsUiState,
+    onAdviceFeedback: (String, Int) -> Unit,
+    onAddSubscription: (String, Long, String, Long) -> Unit,
+    onGenerateLocalAdvice: () -> Unit,
+) {
     val localView = androidx.compose.ui.platform.LocalView.current
     val playHaptic = { try { localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP) } catch (_: Exception) {} }
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("AI Insights & Trợ lý thông minh", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
         androidx.compose.foundation.lazy.LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
+                LocalAdvisorCard(
+                    advisor = state.localAdvisor,
+                    onGenerate = onGenerateLocalAdvice,
+                    modifier = Modifier.width(310.dp),
+                )
+            }
             state.dynamicDailyBudget?.let { budget -> item { DynamicDailyBudgetCard(budget = budget, modifier = Modifier.width(290.dp)) } }
             items(state.detectedSubscriptions) { sub -> SubscriptionProposalCard(sub = sub, onAdd = { playHaptic(); onAddSubscription(sub.name, sub.amount.amountInCents, sub.category.id, sub.possibleNextDueDate) }, modifier = Modifier.width(290.dp)) }
             items(state.aiAdvices) { advice -> AiAdviceCard(advice = advice, onFeedback = { score -> playHaptic(); onAdviceFeedback(advice.id, score) }, modifier = Modifier.width(290.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun LocalAdvisorCard(
+    advisor: LocalAdvisorUiState,
+    onGenerate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val result = advisor.result
+    Card(
+        modifier = modifier.height(190.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.14f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(result?.title ?: "Trợ lý chi tiêu trên máy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+            when (advisor.status) {
+                LocalAdvisorStatus.RUNNING -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 3.dp)
+                        Text("Đang chuẩn bị Gemini Nano và phân tích…", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                LocalAdvisorStatus.NOT_REQUESTED -> {
+                    Text(
+                        "Gemini Nano chỉ nhận số liệu đã tổng hợp; giao dịch thô không rời khỏi thiết bị.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) { Text("Phân tích trên thiết bị") }
+                }
+                LocalAdvisorStatus.READY -> {
+                    Text(result?.content.orEmpty(), style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text(
+                        if (result?.provider == AdvisorProvider.GEMINI_NANO) "Gemini Nano · local" else "Mô hình thống kê · local fallback",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    result?.providerMessage?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
         }
     }
 }

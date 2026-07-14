@@ -11,6 +11,11 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.ai.GeminiNanoBudgetAdvisor
+import com.notepay.domain.analytics.AdvisorCategorySummary
+import com.notepay.domain.analytics.BudgetAdvisorInput
+import com.notepay.domain.analytics.DailyExpense
+import com.notepay.domain.analytics.SpendingForecastEngine
 import com.notepay.ui.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,6 +48,7 @@ class StatsViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val subscriptionRepo: SubscriptionRepository,
     @ApplicationContext private val context: Context,
+    private val budgetAdvisor: GeminiNanoBudgetAdvisor = GeminiNanoBudgetAdvisor(),
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -85,6 +91,8 @@ class StatsViewModel @Inject constructor(
     private val _adviceFeedbacks = MutableStateFlow<Map<String, Int>>(
         advicePrefs.all.mapValues { it.value as? Int ?: 0 }
     )
+    private val _localAdvisor = MutableStateFlow(LocalAdvisorUiState())
+    @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
 
     fun sendAdviceFeedback(adviceId: String, score: Int) {
         advicePrefs.edit().putInt(adviceId, score).apply()
@@ -93,7 +101,7 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<StatsUiState> = combine(
+    private val baseState: StateFlow<StatsUiState> = combine(
         transactionRepo.observeAll(),
         walletRepo.observeAll(),
         subscriptionRepo.observeAll(),
@@ -265,29 +273,38 @@ class StatsViewModel @Inject constructor(
         val isViewingCurrentMonth = timeFilter == TimeFilterType.MONTH &&
                 monthYear.year == now.year && monthYear.month == now.monthNumber
         
-        val forecast = if (isViewingCurrentMonth) {
-            val spentCents = walletExpenseInCurrentMonth.amountInCents
-            val currentDay = now.dayOfMonth.coerceIn(1, 31)
-            val daysInMonth = getDaysInMonth(now.year, now.monthNumber)
-            
-            val dailyAverageCents = spentCents.toDouble() / currentDay
-            val projectedSpendCents = dailyAverageCents * daysInMonth
-            
-            val dailyAvgStr = MoneyFormatter.format(Money(dailyAverageCents.toLong()))
-            val projectedSpendStr = MoneyFormatter.format(Money(projectedSpendCents.toLong()))
-            
-            val forecastMessage = "Dự báo chi tiêu: Với tốc độ chi tiêu hiện tại (trung bình $dailyAvgStr/ngày), dự kiến cuối tháng này bạn sẽ chi tiêu khoảng $projectedSpendStr."
-            
-            val isProjectedToExceed = limit != null && projectedSpendCents > limit.amountInCents
-            
-            BudgetForecast(
-                dailyAverage = Money(dailyAverageCents.toLong()),
-                projectedSpend = Money(projectedSpendCents.toLong()),
-                forecastMessage = forecastMessage,
-                isProjectedToExceed = isProjectedToExceed
+        val prediction = if (isViewingCurrentMonth) {
+            val dailyExpenses = allTransactions.asSequence()
+                .filter {
+                    it.type == TransactionType.EXPENSE &&
+                        (selectedWalletId == null || it.walletId == selectedWalletId)
+                }
+                .groupBy { it.occurredAt.toLocalDateTime(zone).date }
+                .map { (date, rows) ->
+                    DailyExpense(date, rows.sumOf { it.amount.amountInCents })
+                }
+            SpendingForecastEngine.forecast(
+                expenses = dailyExpenses,
+                today = now.date,
+                daysInMonth = getDaysInMonth(now.year, now.monthNumber),
+                budgetLimitInCents = limit?.amountInCents,
             )
-        } else {
-            null
+        } else null
+
+        val forecast = prediction?.let { value ->
+            val dailyAvgStr = MoneyFormatter.format(Money(value.dailyRunRateInCents))
+            val projectedSpendStr = MoneyFormatter.format(Money(value.predictedMonthTotalInCents))
+            val probabilityText = value.overBudgetProbability?.let {
+                " Khả năng vượt định mức khoảng ${(it * 100).toInt()}%."
+            }.orEmpty()
+            BudgetForecast(
+                dailyAverage = Money(value.dailyRunRateInCents),
+                projectedSpend = Money(value.predictedMonthTotalInCents),
+                forecastMessage = "Nhịp chi gần đây $dailyAvgStr/ngày; dự báo cuối tháng khoảng $projectedSpendStr.$probabilityText",
+                isProjectedToExceed = limit != null && value.predictedMonthTotalInCents > limit.amountInCents,
+                trendPercent = value.trendVsPreviousMonth?.times(100)?.toFloat(),
+                prediction = value,
+            )
         }
 
         // 8. Tính toán Dynamic Daily Budget
@@ -440,6 +457,25 @@ class StatsViewModel @Inject constructor(
             }
         }
 
+        val advisorInput = prediction?.let { value ->
+            BudgetAdvisorInput(
+                prediction = value,
+                budgetLimitInCents = limit?.amountInCents,
+                incomeThisMonthInCents = income.amountInCents,
+                categories = breakdown.map {
+                    AdvisorCategorySummary(
+                        name = it.category.displayName,
+                        amountInCents = it.amount.amountInCents,
+                        share = it.percentage.toDouble(),
+                    )
+                },
+            )
+        }
+        if (latestAdvisorInput != advisorInput) {
+            latestAdvisorInput = advisorInput
+            _localAdvisor.value = LocalAdvisorUiState()
+        }
+
         StatsUiState(
             year = monthYear.year,
             month = monthYear.month,
@@ -471,6 +507,29 @@ class StatsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = StatsUiState(year = now.year, month = now.month.ordinal + 1),
     )
+
+    val state: StateFlow<StatsUiState> = combine(baseState, _localAdvisor) { base, advisor ->
+        base.copy(localAdvisor = advisor)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = baseState.value.copy(localAdvisor = _localAdvisor.value),
+    )
+
+    fun generateLocalAdvice() {
+        val input = latestAdvisorInput ?: return
+        if (_localAdvisor.value.status == LocalAdvisorStatus.RUNNING) return
+        _localAdvisor.value = LocalAdvisorUiState(status = LocalAdvisorStatus.RUNNING)
+        viewModelScope.launch {
+            val result = budgetAdvisor.generate(input)
+            if (latestAdvisorInput == input) {
+                _localAdvisor.value = LocalAdvisorUiState(
+                    status = LocalAdvisorStatus.READY,
+                    result = result,
+                )
+            }
+        }
+    }
 
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
