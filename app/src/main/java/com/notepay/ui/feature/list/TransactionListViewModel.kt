@@ -186,7 +186,6 @@ private fun filterTransactions(
         val matchesQuery = normalizedQuery.isBlank() ||
             transaction.note.lowercase().contains(normalizedQuery) ||
             transaction.category.displayName.lowercase().contains(normalizedQuery)
-        val matchesCategory = filters.category == null || transaction.category == filters.category
-        matchesQuery && matchesCategory
+        matchesQuery
     }
 }

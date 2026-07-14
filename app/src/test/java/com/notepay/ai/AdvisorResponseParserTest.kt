@@ -23,4 +23,18 @@ class AdvisorResponseParserTest {
     fun `rejects an unconstrained model response`() {
         assertThat(AdvisorResponseParser.parse("Bạn đang chi tiêu khá nhiều.")).isNull()
     }
+    @Test
+    fun `accepts response labels with inconsistent Vietnamese accents`() {
+        val result = AdvisorResponseParser.parse(
+            """
+                TIEU DỀ: Can theo doi
+                NHAN XẾT: Chi tieu dang tang.
+                HANH ĐỘNG: Giam mot khoan nho trong tuan nay.
+            """.trimIndent(),
+        )
+
+        assertThat(result?.title).isEqualTo("Can theo doi")
+        assertThat(result?.observation).isEqualTo("Chi tieu dang tang.")
+        assertThat(result?.action).isEqualTo("Giam mot khoan nho trong tuan nay.")
+    }
 }

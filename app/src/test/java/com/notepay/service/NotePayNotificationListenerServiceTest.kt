@@ -10,6 +10,8 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.repository.BillSplitRepository
+import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.usecase.SuggestCategoryUseCase
@@ -30,7 +32,6 @@ import org.junit.Rule
 import com.notepay.ui.feature.addtransaction.MainDispatcherRule
 
 import com.notepay.data.preferences.NotificationSettingsStore
-import com.notepay.data.preferences.NotificationSettings
 import com.notepay.data.preferences.KnownBankApps
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,6 +44,8 @@ class NotePayNotificationListenerServiceTest {
     
     private val walletRepository = mockk<WalletRepository>(relaxed = true)
     private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
+    private val billSplitRepository = mockk<BillSplitRepository>(relaxed = true)
+    private val subscriptionRepository = mockk<SubscriptionRepository>(relaxed = true)
     private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
     private lateinit var addTransaction: AddTransactionUseCase
     private lateinit var service: NotePayNotificationListenerService
@@ -66,23 +69,26 @@ class NotePayNotificationListenerServiceTest {
         val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
         every { suggestCategoryUseCase.suggest(any(), any()) } returns Category.DEFAULT_EXPENSE
 
-        every { notificationSettingsStore.settings } returns flowOf(NotificationSettings())
-
         val controller = org.robolectric.Robolectric.buildService(NotePayNotificationListenerService::class.java)
         service = controller.get()
-        controller.create()
 
         service.walletRepository = walletRepository
         service.addTransaction = addTransaction
+        service.billSplitRepository = billSplitRepository
+        service.transactionRepository = transactionRepository
+        service.subscriptionRepository = subscriptionRepository
         service.suggestCategoryUseCase = suggestCategoryUseCase
         service.ioDispatcher = mainDispatcherRule.testDispatcher
         service.notificationSettingsStore = notificationSettingsStore
 //        service.trackAllBanks = true
-        service.enabledPackages = KnownBankApps.packages
+        service.settingsLoaded = true
+        service.enabledPackages = KnownBankApps.supportedPackages
         service.autoCaptureEnabled = true
         
         every { walletRepository.observeActive() } returns flowOf(activeWallet)
         every { walletRepository.observeAll() } returns flowOf(emptyList())
+        every { billSplitRepository.observeUnpaid() } returns flowOf(emptyList())
+        every { subscriptionRepository.observeAll() } returns flowOf(emptyList())
     }
 
     @Test
@@ -260,7 +266,7 @@ class NotePayNotificationListenerServiceTest {
     }
 
     @Test
-    fun `onNotificationPosted handles test notification from NotePay package`() = runTest {
+    fun `onNotificationPosted ignores ordinary notification from NotePay package`() = runTest {
         val extras = Bundle().apply {
             putString("android.title", "TPBank Mobile")
             putString("android.text", """
@@ -297,14 +303,8 @@ class NotePayNotificationListenerServiceTest {
         service.onNotificationPosted(sbn)
         testScheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
-        assertThat(capturedTransactions).hasSize(1)
-        
-        val tx = capturedTransactions.first()
-        assertThat(tx.amount).isEqualTo(Money(30_000_00))
-        assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
-        assertThat(tx.note).isEqualTo("NAP TIEN VI MOMO - 0945553902")
-        assertThat(tx.walletId).isEqualTo(activeWallet.id)
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).isEmpty()
     }
 
     @Test
@@ -360,6 +360,48 @@ class NotePayNotificationListenerServiceTest {
         coVerify(exactly = 1) { transactionRepository.upsert(any()) }
         assertThat(capturedTransactions).hasSize(1)
         assertThat(capturedTransactions.first().walletId).isEqualTo(99L)
+    }
+
+    @Test
+    fun `onNotificationPosted ignores TPBank when master capture is off`() = runTest {
+        service.autoCaptureEnabled = false
+
+        service.onNotificationPosted(validTransactionNotification("com.tpbank"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted ignores TPBank when its package is disabled`() = runTest {
+        service.enabledPackages = emptySet()
+
+        service.onNotificationPosted(validTransactionNotification("com.tpbank"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted ignores unsupported bank even when legacy settings enabled it`() = runTest {
+        service.enabledPackages = setOf("com.VCB")
+
+        service.onNotificationPosted(validTransactionNotification("com.VCB"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    private fun validTransactionNotification(packageName: String): StatusBarNotification {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: TEST")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        return StatusBarNotification(
+            packageName, packageName, 9, "gate-test", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis(),
+        )
     }
 }
 

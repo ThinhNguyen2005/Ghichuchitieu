@@ -27,6 +27,7 @@ fun CategoryPickerSheet(
     onCreateCategory: (
         displayName: String,
         colorArgb: Long,
+        iconId: String,
         isIncome: Boolean
     ) -> Unit,
     modifier: Modifier = Modifier,

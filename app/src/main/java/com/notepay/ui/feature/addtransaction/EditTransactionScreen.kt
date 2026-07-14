@@ -174,8 +174,8 @@ fun EditTransactionScreen(
                     isIncome = state.type == TransactionType.INCOME,
                     onCategoryChanged = { viewModel.onCategoryChanged(it) },
                     // Auto-capture: read-only, không cho thêm danh mục mới
-                    onCreateCategory = if (state.isAutoCapture) null else { name, color, isIncome ->
-                        viewModel.createCategory(name, color, isIncome)
+                    onCreateCategory = if (state.isAutoCapture) null else { name, color, iconId, isIncome ->
+                        viewModel.createCategory(name, color, iconId, isIncome)
                     },
                 )
             }

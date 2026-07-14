@@ -50,6 +50,7 @@ data class Category(
         val EDUCATION = Category("EDUCATION", "Học tập", 0xFF4DB6ACL, isIncome = false)
         val SALARY = Category("SALARY", "Lương", 0xFF66BB6AL, isIncome = true)
         val GIFT = Category("GIFT", "Quà/Cho", 0xFFFFD54FL, isIncome = true)
+        val INCOME_OTHER = Category("INCOME_OTHER", "Thu nhập khác", 0xFF90A4AEL, isIncome = true)
         
         val COFFEE = Category("COFFEE", "Cà phê/Trà", 0xFF8D6E63L, isIncome = false)
         val BEAUTY = Category("BEAUTY", "Làm đẹp", 0xFFF48FB1L, isIncome = false)
@@ -77,17 +78,18 @@ data class Category(
         val OTHER = Category("OTHER", "Khác", 0xFF90A4AEL, isIncome = false)
 
         val DEFAULT_EXPENSE: Category = OTHER
-        val DEFAULT_INCOME: Category = SALARY
+        /** Không đoán "Lương" khi chưa đủ dữ liệu. */
+        val DEFAULT_INCOME: Category = INCOME_OTHER
 
         /** Category hợp lệ cho giao dịch thu nhập. */
-        val INCOME_CATEGORIES: Set<Category> = setOf(SALARY, GIFT, INVESTMENT, BONUS, OTHER)
+        val INCOME_CATEGORIES: Set<Category> = setOf(SALARY, GIFT, INVESTMENT, BONUS, INCOME_OTHER)
 
         private val defaultEntries = listOf(
             FOOD, TRANSPORT, SHOPPING, BILL, ENTERTAINMENT, HEALTH, EDUCATION,
             COFFEE, BEAUTY, PETS, SPORTS, FAMILY, TRAVEL,
             CLOTHES, HOME, GAS, REPAIR, ELECTRICITY, WATER, INTERNET, CHILDREN, CHARITY,
             BONUS, SAVINGS, DEBT_LOAN, INSURANCE, TAX,
-            SALARY, GIFT, INVESTMENT, OTHER
+            SALARY, GIFT, INVESTMENT, INCOME_OTHER, OTHER
         )
 
         // Bộ đệm in-memory cho danh mục do user tạo thêm
@@ -96,7 +98,12 @@ data class Category(
         /** Đăng ký danh sách danh mục tự tạo từ database/shared preferences */
         fun registerCustomCategories(categories: List<Category>) {
             customCategories.clear()
-            customCategories.addAll(categories)
+            customCategories.addAll(
+                categories
+                    .filter { it.id.isNotBlank() && it.displayName.isNotBlank() }
+                    .distinctBy { it.id }
+                    .sortedBy { it.displayName.lowercase() }
+            )
         }
 
         /** Trả về toàn bộ danh mục gồm mặc định + tự tạo */

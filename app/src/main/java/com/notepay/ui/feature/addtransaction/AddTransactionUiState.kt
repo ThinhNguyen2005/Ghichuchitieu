@@ -28,7 +28,7 @@ data class AddTransactionUiState(
     /** Loại giao dịch: EXPENSE (mặc định) hoặc INCOME */
     val type: TransactionType = TransactionType.EXPENSE,
     /** Danh mục được chọn, default theo type */
-    val category: Category = Category.FOOD,
+    val category: Category = Category.DEFAULT_EXPENSE,
     /** Ghi chú giao dịch */
     val note: String = "",
     /** Thời điểm xảy ra giao dịch */
@@ -51,6 +51,11 @@ data class AddTransactionUiState(
     val isCategoryExplicitlySelected: Boolean = false,
     /** Danh mục được gợi ý tự động thời gian thực */
     val suggestedCategory: Category? = null,
+    /** Lý do ngắn gọn để người dùng biết đề xuất dựa trên dữ liệu nào. */
+    val suggestionReason: String? = null,
+    /** OCR runs locally; the draft is always shown for user verification before saving. */
+    val isImageScanning: Boolean = false,
+    val imageScanMessage: String? = null,
 ) {
     /** Có thể lưu được không: amount > 0, có wallet, không có lỗi */
     val canSave: Boolean

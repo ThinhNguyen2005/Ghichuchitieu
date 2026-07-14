@@ -167,22 +167,22 @@ class DataImporter @Inject constructor(
             .commit()
 
         // Notification settings via DataStore
-        val autoCapture = prefsObj.optBoolean("autoCaptureEnabled", true)
+        // Old backups may not contain this preference. Restore fail-closed so an
+        // import never starts reading bank notifications without explicit intent.
+        val autoCapture = prefsObj.optBoolean("autoCaptureEnabled", false)
         notificationSettingsStore.setAutoCaptureEnabled(autoCapture)
 
         if (prefsObj.has("enabledPackages")) {
             val arr = prefsObj.getJSONArray("enabledPackages")
             val packages = (0 until arr.length()).map { arr.getString(it) }.toSet()
             // Ghi trực tiếp vào DataStore
-            val dataStore = context.getSharedPreferences("notification_settings", Context.MODE_PRIVATE)
-            dataStore.edit().putStringSet("enabled_notification_packages", packages).commit()
+            notificationSettingsStore.replaceEnabledPackages(packages)
         }
 
         if (prefsObj.has("customBankApps")) {
             val arr = prefsObj.getJSONArray("customBankApps")
             val custom = (0 until arr.length()).map { arr.getString(it) }.toSet()
-            val dataStore = context.getSharedPreferences("notification_settings", Context.MODE_PRIVATE)
-            dataStore.edit().putStringSet("custom_bank_apps", custom).commit()
+            notificationSettingsStore.replaceCustomBankApps(custom)
         }
 
         // Category habits

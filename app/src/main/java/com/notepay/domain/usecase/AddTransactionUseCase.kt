@@ -4,6 +4,7 @@ import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -25,14 +26,18 @@ class AddTransactionUseCase @Inject constructor(
     private val walletRepo: WalletRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) {
-    suspend operator fun invoke(transaction: Transaction): Result<Long> = runCatching {
-        withContext(dispatcher) {
+    suspend operator fun invoke(transaction: Transaction): Result<Long> = try {
+        Result.success(withContext(dispatcher) {
             val wallet = walletRepo.getById(transaction.walletId)
                 ?: error("Wallet ${transaction.walletId} not found")
             transactionRepo.upsert(transaction).also {
                 // Phase 2+: cập nhật balance ví + lưu audit log
                 @Suppress("UNUSED_VARIABLE") val _w = wallet
             }
-        }
+        })
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (error: Throwable) {
+        Result.failure(error)
     }
 }

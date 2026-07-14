@@ -1,6 +1,5 @@
 package com.notepay.ai
 
-import android.os.Build
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
@@ -10,6 +9,7 @@ import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.CancellationException
 import java.text.NumberFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -19,15 +19,20 @@ import javax.inject.Singleton
 class GeminiNanoBudgetAdvisor @Inject constructor() {
     private val model by lazy { Generation.getClient() }
 
+    /** Safe preflight for zero-config UI. Unsupported devices simply use statistical analysis. */
+    suspend fun isGeminiNanoAvailable(): Boolean = try {
+        model.checkStatus() == FeatureStatus.AVAILABLE
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Throwable) {
+        false
+    }
+
     /**
      * Chỉ gọi từ thao tác chủ động trên UI vì Prompt API không cho inference ở background.
      * Nếu máy không hỗ trợ, dữ liệu vẫn được phân tích bằng mô hình thống kê local.
      */
     suspend fun generate(input: BudgetAdvisorInput): BudgetAdvisorResult {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return fallback(input, "Gemini Nano yêu cầu Android 8.0 trở lên.")
-        }
-
         return try {
             when (model.checkStatus()) {
                 FeatureStatus.UNAVAILABLE -> return fallback(
@@ -37,7 +42,15 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
                 FeatureStatus.DOWNLOADABLE -> model.download().collect { status ->
                     if (status is DownloadStatus.DownloadFailed) throw status.e
                 }
+                FeatureStatus.DOWNLOADING -> return fallback(
+                    input,
+                    "Gemini Nano đang tải về máy; tạm dùng phân tích thống kê trên thiết bị.",
+                )
                 FeatureStatus.AVAILABLE -> Unit
+                else -> return fallback(
+                    input,
+                    "Không xác định được trạng thái Gemini Nano; đang dùng phân tích thống kê trên thiết bị.",
+                )
             }
 
             val request = generateContentRequest(TextPart(buildPrompt(input))) {
@@ -56,7 +69,9 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
                 provider = AdvisorProvider.GEMINI_NANO,
                 providerMessage = "Phân tích bởi Gemini Nano ngay trên thiết bị",
             )
-        } catch (_: Exception) {
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
             fallback(input, "Không thể khởi chạy Gemini Nano; đang dùng phân tích thống kê trên máy.")
         }
     }

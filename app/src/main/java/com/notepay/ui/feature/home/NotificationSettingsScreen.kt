@@ -115,7 +115,7 @@ private fun simulateTpBankNotification(context: Context) {
         .setContentTitle("TPBank Mobile")
         .setContentText("(TPBank): 14/06/26;06:25...")
         .setStyle(inboxStyle)
-        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setAutoCancel(true)
         .build()
@@ -132,7 +132,7 @@ private fun simulateMomoNotification(context: Context) {
     val notification = NotificationCompat.Builder(context, channelId)
         .setContentTitle("MoMo")
         .setContentText("+50.000đ Nguyễn Văn A chuyển tiền. Số dư: 1.250.000đ. Lúc 14:30 17/06/2026")
-        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setAutoCancel(true)
         .build()
@@ -226,9 +226,21 @@ fun NotificationSettingsScreen(
 
     val sortedBankApps = remember(bankAppUiList, settings.enabledPackages) {
         bankAppUiList.sortedWith(
-            compareByDescending<BankAppUiModel> { settings.enabledPackages.contains(it.packageName) }
+            compareByDescending<BankAppUiModel> { KnownBankApps.isSupported(it.packageName) }
+                .thenByDescending { settings.enabledPackages.contains(it.packageName) }
                 .thenBy { it.label }
         )
+    }
+
+    val changeAutoCapture: (Boolean) -> Unit = { enabled ->
+        if (enabled && !isListenerEnabled) {
+            // Persist the user's intent first. Once Android grants listener access,
+            // the service can start without requiring a second tap on this switch.
+            viewModel.setAutoCaptureEnabled(true)
+            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } else {
+            viewModel.setAutoCaptureEnabled(enabled)
+        }
     }
 
     var showAddCustomAppDialog by remember { mutableStateOf(false) }
@@ -496,7 +508,7 @@ fun NotificationSettingsScreen(
                             .fillMaxWidth()
                             .clickable {
                                 playHaptic()
-                                viewModel.setAutoCaptureEnabled(!settings.autoCaptureEnabled)
+                                changeAutoCapture(!settings.autoCaptureEnabled)
                             }
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -504,13 +516,17 @@ fun NotificationSettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Tự động ghi chép giao dịch",
+                                "Nhận diện giao dịch ngân hàng",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                "Bật/tắt đọc thông báo giao dịch ngân hàng và ví điện tử tự động.",
+                                when {
+                                    !settings.autoCaptureEnabled -> "Đang tắt — NotePay không xử lý thông báo ngân hàng."
+                                    !isListenerEnabled -> "Đang tạm dừng — cần cấp quyền truy cập thông báo."
+                                    else -> "Đang bật — hiện chỉ tự động nhận diện TPBank."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -519,7 +535,7 @@ fun NotificationSettingsScreen(
                             checked = settings.autoCaptureEnabled,
                             onCheckedChange = {
                                 playHaptic()
-                                viewModel.setAutoCaptureEnabled(it)
+                                changeAutoCapture(it)
                             }
                         )
                     }
@@ -550,17 +566,21 @@ fun NotificationSettingsScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            TextButton(
-                                onClick = {
-                                    playHaptic()
-                                    showAddCustomAppDialog = true
-                                }
+                            Surface(
+                                shape = RoundedCornerShape(999.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
                             ) {
-                                Text("+ Thêm app thủ công", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "TPBank đã hỗ trợ",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
                             }
                         }
                         Text(
-                            "Bật/tắt nhận diện thông báo từ các app ngân hàng đã cài đặt dưới đây.",
+                            "TPBank đã được kiểm thử. Các ngân hàng và ví khác chỉ được hiển thị để nhận biết, chưa tham gia tự động ghi giao dịch.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -585,13 +605,15 @@ fun NotificationSettingsScreen(
                             )
                         } else {
                             sortedBankApps.forEach { app ->
-                                val isEnabled = settings.enabledPackages.contains(app.packageName)
+                                val isSupported = KnownBankApps.isSupported(app.packageName)
+                                val isEnabled = isSupported && settings.enabledPackages.contains(app.packageName)
+                                val canToggle = isSupported && settings.autoCaptureEnabled
 
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(AppTheme.shapes.corner8)
-                                        .clickable {
+                                        .clickable(enabled = canToggle) {
                                             playHaptic()
                                             viewModel.setPackageEnabled(app.packageName, !isEnabled)
                                         }
@@ -629,6 +651,21 @@ fun NotificationSettingsScreen(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
+                                                text = when {
+                                                    !isSupported -> "Chưa khả dụng"
+                                                    !settings.autoCaptureEnabled -> "Tạm dừng theo cài đặt chung"
+                                                    isEnabled -> "Đang nhận diện"
+                                                    else -> "Đã tắt cho TPBank"
+                                                },
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = when {
+                                                    !isSupported -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                    isEnabled && settings.autoCaptureEnabled -> Color(0xFF1B7F4F)
+                                                    else -> MaterialTheme.colorScheme.error
+                                                },
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Text(
                                                 text = app.packageName,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -658,6 +695,7 @@ fun NotificationSettingsScreen(
                                         }
                                         Switch(
                                             checked = isEnabled,
+                                            enabled = canToggle,
                                             onCheckedChange = {
                                                 playHaptic()
                                                 viewModel.setPackageEnabled(app.packageName, it)
@@ -745,6 +783,9 @@ fun NotificationSettingsScreen(
                                         playHaptic()
                                         simulateTpBankNotification(context)
                                     },
+                                    enabled = settings.autoCaptureEnabled &&
+                                        isListenerEnabled &&
+                                        settings.enabledPackages.contains(KnownBankApps.TPBANK_PACKAGE),
                                     modifier = Modifier.height(36.dp),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                                     shape = RoundedCornerShape(10.dp)
@@ -753,7 +794,7 @@ fun NotificationSettingsScreen(
                                 }
                             }
 
-                            // --- MoMo — Đã kiểm thử ---
+                            // MoMo parser is not enabled until its real-device format is verified.
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -765,9 +806,9 @@ fun NotificationSettingsScreen(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Rounded.CheckCircle,
-                                            contentDescription = "Đã xác minh",
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            imageVector = Icons.Rounded.HourglassDisabled,
+                                            contentDescription = "Chưa khả dụng",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
@@ -778,7 +819,7 @@ fun NotificationSettingsScreen(
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "Đã kiểm thử — Push notification format",
+                                        text = "Chưa khả dụng — không tự động ghi giao dịch",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -788,11 +829,12 @@ fun NotificationSettingsScreen(
                                         playHaptic()
                                         simulateMomoNotification(context)
                                     },
+                                    enabled = false,
                                     modifier = Modifier.height(36.dp),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("Gửi test", style = MaterialTheme.typography.labelMedium)
+                                    Text("Sắp hỗ trợ", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
 
@@ -810,7 +852,7 @@ fun NotificationSettingsScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "Các ngân hàng khác (VCB, Techcombank, BIDV…) chưa được kiểm thử đầy đủ. Kết quả đọc thông báo có thể không chính xác.",
+                                    text = "Ngoài TPBank, mọi ngân hàng và ví điện tử đều bị chặn ở tầng xử lý cho đến khi được kiểm thử chính xác.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     modifier = Modifier.weight(1f)
@@ -933,202 +975,202 @@ fun NotificationSettingsScreen(
         )
     }
 
-    if (showCustomColorDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showCustomColorDialog = false
-                customColorHexInput = ThemeManager.customColorHex
-                customColorError = null
-            },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text("Tự chọn màu sắc chủ đạo", fontWeight = FontWeight.Bold)
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Nhập mã màu HEX hoặc chọn từ các preset màu sắc cao cấp được đề xuất.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+    // if (showCustomColorDialog) {
+    //     AlertDialog(
+    //         onDismissRequest = {
+    //             showCustomColorDialog = false
+    //             customColorHexInput = ThemeManager.customColorHex
+    //             customColorError = null
+    //         },
+    //         title = {
+    //             Row(
+    //                 verticalAlignment = Alignment.CenterVertically,
+    //                 horizontalArrangement = Arrangement.spacedBy(8.dp)
+    //             ) {
+    //                 Icon(
+    //                     imageVector = Icons.Rounded.Palette,
+    //                     contentDescription = null,
+    //                     tint = MaterialTheme.colorScheme.primary
+    //                 )
+    //                 Text("Tự chọn màu sắc chủ đạo", fontWeight = FontWeight.Bold)
+    //             }
+    //         },
+    //         text = {
+    //             Column(
+    //                 verticalArrangement = Arrangement.spacedBy(16.dp),
+    //                 modifier = Modifier.fillMaxWidth()
+    //             ) {
+    //                 Text(
+    //                     "Nhập mã màu HEX hoặc chọn từ các preset màu sắc cao cấp được đề xuất.",
+    //                     style = MaterialTheme.typography.bodySmall,
+    //                     color = MaterialTheme.colorScheme.onSurfaceVariant
+    //                 )
 
-                    // Xem trước màu và ô nhập
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val previewColor = remember(customColorHexInput) {
-                            try {
-                                Color(customColorHexInput.toColorInt())
-                            } catch (e: Exception) {
-                                Color.Gray
-                            }
-                        }
+    //                 // Xem trước màu và ô nhập
+    //                 Row(
+    //                     verticalAlignment = Alignment.CenterVertically,
+    //                     horizontalArrangement = Arrangement.spacedBy(16.dp),
+    //                     modifier = Modifier.fillMaxWidth()
+    //                 ) {
+    //                     val previewColor = remember(customColorHexInput) {
+    //                         try {
+    //                             Color(customColorHexInput.toColorInt())
+    //                         } catch (e: Exception) {
+    //                             Color.Gray
+    //                         }
+    //                     }
 
-                        // Preview Circle
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(AppTheme.shapes.circle)
-                                .background(previewColor)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppTheme.shapes.circle)
-                        )
+    //                     // Preview Circle
+    //                     Box(
+    //                         modifier = Modifier
+    //                             .size(56.dp)
+    //                             .clip(AppTheme.shapes.circle)
+    //                             .background(previewColor)
+    //                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppTheme.shapes.circle)
+    //                     )
 
-                        // Hex Input
-                        OutlinedTextField(
-                            value = customColorHexInput,
-                            onValueChange = { input ->
-                                val formatted = if (input.startsWith("#")) input else "#$input"
-                                customColorHexInput = formatted.take(7)
+    //                     // Hex Input
+    //                     OutlinedTextField(
+    //                         value = customColorHexInput,
+    //                         onValueChange = { input ->
+    //                             val formatted = if (input.startsWith("#")) input else "#$input"
+    //                             customColorHexInput = formatted.take(7)
 
-                                customColorError = if (!formatted.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
-                                    "Mã màu HEX không hợp lệ (vd: #E91E63)"
-                                } else {
-                                    null
-                                }
-                            },
-                            label = { Text("Mã màu HEX") },
-                            placeholder = { Text("#1B7F4F") },
-                            singleLine = true,
-                            isError = customColorError != null,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+    //                             customColorError = if (!formatted.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
+    //                                 "Mã màu HEX không hợp lệ (vd: #E91E63)"
+    //                             } else {
+    //                                 null
+    //                             }
+    //                         },
+    //                         label = { Text("Mã màu HEX") },
+    //                         placeholder = { Text("#1B7F4F") },
+    //                         singleLine = true,
+    //                         isError = customColorError != null,
+    //                         modifier = Modifier.weight(1f)
+    //                     )
+    //                 }
 
-                    if (customColorError != null) {
-                        Text(
-                            text = customColorError ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+    //                 if (customColorError != null) {
+    //                     Text(
+    //                         text = customColorError ?: "",
+    //                         color = MaterialTheme.colorScheme.error,
+    //                         style = MaterialTheme.typography.bodySmall
+    //                     )
+    //                 }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    //                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                    Text(
-                        "Preset màu sắc premium:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+    //                 Text(
+    //                     "Preset màu sắc premium:",
+    //                     style = MaterialTheme.typography.labelMedium,
+    //                     fontWeight = FontWeight.Bold,
+    //                     color = MaterialTheme.colorScheme.onSurfaceVariant
+    //                 )
 
-                    val premiumPresets = listOf(
-                        "Amethyst" to "#9C27B0",
-                        "Cobalt" to "#0047AB",
-                        "Emerald" to "#50C878",
-                        "Hổ phách" to "#FFBF00",
-                        "Coral" to "#FF6F61",
-                        "Mint" to "#66CDAA",
-                        "Ruby" to "#E0115F",
-                        "Sapphire" to "#0F52BA",
-                        "Rose" to "#FF007F",
-                        "Sky Blue" to "#00B0FF",
-                        "Đồng Cỏ" to "#4F7942",
-                        "Đất Nung" to "#E2725B"
-                    )
+    //                 val premiumPresets = listOf(
+    //                     "Amethyst" to "#9C27B0",
+    //                     "Cobalt" to "#0047AB",
+    //                     "Emerald" to "#50C878",
+    //                     "Hổ phách" to "#FFBF00",
+    //                     "Coral" to "#FF6F61",
+    //                     "Mint" to "#66CDAA",
+    //                     "Ruby" to "#E0115F",
+    //                     "Sapphire" to "#0F52BA",
+    //                     "Rose" to "#FF007F",
+    //                     "Sky Blue" to "#00B0FF",
+    //                     "Đồng Cỏ" to "#4F7942",
+    //                     "Đất Nung" to "#E2725B"
+    //                 )
 
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        for (i in 0 until 3) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                for (j in 0 until 4) {
-                                    val idx = i * 4 + j
-                                    val (name, hex) = premiumPresets[idx]
-                                    val isPresetSelected = customColorHexInput.equals(hex, ignoreCase = true)
-                                    val colorObj = Color(hex.toColorInt())
+    //                 Column(
+    //                     verticalArrangement = Arrangement.spacedBy(8.dp),
+    //                     modifier = Modifier.fillMaxWidth()
+    //                 ) {
+    //                     for (i in 0 until 3) {
+    //                         Row(
+    //                             horizontalArrangement = Arrangement.spacedBy(8.dp),
+    //                             modifier = Modifier.fillMaxWidth()
+    //                         ) {
+    //                             for (j in 0 until 4) {
+    //                                 val idx = i * 4 + j
+    //                                 val (name, hex) = premiumPresets[idx]
+    //                                 val isPresetSelected = customColorHexInput.equals(hex, ignoreCase = true)
+    //                                 val colorObj = Color(hex.toColorInt())
 
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(AppTheme.shapes.corner8)
-                                            .background(
-                                                if (isPresetSelected) MaterialTheme.colorScheme.primaryContainer
-                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                                            )
-                                            .border(
-                                                width = if (isPresetSelected) 2.dp else 1.dp,
-                                                color = if (isPresetSelected) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                                shape = AppTheme.shapes.corner8
-                                            )
-                                            .clickable {
-                                                playHaptic()
-                                                customColorHexInput = hex
-                                                customColorError = null
-                                            }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(20.dp)
-                                                    .clip(AppTheme.shapes.circle)
-                                                    .background(colorObj)
-                                            )
-                                            Text(
-                                                text = name,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        playHaptic()
-                        if (customColorError == null && customColorHexInput.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
-                            ThemeManager.updateCustomColor(context, customColorHexInput)
-                            ThemeManager.updateThemeColor(context, "custom")
-                            showCustomColorDialog = false
-                        }
-                    },
-                    enabled = customColorError == null && customColorHexInput.isNotBlank()
-                ) {
-                    Text("Áp dụng", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        playHaptic()
-                        showCustomColorDialog = false
-                        customColorHexInput = ThemeManager.customColorHex
-                        customColorError = null
-                    }
-                ) {
-                    Text("Đóng")
-                }
-            }
-        )
-    }
+    //                                 Box(
+    //                                     modifier = Modifier
+    //                                         .weight(1f)
+    //                                         .clip(AppTheme.shapes.corner8)
+    //                                         .background(
+    //                                             if (isPresetSelected) MaterialTheme.colorScheme.primaryContainer
+    //                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+    //                                         )
+    //                                         .border(
+    //                                             width = if (isPresetSelected) 2.dp else 1.dp,
+    //                                             color = if (isPresetSelected) MaterialTheme.colorScheme.primary
+    //                                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+    //                                             shape = AppTheme.shapes.corner8
+    //                                         )
+    //                                         .clickable {
+    //                                             playHaptic()
+    //                                             customColorHexInput = hex
+    //                                             customColorError = null
+    //                                         }
+    //                                         .padding(vertical = 8.dp),
+    //                                     contentAlignment = Alignment.Center
+    //                                 ) {
+    //                                     Column(
+    //                                         horizontalAlignment = Alignment.CenterHorizontally,
+    //                                         verticalArrangement = Arrangement.spacedBy(4.dp)
+    //                                     ) {
+    //                                         Box(
+    //                                             modifier = Modifier
+    //                                                 .size(20.dp)
+    //                                                 .clip(AppTheme.shapes.circle)
+    //                                                 .background(colorObj)
+    //                                         )
+    //                                         Text(
+    //                                             text = name,
+    //                                             style = MaterialTheme.typography.labelSmall,
+    //                                             fontSize = 9.sp,
+    //                                             maxLines = 1,
+    //                                             overflow = TextOverflow.Ellipsis
+    //                                         )
+    //                                     }
+    //                                 }
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         },
+    //         confirmButton = {
+    //             TextButton(
+    //                 onClick = {
+    //                     playHaptic()
+    //                     if (customColorError == null && customColorHexInput.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
+    //                         ThemeManager.updateCustomColor(context, customColorHexInput)
+    //                         ThemeManager.updateThemeColor(context, "custom")
+    //                         showCustomColorDialog = false
+    //                     }
+    //                 },
+    //                 enabled = customColorError == null && customColorHexInput.isNotBlank()
+    //             ) {
+    //                 Text("Áp dụng", fontWeight = FontWeight.Bold)
+    //             }
+    //         },
+    //         dismissButton = {
+    //             TextButton(
+    //                 onClick = {
+    //                     playHaptic()
+    //                     showCustomColorDialog = false
+    //                     customColorHexInput = ThemeManager.customColorHex
+    //                     customColorError = null
+    //                 }
+    //             ) {
+    //                 Text("Đóng")
+    //             }
+    //         }
+    //     )
+    // }
 }

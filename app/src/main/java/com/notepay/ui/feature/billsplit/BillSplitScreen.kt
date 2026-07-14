@@ -68,6 +68,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -176,6 +177,12 @@ fun BillSplitScreen(
                     )
                 }
             } else {
+                BillSplitOverview(
+                    totalAmountCents = state.unpaidSplits.sumOf { it.split.amount.amountInCents },
+                    debtorCount = state.unpaidSplits.map { it.split.debtorName }.distinct().size,
+                    splitCount = state.unpaidSplits.size,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 8.dp),
+                )
                 PrimaryTabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
@@ -325,6 +332,53 @@ fun BillSplitScreen(
 }
 
 @Composable
+private fun BillSplitOverview(
+    totalAmountCents: Long,
+    debtorCount: Int,
+    splitCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    LiquidGlassPanel(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner20,
+        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.18f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.14f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.CallReceived, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Đang chờ thu", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    MoneyFormatter.format(Money(totalAmountCents)),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    "$debtorCount người · $splitCount khoản cần đối soát",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DebtorGroupRow(
     debtorName: String,
     totalAmountCents: Long,
@@ -333,14 +387,15 @@ private fun DebtorGroupRow(
 ) {
     val amountStr = MoneyFormatter.format(Money(totalAmountCents))
     val totalCountFmt = androidx.compose.ui.res.stringResource(R.string.bill_split_total_count)
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+    LiquidGlassPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner16,
+        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.07f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
         ),
-        shape = AppTheme.shapes.corner16
+        onClick = onClick,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

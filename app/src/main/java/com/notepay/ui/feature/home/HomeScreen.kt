@@ -1,134 +1,97 @@
 package com.notepay.ui.feature.home
 
-import com.notepay.ui.theme.AppTheme
-
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import com.notepay.ui.component.GradientTopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.R
-import com.notepay.domain.model.Money
-import com.notepay.ui.component.BalanceCard
-import com.notepay.ui.component.EmptyStateWithAction
-import com.notepay.ui.util.WalletUiHelper
-import com.notepay.ui.component.KpiRow
-import com.notepay.ui.component.TransactionItem
-import com.notepay.ui.theme.NotePayTheme
-
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
-import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.CreditCard
-import androidx.compose.material.icons.rounded.Payments
-import com.notepay.domain.model.Wallet
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material.icons.rounded.Check
-import com.notepay.ui.theme.ThemeManager
-
-
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.notepay.ui.util.MoneyFormatter
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.IconButton
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Switch
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Button
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.SolidColor
-import androidx.core.graphics.drawable.toBitmap
-import com.notepay.data.preferences.KnownBankApps
-import com.notepay.data.preferences.KnownBankApp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.feature.home.BudgetProjection
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
+import com.notepay.domain.model.Money
+import com.notepay.domain.model.Wallet
+import com.notepay.ui.component.BalanceCard
+import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.TransactionItem
+import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.theme.NotePayTheme
+import com.notepay.ui.util.WalletUiHelper
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onAddTransaction: () -> Unit,
     onSeeAll: () -> Unit,
     onAddWallet: () -> Unit,
     onEditWallet: (Long) -> Unit,
@@ -136,10 +99,10 @@ fun HomeScreen(
     onNavigateToNotificationSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
-    navigationBarOffset: Float = 0f,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showWalletSwitcher by remember { mutableStateOf(false) }
+    var isBudgetProjectionDismissed by rememberSaveable { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
@@ -165,10 +128,7 @@ fun HomeScreen(
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
     val createWalletLabel = stringResource(R.string.home_create_wallet)
-    val budgetTitle = stringResource(R.string.budget_title)
-    val overspentFmt = stringResource(R.string.budget_overspent)
-    val willExceedFmt = stringResource(R.string.budget_will_exceed)
-    val safeFmt = stringResource(R.string.budget_safe)
+
     var isListenerEnabled by remember { mutableStateOf(isNotificationListenerEnabled(context)) }
     var isBatteryOptimizationsIgnored by remember {
         mutableStateOf(
@@ -263,7 +223,7 @@ fun HomeScreen(
                     end = padding.calculateEndPadding(layoutDirection)
                 ),
             state = listState,
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            contentPadding = PaddingValues(
                 start = 16.dp,
                 top = padding.calculateTopPadding() + 16.dp,
                 end = 16.dp,
@@ -272,28 +232,30 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    BalanceCard(
-                        wallet = state.activeWallet,
-                        balance = state.currentBalance,
-                        onClick = { showWalletSwitcher = true },
-                        onEditWallet = onEditWallet,
-                        monthlyExpense = state.monthlyExpense,
+                BalanceCard(
+                    wallet = state.activeWallet,
+                    balance = state.currentBalance,
+                    income = state.monthlyIncome,
+                    expense = state.monthlyExpense,
+                    onClick = { showWalletSwitcher = true },
+                    onEditWallet = onEditWallet,
+                )
+            }
+
+            val budgetProjection = state.budgetProjection
+            val activeWallet = state.activeWallet
+            val budgetLimit = activeWallet?.budgetLimit
+
+            if (budgetProjection != null && !isBudgetProjectionDismissed && activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0L) {
+                item {
+                    BudgetProjectionCard(
+                        projection = budgetProjection,
+                        budgetLimit = budgetLimit,
+                        onDismiss = { isBudgetProjectionDismissed = true }
                     )
-                    val budgetProjection = state.budgetProjection
-                    val activeWallet = state.activeWallet
-                    if (budgetProjection != null && activeWallet?.budgetLimit != null) {
-                        BudgetAnalysisCard(
-                            projection = budgetProjection,
-                            budgetLimit = activeWallet.budgetLimit,
-                            title = budgetTitle,
-                            overspentFormat = overspentFmt,
-                            willExceedFormat = willExceedFmt,
-                            safeFormat = safeFmt,
-                        )
-                    }
                 }
             }
+
             if (!isListenerEnabled) {
                 item {
                     Card(
@@ -387,7 +349,7 @@ fun HomeScreen(
                                     onClick = {
                                         try {
                                             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = android.net.Uri.parse("package:${context.packageName}")
+                                                data = "package:${context.packageName}".toUri()
                                             }
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
@@ -408,32 +370,36 @@ fun HomeScreen(
                     }
                 }
             }
-            item {
-                KpiRow(
-                    income = state.monthlyIncome,
-                    expense = state.monthlyExpense,
-                )
-            }
+
+
+
             item {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(recentLabel, style = MaterialTheme.typography.titleMedium)
-                    androidx.compose.material3.TextButton(onClick = onSeeAll) { Text(seeAllLabel) }
+                    TextButton(onClick = onSeeAll) { Text(seeAllLabel) }
                 }
             }
+
             if (state.recentTransactions.isEmpty()) {
                 item { EmptyStateWithAction(title = emptyTx) }
             } else {
-                items(state.recentTransactions, key = { it.id }) { tx ->
-                    val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
-                    TransactionItem(
-                        transaction = tx,
-                        walletName = walletName,
-                        onClick = { onTransactionClick(tx.id) },
-                    )
+                item {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        state.recentTransactions.forEach { tx ->
+                            val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
+                            TransactionItem(
+                                transaction = tx,
+                                walletName = walletName,
+                                onClick = { onTransactionClick(tx.id) },
+                            )
+                        }
+                    }
                 }
             }
             item { Spacer(Modifier.height(160.dp)) }
@@ -539,83 +505,27 @@ fun HomeScreen(
             }
         )
     }
-
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPreview() {
-    NotePayTheme {
-        Column(Modifier.padding(16.dp)) {
-            BalanceCard(
-                wallet = Wallet(id = 1L, name = "Tiền mặt", initialBalance = Money(1_500_000_00), iconKey = "cash", colorKey = "primary"),
-                balance = Money(1_500_000_00)
-            )
-            Spacer(Modifier.height(16.dp))
-            KpiRow(income = Money(5_000_000_00), expense = Money(3_500_000_00))
-        }
-    }
-}
-
-private fun isNotificationListenerEnabled(context: Context): Boolean {
-    val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
-    return flat != null && flat.contains(context.packageName)
 }
 
 @Composable
-private fun CircularBudgetRing(
-    percentage: Float,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val animationProgress = remember { Animatable(0f) }
-
-    LaunchedEffect(percentage) {
-        animationProgress.animateTo(
-            targetValue = percentage,
-            animationSpec = tween(durationMillis = 1000)
-        )
-    }
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 8.dp.toPx()
-            
-            drawArc(
-                color = color.copy(alpha = 0.15f),
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-            )
-            
-            drawArc(
-                color = color,
-                startAngle = -90f,
-                sweepAngle = animationProgress.value * 360f,
-                useCenter = false,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-            )
-        }
-    }
-}
-
-@Composable
-private fun BudgetAnalysisCard(
+private fun BudgetProjectionCard(
     projection: BudgetProjection,
-    budgetLimit: Money,
-    title: String,
-    overspentFormat: String,
-    willExceedFormat: String,
-    safeFormat: String,
+    budgetLimit: Money?,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (budgetLimit == null) return
+    
     val spentPercentage = projection.spentPercentage
     val progressColor = when {
         spentPercentage < 0.70f -> Color(0xFF4CAF50)
         spentPercentage < 0.90f -> Color(0xFFFF9800)
         else -> Color(0xFFF44336)
     }
+
+    val overspentFormat = stringResource(R.string.budget_overspent)
+    val willExceedFormat = stringResource(R.string.budget_will_exceed)
+    val safeFormat = stringResource(R.string.budget_safe)
 
     val adviceMessage = when {
         spentPercentage >= 1.0f -> {
@@ -635,53 +545,64 @@ private fun BudgetAnalysisCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = progressColor.copy(alpha = 0.08f),
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        shape = AppTheme.shapes.corner24,
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = progressColor.copy(alpha = 0.2f)
-        )
+        border = BorderStroke(1.dp, progressColor.copy(alpha = 0.2f))
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier.size(72.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularBudgetRing(
-                    percentage = spentPercentage,
-                    color = progressColor,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Text(
-                    text = "${(spentPercentage * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = progressColor
-                )
-            }
+            Icon(
+                imageVector = if (spentPercentage >= 0.90f) Icons.Rounded.Warning else Icons.Rounded.TrendingUp,
+                contentDescription = null,
+                tint = progressColor,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Text(
+                text = adviceMessage,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = progressColor
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = adviceMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Đóng",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .clickable { onDismiss() }
+            )
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenPreview() {
+    NotePayTheme {
+        Column(Modifier.padding(16.dp)) {
+            BalanceCard(
+                wallet = Wallet(id = 1L, name = "Tiền mặt", initialBalance = Money(1_500_000_00), iconKey = "cash", colorKey = "primary"),
+                balance = Money(1_500_000_00),
+                income = Money(5_000_000_00),
+                expense = Money(3_500_000_00)
+            )
+        }
+    }
+}
+
+
+
+private fun isNotificationListenerEnabled(context: Context): Boolean {
+    val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+    return flat != null && flat.contains(context.packageName)
 }

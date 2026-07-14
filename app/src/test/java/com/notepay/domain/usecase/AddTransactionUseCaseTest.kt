@@ -9,10 +9,12 @@ import com.notepay.domain.repository.WalletRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddTransactionUseCaseTest {
@@ -56,6 +58,17 @@ class AddTransactionUseCaseTest {
 
         assertThat(result.isFailure).isTrue()
         assertThat(result.exceptionOrNull()).hasMessageThat().contains("db locked")
+    }
+
+    @Test
+    fun `invoke does not swallow coroutine cancellation`() = runTest(dispatcher) {
+        coEvery { walletRepo.getById(1L) } throws CancellationException("capture disabled")
+
+        assertFailsWith<CancellationException> {
+            useCase(TestTransactionFactory.expense())
+        }
+
+        coVerify(exactly = 0) { transactionRepo.upsert(any()) }
     }
 
     @Test

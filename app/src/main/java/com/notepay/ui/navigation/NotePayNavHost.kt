@@ -318,7 +318,6 @@ fun NotePayNavHost(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
                         onSeeAll = {
                             navController.navigate(Route.TransactionList.path) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -334,8 +333,7 @@ fun NotePayNavHost(
                         onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
                         onTransactionClick = { txId ->
                             navController.navigate(Route.EditTransaction(txId).path)
-                        },
-                        navigationBarOffset = navigationBarOffset
+                        }
                     )
                 }
                 composable(Route.AddTransaction.path) {

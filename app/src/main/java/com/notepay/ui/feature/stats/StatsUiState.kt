@@ -32,12 +32,21 @@ enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
 data class LocalAdvisorUiState(
     val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
     val result: BudgetAdvisorResult? = null,
+    val isGeminiNanoAvailable: Boolean? = null,
 )
 
 data class CategoryBreakdownItem(
     val category: Category,
     val amount: Money,
     val percentage: Float,
+)
+
+/** A real calendar-month total used by the three-month trend chart. */
+data class MonthlyTrendPoint(
+    val year: Int,
+    val month: Int,
+    val expense: Money,
+    val income: Money,
 )
 
 data class DynamicDailyBudgetData(
@@ -74,6 +83,7 @@ data class StatsUiState(
     val balance: Money = Money.ZERO,
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
+    val recentMonths: List<MonthlyTrendPoint> = emptyList(),
     val isLoading: Boolean = true,
     val isCurrentMonth: Boolean = false,
     val selectedCategory: Category? = null,

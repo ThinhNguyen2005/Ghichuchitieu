@@ -52,6 +52,7 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.LiquidGlassPanel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,15 +62,10 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableIntStateOf(0) }
     var showDateRangePicker by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = {
-            GradientTopAppBar(
-                title = { Text("Thống kê", fontWeight = FontWeight.Bold) }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) { padding ->
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -89,52 +85,24 @@ fun StatsScreen(
             return@Scaffold
         }
 
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0; viewModel.selectCategory(null) },
-                    text = { Text("Cơ cấu chi tiêu") },
+        StatsDashboard(
+            state = state,
+            onPreviousMonth = viewModel::onPreviousMonth,
+            onNextMonth = viewModel::onNextMonth,
+            onMonthSelected = { point -> viewModel.selectMonth(point.year, point.month) },
+            onCategorySelected = viewModel::selectCategory,
+            supportingContent = { metric ->
+                StatsSupportingContent(
+                    state = state,
+                    metric = metric,
+                    onCategorySelected = viewModel::selectCategory,
+                    onAdviceFeedback = viewModel::sendAdviceFeedback,
+                    onAddSubscription = viewModel::showAddSubscription,
+                    onGenerateLocalAdvice = viewModel::generateLocalAdvice,
                 )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1; viewModel.selectCategory(null) },
-                    text = { Text("Cơ cấu thu nhập") },
-                )
-            }
-
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                when (selectedTab) {
-                    0 -> ExpenseBreakdownContent(
-                        state = state,
-                        wallets = state.wallets,
-                        onWalletSelect = { viewModel.selectWallet(it) },
-                        onTimeFilterSelect = { filter ->
-                            if (filter == TimeFilterType.CUSTOM) showDateRangePicker = true
-                            else viewModel.selectTimeFilter(filter)
-                        },
-                        onPrevMonth = viewModel::onPreviousMonth,
-                        onNextMonth = viewModel::onNextMonth,
-                        onCategorySelected = viewModel::selectCategory,
-                        onAdviceFeedback = viewModel::sendAdviceFeedback,
-                        onAddSubscription = viewModel::showAddSubscription,
-                        onGenerateLocalAdvice = viewModel::generateLocalAdvice,
-                    )
-                    1 -> IncomeBreakdownContent(
-                        state = state,
-                        wallets = state.wallets,
-                        onWalletSelect = { viewModel.selectWallet(it) },
-                        onTimeFilterSelect = { filter ->
-                            if (filter == TimeFilterType.CUSTOM) showDateRangePicker = true
-                            else viewModel.selectTimeFilter(filter)
-                        },
-                        onPrevMonth = viewModel::onPreviousMonth,
-                        onNextMonth = viewModel::onNextMonth,
-                        onCategorySelected = viewModel::selectCategory,
-                    )
-                }
-            }
-        }
+            },
+            modifier = Modifier.padding(padding),
+        )
     }
 
     if (showDateRangePicker) {
@@ -203,10 +171,11 @@ private fun ExpenseBreakdownContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Card(
+            LiquidGlassPanel(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 shape = RoundedCornerShape(20.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     FilterControlRow(
@@ -341,10 +310,11 @@ private fun IncomeBreakdownContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Card(
+            LiquidGlassPanel(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 shape = RoundedCornerShape(20.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     FilterControlRow(
@@ -645,7 +615,12 @@ private fun CategoryBreakdownRow(
 private fun SummaryCards(totalIncome: Money, totalExpense: Money) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         listOf(Triple("Thu nhập", totalIncome, Color(0xFF2E7D32)), Triple("Chi tiêu", totalExpense, Color(0xFFC62828))).forEach { (label, money, color) ->
-            Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+            LiquidGlassPanel(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                tint = color.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, color.copy(alpha = 0.14f)),
+            ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(if (label == "Thu nhập") Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown, null, tint = color, modifier = Modifier.size(16.dp))
@@ -663,7 +638,12 @@ private fun SummaryCards(totalIncome: Money, totalExpense: Money) {
 private fun BudgetProgressBar(spent: Money, limit: Money, percentage: Float) {
     val progress = percentage.coerceIn(0f, 1f)
     val color = when { percentage >= 1f -> Color(0xFFC62828); percentage >= 0.8f -> Color(0xFFEF6C00); else -> Color(0xFF2E7D32) }
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    LiquidGlassPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        tint = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.16f)),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -697,10 +677,10 @@ private fun SpendingPredictionCard(prediction: com.notepay.domain.analytics.Spen
         ForecastConfidence.MEDIUM -> "trung bình (${prediction.observedDays} ngày dữ liệu)"
         ForecastConfidence.HIGH -> "cao (${prediction.observedDays} ngày dữ liệu)"
     }
-    Card(
+    LiquidGlassPanel(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = riskColor.copy(alpha = 0.07f)),
+        tint = riskColor.copy(alpha = 0.07f),
         border = BorderStroke(1.dp, riskColor.copy(alpha = 0.22f)),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -724,6 +704,88 @@ private fun SpendingPredictionCard(prediction: com.notepay.domain.analytics.Spen
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun StatsSupportingContent(
+    state: StatsUiState,
+    metric: StatsMetric,
+    onCategorySelected: (Category?) -> Unit,
+    onAdviceFeedback: (String, Int) -> Unit,
+    onAddSubscription: (String, Long, String, Long) -> Unit,
+    onGenerateLocalAdvice: () -> Unit,
+) {
+    val isExpense = metric == StatsMetric.CHI_TIEU
+    val breakdown = if (isExpense) state.breakdown else state.incomeBreakdown
+    val selectedTransactions = remember(state.transactions, state.selectedCategory, metric) {
+        state.transactions.filter { transaction ->
+            transaction.type == (if (isExpense) com.notepay.domain.model.TransactionType.EXPENSE else com.notepay.domain.model.TransactionType.INCOME) &&
+                transaction.category == state.selectedCategory
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (isExpense && state.budgetLimit != null) {
+            BudgetProgressBar(state.budgetSpent, state.budgetLimit, state.budgetPercentage)
+        }
+        if (isExpense) {
+            state.spendingForecast?.prediction?.let { SpendingPredictionCard(it) }
+            if (state.spendingForecast != null || state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
+                AiInsightsCarousel(
+                    state = state,
+                    onAdviceFeedback = onAdviceFeedback,
+                    onAddSubscription = onAddSubscription,
+                    onGenerateLocalAdvice = onGenerateLocalAdvice,
+                )
+            }
+        }
+
+        Text(
+            text = if (isExpense) "Chi tiết danh mục chi" else "Chi tiết danh mục thu",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 4.dp),
+        )
+        if (breakdown.isEmpty()) {
+            Text(
+                "Chưa có giao dịch trong tháng này.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp),
+            )
+        }
+        breakdown.forEach { item ->
+            val isSelected = item.category == state.selectedCategory
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CategoryBreakdownRow(
+                    item = item,
+                    isSelected = isSelected,
+                    onClick = { onCategorySelected(if (isSelected) null else item.category) },
+                )
+                if (isSelected) {
+                    Text(
+                        "Giao dịch ${item.category.displayName}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                    )
+                    if (selectedTransactions.isEmpty()) {
+                        Text(
+                            "Không có giao dịch phù hợp.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    } else {
+                        selectedTransactions.forEach { transaction ->
+                            TransactionItem(transaction = transaction, onClick = {})
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -761,41 +823,59 @@ private fun LocalAdvisorCard(
     modifier: Modifier = Modifier,
 ) {
     val result = advisor.result
+    val idleDescription = when (advisor.isGeminiNanoAvailable) {
+        true -> "AI cục bộ Gemini Nano sẽ diễn giải số liệu tổng hợp ngay trên thiết bị."
+        false -> "Thiết bị sẽ dùng phân tích thống kê cục bộ; giao dịch thô không rời khỏi máy."
+        null -> "Đang chuẩn bị phân tích cục bộ; giao dịch thô không rời khỏi thiết bị."
+    }
     Card(
-        modifier = modifier.height(190.dp),
+        modifier = modifier.height(170.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.14f)),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(result?.title ?: "Trợ lý chi tiêu trên máy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             }
             when (advisor.status) {
                 LocalAdvisorStatus.RUNNING -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 3.dp)
-                        Text("Đang chuẩn bị Gemini Nano và phân tích…", style = MaterialTheme.typography.labelSmall)
+                        Text("Đang phân tích chi tiêu trên thiết bị…", style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 LocalAdvisorStatus.NOT_REQUESTED -> {
                     Text(
-                        "Gemini Nano chỉ nhận số liệu đã tổng hợp; giao dịch thô không rời khỏi thiết bị.",
+                        idleDescription,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
-                    Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) { Text("Phân tích trên thiết bị") }
+                    Button(
+                        onClick = onGenerate,
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Text("Phân tích chi tiêu", style = MaterialTheme.typography.labelMedium)
+                    }
                 }
                 LocalAdvisorStatus.READY -> {
-                    Text(result?.content.orEmpty(), style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(
-                        if (result?.provider == AdvisorProvider.GEMINI_NANO) "Gemini Nano · local" else "Mô hình thống kê · local fallback",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    result?.providerMessage?.let {
-                        Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(result?.content.orEmpty(), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (result?.provider == AdvisorProvider.GEMINI_NANO) {
+                                "Phân tích bằng AI cục bộ (Gemini Nano)"
+                            } else {
+                                "Phân tích bằng Thống kê cục bộ"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        result?.providerMessage?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }

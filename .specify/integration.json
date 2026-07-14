@@ -2,14 +2,14 @@
   "version": "0.12.3",
   "integration_state_schema": 1,
   "installed_integrations": [
-    "codex"
+    "any"
   ],
   "integration_settings": {
-    "codex": {
+    "any": {
       "script": "ps",
       "invoke_separator": "-"
     }
   },
-  "integration": "codex",
-  "default_integration": "codex"
+  "integration": "any",
+  "default_integration": "any"
 }

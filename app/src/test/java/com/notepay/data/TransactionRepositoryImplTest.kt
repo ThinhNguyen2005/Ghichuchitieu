@@ -112,6 +112,10 @@ class TransactionRepositoryImplTest {
         }
 
         override fun observeAll(): Flow<List<TransactionEntity>> = flow
+        override suspend fun getAll(): List<TransactionEntity> = flow.value
+        override suspend fun deleteAll() {
+            flow.value = emptyList()
+        }
         override fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = flow
         override fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>> = flow
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }

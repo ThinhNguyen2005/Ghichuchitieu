@@ -64,14 +64,11 @@ private fun KpiCard(
     icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    LiquidGlassPanel(
         modifier = modifier.heightIn(min = 92.dp),
         shape = AppTheme.shapes.corner16,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        tint = color.copy(alpha = 0.12f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.18f)),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

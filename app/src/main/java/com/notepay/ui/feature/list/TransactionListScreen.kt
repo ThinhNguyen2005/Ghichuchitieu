@@ -58,6 +58,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -83,6 +90,7 @@ import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import com.notepay.domain.model.Category
+import kotlinx.datetime.LocalDate
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.DayDetailDialog
@@ -90,7 +98,7 @@ import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.util.MoneyFormatter
-import kotlinx.datetime.LocalDate
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -216,8 +224,6 @@ fun TransactionListScreen(
         )
     }
 
-    // DayDetailDialog is removed since the details are shown in the bottom half of the calendar view
-
     pendingDeleteTransaction?.let { tx ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_transaction_title),
@@ -245,79 +251,95 @@ private fun TransactionListContent(
     onDayClick: (LocalDate) -> Unit,
     selectedDate: LocalDate?,
     modifier: Modifier = Modifier,
-    topSystemPadding: Dp = 0.dp,
-    bottomSystemPadding: Dp = 0.dp,
+    topSystemPadding: Dp,
+    bottomSystemPadding: Dp,
 ) {
     if (state.isCalendarView) {
-        val dateToShow = selectedDate ?: remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
-        val dayTransactions = state.transactionsByDate[dateToShow].orEmpty()
-        
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = topSystemPadding + 8.dp,
-                bottom = bottomSystemPadding + 108.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        val dateTxMap = remember(state.transactions) {
+            state.transactions.groupBy { tx ->
+                tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
+            }
+        }
+        val dayTxList = remember(selectedDate, dateTxMap) {
+            if (selectedDate != null) dateTxMap[selectedDate] ?: emptyList() else emptyList()
+        }
+
+        Column(
+            modifier = modifier.fillMaxSize()
         ) {
-            item {
+            // Calendar Card — same pattern as SubscriptionScreen CalendarTab
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = topSystemPadding + 8.dp, bottom = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (!androidx.compose.foundation.isSystemInDarkTheme()) {
+                        Color.White
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    }
+                )
+            ) {
+                MonthlyCalendarView(
+                    year = state.calendarYear,
+                    month = state.calendarMonth,
+                    transactions = state.transactions,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    selectedDate = selectedDate,
+                    onDayClick = onDayClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp),
+                )
+            }
+
+            // Day header
+            if (selectedDate != null) {
+                Text(
+                    text = "Giao dịch ngày ${selectedDate.dayOfMonth}/${selectedDate.monthNumber}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 4.dp),
+                )
+            }
+
+            // Day transaction list
+            if (selectedDate != null && dayTxList.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentPadding = PaddingValues(bottom = bottomSystemPadding + 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(dayTxList, key = { it.id }) { transaction ->
+                        val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
+                        TransactionItem(
+                            transaction = transaction,
+                            walletName = walletName,
+                            onClick = { onTransactionClick(transaction.id) },
+                            onLongClick = { onDelete(transaction) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
+                    }
+                }
+            } else if (selectedDate != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                    shape = AppTheme.shapes.corner16,
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        } else {
-                            Color.White
-                        }
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
                     )
                 ) {
-                    MonthlyCalendarView(
-                        year = state.calendarYear,
-                        month = state.calendarMonth,
-                        transactions = state.transactions,
-                        selectedDate = dateToShow,
-                        bottomContentPadding = 0.dp,
-                        onPreviousMonth = onPreviousMonth,
-                        onNextMonth = onNextMonth,
-                        onDayClick = onDayClick,
-                        modifier = Modifier.fillMaxWidth().height(320.dp),
-                    )
-                }
-            }
-            
-            item {
-                Text(
-                    text = stringResource(R.string.transaction_day_details_format, dateToShow.dayOfMonth, dateToShow.monthNumber),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp)
-                )
-            }
-            
-            if (dayTransactions.isNotEmpty()) {
-                items(dayTransactions, key = { it.id }) { transaction ->
-                    val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
-                    TransactionItem(
-                        transaction = transaction,
-                        walletName = walletName,
-                        onClick = { onTransactionClick(transaction.id) },
-                        onLongClick = { onDelete(transaction) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-                }
-            } else {
-                item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 24.dp),
+                            .padding(vertical = 24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -330,121 +352,242 @@ private fun TransactionListContent(
             }
         }
     } else {
-        val groupedTransactions = remember(state.transactions) {
-            state.transactions.groupBy { tx ->
-                tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
-            }.toList().sortedByDescending { it.first }
+        val categoriesList = remember { listOf(null) + Category.getAll() }
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+        // Find index of selectedCategory
+        val selectedIndex = remember(state.selectedCategory, categoriesList) {
+            val idx = categoriesList.indexOfFirst { it?.id == state.selectedCategory?.id }
+            if (idx == -1) 0 else idx
         }
 
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = topSystemPadding + 12.dp,
-                end = 16.dp,
-                bottom = bottomSystemPadding + 108.dp
-            ),
-        ) {
-            // ModernSearchBar has been moved to TopAppBar!
+        val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = selectedIndex,
+            pageCount = { categoriesList.size }
+        )
 
-            item {
-                if (!state.isLoading && !state.isEmpty) {
-                    CategoryFilterRow(
-                        selectedCategory = state.selectedCategory,
-                        onCategorySelected = onCategorySelected,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
+        // Synchronize pager state page changes back to ViewModel
+        LaunchedEffect(pagerState.currentPage) {
+            val cat = categoriesList[pagerState.currentPage]
+            if (state.selectedCategory?.id != cat?.id) {
+                onCategorySelected(cat)
+            }
+        }
+
+        // Synchronize ViewModel selectedCategory changes back to pagerState
+        LaunchedEffect(selectedIndex) {
+            if (pagerState.currentPage != selectedIndex) {
+                pagerState.animateScrollToPage(selectedIndex)
+            }
+        }
+
+        Column(modifier = modifier.fillMaxSize()) {
+            // Category Filter Row — fixed above pager, bọc trong Box để thêm khoảng cách với TopAppBar
+            Box(
+                modifier = Modifier.padding(top = topSystemPadding + 8.dp, bottom = 4.dp)
+            ) {
+                CategoryFilterRow(
+                    selectedCategory = categoriesList[pagerState.currentPage],
+                    onCategorySelected = { category ->
+                        val idx = categoriesList.indexOfFirst { it?.id == category?.id }
+                        if (idx != -1) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(idx)
+                            }
+                        }
+                    },
+                )
             }
 
-            when {
-                state.isLoading -> item { LoadingState() }
-                state.isEmpty -> item {
-                    Box(
-                        modifier = Modifier
-                            .fillParentMaxSize()
-                            .padding(bottom = bottomSystemPadding + 96.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EmptyStateWithAction(
-                            title = stringResource(R.string.transaction_none_found),
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+            // 3. HorizontalPager — only the transaction list scrolls horizontally
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                val pageCategory = categoriesList[page]
+                val pageTransactions = remember(state.transactions, pageCategory) {
+                    if (pageCategory == null) state.transactions
+                    else state.transactions.filter { it.category.id == pageCategory.id }
                 }
-                else -> {
-                    groupedTransactions.forEach { (date, dayTxList) ->
-                        @OptIn(ExperimentalFoundationApi::class)
-                        stickyHeader(key = date.toString()) {
-                            val totalIncome = dayTxList.filter { it.type == TransactionType.INCOME }.sumOf { it.amount.amountInCents }
-                            val totalExpense = dayTxList.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount.amountInCents }
-                            
-                            Column(
+
+                val groupedTransactions = remember(pageTransactions) {
+                    pageTransactions.groupBy { tx ->
+                        tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    }.toList().sortedByDescending { it.first }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        bottom = bottomSystemPadding + 108.dp
+                    )
+                ) {
+                    if (state.isLoading) {
+                        item { LoadingState() }
+                    } else if (pageTransactions.isEmpty()) {
+                        item {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 48.dp, bottom = 96.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                HorizontalDivider(
-                                    thickness = 0.5.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                EmptyStateWithAction(
+                                    title = stringResource(R.string.transaction_none_found),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(
+                            }
+                        }
+                    } else {
+                        groupedTransactions.forEach { (date, dayTxList) ->
+                            @OptIn(ExperimentalFoundationApi::class)
+                            stickyHeader(key = "${page}_${date}") {
+                                val totalIncome = dayTxList.filter { it.type == TransactionType.INCOME }.sumOf { it.amount.amountInCents }
+                                val totalExpense = dayTxList.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount.amountInCents }
+
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
+                                        .padding(horizontal = 16.dp)
                                 ) {
-                                    Text(
-                                        text = formatDateHeader(date, LocalContext.current).uppercase(),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    HorizontalDivider(
+                                        thickness = 0.5.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
-                                    
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        if (totalIncome > 0L) {
-                                            Text(
-                                                text = "+${MoneyFormatter.format(Money(totalIncome))}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        if (totalExpense > 0L) {
-                                            Text(
-                                                text = "-${MoneyFormatter.format(Money(totalExpense))}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
+                                        Text(
+                                            text = formatDateHeader(date, LocalContext.current).uppercase(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (totalIncome > 0L) {
+                                                Text(
+                                                    text = "+${MoneyFormatter.format(Money(totalIncome))}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            if (totalExpense > 0L) {
+                                                Text(
+                                                    text = "-${MoneyFormatter.format(Money(totalExpense))}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        
-                        items(dayTxList, key = { it.id }) { transaction ->
-                            val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
-                            TransactionItem(
-                                transaction = transaction,
-                                walletName = walletName,
-                                onClick = { onTransactionClick(transaction.id) },
-                                onLongClick = { onDelete(transaction) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                            )
+
+                            items(dayTxList, key = { it.id }) { transaction ->
+                                val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
+                                TransactionItem(
+                                    transaction = transaction,
+                                    walletName = walletName,
+                                    onClick = { onTransactionClick(transaction.id) },
+                                    onLongClick = { onDelete(transaction) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .padding(vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-
-            item { Spacer(Modifier.height(16.dp)) }
         }
+    }
+}
+
+@Composable
+private fun TransactionMonthOverview(
+    income: Money,
+    expense: Money,
+    transactionCount: Int,
+) {
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner20,
+        colors = CardDefaults.cardColors(containerColor = cardBgColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Dòng tiền tháng này", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "$transactionCount giao dịch đã ghi nhận",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TransactionAmountSummary(
+                    label = "Thu vào",
+                    amount = income,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                TransactionAmountSummary(
+                    label = "Đã chi",
+                    amount = expense,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionAmountSummary(
+    label: String,
+    amount: Money,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            MoneyFormatter.format(amount),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -470,142 +613,59 @@ private fun formatDateHeader(date: LocalDate, context: Context): String {
     }
 }
 
-/**
- * Thanh tìm kiếm "phong cách mới":
- *  - Bo góc lớn (AppTheme.shapes.corner24)
- *  - Backing fill nhẹ (surfaceVariant 30%) thay vì chỉ outline
- *  - Leading icon kính lúp, trailing icon X (clear) khi có text
- *  - Không label nổi, chỉ placeholder
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ModernSearchBar(
-    query: String,
-    onQueryChanged: (String) -> Unit,
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChanged,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(AppTheme.shapes.corner24),
-        leadingIcon = {
-            Icon(
-                Icons.Rounded.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChanged("") }) {
-                    Icon(
-                        Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.cd_clear_search),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        },
-        placeholder = {
-            Text(
-                stringResource(R.string.transaction_search_notes_category_placeholder),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        singleLine = true,
-        shape = AppTheme.shapes.corner24,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-            // P2-12: khi focus, đổi sang primary.copy(alpha=0.5f) để có affordance rõ ràng,
-            // tránh cảm giác border biến mất khi nhấn vào.
-            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-            unfocusedBorderColor = Color.Transparent,
-            disabledBorderColor = Color.Transparent,
-        ),
-    )
-}
-
 @Composable
 private fun CategoryFilterRow(
     selectedCategory: Category?,
     onCategorySelected: (Category?) -> Unit,
 ) {
-    val lazyListState = rememberLazyListState()
-    val showLeftFade by remember {
-        derivedStateOf {
-            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
-        }
-    }
-    val showRightFade by remember {
-        derivedStateOf {
-            val layoutInfo = lazyListState.layoutInfo
-            val totalItemsNumber = layoutInfo.totalItemsCount
-            if (totalItemsNumber == 0) {
-                false
-            } else {
-                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
-                lastVisibleItem == null || lastVisibleItem.index < totalItemsNumber - 1 || 
-                    (lastVisibleItem.index == totalItemsNumber - 1 && lastVisibleItem.offset + lastVisibleItem.size > layoutInfo.viewportEndOffset)
-            }
-        }
+    val categoriesList = remember { listOf(null) + Category.getAll() }
+
+    // Find index of selectedCategory
+    val selectedIndex = remember(selectedCategory, categoriesList) {
+        val idx = categoriesList.indexOfFirst { it?.id == selectedCategory?.id }
+        if (idx == -1) 0 else idx
     }
 
-    LazyRow(
-        state = lazyListState,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalFadingEdge(
-                showLeftFade = showLeftFade,
-                showRightFade = showRightFade,
-                backgroundColor = MaterialTheme.colorScheme.background
-            )
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        edgePadding = 16.dp,
+        containerColor = Color.Transparent,
+        divider = {}, // No bottom line
+        indicator = { tabPositions ->
+            if (selectedIndex < tabPositions.size) {
+                Box(
+                    Modifier
+                        .tabIndicatorOffset(tabPositions[selectedIndex])
+                        .fillMaxHeight()
+                        .padding(vertical = 6.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .zIndex(-1f)
+                )
+            }
+        },
+        modifier = Modifier.fillMaxWidth()
     ) {
-        item {
-            val isSelected = selectedCategory == null
-            FilterChip(
+        categoriesList.forEachIndexed { index, category ->
+            val isSelected = selectedIndex == index
+            val text = category?.displayName ?: "Tất cả"
+
+            Tab(
                 selected = isSelected,
-                onClick = { onCategorySelected(null) },
-                label = { Text("Tất cả", fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = Color.Transparent,
-                    selectedBorderColor = Color.Transparent
-                )
-            )
-        }
-        items(Category.entries, key = { it.id }) { category ->
-            val isSelected = selectedCategory?.id == category.id
-            FilterChip(
-                selected = isSelected,
-                onClick = {
-                    onCategorySelected(if (selectedCategory?.id == category.id) null else category)
+                onClick = { onCategorySelected(category) },
+                text = {
+                    Text(
+                        text = text,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
                 },
-                label = { Text(category.displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = Color.Transparent,
-                    selectedBorderColor = Color.Transparent
-                )
+                selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .clip(CircleShape)
             )
         }
     }
@@ -618,40 +678,5 @@ private fun LoadingState() {
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator(color = Color.Unspecified)
-    }
-}
-
-private fun Modifier.horizontalFadingEdge(
-    showLeftFade: Boolean,
-    showRightFade: Boolean,
-    backgroundColor: Color,
-    fadeLength: Dp = 16.dp
-): Modifier = this.drawWithContent {
-    drawContent()
-    
-    val fadeLengthPx = fadeLength.toPx()
-    
-    if (showLeftFade) {
-        drawRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(backgroundColor, Color.Transparent),
-                startX = 0f,
-                endX = fadeLengthPx
-            ),
-            topLeft = Offset(0f, 0f),
-            size = Size(fadeLengthPx, size.height)
-        )
-    }
-    
-    if (showRightFade) {
-        drawRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(Color.Transparent, backgroundColor),
-                startX = size.width - fadeLengthPx,
-                endX = size.width
-            ),
-            topLeft = Offset(size.width - fadeLengthPx, 0f),
-            size = Size(fadeLengthPx, size.height)
-        )
     }
 }

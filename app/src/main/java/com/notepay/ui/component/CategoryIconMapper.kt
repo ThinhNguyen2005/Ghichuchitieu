@@ -48,11 +48,48 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Category
 
+/** Icon có thể chọn khi tạo danh mục tuỳ chỉnh. ID được lưu cùng danh mục, không phụ thuộc tên. */
+data class CategoryIconOption(
+    val id: String,
+    val label: String,
+    val icon: ImageVector,
+)
+
+val customCategoryIconOptions = listOf(
+    CategoryIconOption("food", "Ăn uống", Icons.Rounded.Restaurant),
+    CategoryIconOption("coffee", "Cà phê", Icons.Rounded.Coffee),
+    CategoryIconOption("shopping", "Mua sắm", Icons.Rounded.ShoppingCart),
+    CategoryIconOption("transport", "Di chuyển", Icons.Rounded.DirectionsBus),
+    CategoryIconOption("gas", "Xăng xe", Icons.Rounded.LocalGasStation),
+    CategoryIconOption("home", "Nhà cửa", Icons.Rounded.Home),
+    CategoryIconOption("bill", "Hóa đơn", Icons.Rounded.Payments),
+    CategoryIconOption("entertainment", "Giải trí", Icons.Rounded.Movie),
+    CategoryIconOption("health", "Sức khỏe", Icons.Rounded.LocalHospital),
+    CategoryIconOption("education", "Học tập", Icons.Rounded.School),
+    CategoryIconOption("pet", "Thú cưng", Icons.Rounded.Pets),
+    CategoryIconOption("travel", "Du lịch", Icons.Rounded.Flight),
+    CategoryIconOption("family", "Gia đình", Icons.Rounded.People),
+    CategoryIconOption("savings", "Tiết kiệm", Icons.Rounded.Savings),
+    CategoryIconOption("investment", "Đầu tư", Icons.AutoMirrored.Rounded.TrendingUp),
+    CategoryIconOption("income", "Thu nhập", Icons.Rounded.AttachMoney),
+    CategoryIconOption("gift", "Quà tặng", Icons.Rounded.Favorite),
+    CategoryIconOption("insurance", "Bảo hiểm", Icons.Rounded.Shield),
+    CategoryIconOption("other", "Khác", Icons.Rounded.LocalMall),
+)
+
 /**
  * Mapping Category -> Material Icons (Round).
  * Domain layer không phụ thuộc Compose, nên mapping ở UI layer.
  */
-fun categoryIcon(category: Category): ImageVector = when (category.id) {
+fun categoryIcon(category: Category): ImageVector {
+    if (category.isCustom) {
+        return customCategoryIconOptions
+            .firstOrNull { it.id == category.iconId }
+            ?.icon
+            ?: Icons.Rounded.LocalMall
+    }
+
+    return when (category.id) {
     // --- 1. ĂN UỐNG & GIẢI TRÍ ---
     Category.FOOD.id -> Icons.Rounded.Restaurant
     Category.COFFEE.id -> Icons.Rounded.Coffee
@@ -100,7 +137,8 @@ fun categoryIcon(category: Category): ImageVector = when (category.id) {
     Category.TAX.id -> Icons.AutoMirrored.Rounded.ReceiptLong         // Thuế, phí cầu đường, phạt hành chính
 
     // --- CÁC KHOẢN KHÁC ---
-    else -> Icons.Rounded.LocalMall
+        else -> Icons.Rounded.LocalMall
+    }
 }
 
 

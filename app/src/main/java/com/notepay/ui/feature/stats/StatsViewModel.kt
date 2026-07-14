@@ -94,6 +94,13 @@ class StatsViewModel @Inject constructor(
     private val _localAdvisor = MutableStateFlow(LocalAdvisorUiState())
     @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
 
+    init {
+        viewModelScope.launch {
+            val available = budgetAdvisor.isGeminiNanoAvailable()
+            _localAdvisor.update { it.copy(isGeminiNanoAvailable = available) }
+        }
+    }
+
     fun sendAdviceFeedback(adviceId: String, score: Int) {
         advicePrefs.edit().putInt(adviceId, score).apply()
         _adviceFeedbacks.update { current ->
@@ -473,7 +480,34 @@ class StatsViewModel @Inject constructor(
         }
         if (latestAdvisorInput != advisorInput) {
             latestAdvisorInput = advisorInput
-            _localAdvisor.value = LocalAdvisorUiState()
+            _localAdvisor.value = LocalAdvisorUiState(
+                isGeminiNanoAvailable = _localAdvisor.value.isGeminiNanoAvailable,
+            )
+        }
+
+        // Keep the trend chart deterministic and tied to the same wallet filter as this screen.
+        val recentMonths = (2 downTo 0).map { offset ->
+            val absoluteMonth = monthYear.year * 12 + (monthYear.month - 1) - offset
+            val trendYear = absoluteMonth / 12
+            val trendMonth = absoluteMonth % 12 + 1
+            val monthTransactions = allTransactions.asSequence().filter { transaction ->
+                val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
+                (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
+                    localDateTime.year == trendYear && localDateTime.monthNumber == trendMonth
+            }
+            val trendExpense = monthTransactions
+                .filter { it.type == TransactionType.EXPENSE }
+                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
+            val trendIncome = allTransactions.asSequence()
+                .filter { transaction ->
+                    val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
+                    (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
+                        localDateTime.year == trendYear &&
+                        localDateTime.monthNumber == trendMonth &&
+                        transaction.type == TransactionType.INCOME
+                }
+                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
+            MonthlyTrendPoint(trendYear, trendMonth, trendExpense, trendIncome)
         }
 
         StatsUiState(
@@ -484,6 +518,7 @@ class StatsViewModel @Inject constructor(
             balance = income - expense,
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
+            recentMonths = recentMonths,
             isLoading = false,
             isCurrentMonth = monthYear.year == now.year && monthYear.month == now.month.ordinal + 1,
             selectedCategory = selectedCat,
@@ -519,13 +554,17 @@ class StatsViewModel @Inject constructor(
     fun generateLocalAdvice() {
         val input = latestAdvisorInput ?: return
         if (_localAdvisor.value.status == LocalAdvisorStatus.RUNNING) return
-        _localAdvisor.value = LocalAdvisorUiState(status = LocalAdvisorStatus.RUNNING)
+        _localAdvisor.value = _localAdvisor.value.copy(
+            status = LocalAdvisorStatus.RUNNING,
+            result = null,
+        )
         viewModelScope.launch {
             val result = budgetAdvisor.generate(input)
             if (latestAdvisorInput == input) {
                 _localAdvisor.value = LocalAdvisorUiState(
                     status = LocalAdvisorStatus.READY,
                     result = result,
+                    isGeminiNanoAvailable = result.provider == com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO,
                 )
             }
         }
@@ -561,6 +600,8 @@ class StatsViewModel @Inject constructor(
     }
 
     fun onNextMonth() {
+        val current = currentMonthYear.value
+        if (current.year == now.year && current.month == now.monthNumber) return
         currentMonthYear.update { current ->
             if (current.month == 12) {
                 MonthYear(current.year + 1, 1)
@@ -568,6 +609,17 @@ class StatsViewModel @Inject constructor(
                 MonthYear(current.year, current.month + 1)
             }
         }
+    }
+
+    /** Select a historical trend bar without navigating away from the statistics screen. */
+    fun selectMonth(year: Int, month: Int) {
+        val candidate = MonthYear(year, month)
+        val latest = MonthYear(now.year, now.monthNumber)
+        if (candidate.year > latest.year || (candidate.year == latest.year && candidate.month > latest.month)) return
+        currentMonthYear.value = candidate
+        _timeFilter.value = TimeFilterType.MONTH
+        _customDateRange.value = null
+        _selectedCategory.value = null
     }
 
     fun selectTab(index: Int) {
