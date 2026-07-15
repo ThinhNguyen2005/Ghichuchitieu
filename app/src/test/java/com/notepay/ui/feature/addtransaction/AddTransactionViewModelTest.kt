@@ -41,6 +41,11 @@ class AddTransactionViewModelTest {
     fun setUp() {
         // Cấu hình phản hồi mặc định cho mock gợi ý danh mục
         every { mockSuggestCategoryUseCase.suggest(any(), any()) } returns Category.FOOD
+        every { mockSuggestCategoryUseCase.suggestDetailed(any(), any()) } returns com.notepay.domain.usecase.CategorySuggestion(
+            category = Category.FOOD,
+            confidence = 0.9f,
+            reason = "Test suggestion"
+        )
     }
     @Test
     fun `amount changed clears previous invalid amount error when input becomes valid`() = runTest {
@@ -82,7 +87,7 @@ class AddTransactionViewModelTest {
         viewModel.onEvent(AddTransactionEvent.NoteChanged("Ăn trưa bún bò"))
 
         // Kiểm tra thông qua verify của MockK để không bị phụ thuộc vào tên biến của State
-        verify(exactly = 1) { mockSuggestCategoryUseCase.suggest("Ăn trưa bún bò", false) }
+        verify(exactly = 1) { mockSuggestCategoryUseCase.suggestDetailed("Ăn trưa bún bò", false) }
     }
 
     @Test
