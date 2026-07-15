@@ -1,49 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Fallback cho Android 7 (API 24-25), nơi chưa có adaptive-icon.
-  Trên Android 8+ (API 26+) ic_launcher.xml trong mipmap-anydpi-v26 được ưu tiên.
-  Vector drawable đảm bảo render đúng trên mọi density bucket (mdpi → xxxhdpi).
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="48dp"
-    android:height="48dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- Background: phẳng, màu navy thương hiệu -->
-    <path
-        android:fillColor="#1F2A4A"
-        android:pathData="M0,0h108v108h-108z" />
-
-    <!-- Foreground (ví tiền + tờ tiền) — reuse từ ic_launcher_foreground -->
-    <group android:translateX="0" android:translateY="0">
-        <path
-            android:fillColor="#F2EAD3"
-            android:pathData="M30,42 L78,42 A4,4 0 0 1 82,46 L82,80 A4,4 0 0 1 78,84 L30,84 A4,4 0 0 1 26,80 L26,46 A4,4 0 0 1 30,42 Z" />
-        <path
-            android:fillColor="#E2D7B5"
-            android:pathData="M34,38 L74,38 A2,2 0 0 1 76,40 L76,44 L32,44 L32,40 A2,2 0 0 1 34,38 Z" />
-        <path
-            android:fillColor="#C9BC8E"
-            android:pathData="M28,52 L80,52 L80,53 L28,53 Z" />
-        <path
-            android:fillColor="#C9A24A"
-            android:pathData="M40,64 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
-        <path
-            android:fillColor="#1F2A4A"
-            android:pathData="M39,64 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
-        <path
-            android:fillColor="#1F2A4A"
-            android:pathData="M42.5,58 L46,55 L47,56 L43.5,59 Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M62,60 L82,60 A2,2 0 0 1 84,62 L84,72 A2,2 0 0 1 82,74 L62,74 Z" />
-        <path
-            android:fillColor="#E2D7B5"
-            android:pathData="M62,60 L82,60 L82,62 L62,62 Z" />
-        <path
-            android:fillColor="#1F2A4A"
-            android:pathData="M70,66 L78,66 L78,68 L70,68 Z" />
-    </group>
-</vector>
+<!-- Fallback for launchers that do not render adaptive icons. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>

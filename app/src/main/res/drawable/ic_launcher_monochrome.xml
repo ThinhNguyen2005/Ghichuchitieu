@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alpha-only mark used by Android themed icons. The launcher applies its own tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M22,16C17.6,16 14,19.6 14,24L14,77C14,80.3 17.8,82.2 20.5,80L27,74L33.5,80C35,81.3 37.2,81.3 38.7,80L45,74L51.5,80C53.1,81.4 55.5,81.2 57,79.7L64,73L64,24C64,19.6 60.4,16 56,16L22,16ZM62,18L62,35L79,35L62,18Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M75,53C61.7,53 51,63.7 51,77C51,90.3 61.7,101 75,101C88.3,101 99,90.3 99,77C99,63.7 88.3,53 75,53ZM78.2,61L82.4,61L82.4,66.2C85.2,67.1 87.4,69.1 88.4,71.8L82.8,74C82.1,72.3 80.4,71.2 78.2,71.2C75.4,71.2 73.5,72.5 73.5,74.3C73.5,76.1 75,77.1 79.3,78.3C84.7,79.8 87.5,82.4 87.5,86.8C87.5,90.8 85.2,93.8 81.1,95L81.1,99L76.9,99L76.9,95.5C72.7,95.1 69.7,92.8 68.3,89.4L74.1,87.2C75.1,89.4 76.8,90.5 79.3,90.5C82.2,90.5 84,89.1 84,87.1C84,85.3 82.5,84.2 78,83C72.8,81.6 70,79.1 70,74.7C70,70.8 72.2,67.8 76.2,66.5L76.2,61Z" />
+</vector>
