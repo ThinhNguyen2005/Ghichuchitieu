@@ -35,7 +35,7 @@ fun LiquidGlassPanel(
     modifier: Modifier = Modifier,
     shape: Shape = AppTheme.shapes.corner24,
     tint: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f),
-    border: BorderStroke = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f)),
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f)),
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -59,7 +59,7 @@ fun LiquidGlassPanel(
     Box(
         modifier = modifier
             .clip(shape)
-            .border(border, shape)
+            .then(if (border != null) Modifier.border(border, shape) else Modifier)
             .drawBackdrop(
                 backdrop = backdrop,
                 shape = { shape },

@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,9 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -42,10 +42,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.data.preferences.KnownBankApp
 import com.notepay.data.preferences.KnownBankApps
-import com.notepay.ui.theme.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.core.graphics.toColorInt
 import android.os.Build
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -54,6 +52,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.app.NotificationCompat
+import com.notepay.ai.LocalModelInstallStatus
+import com.notepay.ai.LocalModelState
 
 data class BankAppUiModel(
     val packageName: String,
@@ -62,6 +62,189 @@ data class BankAppUiModel(
     val isInstalled: Boolean,
     val isCustom: Boolean
 )
+
+private const val DEFAULT_LOCAL_MODEL_PAGE = "https://huggingface.co/litert-community/Qwen3-0.6B-int4/tree/main"
+
+private fun formatModelSize(sizeBytes: Long): String {
+    if (sizeBytes <= 0L) return "không rõ dung lượng"
+    val mb = sizeBytes / (1024.0 * 1024.0)
+    return if (mb >= 1024.0) {
+        "%.1f GB".format(mb / 1024.0)
+    } else {
+        "%.0f MB".format(mb)
+    }
+}
+
+@Composable
+private fun LocalAiModelSettingsCard(
+    localModel: LocalModelState,
+    onOpenModelPage: () -> Unit,
+    onPickModel: () -> Unit,
+    onRemoveModel: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+        ),
+        shape = AppTheme.shapes.corner16
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Psychology,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "AI cục bộ",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Dùng khi Gemini Nano không khả dụng. NotePay chỉ nhập file đã tải, không xin quyền Internet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = when (localModel.status) {
+                            LocalModelInstallStatus.READY -> Icons.Rounded.CheckCircle
+                            LocalModelInstallStatus.IMPORTING -> Icons.Rounded.Downloading
+                            LocalModelInstallStatus.ERROR -> Icons.Rounded.Error
+                            LocalModelInstallStatus.NOT_INSTALLED -> Icons.Rounded.CloudOff
+                        },
+                        contentDescription = null,
+                        tint = when (localModel.status) {
+                            LocalModelInstallStatus.READY -> Color(0xFF1B7F4F)
+                            LocalModelInstallStatus.ERROR -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = when (localModel.status) {
+                                LocalModelInstallStatus.READY ->
+                                    localModel.displayName ?: "Mô hình AI cục bộ"
+                                LocalModelInstallStatus.IMPORTING -> "Đang cài mô hình"
+                                LocalModelInstallStatus.ERROR -> "Chưa cài được mô hình"
+                                LocalModelInstallStatus.NOT_INSTALLED -> "Chưa có mô hình"
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = when {
+                                localModel.status == LocalModelInstallStatus.READY ->
+                                    "Đã lưu trong bộ nhớ riêng · ${formatModelSize(localModel.sizeBytes)}"
+                                localModel.status == LocalModelInstallStatus.IMPORTING ->
+                                    "Đang sao chép vào bộ nhớ riêng của ứng dụng"
+                                localModel.message != null -> localModel.message.orEmpty()
+                                else -> "Khuyến nghị: Qwen3 0.6B INT4 bản .litertlm cho máy tầm trung."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            if (localModel.status == LocalModelInstallStatus.IMPORTING) {
+                val progress = localModel.progress
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onOpenModelPage,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Trang tải")
+                }
+                Button(
+                    onClick = onPickModel,
+                    enabled = localModel.status != LocalModelInstallStatus.IMPORTING,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (localModel.status == LocalModelInstallStatus.READY) "Đổi model" else "Chọn file")
+                }
+            }
+
+            if (localModel.status == LocalModelInstallStatus.READY) {
+                TextButton(
+                    onClick = onRemoveModel,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Xóa mô hình khỏi máy")
+                }
+            }
+        }
+    }
+}
 
 private fun isNotificationListenerEnabled(context: Context): Boolean {
     val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
@@ -148,6 +331,12 @@ fun NotificationSettingsScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val localModel by viewModel.localModel.collectAsStateWithLifecycle()
+    val modelPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        uri?.let(viewModel::importLocalAiModel)
+    }
 
     var isListenerEnabled by remember { mutableStateOf(isNotificationListenerEnabled(context)) }
     var isBatteryOptimizationsIgnored by remember {
@@ -246,10 +435,6 @@ fun NotificationSettingsScreen(
     var showAddCustomAppDialog by remember { mutableStateOf(false) }
     var customAppLabel by remember { mutableStateOf("") }
     var customAppPackage by remember { mutableStateOf("") }
-
-    var showCustomColorDialog by remember { mutableStateOf(false) }
-    var customColorHexInput by remember { mutableStateOf(ThemeManager.customColorHex) }
-    var customColorError by remember { mutableStateOf<String?>(null) }
 
     fun playHaptic() {
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -366,135 +551,30 @@ fun NotificationSettingsScreen(
                 }
             }
 
-            // 2. Màu sắc chủ đạo
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    ),
-                    shape = AppTheme.shapes.corner16
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "Màu sắc chủ đạo",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "Chọn màu sắc đại diện chính cho toàn bộ giao diện của ứng dụng.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val themeOptions = remember(ThemeManager.customColorHex) {
-                            listOf(
-                                "system" to Color.Gray,
-                                "green" to Color(0xFF1B7F4F),
-                                "blue" to Color(0xFF1976D2),
-                                "red" to Color(0xFFC2185B),
-                                "orange" to Color(0xFFE65100),
-                                "teal" to Color(0xFF00796B),
-                                "gold" to Color(0xFF8A6600),
-                                "brown" to Color(0xFF8D4F38),
-                                "gray" to Color(0xFF566066),
-                                "custom" to Color(ThemeManager.customColorHex.toColorInt())
-                            )
-                        }
-
-                        val autoGradient = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF1B7F4F),
-                                Color(0xFF1976D2),
-                                Color(0xFFC2185B)
+                LocalAiModelSettingsCard(
+                    localModel = localModel,
+                    onOpenModelPage = {
+                        playHaptic()
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(DEFAULT_LOCAL_MODEL_PAGE)
                             )
                         )
-
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(themeOptions) { (key, color) ->
-                                val isSelected = ThemeManager.currentThemeColor == key
-                                val isSystem = key == "system"
-                                val isCustom = key == "custom"
-
-                                Box(
-                                    modifier = Modifier.size(48.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(AppTheme.shapes.circle)
-                                            .background(
-                                                brush = if (isSystem) autoGradient else SolidColor(color),
-                                                shape = AppTheme.shapes.circle
-                                            )
-                                            .border(
-                                                width = if (isSelected) 3.dp else 1.dp,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.outlineVariant,
-                                                shape = AppTheme.shapes.circle
-                                            )
-                                            .clickable {
-                                                playHaptic()
-                                                if (isCustom) {
-                                                    ThemeManager.updateThemeColor(context, "custom")
-                                                    showCustomColorDialog = true
-                                                } else {
-                                                    ThemeManager.updateThemeColor(context, key)
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (isSystem) {
-                                            Text(
-                                                text = "A",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = Color.White
-                                            )
-                                        } else if (isCustom) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Palette,
-                                                contentDescription = "Tùy chỉnh màu",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-
-                                    if (isSelected) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .align(Alignment.BottomEnd)
-                                                .background(MaterialTheme.colorScheme.primary, AppTheme.shapes.circle)
-                                                .border(1.5.dp, MaterialTheme.colorScheme.surface, AppTheme.shapes.circle),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Check,
-                                                contentDescription = "Selected",
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                modifier = Modifier.size(10.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                    },
+                    onPickModel = {
+                        playHaptic()
+                        modelPicker.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
+                    },
+                    onRemoveModel = {
+                        playHaptic()
+                        viewModel.removeLocalAiModel()
+                    },
+                )
             }
 
-            // 3. Tự động ghi chép giao dịch
+            // 2. Tự động ghi chép giao dịch
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -542,7 +622,7 @@ fun NotificationSettingsScreen(
                 }
             }
 
-            // 4. Danh sách ngân hàng
+            // 3. Danh sách ngân hàng
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -974,203 +1054,4 @@ fun NotificationSettingsScreen(
             }
         )
     }
-
-    // if (showCustomColorDialog) {
-    //     AlertDialog(
-    //         onDismissRequest = {
-    //             showCustomColorDialog = false
-    //             customColorHexInput = ThemeManager.customColorHex
-    //             customColorError = null
-    //         },
-    //         title = {
-    //             Row(
-    //                 verticalAlignment = Alignment.CenterVertically,
-    //                 horizontalArrangement = Arrangement.spacedBy(8.dp)
-    //             ) {
-    //                 Icon(
-    //                     imageVector = Icons.Rounded.Palette,
-    //                     contentDescription = null,
-    //                     tint = MaterialTheme.colorScheme.primary
-    //                 )
-    //                 Text("Tự chọn màu sắc chủ đạo", fontWeight = FontWeight.Bold)
-    //             }
-    //         },
-    //         text = {
-    //             Column(
-    //                 verticalArrangement = Arrangement.spacedBy(16.dp),
-    //                 modifier = Modifier.fillMaxWidth()
-    //             ) {
-    //                 Text(
-    //                     "Nhập mã màu HEX hoặc chọn từ các preset màu sắc cao cấp được đề xuất.",
-    //                     style = MaterialTheme.typography.bodySmall,
-    //                     color = MaterialTheme.colorScheme.onSurfaceVariant
-    //                 )
-
-    //                 // Xem trước màu và ô nhập
-    //                 Row(
-    //                     verticalAlignment = Alignment.CenterVertically,
-    //                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-    //                     modifier = Modifier.fillMaxWidth()
-    //                 ) {
-    //                     val previewColor = remember(customColorHexInput) {
-    //                         try {
-    //                             Color(customColorHexInput.toColorInt())
-    //                         } catch (e: Exception) {
-    //                             Color.Gray
-    //                         }
-    //                     }
-
-    //                     // Preview Circle
-    //                     Box(
-    //                         modifier = Modifier
-    //                             .size(56.dp)
-    //                             .clip(AppTheme.shapes.circle)
-    //                             .background(previewColor)
-    //                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppTheme.shapes.circle)
-    //                     )
-
-    //                     // Hex Input
-    //                     OutlinedTextField(
-    //                         value = customColorHexInput,
-    //                         onValueChange = { input ->
-    //                             val formatted = if (input.startsWith("#")) input else "#$input"
-    //                             customColorHexInput = formatted.take(7)
-
-    //                             customColorError = if (!formatted.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
-    //                                 "Mã màu HEX không hợp lệ (vd: #E91E63)"
-    //                             } else {
-    //                                 null
-    //                             }
-    //                         },
-    //                         label = { Text("Mã màu HEX") },
-    //                         placeholder = { Text("#1B7F4F") },
-    //                         singleLine = true,
-    //                         isError = customColorError != null,
-    //                         modifier = Modifier.weight(1f)
-    //                     )
-    //                 }
-
-    //                 if (customColorError != null) {
-    //                     Text(
-    //                         text = customColorError ?: "",
-    //                         color = MaterialTheme.colorScheme.error,
-    //                         style = MaterialTheme.typography.bodySmall
-    //                     )
-    //                 }
-
-    //                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-    //                 Text(
-    //                     "Preset màu sắc premium:",
-    //                     style = MaterialTheme.typography.labelMedium,
-    //                     fontWeight = FontWeight.Bold,
-    //                     color = MaterialTheme.colorScheme.onSurfaceVariant
-    //                 )
-
-    //                 val premiumPresets = listOf(
-    //                     "Amethyst" to "#9C27B0",
-    //                     "Cobalt" to "#0047AB",
-    //                     "Emerald" to "#50C878",
-    //                     "Hổ phách" to "#FFBF00",
-    //                     "Coral" to "#FF6F61",
-    //                     "Mint" to "#66CDAA",
-    //                     "Ruby" to "#E0115F",
-    //                     "Sapphire" to "#0F52BA",
-    //                     "Rose" to "#FF007F",
-    //                     "Sky Blue" to "#00B0FF",
-    //                     "Đồng Cỏ" to "#4F7942",
-    //                     "Đất Nung" to "#E2725B"
-    //                 )
-
-    //                 Column(
-    //                     verticalArrangement = Arrangement.spacedBy(8.dp),
-    //                     modifier = Modifier.fillMaxWidth()
-    //                 ) {
-    //                     for (i in 0 until 3) {
-    //                         Row(
-    //                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-    //                             modifier = Modifier.fillMaxWidth()
-    //                         ) {
-    //                             for (j in 0 until 4) {
-    //                                 val idx = i * 4 + j
-    //                                 val (name, hex) = premiumPresets[idx]
-    //                                 val isPresetSelected = customColorHexInput.equals(hex, ignoreCase = true)
-    //                                 val colorObj = Color(hex.toColorInt())
-
-    //                                 Box(
-    //                                     modifier = Modifier
-    //                                         .weight(1f)
-    //                                         .clip(AppTheme.shapes.corner8)
-    //                                         .background(
-    //                                             if (isPresetSelected) MaterialTheme.colorScheme.primaryContainer
-    //                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-    //                                         )
-    //                                         .border(
-    //                                             width = if (isPresetSelected) 2.dp else 1.dp,
-    //                                             color = if (isPresetSelected) MaterialTheme.colorScheme.primary
-    //                                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-    //                                             shape = AppTheme.shapes.corner8
-    //                                         )
-    //                                         .clickable {
-    //                                             playHaptic()
-    //                                             customColorHexInput = hex
-    //                                             customColorError = null
-    //                                         }
-    //                                         .padding(vertical = 8.dp),
-    //                                     contentAlignment = Alignment.Center
-    //                                 ) {
-    //                                     Column(
-    //                                         horizontalAlignment = Alignment.CenterHorizontally,
-    //                                         verticalArrangement = Arrangement.spacedBy(4.dp)
-    //                                     ) {
-    //                                         Box(
-    //                                             modifier = Modifier
-    //                                                 .size(20.dp)
-    //                                                 .clip(AppTheme.shapes.circle)
-    //                                                 .background(colorObj)
-    //                                         )
-    //                                         Text(
-    //                                             text = name,
-    //                                             style = MaterialTheme.typography.labelSmall,
-    //                                             fontSize = 9.sp,
-    //                                             maxLines = 1,
-    //                                             overflow = TextOverflow.Ellipsis
-    //                                         )
-    //                                     }
-    //                                 }
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         },
-    //         confirmButton = {
-    //             TextButton(
-    //                 onClick = {
-    //                     playHaptic()
-    //                     if (customColorError == null && customColorHexInput.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
-    //                         ThemeManager.updateCustomColor(context, customColorHexInput)
-    //                         ThemeManager.updateThemeColor(context, "custom")
-    //                         showCustomColorDialog = false
-    //                     }
-    //                 },
-    //                 enabled = customColorError == null && customColorHexInput.isNotBlank()
-    //             ) {
-    //                 Text("Áp dụng", fontWeight = FontWeight.Bold)
-    //             }
-    //         },
-    //         dismissButton = {
-    //             TextButton(
-    //                 onClick = {
-    //                     playHaptic()
-    //                     showCustomColorDialog = false
-    //                     customColorHexInput = ThemeManager.customColorHex
-    //                     customColorError = null
-    //                 }
-    //             ) {
-    //                 Text("Đóng")
-    //             }
-    //         }
-    //     )
-    // }
 }

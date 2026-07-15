@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -43,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +77,7 @@ fun EditTransactionScreen(
     viewModel: EditTransactionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showAllCategories by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.feedback.collect { feedback ->
@@ -90,7 +94,20 @@ fun EditTransactionScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (state.isAutoCapture) "Chi tiết giao dịch" else "Chỉnh sửa giao dịch")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(if (state.isAutoCapture) "Chi tiết giao dịch" else "Chỉnh sửa giao dịch")
+                        if (state.isAutoCapture) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccountBalance,
+                                contentDescription = "Giao dịch tự động từ Ngân hàng",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -113,42 +130,6 @@ fun EditTransactionScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Nhãn read-only nếu giao dịch do ngân hàng bắt
-            if (state.isAutoCapture) {
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                Icons.Rounded.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                            Column {
-                                Text(
-                                    "Giao dịch được bắt tự động",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                )
-                                Text(
-                                    "Giao dịch từ ngân hàng không thể chỉnh sửa để đảm bảo tính toàn vẹn dữ liệu.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             // Số tiền
             item {
                 val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
@@ -163,21 +144,75 @@ fun EditTransactionScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     visualTransformation = currencyTransformation,
                     suffix = { Text("đ") },
+                    trailingIcon = if (state.isAutoCapture) {
+                        {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = "Không thể chỉnh sửa",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    } else null,
                 )
             }
 
             // Danh mục
             item {
-                CategoryGridPicker(
-                    categories = state.availableCategories,
-                    selectedCategory = state.category,
-                    isIncome = state.type == TransactionType.INCOME,
-                    onCategoryChanged = { viewModel.onCategoryChanged(it) },
-                    // Auto-capture: read-only, không cho thêm danh mục mới
-                    onCreateCategory = if (state.isAutoCapture) null else { name, color, iconId, isIncome ->
-                        viewModel.createCategory(name, color, iconId, isIncome)
-                    },
-                )
+                if (state.isAutoCapture) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppTheme.shapes.corner16,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            com.notepay.ui.component.CategoryAvatar(
+                                category = state.category ?: com.notepay.domain.model.Category.OTHER,
+                                size = 24.dp,
+                                iconSize = 12.dp
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Danh mục",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = state.category?.displayName ?: "",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = "Không thể chỉnh sửa",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                } else {
+                    com.notepay.ui.component.CategoryQuickSelectionRow(
+                        categories = state.availableCategories,
+                        selectedCategory = state.category,
+                        isIncome = state.type == TransactionType.INCOME,
+                        onCategoryChanged = { viewModel.onCategoryChanged(it) },
+                        onSeeAllClick = {
+                            showAllCategories = true
+                        }
+                    )
+                }
             }
 
             // Ghi chú
@@ -232,7 +267,13 @@ fun EditTransactionScreen(
                         minLines = 2,
                         readOnly = state.isAutoCapture,
                         enabled = !state.isAutoCapture,
-                        supportingText = { if (!state.isAutoCapture) Text("${state.note.length}/200") },
+                        supportingText = {
+                            if (!state.isAutoCapture) {
+                                Text("${state.note.length}/200")
+                            } else {
+                                Text("Chỉ cho phép sửa ghi chú đối với giao dịch tự động")
+                            }
+                        },
                     )
                 }
             }
@@ -302,6 +343,34 @@ fun EditTransactionScreen(
             }
 
             item { Spacer(Modifier.height(12.dp)) }
+        }
+
+        if (showAllCategories) {
+            ModalBottomSheet(
+                onDismissRequest = { showAllCategories = false },
+                dragHandle = { BottomSheetDefaults.DragHandle() },
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 32.dp)
+                ) {
+                    CategoryGridPicker(
+                        categories = state.availableCategories,
+                        selectedCategory = state.category,
+                        isIncome = state.type == TransactionType.INCOME,
+                        onCategoryChanged = {
+                            viewModel.onCategoryChanged(it)
+                            showAllCategories = false
+                        },
+                        onCreateCategory = { name, color, iconId, isIncome ->
+                            viewModel.createCategory(name, color, iconId, isIncome)
+                        }
+                    )
+                }
+            }
         }
     }
 }

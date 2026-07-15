@@ -4,6 +4,9 @@
 
     <!-- Phase 1: KHÔNG xin bất kỳ permission nào.
          Phase 2 mới thêm POST_NOTIFICATIONS + BIND_NOTIFICATION_LISTENER_SERVICE. -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 
@@ -112,6 +115,13 @@
         android:usesCleartextTraffic="false"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="36">
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

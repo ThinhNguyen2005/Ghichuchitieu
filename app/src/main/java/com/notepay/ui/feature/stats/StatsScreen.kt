@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +37,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ThumbDown
@@ -78,7 +78,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.analytics.AdvisorProvider
+import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.ForecastConfidence
+import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
@@ -101,6 +103,8 @@ private enum class StatsContentState {
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
     onAddTransaction: () -> Unit = {},
+    onTransactionClick: (Long) -> Unit = {},
+    onConfigureLocalModel: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
@@ -146,6 +150,8 @@ fun StatsScreen(
                                 onAdviceFeedback = viewModel::sendAdviceFeedback,
                                 onAddSubscription = viewModel::showAddSubscription,
                                 onGenerateLocalAdvice = viewModel::generateLocalAdvice,
+                                onSelectLocalModel = onConfigureLocalModel,
+                                onTransactionClick = onTransactionClick,
                             )
                         },
                     )
@@ -284,6 +290,8 @@ private fun StatsSupportingContent(
     onAdviceFeedback: (String, Int) -> Unit,
     onAddSubscription: (String, Long, String, Long) -> Unit,
     onGenerateLocalAdvice: () -> Unit,
+    onSelectLocalModel: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
 ) {
     val isExpense = metric == StatsMetric.CHI_TIEU
     val breakdown = if (isExpense) state.breakdown else state.incomeBreakdown
@@ -337,6 +345,7 @@ private fun StatsSupportingContent(
                     onAdviceFeedback = onAdviceFeedback,
                     onAddSubscription = onAddSubscription,
                     onGenerateLocalAdvice = onGenerateLocalAdvice,
+                    onSelectLocalModel = onSelectLocalModel,
                 )
             }
         }
@@ -396,7 +405,7 @@ private fun StatsSupportingContent(
                         selectedTransactions.forEach { transaction ->
                             TransactionItem(
                                 transaction = transaction,
-                                onClick = {},
+                                onClick = { onTransactionClick(transaction.id) },
                             )
                         }
                     }
@@ -458,19 +467,15 @@ private fun CategoryBreakdownRow(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                if (item.category.isIncome) {
+                    Color(0xFF22A06B).copy(alpha = 0.15f)
+                } else {
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+                }
             } else {
                 MaterialTheme.colorScheme.surfaceContainerLow
             },
         ),
-        border = if (isSelected) {
-            BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-            )
-        } else {
-            null
-        },
     ) {
         Row(
             modifier = Modifier
@@ -575,7 +580,7 @@ private fun BudgetProgressBar(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         tint = statusColor.copy(alpha = 0.07f),
-        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.18f)),
+        border = null,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -692,7 +697,7 @@ private fun SpendingPredictionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         tint = riskColor.copy(alpha = 0.07f),
-        border = BorderStroke(1.dp, riskColor.copy(alpha = 0.20f)),
+        border = null,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -796,6 +801,7 @@ private fun AiInsightsCarousel(
     onAdviceFeedback: (String, Int) -> Unit,
     onAddSubscription: (String, Long, String, Long) -> Unit,
     onGenerateLocalAdvice: () -> Unit,
+    onSelectLocalModel: () -> Unit,
 ) {
     val localView = LocalView.current
     val itemCount = 1 +
@@ -832,6 +838,7 @@ private fun AiInsightsCarousel(
                     LocalAdvisorCard(
                         advisor = state.localAdvisor,
                         onGenerate = onGenerateLocalAdvice,
+                        onSelectModel = onSelectLocalModel,
                         modifier = Modifier.width(cardWidth),
                     )
                 }
@@ -885,13 +892,19 @@ private fun AiInsightsCarousel(
 private fun LocalAdvisorCard(
     advisor: LocalAdvisorUiState,
     onGenerate: () -> Unit,
+    onSelectModel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val result = advisor.result
-    val idleDescription = when (advisor.isGeminiNanoAvailable) {
-        true -> "Gemini Nano diễn giải số liệu tổng hợp ngay trên thiết bị."
-        false -> "Phân tích thống kê được thực hiện cục bộ; giao dịch thô không rời khỏi máy."
-        null -> "Đang kiểm tra khả năng phân tích cục bộ trên thiết bị."
+    val idleDescription = when (advisor.availability) {
+        AdvisorAvailability.GEMINI_NANO ->
+            "Gemini Nano diễn giải số liệu tổng hợp ngay trên thiết bị."
+        AdvisorAvailability.LOCAL_MODEL ->
+            "Mô hình ${advisor.localModel.displayName ?: "AI cục bộ"} đã sẵn sàng; dữ liệu không rời khỏi máy."
+        AdvisorAvailability.STATISTICAL_ONLY ->
+            "Gemini Nano không khả dụng. Bạn có thể thêm Gemma 3 1B hoặc mô hình .litertlm phù hợp với máy."
+        AdvisorAvailability.CHECKING ->
+            "Đang kiểm tra khả năng phân tích AI cục bộ trên thiết bị."
     }
 
     InsightCard(
@@ -924,7 +937,28 @@ private fun LocalAdvisorCard(
             }
         }
 
-        when (advisor.status) {
+        if (advisor.localModel.status == LocalModelInstallStatus.IMPORTING) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "Đang cài mô hình AI trên thiết bị…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                val progress = advisor.localModel.progress
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        } else when (advisor.status) {
             LocalAdvisorStatus.RUNNING -> {
                 Box(
                     modifier = Modifier
@@ -957,6 +991,7 @@ private fun LocalAdvisorCard(
                 )
                 Button(
                     onClick = onGenerate,
+                    enabled = advisor.availability != AdvisorAvailability.CHECKING,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 44.dp),
@@ -974,6 +1009,37 @@ private fun LocalAdvisorCard(
                         fontWeight = FontWeight.Bold,
                     )
                 }
+                if (advisor.availability != AdvisorAvailability.GEMINI_NANO) {
+                    TextButton(
+                        onClick = onSelectModel,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            Icons.Rounded.FolderOpen,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (advisor.availability == AdvisorAvailability.LOCAL_MODEL) {
+                                "Mở cài đặt AI"
+                            } else {
+                                "Cài đặt mô hình AI"
+                            },
+                        )
+                    }
+                }
+                advisor.localModel.message
+                    ?.takeIf { advisor.localModel.status == LocalModelInstallStatus.ERROR }
+                    ?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
             }
 
             LocalAdvisorStatus.READY -> {
@@ -991,10 +1057,10 @@ private fun LocalAdvisorCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (result?.provider == AdvisorProvider.GEMINI_NANO) {
-                                "Gemini Nano"
-                            } else {
-                                "Thống kê cục bộ"
+                            text = when (result?.provider) {
+                                AdvisorProvider.GEMINI_NANO -> "Gemini Nano"
+                                AdvisorProvider.LOCAL_LITERT_MODEL -> "AI cục bộ · LiteRT-LM"
+                                AdvisorProvider.STATISTICAL_FALLBACK, null -> "Thống kê cục bộ"
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -1011,6 +1077,15 @@ private fun LocalAdvisorCard(
                         }
                     }
 
+                    if (result?.provider != AdvisorProvider.GEMINI_NANO) {
+                        IconButton(onClick = onSelectModel) {
+                            Icon(
+                                Icons.Rounded.FolderOpen,
+                                contentDescription = "Mở cài đặt AI cục bộ",
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
                     TextButton(
                         onClick = onGenerate,
                         modifier = Modifier.heightIn(min = 40.dp),
@@ -1322,10 +1397,6 @@ private fun InsightCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = accentColor.copy(alpha = 0.075f),
-        ),
-        border = BorderStroke(
-            1.dp,
-            accentColor.copy(alpha = 0.20f),
         ),
     ) {
         Column(

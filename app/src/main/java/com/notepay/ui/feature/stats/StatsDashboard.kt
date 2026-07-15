@@ -154,9 +154,8 @@ private fun StatsHeader(
 private fun ViewModeToggle(viewType: StatsViewType, onChanged: (StatsViewType) -> Unit) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f), RoundedCornerShape(14.dp)),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier,
     ) {
         Row(modifier = Modifier.padding(3.dp), verticalAlignment = Alignment.CenterVertically) {
             ViewModeItem(
@@ -280,10 +279,21 @@ private fun MetricCard(
     modifier: Modifier,
 ) {
     val shape = RoundedCornerShape(14.dp)
+    val isExpense = title.contains("Chi tiêu", ignoreCase = true)
+    val containerColor = if (active) {
+        if (isExpense) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+        } else {
+            Color(0xFF22A06B).copy(alpha = 0.15f)
+        }
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
     Column(
         modifier = modifier
             .clip(shape)
-            .border(if (active) 1.5.dp else 1.dp, if (active) MaterialTheme.colorScheme.primary.copy(alpha = .65f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f), shape)
+            .background(containerColor)
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {

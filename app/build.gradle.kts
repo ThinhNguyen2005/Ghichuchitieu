@@ -156,6 +156,8 @@ dependencies {
 
     // Gemini Nano qua Android AICore: inference local, không gửi dữ liệu tài chính lên cloud.
     implementation(libs.mlkit.genai.prompt)
+    // User-supplied .litertlm model fallback for devices without Android AICore.
+    implementation(libs.litert.lm.android)
     // OCR Latin bundled in the APK: runs fully offline for Vietnamese bank screenshots.
     implementation(libs.mlkit.text.recognition)
 

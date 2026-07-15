@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.stats
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.repository.TransactionRepository
@@ -11,7 +12,9 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.ai.GeminiNanoBudgetAdvisor
+import com.notepay.ai.LocalAiModelManager
+import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.DailyExpense
@@ -48,7 +51,8 @@ class StatsViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val subscriptionRepo: SubscriptionRepository,
     @ApplicationContext private val context: Context,
-    private val budgetAdvisor: GeminiNanoBudgetAdvisor = GeminiNanoBudgetAdvisor(),
+    private val budgetAdvisor: OnDeviceBudgetAdvisor,
+    private val localModelManager: LocalAiModelManager,
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -96,8 +100,12 @@ class StatsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val available = budgetAdvisor.isGeminiNanoAvailable()
-            _localAdvisor.update { it.copy(isGeminiNanoAvailable = available) }
+            localModelManager.state.collect { modelState ->
+                _localAdvisor.update { current -> current.copy(localModel = modelState) }
+            }
+        }
+        viewModelScope.launch {
+            refreshAdvisorAvailability()
         }
     }
 
@@ -480,9 +488,12 @@ class StatsViewModel @Inject constructor(
         }
         if (latestAdvisorInput != advisorInput) {
             latestAdvisorInput = advisorInput
-            _localAdvisor.value = LocalAdvisorUiState(
-                isGeminiNanoAvailable = _localAdvisor.value.isGeminiNanoAvailable,
-            )
+            _localAdvisor.update { current ->
+                LocalAdvisorUiState(
+                    availability = current.availability,
+                    localModel = current.localModel,
+                )
+            }
         }
 
         // Keep the trend chart deterministic and tied to the same wallet filter as this screen.
@@ -564,9 +575,41 @@ class StatsViewModel @Inject constructor(
                 _localAdvisor.value = LocalAdvisorUiState(
                     status = LocalAdvisorStatus.READY,
                     result = result,
-                    isGeminiNanoAvailable = result.provider == com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO,
+                    availability = when (result.provider) {
+                        com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
+                            AdvisorAvailability.GEMINI_NANO
+                        com.notepay.domain.analytics.AdvisorProvider.LOCAL_LITERT_MODEL ->
+                            AdvisorAvailability.LOCAL_MODEL
+                        com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
+                            _localAdvisor.value.availability
+                    },
+                    localModel = localModelManager.state.value,
                 )
             }
+        }
+    }
+
+    fun importLocalModel(uri: Uri) {
+        viewModelScope.launch {
+            localModelManager.importModel(uri)
+            refreshAdvisorAvailability()
+        }
+    }
+
+    fun removeLocalModel() {
+        viewModelScope.launch {
+            localModelManager.removeModel()
+            refreshAdvisorAvailability()
+        }
+    }
+
+    private suspend fun refreshAdvisorAvailability() {
+        val availability = budgetAdvisor.availability()
+        _localAdvisor.update { current ->
+            current.copy(
+                availability = availability,
+                localModel = localModelManager.state.value,
+            )
         }
     }
 

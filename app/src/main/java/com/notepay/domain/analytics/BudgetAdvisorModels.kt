@@ -13,7 +13,18 @@ data class BudgetAdvisorInput(
     val categories: List<AdvisorCategorySummary>,
 )
 
-enum class AdvisorProvider { GEMINI_NANO, STATISTICAL_FALLBACK }
+enum class AdvisorProvider {
+    GEMINI_NANO,
+    LOCAL_LITERT_MODEL,
+    STATISTICAL_FALLBACK,
+}
+
+enum class AdvisorAvailability {
+    CHECKING,
+    GEMINI_NANO,
+    LOCAL_MODEL,
+    STATISTICAL_ONLY,
+}
 
 data class BudgetAdvisorResult(
     val title: String,

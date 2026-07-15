@@ -6,6 +6,8 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.ai.LocalModelState
 
 enum class TimeFilterType(val label: String) {
     MONTH("Tháng"),
@@ -32,7 +34,8 @@ enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
 data class LocalAdvisorUiState(
     val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
     val result: BudgetAdvisorResult? = null,
-    val isGeminiNanoAvailable: Boolean? = null,
+    val availability: AdvisorAvailability = AdvisorAvailability.CHECKING,
+    val localModel: LocalModelState = LocalModelState(),
 )
 
 data class CategoryBreakdownItem(

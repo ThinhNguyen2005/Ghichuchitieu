@@ -29,6 +29,7 @@ splashScreen = "1.2.0"
 backdrop = "2.0.0"
 mlkitGenaiPrompt = "1.0.0-beta2"
 mlkitTextRecognition = "16.0.1"
+liteRtLm = "0.14.0"
 
 [libraries]
 backdrop = { group = "io.github.kyant0", name = "backdrop-android", version.ref = "backdrop" }
@@ -68,6 +69,7 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashScreen" }
 mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
+litert-lm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "liteRtLm" }
 
 # Coroutines & DateTime
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

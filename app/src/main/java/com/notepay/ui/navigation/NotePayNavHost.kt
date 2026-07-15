@@ -332,7 +332,7 @@ fun NotePayNavHost(
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
                         onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
                         onTransactionClick = { txId ->
-                            navController.navigate(Route.EditTransaction(txId).path)
+                            navController.navigate(Route.TransactionDetail(txId).path)
                         }
                     )
                 }
@@ -379,7 +379,7 @@ fun NotePayNavHost(
                 composable(Route.TransactionList.path) {
                     TransactionListScreen(
                         onTransactionClick = { txId ->
-                            navController.navigate(Route.EditTransaction(txId).path)
+                            navController.navigate(Route.TransactionDetail(txId).path)
                         },
                         onFeedback = ::showFeedback,
                     )
@@ -387,6 +387,12 @@ fun NotePayNavHost(
                 composable(Route.Stats.path) {
                     StatsScreen(
                         onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
+                        onTransactionClick = { txId ->
+                            navController.navigate(Route.TransactionDetail(txId).path)
+                        },
+                        onConfigureLocalModel = {
+                            navController.navigate(Route.NotificationSettings.path)
+                        },
                     )
                 }
                 composable(Route.AddWallet.path) {

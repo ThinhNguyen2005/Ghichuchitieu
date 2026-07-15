@@ -452,21 +452,18 @@ private fun TransactionListContent(
                                         .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
                                         .padding(horizontal = 16.dp)
                                 ) {
-                                    HorizontalDivider(
-                                        thickness = 0.5.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    )
+                                    Spacer(modifier = Modifier.height(14.dp))
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 12.dp),
+                                            .padding(bottom = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = formatDateHeader(date, LocalContext.current).uppercase(),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
+                                            text = formatDateHeader(date, LocalContext.current),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
 
