@@ -21,7 +21,7 @@ Install the resulting debug build from Android Studio or with `:app:installDebug
 
 Open **Settings → Read notifications**, turn on **Automatic transaction capture**, then grant Android's notification-listener permission. Keep the banking app's notifications enabled and disable battery restrictions for NotePay if your device aggressively stops background services.
 
-Only TPBank is currently enabled for automatic recording. Other apps shown in the picker are discovery candidates, not supported parsers. See [BANK_NOTIFICATION_GUIDE.md](BANK_NOTIFICATION_GUIDE.md) for the exact flow, verification, and instructions for contributors.
+Only TPBank is currently enabled for automatic recording. Other apps shown in the picker are discovery candidates, not supported parsers. See [BANK_NOTIFICATION_GUIDE.md](doc/BANK_NOTIFICATION_GUIDE.md) for the exact flow, verification, and instructions for contributors.
 
 ## QR and bill split
 
