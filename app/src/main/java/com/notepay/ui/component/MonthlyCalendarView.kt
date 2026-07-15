@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -259,45 +260,49 @@ private fun CalendarCell(
                 }
             }
 
-            // P0-2: chấm dot màu primary dưới số ngày khi có dữ liệu
-            // (giao dịch hoặc subscription highlight) — cho người dùng biết ô có nội dung.
-            if (hasData) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 4.dp, bottom = 4.dp)
-                        .size(5.dp)
-                        .background(
-                            color = if (isToday) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            shape = AppTheme.shapes.circle,
-                        ),
-                )
-            }
-
-            if (!day.totalExpense.isZero() || !day.totalIncome.isZero()) {
-                Row(
+            if (!day.totalIncome.isZero() || !day.totalExpense.isZero()) {
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(bottom = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    if (!day.totalExpense.isZero()) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(color = MaterialTheme.colorScheme.error, shape = AppTheme.shapes.circle)
+                    if (!day.totalIncome.isZero()) {
+                        Text(
+                            text = "+${formatCompactMoney(day.totalIncome)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
                         )
                     }
-                    if (!day.totalIncome.isZero()) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(color = MaterialTheme.colorScheme.primary, shape = AppTheme.shapes.circle)
+                    if (!day.totalExpense.isZero()) {
+                        Text(
+                            text = "-${formatCompactMoney(day.totalExpense)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 1
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+private fun formatCompactMoney(money: Money): String {
+    val dong = money.amountInCents / 100
+    return when {
+        dong < 1000L -> dong.toString()
+        dong < 1000000L -> "${dong / 1000}k"
+        else -> {
+            val millions = dong / 1000000.0
+            if (millions % 1.0 == 0.0) {
+                "${millions.toInt()}Tr"
+            } else {
+                String.format(java.util.Locale.US, "%.1fTr", millions)
             }
         }
     }

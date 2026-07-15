@@ -6,7 +6,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -466,16 +468,21 @@ private fun CategoryBreakdownRow(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                if (item.category.isIncome) {
-                    Color(0xFF22A06B).copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
-                }
+            containerColor = if (!isSystemInDarkTheme()) {
+                Color.White
             } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
+                MaterialTheme.colorScheme.surfaceContainer
             },
         ),
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) {
+                Color(item.category.colorArgb).copy(alpha = 0.55f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            },
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 1.dp),
     ) {
         Row(
             modifier = Modifier
@@ -576,11 +583,18 @@ private fun BudgetProgressBar(
             "Đang trong hạn mức"
     }
 
-    LiquidGlassPanel(
+    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        tint = statusColor.copy(alpha = 0.07f),
-        border = null,
+        colors = CardDefaults.cardColors(
+            containerColor = if (!isSystemInDarkTheme()) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -693,11 +707,18 @@ private fun SpendingPredictionCard(
         ForecastConfidence.HIGH -> "Cao"
     }
 
-    LiquidGlassPanel(
+    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        tint = riskColor.copy(alpha = 0.07f),
-        border = null,
+        colors = CardDefaults.cardColors(
+            containerColor = if (!isSystemInDarkTheme()) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1396,8 +1417,14 @@ private fun InsightCard(
         modifier = modifier.height(214.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = accentColor.copy(alpha = 0.075f),
+            containerColor = if (!isSystemInDarkTheme()) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            },
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier
