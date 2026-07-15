@@ -29,8 +29,8 @@ The QR payload is generated locally in `ui/util/VietQrGenerator.kt`; it contains
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) for module layout, style, and test commands. Do not commit financial records, notification samples, OCR images, local models, APKs, keystores, or `local.properties`. Add sanitized parser fixtures and tests for every new bank format.
+Read [AGENTS.md](doc/AGENTS.md) for module layout, style, and test commands. Do not commit financial records, notification samples, OCR images, local models, APKs, keystores, or `local.properties`. Add sanitized parser fixtures and tests for every new bank format.
 
 ## Before publishing
 
-This repository currently has no root software license; choose one deliberately before accepting contributions. Also review [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md) before publishing: bundled third-party logos need documented permission or replacement.
+This repository currently has no root software license; choose one deliberately before accepting contributions. Also review [THIRD_PARTY_ASSETS.md](doc/THIRD_PARTY_ASSETS.md) before publishing: bundled third-party logos need documented permission or replacement.
