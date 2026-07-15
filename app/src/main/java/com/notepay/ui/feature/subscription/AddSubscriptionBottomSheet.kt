@@ -11,9 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +49,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -117,15 +122,22 @@ fun AddSubscriptionBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.Start,
+                .fillMaxHeight(0.9f)
+                .imePadding(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 86.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Thêm nhắc nhở gia hạn",
                     style = MaterialTheme.typography.titleLarge,
@@ -152,6 +164,7 @@ fun AddSubscriptionBottomSheet(
                 ) {
                     items(recentTransactions.take(5), key = { it.id }) { tx ->
                         val cat = tx.category
+                        val noteText = tx.note.trim()
                         Card(
                             modifier = Modifier
                                 .clickable {
@@ -178,13 +191,23 @@ fun AddSubscriptionBottomSheet(
                                 )
                                 Column {
                                     Text(
-                                        text = tx.note.ifBlank { cat.displayName },
+                                        text = cat.displayName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.widthIn(max = 110.dp)
                                     )
+                                    if (noteText.isNotBlank()) {
+                                        Text(
+                                            text = noteText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.widthIn(max = 110.dp)
+                                        )
+                                    }
                                     Text(
                                         text = MoneyFormatter.format(tx.amount),
                                         style = MaterialTheme.typography.labelSmall,
@@ -246,16 +269,10 @@ fun AddSubscriptionBottomSheet(
 
             // Hợp nhất Ngày đến hạn & Chu kỳ gia hạn vào 1 Card "Lịch thanh toán" duy nhất
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        shape = AppTheme.shapes.corner16
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 )
             ) {
                 Column(
@@ -306,11 +323,12 @@ fun AddSubscriptionBottomSheet(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Row(
+                        LazyRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(end = 4.dp),
                         ) {
-                            Subscription.REPEAT_OPTIONS.forEach { months ->
+                            items(Subscription.REPEAT_OPTIONS) { months ->
                                 val label = when (months) {
                                     1 -> "Hàng tháng"
                                     3 -> "Hàng quý"
@@ -321,7 +339,6 @@ fun AddSubscriptionBottomSheet(
                                     selected = state.repeatMonths == months,
                                     onClick = { onRepeatMonthsChanged(months) },
                                     label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
@@ -330,8 +347,12 @@ fun AddSubscriptionBottomSheet(
             }
 
             Text("Nhắc trước", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Subscription.REMIND_OPTIONS.forEach { days ->
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp),
+            ) {
+                items(Subscription.REMIND_OPTIONS) { days ->
                     FilterChip(
                         selected = state.remindDaysBefore == days,
                         onClick = { onRemindDaysChanged(days) },
@@ -348,17 +369,32 @@ fun AddSubscriptionBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(4.dp))
-
-            LiquidButton(
-                onClick = onConfirm,
-                enabled = state.canSave,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) {
-                Text("Lưu")
+                Spacer(Modifier.height(8.dp))
             }
 
-            Spacer(Modifier.height(8.dp))
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp,
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                LiquidButton(
+                    onClick = onConfirm,
+                    enabled = state.canSave,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .height(52.dp),
+                ) {
+                    Text(
+                        text = "Lưu nhắc nhở",
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
         }
     }
 
@@ -507,11 +543,12 @@ private fun RecentTransactionsSheet(
                     .fillMaxWidth()
                     .heightIn(max = 400.dp),
             ) {
-                items(transactions, key = { it.id }) { tx ->
-                    val cat = tx.category
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+            items(transactions, key = { it.id }) { tx ->
+                val cat = tx.category
+                val noteText = tx.note.trim()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { onPicked(tx) }
@@ -526,17 +563,21 @@ private fun RecentTransactionsSheet(
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                tx.note.ifBlank { cat.displayName },
+                                cat.displayName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Text(
-                                cat.displayName,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            if (noteText.isNotBlank()) {
+                                Text(
+                                    noteText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                         Text(
                             MoneyFormatter.format(tx.amount),

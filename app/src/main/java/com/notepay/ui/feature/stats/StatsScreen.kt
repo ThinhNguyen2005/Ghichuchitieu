@@ -86,6 +86,7 @@ import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.feature.subscription.AddSubscriptionBottomSheet
@@ -113,12 +114,12 @@ fun StatsScreen(
 
     val contentState = when {
         state.isLoading -> StatsContentState.LOADING
-        state.breakdown.isEmpty() && state.incomeBreakdown.isEmpty() -> StatsContentState.EMPTY
+        !state.hasAnyTransactions -> StatsContentState.EMPTY
         else -> StatsContentState.CONTENT
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         AnimatedContent(
             targetState = contentState,
@@ -474,15 +475,7 @@ private fun CategoryBreakdownRow(
                 MaterialTheme.colorScheme.surfaceContainer
             },
         ),
-        border = BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) {
-                Color(item.category.colorArgb).copy(alpha = 0.55f)
-            } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-            },
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 1.dp),
+        border = if (isSelected) BorderStroke(1.5.dp, Color(item.category.colorArgb)) else null,
     ) {
         Row(
             modifier = Modifier
@@ -593,8 +586,6 @@ private fun BudgetProgressBar(
                 MaterialTheme.colorScheme.surfaceContainer
             }
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -717,8 +708,6 @@ private fun SpendingPredictionCard(
                 MaterialTheme.colorScheme.surfaceContainer
             }
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1010,44 +999,54 @@ private fun LocalAdvisorCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
-                    onClick = onGenerate,
-                    enabled = advisor.availability != AdvisorAvailability.CHECKING,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Rounded.Lightbulb,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        text = "Phân tích chi tiêu",
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                if (advisor.availability != AdvisorAvailability.GEMINI_NANO) {
-                    TextButton(
-                        onClick = onSelectModel,
-                        modifier = Modifier.fillMaxWidth(),
+                    LiquidButton(
+                        onClick = onGenerate,
+                        enabled = advisor.availability != AdvisorAvailability.CHECKING,
+                        modifier = Modifier.weight(1.3f),
+                        tint = MaterialTheme.colorScheme.primary,
+                        surfaceColor = MaterialTheme.colorScheme.primary.copy(alpha = .92f),
                     ) {
                         Icon(
-                            Icons.Rounded.FolderOpen,
+                            Icons.Rounded.Lightbulb,
                             contentDescription = null,
-                            modifier = Modifier.size(17.dp),
+                            modifier = Modifier.size(18.dp),
+                            tint = Color.White,
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(5.dp))
                         Text(
-                            if (advisor.availability == AdvisorAvailability.LOCAL_MODEL) {
-                                "Mở cài đặt AI"
-                            } else {
-                                "Cài đặt mô hình AI"
-                            },
+                            text = "Phân tích",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelLarge,
                         )
+                    }
+
+                    if (advisor.availability != AdvisorAvailability.GEMINI_NANO) {
+                        LiquidButton(
+                            onClick = onSelectModel,
+                            modifier = Modifier.weight(1f),
+                            tint = MaterialTheme.colorScheme.secondary,
+                            surfaceColor = MaterialTheme.colorScheme.secondary.copy(alpha = .92f),
+                        ) {
+                            Icon(
+                                Icons.Rounded.FolderOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.White,
+                            )
+                            Spacer(Modifier.width(5.dp))
+                            Text(
+                                text = "Cài đặt",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
                     }
                 }
                 advisor.localModel.message
@@ -1065,7 +1064,7 @@ private fun LocalAdvisorCard(
 
             LocalAdvisorStatus.READY -> {
                 Text(
-                    text = result?.content.orEmpty(),
+                    text = cleanAiMarkdown(result?.content.orEmpty()),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
@@ -1277,7 +1276,7 @@ private fun AiAdviceCard(
         }
 
         Text(
-            text = advice.content,
+            text = cleanAiMarkdown(advice.content),
             style = MaterialTheme.typography.bodySmall,
             maxLines = 5,
             overflow = TextOverflow.Ellipsis,
@@ -1423,8 +1422,6 @@ private fun InsightCard(
                 MaterialTheme.colorScheme.surfaceContainer
             },
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier
@@ -1434,4 +1431,9 @@ private fun InsightCard(
             content = content,
         )
     }
+}
+
+private fun cleanAiMarkdown(text: String?): String {
+    if (text == null) return ""
+    return text.replace("**", "").replace("* ", "• ").trim()
 }

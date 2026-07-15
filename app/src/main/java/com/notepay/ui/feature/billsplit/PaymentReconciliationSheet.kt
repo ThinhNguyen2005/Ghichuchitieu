@@ -268,6 +268,7 @@ fun PaymentReconciliationSheet(
                                     modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    val noteText = tx.note.trim()
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
@@ -288,12 +289,21 @@ fun PaymentReconciliationSheet(
                                     Spacer(Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = tx.note.ifBlank { "Nhận tiền chuyển khoản" },
+                                            text = tx.category.displayName,
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        if (noteText.isNotBlank()) {
+                                            Text(
+                                                text = noteText,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                         Text(
                                             text = "$walletName • ${formatInstant(tx.occurredAt)}",
                                             style = MaterialTheme.typography.labelSmall,

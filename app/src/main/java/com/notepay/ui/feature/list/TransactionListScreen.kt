@@ -227,7 +227,7 @@ fun TransactionListScreen(
     pendingDeleteTransaction?.let { tx ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_transaction_title),
-            itemName = "${tx.note.ifBlank { tx.category.displayName }} • ${MoneyFormatter.format(tx.amount)}",
+            itemName = "${tx.category.displayName} • ${MoneyFormatter.format(tx.amount)}",
             message = stringResource(R.string.confirm_delete_permanent),
             onConfirm = {
                 viewModel.delete(tx)
@@ -292,7 +292,7 @@ private fun TransactionListContent(
                     onDayClick = onDayClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(320.dp),
+                        .height(500.dp),
                 )
             }
 

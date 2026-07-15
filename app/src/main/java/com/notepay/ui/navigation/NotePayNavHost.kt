@@ -9,6 +9,7 @@ import com.notepay.ui.component.CradleShape
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -513,7 +514,7 @@ fun NotePayNavHost(
                 val navTabs = remember { bottomTabs.filter { it.route != Route.AddDummy } }
                 val primaryColor = MaterialTheme.colorScheme.primary
                 val isLightTheme = !isSystemInDarkTheme()
-                val containerColor = if (isLightTheme) Color(0xFFFAFAFA).copy(0.4f) else Color(0xFF121212).copy(0.4f)
+                val containerColor = if (isLightTheme) Color(0xFFFAFAFA).copy(0.65f) else Color(0xFF121212).copy(0.7f)
                 val density = LocalDensity.current
                 val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -633,12 +634,16 @@ fun NotePayNavHost(
                                     shape = { CircleShape },
                                     effects = {
                                         vibrancy()
-                                        blur(8f.dp.toPx())
-                                        lens(24f.dp.toPx(), 24f.dp.toPx())
+                                        blur(24f.dp.toPx())
+                                        lens(8.dp.toPx(), 8f.dp.toPx())
                                     },
                                     layerBlock = {
                                         val progress = dampedDragAnimation.pressProgress
-                                        val scale = androidx.compose.ui.util.lerp(1f, 1f + 16f.dp.toPx() / size.width, progress)
+                                        val scale = androidx.compose.ui.util.lerp(
+                                            1f,
+                                            1f + 16f.dp.toPx() / size.width,
+                                            progress
+                                        )
                                         scaleX = scale
                                         scaleY = scale
                                     },
@@ -824,92 +829,107 @@ fun NotePayNavHost(
             }
 
             // Render Glass Drop Box (inline popup sheet)
-            GlassDropBox(
-                backdrop = backdrop,
-                visible = showQuickAddSheet,
-                onDismissRequest = { showQuickAddSheet = false }
+        GlassDropBox(
+            backdrop = backdrop,
+            visible = showQuickAddSheet,
+            onDismissRequest = { showQuickAddSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = quickAddTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                Text(
+                    text = quickAddTitle,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f),
+                            offset = Offset(0f, 2f),
+                            blurRadius = 4f
                         )
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
-                        // Option 1: Thêm chi tiêu
-                        QuickAddOption(
-                            icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                            title = quickAddExpenseTitle,
-                            description = quickAddExpenseDesc,
-                            color = MaterialTheme.colorScheme.primary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                navController.navigate(Route.AddTransaction.path)
-                            }
-                        )
-
-                        // Option 2: Chia hóa đơn
-                        QuickAddOption(
-                            icon = Icons.AutoMirrored.Outlined.CallSplit,
-                            title = quickAddBillSplitTitle,
-                            description = quickAddBillSplitDesc,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
-                                if (isAlreadyOnBillSplit) {
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                                } else {
-                                    navController.navigate("bill-split?showCreate=true") {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    try {
-                                        navController.getBackStackEntry("bill-split?showCreate={showCreate}")
-                                            .savedStateHandle["showCreate"] = true
-                                    } catch (e: Exception) {
-                                        // Ignore
-                                    }
-                                }
-                            }
-                        )
-
-                        // Option 3: Hóa đơn định kỳ
-                        QuickAddOption(
-                            icon = Icons.Outlined.Notifications,
-                            title = quickAddSubscriptionTitle,
-                            description = quickAddSubscriptionDesc,
-                            color = MaterialTheme.colorScheme.secondary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                val isAlreadyOnSubscription = currentRoute?.startsWith("subscription") == true
-                                if (isAlreadyOnSubscription) {
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                                } else {
-                                    navController.navigate("subscription?showCreate=true") {
-                                        launchSingleTop = true
-                                    }
-                                    try {
-                                        navController.getBackStackEntry("subscription?showCreate={showCreate}")
-                                            .savedStateHandle["showCreate"] = true
-                                    } catch (e: Exception) {
-                                        // Ignore
-                                    }
-                                }
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
+                // Option 1: Thêm chi tiêu
+                QuickAddOption(
+                    icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+                    title = quickAddExpenseTitle,
+                    description = quickAddExpenseDesc,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        showQuickAddSheet = false
+                        navController.navigate(Route.AddTransaction.path)
                     }
-                }
+                )
+
+                // Option 2: Chia hóa đơn
+                QuickAddOption(
+                    icon = Icons.AutoMirrored.Outlined.CallSplit,
+                    title = quickAddBillSplitTitle,
+                    description = quickAddBillSplitDesc,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    onClick = {
+                        showQuickAddSheet = false
+                        val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
+                        if (isAlreadyOnBillSplit) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                "showCreate",
+                                true
+                            )
+                        } else {
+                            navController.navigate("bill-split?showCreate=true") {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            try {
+                                navController.getBackStackEntry("bill-split?showCreate={showCreate}")
+                                    .savedStateHandle["showCreate"] = true
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    }
+                )
+
+                // Option 3: Hóa đơn định kỳ
+                QuickAddOption(
+                    icon = Icons.Outlined.Notifications,
+                    title = quickAddSubscriptionTitle,
+                    description = quickAddSubscriptionDesc,
+                    color = MaterialTheme.colorScheme.secondary,
+                    onClick = {
+                        showQuickAddSheet = false
+                        val isAlreadyOnSubscription =
+                            currentRoute?.startsWith("subscription") == true
+                        if (isAlreadyOnSubscription) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                "showCreate",
+                                true
+                            )
+                        } else {
+                            navController.navigate("subscription?showCreate=true") {
+                                launchSingleTop = true
+                            }
+                            try {
+                                navController.getBackStackEntry("subscription?showCreate={showCreate}")
+                                    .savedStateHandle["showCreate"] = true
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
         }
     }
 }
@@ -923,9 +943,19 @@ private fun QuickAddOption(
     onClick: () -> Unit
 ) {
     val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
-    val cardBgColor = if (isLightTheme) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.08f)
-    val borderStrokeColor = if (isLightTheme) Color.White.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.12f)
-    val shape = RoundedCornerShape(20.dp)
+    val cardBgColor = if (isLightTheme) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.86f)
+    }
+    val borderStrokeColor = if (isLightTheme) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f)
+    } else {
+        Color.White.copy(alpha = 0.16f)
+    }
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = RoundedCornerShape(18.dp)
 
     Box(
         modifier = Modifier
@@ -942,8 +972,8 @@ private fun QuickAddOption(
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(color.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                    .size(44.dp)
+                    .background(color.copy(alpha = if (isLightTheme) 0.14f else 0.22f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -959,15 +989,26 @@ private fun QuickAddOption(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLightTheme) Color(0xFF1A1A1A) else Color.White
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isLightTheme) Color(0xFF757575) else Color.White.copy(alpha = 0.6f)
+                    color = descriptionColor,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
+
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

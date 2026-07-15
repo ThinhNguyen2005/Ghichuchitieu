@@ -91,6 +91,7 @@ data class StatsUiState(
     val isCurrentMonth: Boolean = false,
     val selectedCategory: Category? = null,
     val transactions: List<Transaction> = emptyList(),
+    val hasAnyTransactions: Boolean = false,
     
     // Thuộc tính mới phục vụ bộ lọc & hạn mức
     val wallets: List<Wallet> = emptyList(),

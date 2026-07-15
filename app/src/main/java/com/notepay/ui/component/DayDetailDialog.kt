@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
@@ -196,16 +197,23 @@ fun DayDetailDialog(
                                 iconSize = 16.dp,
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    tx.note.ifBlank { tx.category.displayName },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                )
+                                val noteText = tx.note.trim()
                                 Text(
                                     tx.category.displayName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
+                                if (noteText.isNotBlank()) {
+                                    Text(
+                                        noteText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                             val isIncome = tx.type == TransactionType.INCOME
                             val sign = if (isIncome) "+" else "−"

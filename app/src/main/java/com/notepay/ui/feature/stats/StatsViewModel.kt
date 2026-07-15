@@ -534,6 +534,7 @@ class StatsViewModel @Inject constructor(
             isCurrentMonth = monthYear.year == now.year && monthYear.month == now.month.ordinal + 1,
             selectedCategory = selectedCat,
             transactions = filteredTxs,
+            hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
             selectedWallet = selectedWallet,
             timeFilter = timeFilter,

@@ -44,6 +44,8 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.ConfirmDeleteDialog
+import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feature.wallet.SupportedBank
 import com.notepay.ui.util.MoneyFormatter
@@ -128,8 +130,8 @@ fun DebtorDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Chi tiết nợ của $debtorName", fontWeight = FontWeight.Bold) },
+            GradientTopAppBar(
+                title = { Text("Nợ của $debtorName", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Trở lại")
@@ -139,25 +141,48 @@ fun DebtorDetailScreen(
         },
         bottomBar = {
             if (unpaidDebtorSplits.isNotEmpty()) {
-                Surface(
-                    tonalElevation = 2.dp,
-                    shadowElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
+                Surface(modifier = Modifier.fillMaxWidth()) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Button(
+                        LiquidButton(
                             onClick = { showReconciliationSheet = true },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = AppTheme.shapes.corner16
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(.7f),
                         ) {
-                            Icon(Icons.Rounded.Payments, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Xác nhận đã thu tiền nợ", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Xác nhận", fontWeight = FontWeight.Bold)
+                        }
+                        LiquidButton(
+                            onClick = {
+                                if (qrCodeString != null && activeWallet != null) {
+                                    shareVietQrImage(
+                                        context = context,
+                                        qrCodeString = qrCodeString,
+                                        bankName = bankName,
+                                        accountNumber = activeWallet.accountNumber.orEmpty(),
+                                        accountName = activeWallet.accountName.orEmpty(),
+                                    )
+                                } else {
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "Chào $debtorName, bạn có khoản cần thanh toán là ${MoneyFormatter.format(Money(totalAmountCents))}.",
+                                        )
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Chia sẻ"))
+                                }
+                            },
+                            surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .82f),
+                            modifier = Modifier.weight(.3f),
+                        ) {
+                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Chia sẻ", fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                 }
@@ -176,7 +201,7 @@ fun DebtorDetailScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("Người này không có lịch sử nợ! ✨", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Người này không có lịch sử nợ!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onBack, shape = AppTheme.shapes.corner12) { Text("Quay lại") }
                 }
@@ -190,30 +215,11 @@ fun DebtorDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = if (totalAmountCents > 0) "Tổng dư nợ hiện tại" else "Dư nợ hiện tại",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = MoneyFormatter.format(Money(totalAmountCents)),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black,
-                        color = if (totalAmountCents > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = if (totalAmountCents > 0) "${unpaidDebtorSplits.size} khoản nợ chưa thanh toán" else "Đã thanh toán hết nợ ✨",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (totalAmountCents > 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        fontWeight = if (totalAmountCents > 0) FontWeight.Normal else FontWeight.Bold
-                    )
-                }
+                DebtSummaryCard(
+                    debtorName = debtorName,
+                    outstandingAmount = Money(totalAmountCents),
+                    unpaidCount = unpaidDebtorSplits.size,
+                )
             }
 
             item {
@@ -225,21 +231,6 @@ fun DebtorDetailScreen(
                             accountName = activeWallet.accountName.orEmpty(),
                             qrCodeString = qrCodeString
                         )
-
-                        Button(
-                            onClick = {
-                                shareVietQrImage(
-                                    context = context, qrCodeString = qrCodeString, bankName = bankName,
-                                    accountNumber = activeWallet.accountNumber.orEmpty(), accountName = activeWallet.accountName.orEmpty()
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = AppTheme.shapes.corner16
-                        ) {
-                            Icon(Icons.Rounded.Share, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Chia sẻ hình ảnh QR", fontWeight = FontWeight.Bold)
-                        }
 
                         TransferDetailsCopyCard(
                             bankName = bankName,
@@ -287,8 +278,15 @@ fun DebtorDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Lịch sử nợ chi tiết", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(text = "💡 Nhấn giữ để xóa", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(text = "Lịch sử đối soát", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "${unpaidDebtorSplits.size} cần thu · ${paidDebtorSplits.size} đã thanh toán",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(text = "Nhấn giữ để xóa", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -305,8 +303,14 @@ fun DebtorDetailScreen(
                             onClick = { /* No-op */ },
                             onLongClick = { pendingDeleteBill = item }
                         ),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                    shape = AppTheme.shapes.corner16
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isPaid) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = .16f)
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = .12f)
+                        },
+                    ),
+                    shape = AppTheme.shapes.corner16,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -333,6 +337,19 @@ fun DebtorDetailScreen(
                                         Text(
                                             text = "Đã trả", style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                } else {
+                                    Spacer(Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(AppTheme.shapes.corner8)
+                                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = .55f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Chờ thu", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
@@ -394,6 +411,79 @@ fun DebtorDetailScreen(
                 onBack()
             }
         )
+    }
+}
+
+@Composable
+private fun DebtSummaryCard(
+    debtorName: String,
+    outstandingAmount: Money,
+    unpaidCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val isSettled = outstandingAmount.amountInCents <= 0L
+    val accent = if (isSettled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner20,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(AppTheme.shapes.corner12)
+                        .background(accent.copy(alpha = .12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (isSettled) Icons.Rounded.CheckCircle else Icons.Rounded.Payments,
+                        contentDescription = null,
+                        tint = accent,
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isSettled) "Đã đối soát với $debtorName" else "Khoản cần thu từ $debtorName",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = if (isSettled) "Không còn khoản chờ thu" else "$unpaidCount khoản đang chờ thanh toán",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Surface(
+                    shape = AppTheme.shapes.corner8,
+                    color = accent.copy(alpha = .12f),
+                ) {
+                    Text(
+                        text = if (isSettled) "Hoàn tất" else "Cần thu",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            Text(
+                text = MoneyFormatter.format(outstandingAmount),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Black,
+                color = accent,
+            )
+
+        }
     }
 }
 

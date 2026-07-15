@@ -221,7 +221,7 @@ private fun CalendarCell(
             }
         }
 
-    Box(
+    Column(
         modifier = modifier
             .background(backgroundColor)
             .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
@@ -229,25 +229,29 @@ private fun CalendarCell(
                 if (day.isCurrentMonth) base.clickable(onClick = onClick) else base
             }
             .padding(4.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Box(
-            modifier = dayNumberModifier.align(Alignment.TopStart),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = day.date.day.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = dayNumberColor,
-            )
-        }
+            Box(
+                modifier = dayNumberModifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = day.date.day.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = dayNumberColor,
+                )
+            }
 
-        if (day.isCurrentMonth) {
-            if (day.hasUpcomingSubscription) {
+            if (day.isCurrentMonth && day.hasUpcomingSubscription) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(2.dp)
+                        .padding(top = 2.dp, end = 2.dp)
                         .background(MaterialTheme.colorScheme.errorContainer, AppTheme.shapes.circle)
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
@@ -259,33 +263,31 @@ private fun CalendarCell(
                     )
                 }
             }
+        }
 
-            if (!day.totalIncome.isZero() || !day.totalExpense.isZero()) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
-                ) {
-                    if (!day.totalIncome.isZero()) {
-                        Text(
-                            text = "+${formatCompactMoney(day.totalIncome)}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1
-                        )
-                    }
-                    if (!day.totalExpense.isZero()) {
-                        Text(
-                            text = "-${formatCompactMoney(day.totalExpense)}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error,
-                            maxLines = 1
-                        )
-                    }
+        if (day.isCurrentMonth && (!day.totalIncome.isZero() || !day.totalExpense.isZero())) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                if (!day.totalIncome.isZero()) {
+                    Text(
+                        text = "+${formatCompactMoney(day.totalIncome)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
+                if (!day.totalExpense.isZero()) {
+                    Text(
+                        text = "-${formatCompactMoney(day.totalExpense)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 1
+                    )
                 }
             }
         }

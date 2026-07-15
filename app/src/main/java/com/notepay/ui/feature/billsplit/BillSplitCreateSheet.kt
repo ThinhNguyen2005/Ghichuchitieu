@@ -258,18 +258,18 @@ fun BillSplitCreateSheet(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
+                .fillMaxHeight(0.9f)
                 .imePadding(),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = 4.dp,
+                    top = 0.dp,
                     end = 16.dp,
-                    bottom = 112.dp,
+                    bottom = 104.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
                     Row(
@@ -284,9 +284,11 @@ fun BillSplitCreateSheet(
                             )
 
                             Text(
-                                text = "Chọn giao dịch và nhập phần tiền của từng người.",
+                                text = "Chọn giao dịch, thêm người và chia số tiền.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
 
@@ -406,7 +408,7 @@ fun BillSplitCreateSheet(
                                 Text("Ví dụ: Minh, Lan…")
                             },
                             supportingText = {
-                                Text("Nhấn dấu cộng hoặc Done để thêm.")
+                                Text("Nhấn Done để thêm nhanh.")
                             },
                             leadingIcon = {
                                 Icon(
@@ -492,13 +494,13 @@ fun BillSplitCreateSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Phân chia số tiền",
+                                    text = "Người cùng chia",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                 )
 
                                 Text(
-                                    text = "${debtors.size} người đã thêm",
+                                    text = if (debtors.isEmpty()) "Chưa thêm ai" else "${debtors.size} người đã thêm",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -524,12 +526,12 @@ fun BillSplitCreateSheet(
                                         .surfaceContainerLow,
                                 ),
                             ) {
-                                Column(
+                                Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        .padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Group,
@@ -537,18 +539,19 @@ fun BillSplitCreateSheet(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
 
-                                    Text(
-                                        text = "Chưa có người nào",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Medium,
-                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Chưa có người nào",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Medium,
+                                        )
 
-                                    Text(
-                                        text = "Thêm tên ở phía trên để bắt đầu phân chia.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center,
-                                    )
+                                        Text(
+                                            text = "Thêm tên ở phía trên để bắt đầu phân chia.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -611,6 +614,8 @@ fun BillSplitCreateSheet(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
 
@@ -713,6 +718,7 @@ private fun SelectedTransactionCard(
     onClick: () -> Unit,
 ) {
     val category = transaction.category
+    val noteText = transaction.note.trim()
 
     Card(
         onClick = onClick,
@@ -739,14 +745,22 @@ private fun SelectedTransactionCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = transaction.note.ifBlank {
-                        category.displayName
-                    },
+                    text = category.displayName,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+
+                if (noteText.isNotBlank()) {
+                    Text(
+                        text = noteText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Text(
                     text = if (expanded) {
@@ -783,6 +797,7 @@ private fun TransactionPickerRow(
     onClick: () -> Unit,
 ) {
     val category = transaction.category
+    val noteText = transaction.note.trim()
 
     Card(
         onClick = onClick,
@@ -816,20 +831,22 @@ private fun TransactionPickerRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = transaction.note.ifBlank {
-                        category.displayName
-                    },
+                    text = category.displayName,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Text(
-                    text = category.displayName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (noteText.isNotBlank()) {
+                    Text(
+                        text = noteText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
 
             Text(
@@ -864,21 +881,21 @@ fun SelectedDebtorCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner16,
+        shape = AppTheme.shapes.corner12,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(36.dp),
                     shape = AppTheme.shapes.circle,
                     color = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -902,7 +919,7 @@ fun SelectedDebtorCard(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
 
@@ -931,12 +948,10 @@ fun SelectedDebtorCard(
                 label = { Text("Số tiền người này trả") },
                 placeholder = { Text("0") },
                 suffix = { Text("₫") },
-                supportingText = {
-                    if (amountIsInvalid) {
-                        Text("Số tiền không hợp lệ.")
-                    } else {
-                        Text("Nhập theo đơn vị VND.")
-                    }
+                supportingText = if (amountIsInvalid) {
+                    { Text("Số tiền không hợp lệ.") }
+                } else {
+                    null
                 },
                 isError = amountIsInvalid,
                 keyboardOptions = KeyboardOptions(

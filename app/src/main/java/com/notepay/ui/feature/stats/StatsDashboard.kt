@@ -1,10 +1,17 @@
 package com.notepay.ui.feature.stats
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -22,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
@@ -37,6 +45,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,14 +69,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
-import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.math.PI
 import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }
@@ -106,31 +112,50 @@ fun StatsDashboard(
                 onViewTypeChanged = { viewType = it },
             )
         }
-        item {
-            OverviewCard(
-                state = state,
-                metric = metric,
-                showAmounts = showAmounts,
-                difference = difference,
-                onMetricChanged = { metric = it },
-                onPreviousMonth = onPreviousMonth,
-                onNextMonth = onNextMonth,
-            )
-        }
-        item {
-            when (viewType) {
-                StatsViewType.PHAN_BO -> AllocationChart(
-                    breakdown = breakdown,
-                    selectedCategory = state.selectedCategory,
-                    onCategorySelected = onCategorySelected,
-                )
+        item(key = "stats-chart-mode") {
+            AnimatedContent(
+                targetState = viewType,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(180)) + slideInVertically(animationSpec = tween(220)) { it / 14 }) togetherWith
+                        (fadeOut(animationSpec = tween(120)) + slideOutVertically(animationSpec = tween(160)) { -it / 18 })
+                },
+                label = "stats-chart-mode",
+            ) { mode ->
+                when (mode) {
+                    StatsViewType.PHAN_BO -> OverviewCard(
+                        state = state,
+                        metric = metric,
+                        showAmounts = showAmounts,
+                        difference = difference,
+                        onMetricChanged = { metric = it },
+                        onPreviousMonth = onPreviousMonth,
+                        onNextMonth = onNextMonth,
+                    ) {
+                        AllocationChart(
+                            breakdown = breakdown,
+                            selectedCategory = state.selectedCategory,
+                            onCategorySelected = onCategorySelected,
+                        )
+                    }
 
-                StatsViewType.XU_HUONG -> TrendChart(
-                    points = state.recentMonths,
-                    metric = metric,
-                    isSelectedMonthCurrent = state.isCurrentMonth,
-                    onPointClick = onMonthSelected,
-                )
+                    StatsViewType.XU_HUONG -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        OverviewCard(
+                            state = state,
+                            metric = metric,
+                            showAmounts = showAmounts,
+                            difference = difference,
+                            onMetricChanged = { metric = it },
+                            onPreviousMonth = onPreviousMonth,
+                            onNextMonth = onNextMonth,
+                        )
+                        TrendChart(
+                            points = state.recentMonths,
+                            metric = metric,
+                            isSelectedMonthCurrent = state.isCurrentMonth,
+                            onPointClick = onMonthSelected,
+                        )
+                    }
+                }
             }
         }
         item { supportingContent(metric) }
@@ -204,7 +229,7 @@ private fun ViewModeItem(
         color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .clickable(enabled = !active, onClick = onClick)
             .animateContentSize(animationSpec = tween(220)),
     ) {
         Row(
@@ -236,6 +261,7 @@ private fun OverviewCard(
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    chartContent: (@Composable () -> Unit)? = null,
 ) {
     val previousExpense = state.recentMonths.getOrNull(1)?.expense ?: Money.ZERO
     val previousIncome = state.recentMonths.getOrNull(1)?.income ?: Money.ZERO
@@ -243,7 +269,7 @@ private fun OverviewCard(
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -328,6 +354,11 @@ private fun OverviewCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+
+            chartContent?.let { content ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .5f))
+                content()
             }
         }
     }
@@ -455,29 +486,36 @@ private fun AllocationChart(
 ) {
     val progress by animateFloatAsState(if (breakdown.isEmpty()) 0f else 1f, tween(650), label = "donut")
     val chartTrack = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)
-    val connectorColor = MaterialTheme.colorScheme.outlineVariant
-    val labelItems = breakdown.take(4)
+    val legendItems = breakdown.take(4)
+    val selectedItem = breakdown.firstOrNull { it.category == selectedCategory }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
-            .pointerInput(breakdown, selectedCategory) {
-                detectTapGestures { tap ->
-                    val item = findDonutItemAt(
-                        tap = tap,
-                        width = size.width.toFloat(),
-                        height = size.height.toFloat(),
-                        strokePx = 34.dp.toPx(),
-                        breakdown = breakdown,
-                    )
-                    onCategorySelected(if (item?.category == selectedCategory) null else item?.category)
-                }
-            },
+            .height(230.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .weight(1.05f)
+                .fillMaxHeight()
+                .pointerInput(breakdown, selectedCategory) {
+                    detectTapGestures { tap ->
+                        val item = findDonutItemAt(
+                            tap = tap,
+                            width = size.width.toFloat(),
+                            height = size.height.toFloat(),
+                            strokePx = 34.dp.toPx(),
+                            breakdown = breakdown,
+                        )
+                        onCategorySelected(if (item?.category == selectedCategory) null else item?.category)
+                    }
+                },
+        ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val diameter = min(size.width, size.height) * .58f
-            val center = Offset(size.width / 2f, size.height / 2f + 8.dp.toPx())
+            val diameter = min(size.width, size.height) * .82f
+            val center = Offset(size.width / 2f, size.height / 2f)
             val stroke = 34.dp.toPx()
             val radius = diameter / 2f
             val bounds = Offset(center.x - radius, center.y - radius)
@@ -507,36 +545,26 @@ private fun AllocationChart(
                 startAngle += rawSweep
             }
 
-            labelItems.forEach { item ->
-                val middle = middleAngleForItem(breakdown, item)
-                val arcPoint = pointOnCircle(center, radius + stroke * .54f, middle)
-                val tickPoint = pointOnCircle(center, radius + stroke * .54f + 18.dp.toPx(), middle)
-                drawLine(
-                    color = connectorColor,
-                    start = arcPoint,
-                    end = tickPoint,
-                    strokeWidth = 1.dp.toPx(),
-                )
-            }
         }
 
-        labelItems.forEachIndexed { index, item ->
-            val alignment = if (index == 0 || index == 3) Alignment.Start else Alignment.End
-            val modifier = when (index) {
-                0 -> Modifier.align(Alignment.TopStart).padding(top = 22.dp)
-                1 -> Modifier.align(Alignment.BottomEnd).padding(bottom = 24.dp)
-                2 -> Modifier.align(Alignment.TopEnd).padding(top = 22.dp)
-                else -> Modifier.align(Alignment.BottomStart).padding(bottom = 24.dp)
+        selectedItem?.let { item ->
+            Surface(
+                modifier = Modifier.align(Alignment.Center),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(item.category.colorArgb).copy(alpha = .12f),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "${(item.percentage * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(item.category.colorArgb),
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
             }
-            CategoryChartLabel(
-                item = item,
-                selected = item.category == selectedCategory,
-                modifier = modifier,
-                alignment = alignment,
-                onClick = {
-                    onCategorySelected(if (item.category == selectedCategory) null else item.category)
-                },
-            )
         }
 
         if (breakdown.isEmpty()) {
@@ -547,38 +575,71 @@ private fun AllocationChart(
             )
         }
     }
+
+        Column(
+            modifier = Modifier
+                .weight(.95f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        ) {
+            if (legendItems.isEmpty()) {
+                Text(
+                    text = "Chưa phát sinh giao dịch trong tháng này",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            legendItems.forEach { item ->
+                CategoryLegendItem(
+                    item = item,
+                    selected = item.category == selectedCategory,
+                    onClick = {
+                        onCategorySelected(if (item.category == selectedCategory) null else item.category)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
 }
 
 @Composable
-private fun CategoryChartLabel(
+private fun CategoryLegendItem(
     item: CategoryBreakdownItem,
     selected: Boolean,
     modifier: Modifier,
-    alignment: Alignment.Horizontal = Alignment.Start,
     onClick: () -> Unit,
 ) {
     val color = Color(item.category.colorArgb)
-    Column(
+    Surface(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) color.copy(alpha = 0.12f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        horizontalAlignment = alignment,
+            .animateContentSize(),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = if (selected) .18f else .08f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = if (selected) .48f else .20f),
+        ),
     ) {
-        Text(
-            "${(item.percentage * 100).toInt()}%",
-            color = color,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.ExtraBold,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CategoryAvatar(category = item.category, size = 16.dp)
-            Spacer(Modifier.width(4.dp))
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(9.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+            Spacer(Modifier.width(6.dp))
             Text(
-                item.category.displayName,
+                text = "${item.category.displayName} — ${(item.percentage * 100).toInt()}%",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (selected) color else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -593,16 +654,41 @@ private fun TrendChart(
     isSelectedMonthCurrent: Boolean,
     onPointClick: (MonthlyTrendPoint) -> Unit,
 ) {
-    val values = points.map { if (metric == StatsMetric.CHI_TIEU) it.expense.amountInCents else it.income.amountInCents }
-    val maxValue = max(1L, values.maxOrNull() ?: 0L)
+    val expenseColor = MaterialTheme.colorScheme.error
+    val incomeColor = Color(0xFF22A06B)
+    val expenseValues = points.map { it.expense.amountInCents }
+    val incomeValues = points.map { it.income.amountInCents }
+    val maxValue = max(
+        1L,
+        max(expenseValues.maxOrNull() ?: 0L, incomeValues.maxOrNull() ?: 0L),
+    )
     val maxMillions = max(0.5f, kotlin.math.ceil(maxValue / 500_000f) * .5f)
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f)
-    val activeBarColor = MaterialTheme.colorScheme.primary
-    val inactiveBarColor = activeBarColor.copy(alpha = .23f)
 
-    Column(modifier = Modifier.fillMaxWidth().height(290.dp)) {
-        Text("(Triệu)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(6.dp))
+    Column(modifier = Modifier.fillMaxWidth().height(302.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "(Triệu)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TrendLegendItem(
+                label = "Chi tiêu",
+                color = expenseColor,
+                emphasized = metric == StatsMetric.CHI_TIEU,
+            )
+            TrendLegendItem(
+                label = "Thu nhập",
+                color = incomeColor,
+                emphasized = metric == StatsMetric.THU_NHAP,
+            )
+        }
+        Spacer(Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
             Column(
                 modifier = Modifier.width(34.dp).fillMaxHeight(),
@@ -616,15 +702,26 @@ private fun TrendChart(
                     )
                 }
             }
-            Row(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom,
-            ) {
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Canvas(Modifier.fillMaxSize()) {
+                    repeat(5) { line ->
+                        val y = size.height * line / 4f
+                        drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
                 points.forEachIndexed { index, point ->
-                    val fraction by animateFloatAsState(
-                        (values.getOrElse(index) { 0L }.toFloat() / maxValue).coerceIn(0f, 1f),
-                        label = "bar$index",
+                    val expenseFraction by animateFloatAsState(
+                        (expenseValues.getOrElse(index) { 0L }.toFloat() / maxValue).coerceIn(0f, 1f),
+                        label = "expense-bar$index",
+                    )
+                    val incomeFraction by animateFloatAsState(
+                        (incomeValues.getOrElse(index) { 0L }.toFloat() / maxValue).coerceIn(0f, 1f),
+                        label = "income-bar$index",
                     )
                     val isCurrent = index == points.lastIndex
                     Column(
@@ -634,26 +731,35 @@ private fun TrendChart(
                     ) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onPointClick(point) },
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onPointClick(point) },
                             contentAlignment = Alignment.BottomCenter,
                         ) {
-                            Canvas(Modifier.fillMaxSize()) {
-                                repeat(4) { line ->
-                                    val y = size.height * line / 4f
-                                    drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
-                                }
-                            }
-                            Box(
+                            Row(
                                 modifier = Modifier
-                                    .fillMaxWidth(.72f)
-                                    .fillMaxHeight(fraction)
-                                    .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
-                                    .background(if (isCurrent) activeBarColor else inactiveBarColor),
-                            )
+                                    .fillMaxWidth(.78f)
+                                    .fillMaxHeight(),
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(expenseFraction)
+                                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
+                                        .background(expenseColor.copy(alpha = if (metric == StatsMetric.CHI_TIEU) 1f else .62f)),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(incomeFraction)
+                                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
+                                        .background(incomeColor.copy(alpha = if (metric == StatsMetric.THU_NHAP) 1f else .62f)),
+                                )
+                            }
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -661,11 +767,38 @@ private fun TrendChart(
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                        )
-                    }
+                    )
                 }
             }
+            }
         }
+    }
+}
+
+}
+
+@Composable
+private fun TrendLegendItem(
+    label: String,
+    color: Color,
+    emphasized: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = if (emphasized) 1f else .62f)),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (emphasized) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+        )
     }
 }
 
@@ -679,9 +812,9 @@ private fun findDonutItemAt(
     breakdown: List<CategoryBreakdownItem>,
 ): CategoryBreakdownItem? {
     if (breakdown.isEmpty()) return null
-    val diameter = min(width, height) * .58f
+    val diameter = min(width, height) * .82f
     val radius = diameter / 2f
-    val center = Offset(width / 2f, height / 2f + 8f)
+    val center = Offset(width / 2f, height / 2f)
     val dx = tap.x - center.x
     val dy = tap.y - center.y
     val distance = sqrt(dx * dx + dy * dy)
@@ -695,27 +828,6 @@ private fun findDonutItemAt(
         start = normalizeAngle(start + sweep)
     }
     return null
-}
-
-private fun middleAngleForItem(
-    breakdown: List<CategoryBreakdownItem>,
-    target: CategoryBreakdownItem,
-): Float {
-    var start = CHART_START_ANGLE
-    for (item in breakdown) {
-        val sweep = item.percentage * 360f
-        if (item.category == target.category) return start + sweep / 2f
-        start += sweep
-    }
-    return CHART_START_ANGLE
-}
-
-private fun pointOnCircle(center: Offset, radius: Float, angleDegrees: Float): Offset {
-    val radians = angleDegrees * PI.toFloat() / 180f
-    return Offset(
-        x = center.x + cos(radians) * radius,
-        y = center.y + sin(radians) * radius,
-    )
 }
 
 private fun normalizeAngle(value: Float): Float {
