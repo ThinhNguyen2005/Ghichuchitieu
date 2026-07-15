@@ -1,11 +1,14 @@
 package com.notepay.ai
 
 import android.content.Context
+import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LogSeverity
+import com.google.ai.edge.litertlm.SamplerConfig
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
@@ -37,8 +40,6 @@ class LiteRtBudgetAdvisor @Inject constructor(
         try {
             withTimeout(INFERENCE_TIMEOUT_MILLIS) {
                 Engine.setNativeMinLogSeverity(LogSeverity.ERROR)
-                var gpuFailure: Throwable? = null
-
                 for (backend in BackendAttempt.DEFAULT_ORDER) {
                     try {
                         return@withTimeout generateWithBackend(
@@ -50,12 +51,12 @@ class LiteRtBudgetAdvisor @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (t: Throwable) {
-                        if (backend.isCpu) throw t
-                        gpuFailure = t
+                        Log.e(TAG, "LiteRT-LM ${backend.label} failed: ${t.javaClass.simpleName}", t)
+                        throw t
                     }
                 }
 
-                throw gpuFailure ?: error("Không thể khởi tạo mô hình AI cục bộ.")
+                error("No LiteRT-LM backend is configured.")
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -75,13 +76,22 @@ class LiteRtBudgetAdvisor @Inject constructor(
         )
         Engine(config).use { engine ->
             engine.initialize()
-            engine.createConversation().use { conversation ->
-                val raw = conversation.sendMessage(promptAdvisor.buildPrompt(input))
+            engine.createConversation(
+                ConversationConfig(
+                    samplerConfig = SamplerConfig(
+                        topK = 20,
+                        topP = 0.9,
+                        temperature = 0.2,
+                        seed = 2026,
+                    ),
+                ),
+            ).use { conversation ->
+                val raw = conversation.sendMessage(promptAdvisor.buildLiteRtPrompt(input))
                     .contents
                     .contents
                     .filterIsInstance<Content.Text>()
                     .joinToString(separator = "") { it.text }
-                val parsed = AdvisorResponseParser.parse(raw)
+                val parsed = AdvisorResponseParser.parseLenient(raw)
                     ?: error("Mô hình trả về nội dung chưa đúng định dạng an toàn.")
                 val displayName = modelManager.state.value.displayName
                     ?: "mô hình LiteRT-LM"
@@ -96,19 +106,18 @@ class LiteRtBudgetAdvisor @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "LiteRtBudgetAdvisor"
         const val INFERENCE_TIMEOUT_MILLIS = 120_000L
     }
 
     private data class BackendAttempt(
         val label: String,
-        val isCpu: Boolean = false,
         val create: () -> Backend,
     ) {
         companion object {
-            val DEFAULT_ORDER = listOf(
-                BackendAttempt(label = "GPU") { Backend.GPU() },
-                BackendAttempt(label = "CPU", isCpu = true) { Backend.CPU() },
-            )
+            // This Qwen3 LiteRT package is reliable on CPU/XNNPACK. A GPU attempt can
+            // block a request, then fail and fall back to CPU on many Android devices.
+            val DEFAULT_ORDER = listOf(BackendAttempt(label = "CPU") { Backend.CPU() })
         }
     }
 }

@@ -4,6 +4,12 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.util.Log
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.LogSeverity
 import com.notepay.di.IoDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -12,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -110,6 +117,8 @@ class LocalAiModelManager @Inject constructor(
                 "Tệp quá nhỏ hoặc không phải mô hình LiteRT-LM hợp lệ."
             }
 
+            validateModel(tempFile)
+
             if (modelFile.exists() && !modelFile.renameTo(backupFile)) {
                 error("Không thể thay thế mô hình đang dùng.")
             }
@@ -157,6 +166,38 @@ class LocalAiModelManager @Inject constructor(
         File(modelDirectory, "$MODEL_FILE_NAME.backup").delete()
         preferences.edit().clear().apply()
         _state.value = LocalModelState()
+    }
+
+    /** Checks initialization and one non-sensitive response before installing a model. */
+    private suspend fun validateModel(file: File) = withTimeout(MODEL_VALIDATION_TIMEOUT_MILLIS) {
+        try {
+            Engine.setNativeMinLogSeverity(LogSeverity.ERROR)
+            Engine(
+                EngineConfig(
+                    modelPath = file.absolutePath,
+                    backend = Backend.CPU(),
+                    cacheDir = appContext.cacheDir.absolutePath,
+                ),
+            ).use { engine ->
+                engine.initialize()
+                engine.createConversation().use { conversation ->
+                    val response = conversation.sendMessage("Reply with exactly: OK")
+                        .contents
+                        .contents
+                        .filterIsInstance<Content.Text>()
+                        .joinToString(separator = "") { it.text }
+                    require(response.isNotBlank()) { "Model did not return readable text." }
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            Log.e(TAG, "LiteRT-LM validation failed: ${error.javaClass.simpleName}", error)
+            throw IllegalArgumentException(
+                "Mô hình không chạy được trên thiết bị này. Hãy chọn một tệp .litertlm tương thích.",
+                error,
+            )
+        }
     }
 
     private fun readPersistedState(): LocalModelState {
@@ -208,6 +249,8 @@ class LocalAiModelManager @Inject constructor(
         const val MIN_MODEL_BYTES = 20L * 1024L * 1024L
         const val MAX_MODEL_BYTES = 1_500L * 1024L * 1024L
         const val STORAGE_HEADROOM_BYTES = 256L * 1024L * 1024L
+        const val MODEL_VALIDATION_TIMEOUT_MILLIS = 60_000L
+        const val TAG = "LocalAiModelManager"
         val SUPPORTED_ABIS = setOf("arm64-v8a", "x86_64")
     }
 }

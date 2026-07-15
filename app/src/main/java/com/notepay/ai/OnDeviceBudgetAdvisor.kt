@@ -1,10 +1,12 @@
 package com.notepay.ai
 
+import android.util.Log
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,6 +38,7 @@ class OnDeviceBudgetAdvisor @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
+                Log.e(TAG, "LiteRT-LM analysis fell back: ${error.javaClass.simpleName}", error)
                 return (geminiFallback ?: geminiNano.generate(input)).copy(
                     providerMessage = "Mô hình AI cục bộ chưa chạy được (${safeReason(error)}); " +
                         "đang dùng phân tích thống kê trên máy.",
@@ -51,7 +54,12 @@ class OnDeviceBudgetAdvisor @Inject constructor(
 
     private fun safeReason(error: Throwable): String = when (error) {
         is OutOfMemoryError -> "không đủ bộ nhớ"
+        is TimeoutCancellationException -> "mất quá lâu để phản hồi"
         is IllegalArgumentException -> "mô hình không tương thích"
         else -> "không thể khởi tạo"
+    }
+
+    private companion object {
+        const val TAG = "OnDeviceBudgetAdvisor"
     }
 }

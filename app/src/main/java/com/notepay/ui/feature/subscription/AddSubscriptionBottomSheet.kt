@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.subscription
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.background
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,7 +49,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -372,21 +371,16 @@ fun AddSubscriptionBottomSheet(
                 Spacer(Modifier.height(8.dp))
             }
 
-            Surface(
+            GradientBottomActionBar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth(),
-                tonalElevation = 3.dp,
-                shadowElevation = 3.dp,
-                color = MaterialTheme.colorScheme.surface,
             ) {
                 LiquidButton(
                     onClick = onConfirm,
                     enabled = state.canSave,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
                         .height(52.dp),
                 ) {
                     Text(

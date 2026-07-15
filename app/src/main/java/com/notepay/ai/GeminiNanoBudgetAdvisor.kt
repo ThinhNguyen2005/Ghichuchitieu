@@ -111,6 +111,28 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
         """.trimIndent()
     }
 
+    /** Compact prompt for LiteRT-LM models with a short on-device context window. */
+    internal fun buildLiteRtPrompt(input: BudgetAdvisorInput): String {
+        val prediction = input.prediction
+        val categories = input.categories
+            .sortedByDescending { it.amountInCents }
+            .take(3)
+            .joinToString("; ") { category ->
+                "${category.name} ${formatVnd(category.amountInCents)} (${(category.share * 100).toInt()}%)"
+            }
+            .ifBlank { "chưa đủ dữ liệu danh mục" }
+        val budget = input.budgetLimitInCents?.let(::formatVnd) ?: "chưa đặt"
+
+        return """
+            Bạn là trợ lý chi tiêu. Trả lời tiếng Việt ngắn, tối đa 70 từ.
+            Số liệu đã được tính sẵn, không tự tạo số mới.
+            Đã chi: ${formatVnd(prediction.spentSoFarInCents)}. Dự báo: ${formatVnd(prediction.predictedMonthTotalInCents)}.
+            Hạn mức: $budget. Nguy cơ vượt: ${prediction.overBudgetProbability?.let { "${(it * 100).toInt()}%" } ?: "chưa xác định"}.
+            Danh mục lớn: $categories.
+            Nêu một nhận xét và một hành động nhỏ trong 7 ngày tới.
+        """.trimIndent()
+    }
+
     private fun fallback(input: BudgetAdvisorInput, reason: String): BudgetAdvisorResult {
         val p = input.prediction
         val probability = p.overBudgetProbability

@@ -29,7 +29,27 @@ object AdvisorResponseParser {
         return ParsedAdvisorResponse(title, observation, action)
     }
 
+    /**
+     * A local model can give useful text without reproducing every requested label.
+     * Do not discard a completed inference solely because its presentation differs.
+     */
+    fun parseLenient(raw: String): ParsedAdvisorResponse? {
+        parse(raw)?.let { return it }
+        val content = raw
+            .replace(Regex("(?s)<think>.*?</think>"), "")
+            .replace("```", "")
+            .trim()
+            .takeIf { it.isNotBlank() }
+            ?: return null
+        return ParsedAdvisorResponse(
+            title = "Gợi ý chi tiêu",
+            observation = content,
+            action = "Bạn có thể đối chiếu gợi ý này với các giao dịch gần đây trước khi điều chỉnh chi tiêu.",
+        )
+    }
+
     private fun canonicalize(value: String): String = StringUtils
         .removeVietnameseAccents(value)
+        .replace(Regex("[^A-Za-z0-9:]"), "")
         .uppercase(Locale.ROOT)
 }

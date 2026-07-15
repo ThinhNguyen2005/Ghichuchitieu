@@ -44,6 +44,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.ConfirmDeleteDialog
+import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.feedback.UiFeedback
@@ -141,49 +142,14 @@ fun DebtorDetailScreen(
         },
         bottomBar = {
             if (unpaidDebtorSplits.isNotEmpty()) {
-                Surface(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                GradientBottomActionBar {
+                    LiquidButton(
+                        onClick = { showReconciliationSheet = true },
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        LiquidButton(
-                            onClick = { showReconciliationSheet = true },
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(.7f),
-                        ) {
-                            Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text("Xác nhận", fontWeight = FontWeight.Bold)
-                        }
-                        LiquidButton(
-                            onClick = {
-                                if (qrCodeString != null && activeWallet != null) {
-                                    shareVietQrImage(
-                                        context = context,
-                                        qrCodeString = qrCodeString,
-                                        bankName = bankName,
-                                        accountNumber = activeWallet.accountNumber.orEmpty(),
-                                        accountName = activeWallet.accountName.orEmpty(),
-                                    )
-                                } else {
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "Chào $debtorName, bạn có khoản cần thanh toán là ${MoneyFormatter.format(Money(totalAmountCents))}.",
-                                        )
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Chia sẻ"))
-                                }
-                            },
-                            surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .82f),
-                            modifier = Modifier.weight(.3f),
-                        ) {
-                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text("Chia sẻ", fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
+                        Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Xác nhận đã thanh toán", fontWeight = FontWeight.Bold)
                     }
                 }
             }

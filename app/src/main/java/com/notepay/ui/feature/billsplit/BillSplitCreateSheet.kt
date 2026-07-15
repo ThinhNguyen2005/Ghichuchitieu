@@ -56,6 +56,7 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
@@ -587,22 +588,13 @@ fun BillSplitCreateSheet(
                 }
             }
 
-            Surface(
+            GradientBottomActionBar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth(),
-                tonalElevation = 3.dp,
-                shadowElevation = 3.dp,
-                color = MaterialTheme.colorScheme.surface,
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 12.dp,
-                        ),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     disabledReason?.let { reason ->
