@@ -1,58 +1,100 @@
 package com.notepay.ui.feature.stats
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingDown
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.PieChart
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoGraph
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Psychology
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ThumbDown
+import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Wallet
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.ForecastConfidence
+import com.notepay.domain.model.Category
+import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.feature.subscription.AddSubscriptionBottomSheet
 import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
 import com.notepay.ui.util.MoneyFormatter
 import java.util.Locale
-import kotlin.math.atan2
-import kotlin.math.min
-import kotlin.math.sqrt
+import kotlin.math.abs
 
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.component.LiquidGlassPanel
+private enum class StatsContentState {
+    LOADING,
+    EMPTY,
+    CONTENT,
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,648 +104,174 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
-    var showDateRangePicker by remember { mutableStateOf(false) }
+
+    val contentState = when {
+        state.isLoading -> StatsContentState.LOADING
+        state.breakdown.isEmpty() && state.incomeBreakdown.isEmpty() -> StatsContentState.EMPTY
+        else -> StatsContentState.CONTENT
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) { padding ->
-        if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-            return@Scaffold
-        }
-
-        if (state.breakdown.isEmpty() && state.incomeBreakdown.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                EmptyStateWithAction(
-                    icon = Icons.Outlined.PieChart,
-                    title = "Chưa có dữ liệu thống kê",
-                    description = "Chưa có thống kê giao dịch nào.",
-                )
-            }
-            return@Scaffold
-        }
-
-        StatsDashboard(
-            state = state,
-            onPreviousMonth = viewModel::onPreviousMonth,
-            onNextMonth = viewModel::onNextMonth,
-            onMonthSelected = { point -> viewModel.selectMonth(point.year, point.month) },
-            onCategorySelected = viewModel::selectCategory,
-            supportingContent = { metric ->
-                StatsSupportingContent(
-                    state = state,
-                    metric = metric,
-                    onCategorySelected = viewModel::selectCategory,
-                    onAdviceFeedback = viewModel::sendAdviceFeedback,
-                    onAddSubscription = viewModel::showAddSubscription,
-                    onGenerateLocalAdvice = viewModel::generateLocalAdvice,
-                )
+        AnimatedContent(
+            targetState = contentState,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(180)) togetherWith
+                        fadeOut(animationSpec = tween(140))
             },
-            modifier = Modifier.padding(padding),
-        )
-    }
-
-    if (showDateRangePicker) {
-        val dateRangePickerState = rememberDateRangePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showDateRangePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val start = dateRangePickerState.selectedStartDateMillis
-                        val end = dateRangePickerState.selectedEndDateMillis
-                        if (start != null && end != null) viewModel.selectCustomDateRange(start, end)
-                        showDateRangePicker = false
-                    },
-                    enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
-                ) { Text("Xác nhận", fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = { TextButton(onClick = { showDateRangePicker = false }) { Text("Hủy") } }
-        ) {
-            DateRangePicker(
-                state = dateRangePickerState,
-                title = { Text("Chọn khoảng thời gian", modifier = Modifier.padding(16.dp)) },
-                showModeToggle = false,
-                modifier = Modifier.weight(1f)
-            )
+            label = "stats-content",
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding),
+        ) { target ->
+            when (target) {
+                StatsContentState.LOADING -> StatsLoadingState()
+                StatsContentState.EMPTY -> StatsEmptyState(onAddTransaction = onAddTransaction)
+                StatsContentState.CONTENT -> {
+                    StatsDashboard(
+                        state = state,
+                        onPreviousMonth = viewModel::onPreviousMonth,
+                        onNextMonth = viewModel::onNextMonth,
+                        onMonthSelected = { point ->
+                            viewModel.selectMonth(point.year, point.month)
+                        },
+                        onCategorySelected = viewModel::selectCategory,
+                        supportingContent = { metric ->
+                            StatsSupportingContent(
+                                state = state,
+                                metric = metric,
+                                onCategorySelected = viewModel::selectCategory,
+                                onAdviceFeedback = viewModel::sendAdviceFeedback,
+                                onAddSubscription = viewModel::showAddSubscription,
+                                onGenerateLocalAdvice = viewModel::generateLocalAdvice,
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 
     if (addSubFormState.isVisible) {
         AddSubscriptionBottomSheet(
             state = AddSubscriptionDialogState(
-                name = addSubFormState.name, amountInput = addSubFormState.amountInput,
-                repeatMonths = addSubFormState.repeatMonths, remindDaysBefore = addSubFormState.remindDaysBefore,
-                note = addSubFormState.note, category = addSubFormState.category, nextDueEpochMs = addSubFormState.nextDueEpochMs
+                name = addSubFormState.name,
+                amountInput = addSubFormState.amountInput,
+                repeatMonths = addSubFormState.repeatMonths,
+                remindDaysBefore = addSubFormState.remindDaysBefore,
+                note = addSubFormState.note,
+                category = addSubFormState.category,
+                nextDueEpochMs = addSubFormState.nextDueEpochMs,
             ),
-            onNameChanged = viewModel::updateSubFormName, onAmountChanged = viewModel::updateSubFormAmount,
-            onRepeatMonthsChanged = viewModel::updateSubFormRepeatMonths, onRemindDaysChanged = viewModel::updateSubFormRemindDays,
-            onNoteChanged = viewModel::updateSubFormNote, onCategoryChanged = viewModel::updateSubFormCategory,
-            onNextDueDateChanged = viewModel::updateSubFormNextDueDate, onConfirm = viewModel::saveSubscription, onDismiss = viewModel::dismissSubForm
+            onNameChanged = viewModel::updateSubFormName,
+            onAmountChanged = viewModel::updateSubFormAmount,
+            onRepeatMonthsChanged = viewModel::updateSubFormRepeatMonths,
+            onRemindDaysChanged = viewModel::updateSubFormRemindDays,
+            onNoteChanged = viewModel::updateSubFormNote,
+            onCategoryChanged = viewModel::updateSubFormCategory,
+            onNextDueDateChanged = viewModel::updateSubFormNextDueDate,
+            onConfirm = viewModel::saveSubscription,
+            onDismiss = viewModel::dismissSubForm,
         )
     }
 }
 
 @Composable
-private fun ExpenseBreakdownContent(
-    state: StatsUiState,
-    wallets: List<com.notepay.domain.model.Wallet>,
-    onWalletSelect: (Long?) -> Unit,
-    onTimeFilterSelect: (TimeFilterType) -> Unit,
-    onPrevMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onCategorySelected: (Category?) -> Unit,
-    onAdviceFeedback: (String, Int) -> Unit,
-    onAddSubscription: (String, Long, String, Long) -> Unit,
-    onGenerateLocalAdvice: () -> Unit,
-) {
-    val filteredTransactions = remember(state.transactions, state.selectedCategory) {
-        state.transactions.filter {
-            it.type == com.notepay.domain.model.TransactionType.EXPENSE && it.category == state.selectedCategory
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+private fun StatsLoadingState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        item {
-            LiquidGlassPanel(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.semantics {
+                contentDescription = "Đang tổng hợp dữ liệu thống kê"
+            },
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(64.dp),
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    FilterControlRow(
-                        walletLabel = state.selectedWallet?.name ?: "Tất cả ví",
-                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) "Tháng %02d/%d".format(state.month, state.year) else state.dateRangeLabel,
-                        showNavigation = state.timeFilter == TimeFilterType.MONTH,
-                        isNextEnabled = !state.isCurrentMonth,
-                        wallets = wallets,
-                        onWalletSelect = onWalletSelect,
-                        onTimeFilterSelect = onTimeFilterSelect,
-                        onPrevClick = onPrevMonth,
-                        onNextClick = onNextMonth
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(30.dp),
+                        strokeWidth = 3.dp,
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(230.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        DonutChart(
-                            breakdown = state.breakdown,
-                            totalExpense = state.totalExpense,
-                            centerLabel = "Tổng chi tiêu",
-                            selectedCategory = state.selectedCategory,
-                            onCategorySelected = onCategorySelected,
-                            modifier = Modifier.size(220.dp)
-                        )
-                    }
                 }
             }
-        }
-
-        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
-
-        if (state.budgetLimit != null) {
-            item { BudgetProgressBar(spent = state.budgetSpent, limit = state.budgetLimit, percentage = state.budgetPercentage) }
-        }
-
-        state.spendingForecast?.prediction?.let { prediction ->
-            item { SpendingPredictionCard(prediction = prediction) }
-        }
-
-        if (state.spendingForecast != null || state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
-            item {
-                AiInsightsCarousel(
-                    state = state,
-                    onAdviceFeedback = onAdviceFeedback,
-                    onAddSubscription = onAddSubscription,
-                    onGenerateLocalAdvice = onGenerateLocalAdvice,
-                )
-            }
-        }
-
-        item {
             Text(
-                text = "Chi tiết danh mục chi",
+                text = "Đang tổng hợp số liệu",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-            )
-        }
-
-        items(state.breakdown, key = { it.category.name }) { item ->
-            val isSelected = state.selectedCategory == item.category
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(animationSpec = tween(durationMillis = 200))
-            ) {
-                CategoryBreakdownRow(
-                    item = item,
-                    isSelected = isSelected,
-                    onClick = { onCategorySelected(if (isSelected) null else item.category) }
-                )
-
-                if (isSelected) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp, start = 8.dp, end = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Lịch sử giao dịch ${item.category.displayName}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                        )
-
-                        if (filteredTransactions.isEmpty()) {
-                            Text(
-                                text = "Không có giao dịch nào trong khoảng thời gian này.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        } else {
-                            filteredTransactions.forEach { tx ->
-                                TransactionItem(transaction = tx, onClick = {})
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun IncomeBreakdownContent(
-    state: StatsUiState,
-    wallets: List<com.notepay.domain.model.Wallet>,
-    onWalletSelect: (Long?) -> Unit,
-    onTimeFilterSelect: (TimeFilterType) -> Unit,
-    onPrevMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onCategorySelected: (Category?) -> Unit,
-) {
-    val filteredTransactions = remember(state.transactions, state.selectedCategory) {
-        state.transactions.filter {
-            it.type == com.notepay.domain.model.TransactionType.INCOME && it.category == state.selectedCategory
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            LiquidGlassPanel(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    FilterControlRow(
-                        walletLabel = state.selectedWallet?.name ?: "Tất cả ví",
-                        timeLabel = if (state.timeFilter == TimeFilterType.MONTH) "Tháng %02d/%d".format(state.month, state.year) else state.dateRangeLabel,
-                        showNavigation = state.timeFilter == TimeFilterType.MONTH,
-                        isNextEnabled = !state.isCurrentMonth,
-                        wallets = wallets,
-                        onWalletSelect = onWalletSelect,
-                        onTimeFilterSelect = onTimeFilterSelect,
-                        onPrevClick = onPrevMonth,
-                        onNextClick = onNextMonth
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(modifier = Modifier.fillMaxWidth().height(230.dp), contentAlignment = Alignment.Center) {
-                        DonutChart(
-                            breakdown = state.incomeBreakdown, totalExpense = state.totalIncome,
-                            centerLabel = "Tổng thu nhập", selectedCategory = state.selectedCategory,
-                            onCategorySelected = onCategorySelected, modifier = Modifier.size(220.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        item { SummaryCards(totalIncome = state.totalIncome, totalExpense = state.totalExpense) }
-
-        item {
-            Text(
-                text = "Chi tiết danh mục thu",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-            )
-        }
-
-        items(state.incomeBreakdown, key = { it.category.name }) { item ->
-            val isSelected = state.selectedCategory == item.category
-            Column(modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = tween(200))) {
-                CategoryBreakdownRow(item = item, isSelected = isSelected, onClick = { onCategorySelected(if (isSelected) null else item.category) })
-                if (isSelected) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 8.dp, end = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Lịch sử thu nhập ${item.category.displayName}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-                        if (filteredTransactions.isEmpty()) {
-                            Text("Không có giao dịch nào.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
-                        } else {
-                            filteredTransactions.forEach { tx -> TransactionItem(transaction = tx, onClick = {}) }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterControlRow(
-    walletLabel: String,
-    timeLabel: String,
-    showNavigation: Boolean,
-    isNextEnabled: Boolean,
-    wallets: List<com.notepay.domain.model.Wallet>,
-    onWalletSelect: (Long?) -> Unit,
-    onTimeFilterSelect: (TimeFilterType) -> Unit,
-    onPrevClick: () -> Unit,
-    onNextClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var showWalletDropdown by remember { mutableStateOf(false) }
-    var showTimeDropdown by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Cụm trái: ĐÃ SỬA kẹp Box neo Dropdown loại ví chuẩn xác
-        Box {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { showWalletDropdown = true }
-                    .padding(vertical = 6.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(Icons.Rounded.Wallet, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                Text(walletLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Icon(Icons.Rounded.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-            }
-
-            DropdownMenu(
-                expanded = showWalletDropdown,
-                onDismissRequest = { showWalletDropdown = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Tất cả ví", fontWeight = FontWeight.Bold) },
-                    onClick = {
-                        onWalletSelect(null)
-                        showWalletDropdown = false
-                    }
-                )
-                wallets.forEach { wallet ->
-                    DropdownMenuItem(
-                        text = { Text(wallet.name) },
-                        onClick = {
-                            onWalletSelect(wallet.id)
-                            showWalletDropdown = false
-                        }
-                    )
-                }
-            }
-        }
-
-        // Cụm phải: ĐÃ SỬA kẹp Box neo Dropdown chọn mốc thời gian tuần/tháng/năm
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            if (showNavigation) {
-                IconButton(onClick = onPrevClick, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Rounded.ChevronLeft, "Trước", modifier = Modifier.size(20.dp))
-                }
-            }
-
-            Box {
-                Text(
-                    text = timeLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { showTimeDropdown = true }
-                        .padding(vertical = 4.dp, horizontal = 6.dp)
-                )
-
-                DropdownMenu(
-                    expanded = showTimeDropdown,
-                    onDismissRequest = { showTimeDropdown = false }
-                ) {
-                    TimeFilterType.entries.forEach { filter ->
-                        DropdownMenuItem(
-                            text = { Text(filter.label) },
-                            onClick = {
-                                showTimeDropdown = false
-                                onTimeFilterSelect(filter)
-                            }
-                        )
-                    }
-                }
-            }
-
-            if (showNavigation) {
-                IconButton(onClick = onNextClick, enabled = isNextEnabled, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Rounded.ChevronRight, "Sau", modifier = Modifier.size(20.dp),
-                        tint = if (isNextEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(0.3f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DonutChart(
-    breakdown: List<CategoryBreakdownItem>,
-    totalExpense: Money,
-    centerLabel: String,
-    selectedCategory: Category?,
-    onCategorySelected: (Category?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val animationProgress = remember { Animatable(0f) }
-    val selectionProgress by animateFloatAsState(targetValue = if (selectedCategory != null) 1f else 0f, animationSpec = tween(250), label = "")
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-
-    LaunchedEffect(breakdown) {
-        animationProgress.snapTo(0f)
-        animationProgress.animateTo(1f, tween(800))
-    }
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(breakdown, selectedCategory) {
-                    detectTapGestures { offset ->
-                        val center = Offset(size.width / 2f, size.height / 2f)
-                        val dx = offset.x - center.x
-                        val dy = offset.y - center.y
-                        val distance = sqrt(dx * dx + dy * dy)
-                        val radius = min(size.width, size.height) / 2f
-                        val strokeWidthPx = 20.dp.toPx()
-
-                        if (distance in (radius - strokeWidthPx - 20.dp.toPx())..(radius + 20.dp.toPx())) {
-                            var normalizedAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
-                            if (normalizedAngle < 0f) normalizedAngle += 360f
-
-                            var currentAngle = 0f
-                            var clicked: Category? = null
-                            for (item in breakdown) {
-                                val sweep = item.percentage * 360f
-                                if (normalizedAngle in currentAngle..(currentAngle + sweep)) { clicked = item.category; break }
-                                currentAngle += sweep
-                            }
-                            onCategorySelected(if (clicked == selectedCategory) null else clicked)
-                        } else { onCategorySelected(null) }
-                    }
-                }
-        ) {
-            val strokeWidthPx = 20.dp.toPx()
-            val minDim = min(size.width, size.height)
-            val radius = (minDim - strokeWidthPx) / 2f
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val topLeft = Offset(center.x - radius, center.y - radius)
-            val arcSize = Size(radius * 2, radius * 2)
-
-            drawCircle(color = trackColor, radius = radius, center = center, style = Stroke(strokeWidthPx))
-
-            var startAngle = -90f
-            breakdown.forEach { item ->
-                val isSelected = selectedCategory == item.category
-                val currentStroke = if (isSelected) (20f + 6f * selectionProgress).dp.toPx() else 20.dp.toPx()
-                val alpha = if (selectedCategory != null && !isSelected) 0.35f else 1f
-                val sweep = item.percentage * 360f * animationProgress.value
-
-                drawArc(
-                    color = Color(item.category.colorArgb).copy(alpha = alpha),
-                    startAngle = startAngle, sweepAngle = sweep, useCenter = false,
-                    topLeft = topLeft, size = arcSize, style = Stroke(currentStroke, cap = StrokeCap.Round)
-                )
-                startAngle += item.percentage * 360f
-            }
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(36.dp)) {
-            Text(centerLabel.uppercase(), style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(MoneyFormatter.format(totalExpense), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
-        }
-    }
-}
-
-@Composable
-private fun CategoryBreakdownRow(
-    item: CategoryBreakdownItem,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(0.25f) else MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(0.3f)) else null
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CategoryAvatar(category = item.category, size = 40.dp, iconSize = 18.dp)
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(item.category.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text(MoneyFormatter.format(item.amount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LinearProgressIndicator(
-                        progress = { item.percentage },
-                        modifier = Modifier.weight(1f).height(6.dp),
-                        color = Color(item.category.colorArgb),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeCap = StrokeCap.Round,
-                    )
-
-                    Text(
-                        text = String.format(Locale.US, "%.1f%%", item.percentage * 100f),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.width(40.dp),
-                        textAlign = TextAlign.End,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryCards(totalIncome: Money, totalExpense: Money) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        listOf(Triple("Thu nhập", totalIncome, Color(0xFF2E7D32)), Triple("Chi tiêu", totalExpense, Color(0xFFC62828))).forEach { (label, money, color) ->
-            LiquidGlassPanel(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                tint = color.copy(alpha = 0.08f),
-                border = BorderStroke(1.dp, color.copy(alpha = 0.14f)),
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (label == "Thu nhập") Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown, null, tint = color, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text(MoneyFormatter.format(money), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BudgetProgressBar(spent: Money, limit: Money, percentage: Float) {
-    val progress = percentage.coerceIn(0f, 1f)
-    val color = when { percentage >= 1f -> Color(0xFFC62828); percentage >= 0.8f -> Color(0xFFEF6C00); else -> Color(0xFF2E7D32) }
-    LiquidGlassPanel(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        tint = color.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.16f)),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(imageVector = if (percentage >= 0.8f) Icons.Rounded.Warning else Icons.Rounded.Info, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                    Text("Hạn mức chi tiêu", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                }
-                Text(
-                    text = String.format(Locale.US, "%.1f%%", percentage * 100f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            }
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp), color = color, trackColor = MaterialTheme.colorScheme.surfaceVariant, strokeCap = StrokeCap.Round)
-            Text("${MoneyFormatter.format(spent)} / ${MoneyFormatter.format(limit)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun SpendingPredictionCard(prediction: com.notepay.domain.analytics.SpendingPrediction) {
-    val probability = prediction.overBudgetProbability
-    val riskColor = when {
-        probability == null -> MaterialTheme.colorScheme.secondary
-        probability >= 0.70 -> MaterialTheme.colorScheme.error
-        probability >= 0.35 -> Color(0xFFEF6C00)
-        else -> Color(0xFF2E7D32)
-    }
-    val confidenceLabel = when (prediction.confidence) {
-        ForecastConfidence.LOW -> "thấp (${prediction.observedDays} ngày dữ liệu)"
-        ForecastConfidence.MEDIUM -> "trung bình (${prediction.observedDays} ngày dữ liệu)"
-        ForecastConfidence.HIGH -> "cao (${prediction.observedDays} ngày dữ liệu)"
-    }
-    LiquidGlassPanel(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        tint = riskColor.copy(alpha = 0.07f),
-        border = BorderStroke(1.dp, riskColor.copy(alpha = 0.22f)),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.AutoGraph, contentDescription = null, tint = riskColor)
-                Text("Dự báo chi tiêu local", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            Text(
-                MoneyFormatter.format(Money(prediction.predictedMonthTotalInCents)),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = riskColor,
             )
             Text(
-                "Khoảng dự báo: ${MoneyFormatter.format(Money(prediction.lowerBoundInCents))} – ${MoneyFormatter.format(Money(prediction.upperBoundInCents))}",
+                text = "Phân tích giao dịch và xu hướng tài chính của bạn…",
                 style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                probability?.let { "Khả năng vượt định mức: ${(it * 100).toInt()}% · Tin cậy $confidenceLabel" }
-                    ?: "Hãy đặt định mức để tính xác suất vượt chi · Tin cậy $confidenceLabel",
-                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun StatsEmptyState(
+    onAddTransaction: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 420.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                modifier = Modifier.size(88.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.PieChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(42.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Chưa có dữ liệu thống kê",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Text(
+                text = "Thêm giao dịch đầu tiên để xem phân bổ, xu hướng và các gợi ý tài chính.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onAddTransaction,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(Icons.Rounded.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Thêm giao dịch", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -719,20 +287,51 @@ private fun StatsSupportingContent(
 ) {
     val isExpense = metric == StatsMetric.CHI_TIEU
     val breakdown = if (isExpense) state.breakdown else state.incomeBreakdown
-    val selectedTransactions = remember(state.transactions, state.selectedCategory, metric) {
+    val selectedTransactions = remember(
+        state.transactions,
+        state.selectedCategory,
+        metric,
+    ) {
+        val expectedType = if (isExpense) {
+            com.notepay.domain.model.TransactionType.EXPENSE
+        } else {
+            com.notepay.domain.model.TransactionType.INCOME
+        }
+
         state.transactions.filter { transaction ->
-            transaction.type == (if (isExpense) com.notepay.domain.model.TransactionType.EXPENSE else com.notepay.domain.model.TransactionType.INCOME) &&
-                transaction.category == state.selectedCategory
+            transaction.type == expectedType &&
+                    transaction.category == state.selectedCategory
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    // Avoid carrying an expense category selection into the income tab, and vice versa.
+    LaunchedEffect(metric) {
+        onCategorySelected(null)
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         if (isExpense && state.budgetLimit != null) {
-            BudgetProgressBar(state.budgetSpent, state.budgetLimit, state.budgetPercentage)
+            BudgetProgressBar(
+                spent = state.budgetSpent,
+                limit = state.budgetLimit,
+                percentage = state.budgetPercentage,
+            )
         }
+
         if (isExpense) {
-            state.spendingForecast?.prediction?.let { SpendingPredictionCard(it) }
-            if (state.spendingForecast != null || state.dynamicDailyBudget != null || state.aiAdvices.isNotEmpty() || state.detectedSubscriptions.isNotEmpty()) {
+            state.spendingForecast?.prediction?.let {
+                SpendingPredictionCard(prediction = it)
+            }
+
+            val hasInsights = state.spendingForecast != null ||
+                    state.dynamicDailyBudget != null ||
+                    state.aiAdvices.isNotEmpty() ||
+                    state.detectedSubscriptions.isNotEmpty()
+
+            if (hasInsights) {
                 AiInsightsCarousel(
                     state = state,
                     onAdviceFeedback = onAdviceFeedback,
@@ -743,49 +342,450 @@ private fun StatsSupportingContent(
         }
 
         Text(
-            text = if (isExpense) "Chi tiết danh mục chi" else "Chi tiết danh mục thu",
+            text = if (isExpense) {
+                "Chi tiết danh mục chi"
+            } else {
+                "Chi tiết danh mục thu"
+            },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.padding(start = 4.dp, top = 2.dp),
         )
+
         if (breakdown.isEmpty()) {
             Text(
-                "Chưa có giao dịch trong tháng này.",
+                text = "Chưa có giao dịch trong tháng này.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
+
         breakdown.forEach { item ->
             val isSelected = item.category == state.selectedCategory
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 CategoryBreakdownRow(
                     item = item,
                     isSelected = isSelected,
-                    onClick = { onCategorySelected(if (isSelected) null else item.category) },
+                    onClick = {
+                        onCategorySelected(if (isSelected) null else item.category)
+                    },
                 )
+
                 if (isSelected) {
                     Text(
-                        "Giao dịch ${item.category.displayName}",
+                        text = "Giao dịch ${item.category.displayName}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 8.dp, top = 4.dp),
                     )
+
                     if (selectedTransactions.isEmpty()) {
                         Text(
-                            "Không có giao dịch phù hợp.",
+                            text = "Không có giao dịch phù hợp.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp),
                         )
                     } else {
                         selectedTransactions.forEach { transaction ->
-                            TransactionItem(transaction = transaction, onClick = {})
+                            TransactionItem(
+                                transaction = transaction,
+                                onClick = {},
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeading(
+    title: String,
+    description: String,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CategoryBreakdownRow(
+    item: CategoryBreakdownItem,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = buildString {
+                    append(item.category.displayName)
+                    append(", ")
+                    append(MoneyFormatter.format(item.amount))
+                    append(", ")
+                    append(
+                        String.format(
+                            Locale.US,
+                            "%.1f phần trăm",
+                            item.percentage * 100f,
+                        ),
+                    )
+                    if (isSelected) append(", đang mở")
+                }
+            }
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
+        ),
+        border = if (isSelected) {
+            BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+            )
+        } else {
+            null
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CategoryAvatar(
+                category = item.category,
+                size = 40.dp,
+                iconSize = 18.dp,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = item.category.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = MoneyFormatter.format(item.amount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LinearProgressIndicator(
+                        progress = { item.percentage.coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp),
+                        color = Color(item.category.colorArgb),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Round,
+                    )
+
+                    Text(
+                        text = String.format(
+                            Locale.US,
+                            "%.1f%%",
+                            item.percentage * 100f,
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(40.dp),
+                        textAlign = TextAlign.End,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetProgressBar(
+    spent: Money,
+    limit: Money,
+    percentage: Float,
+) {
+    val safePercentage = if (percentage.isFinite()) {
+        percentage.coerceAtLeast(0f)
+    } else {
+        0f
+    }
+    val visualProgress = safePercentage.coerceIn(0f, 1f)
+    val remainingInCents = limit.amountInCents - spent.amountInCents
+
+    val statusColor = when {
+        safePercentage >= 1f -> MaterialTheme.colorScheme.error
+        safePercentage >= 0.8f -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val statusText = when {
+        remainingInCents < 0L ->
+            "Đã vượt ${MoneyFormatter.format(Money(abs(remainingInCents)))}"
+        safePercentage >= 0.8f ->
+            "Còn ${MoneyFormatter.format(Money(remainingInCents.coerceAtLeast(0L)))}"
+        else ->
+            "Đang trong hạn mức"
+    }
+
+    LiquidGlassPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tint = statusColor.copy(alpha = 0.07f),
+        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.18f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = statusColor.copy(alpha = 0.12f),
+                    modifier = Modifier.size(38.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (safePercentage >= 0.8f) {
+                                Icons.Rounded.Warning
+                            } else {
+                                Icons.Rounded.Wallet
+                            },
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hạn mức chi tiêu",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = statusColor,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = statusColor.copy(alpha = 0.12f),
+                ) {
+                    Text(
+                        text = String.format(
+                            Locale.US,
+                            "%.0f%%",
+                            safePercentage * 100f,
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = statusColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { visualProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(9.dp)
+                    .clip(CircleShape)
+                    .semantics {
+                        contentDescription = "Đã dùng ${(safePercentage * 100).toInt()} phần trăm hạn mức"
+                    },
+                color = statusColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeCap = StrokeCap.Round,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Đã chi ${MoneyFormatter.format(spent)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Hạn mức ${MoneyFormatter.format(limit)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingPredictionCard(
+    prediction: com.notepay.domain.analytics.SpendingPrediction,
+) {
+    val probability = prediction.overBudgetProbability
+    val riskColor = when {
+        probability == null -> MaterialTheme.colorScheme.secondary
+        probability >= 0.70 -> MaterialTheme.colorScheme.error
+        probability >= 0.35 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val confidenceLabel = when (prediction.confidence) {
+        ForecastConfidence.LOW -> "Thấp"
+        ForecastConfidence.MEDIUM -> "Trung bình"
+        ForecastConfidence.HIGH -> "Cao"
+    }
+
+    LiquidGlassPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tint = riskColor.copy(alpha = 0.07f),
+        border = BorderStroke(1.dp, riskColor.copy(alpha = 0.20f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = riskColor.copy(alpha = 0.12f),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoGraph,
+                            contentDescription = null,
+                            tint = riskColor,
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Dự báo cuối tháng",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            Icons.Rounded.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Xử lý trên thiết bị",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = riskColor.copy(alpha = 0.12f),
+                ) {
+                    Text(
+                        text = "Tin cậy $confidenceLabel",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = riskColor,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                    )
+                }
+            }
+
+            Text(
+                text = MoneyFormatter.format(
+                    Money(prediction.predictedMonthTotalInCents),
+                ),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = riskColor,
+            )
+
+            Text(
+                text = "Khoảng dự kiến: ${
+                    MoneyFormatter.format(Money(prediction.lowerBoundInCents))
+                } – ${
+                    MoneyFormatter.format(Money(prediction.upperBoundInCents))
+                }",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+            )
+
+            Text(
+                text = probability?.let {
+                    "Khả năng vượt hạn mức ${(it * 100).toInt()}% · Dựa trên ${prediction.observedDays} ngày dữ liệu"
+                } ?: "Đặt hạn mức để xem xác suất vượt chi · Dựa trên ${prediction.observedDays} ngày dữ liệu",
+                style = MaterialTheme.typography.labelMedium,
+                color = riskColor,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -797,21 +797,86 @@ private fun AiInsightsCarousel(
     onAddSubscription: (String, Long, String, Long) -> Unit,
     onGenerateLocalAdvice: () -> Unit,
 ) {
-    val localView = androidx.compose.ui.platform.LocalView.current
-    val playHaptic = { try { localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP) } catch (_: Exception) {} }
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("AI Insights & Trợ lý thông minh", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-        androidx.compose.foundation.lazy.LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                LocalAdvisorCard(
-                    advisor = state.localAdvisor,
-                    onGenerate = onGenerateLocalAdvice,
-                    modifier = Modifier.width(310.dp),
-                )
+    val localView = LocalView.current
+    val itemCount = 1 +
+            (if (state.dynamicDailyBudget != null) 1 else 0) +
+            state.detectedSubscriptions.size +
+            state.aiAdvices.size
+
+    val playHaptic = {
+        try {
+            localView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        } catch (_: Exception) {
+            // Haptic feedback is optional.
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SectionHeading(
+            title = "Phân tích thông minh",
+            description = "$itemCount gợi ý · Vuốt ngang để xem thêm",
+        )
+
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val cardWidth = (maxWidth - 24.dp).coerceIn(268.dp, 324.dp)
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item(key = "local-advisor") {
+                    LocalAdvisorCard(
+                        advisor = state.localAdvisor,
+                        onGenerate = onGenerateLocalAdvice,
+                        modifier = Modifier.width(cardWidth),
+                    )
+                }
+
+                state.dynamicDailyBudget?.let { budget ->
+                    item(key = "daily-budget") {
+                        DynamicDailyBudgetCard(
+                            budget = budget,
+                            modifier = Modifier.width(cardWidth),
+                        )
+                    }
+                }
+
+                items(
+                    items = state.detectedSubscriptions,
+                ) { subscription ->
+                    SubscriptionProposalCard(
+                        sub = subscription,
+                        onAdd = {
+                            playHaptic()
+                            onAddSubscription(
+                                subscription.name,
+                                subscription.amount.amountInCents,
+                                subscription.category.id,
+                                subscription.possibleNextDueDate,
+                            )
+                        },
+                        modifier = Modifier.width(cardWidth),
+                    )
+                }
+
+                items(
+                    items = state.aiAdvices,
+                    key = { advice -> advice.id },
+                ) { advice ->
+                    AiAdviceCard(
+                        advice = advice,
+                        onFeedback = { score ->
+                            playHaptic()
+                            onAdviceFeedback(advice.id, score)
+                        },
+                        modifier = Modifier.width(cardWidth),
+                    )
+                }
             }
-            state.dynamicDailyBudget?.let { budget -> item { DynamicDailyBudgetCard(budget = budget, modifier = Modifier.width(290.dp)) } }
-            items(state.detectedSubscriptions) { sub -> SubscriptionProposalCard(sub = sub, onAdd = { playHaptic(); onAddSubscription(sub.name, sub.amount.amountInCents, sub.category.id, sub.possibleNextDueDate) }, modifier = Modifier.width(290.dp)) }
-            items(state.aiAdvices) { advice -> AiAdviceCard(advice = advice, onFeedback = { score -> playHaptic(); onAdviceFeedback(advice.id, score) }, modifier = Modifier.width(290.dp)) }
         }
     }
 }
@@ -824,58 +889,139 @@ private fun LocalAdvisorCard(
 ) {
     val result = advisor.result
     val idleDescription = when (advisor.isGeminiNanoAvailable) {
-        true -> "AI cục bộ Gemini Nano sẽ diễn giải số liệu tổng hợp ngay trên thiết bị."
-        false -> "Thiết bị sẽ dùng phân tích thống kê cục bộ; giao dịch thô không rời khỏi máy."
-        null -> "Đang chuẩn bị phân tích cục bộ; giao dịch thô không rời khỏi thiết bị."
+        true -> "Gemini Nano diễn giải số liệu tổng hợp ngay trên thiết bị."
+        false -> "Phân tích thống kê được thực hiện cục bộ; giao dịch thô không rời khỏi máy."
+        null -> "Đang kiểm tra khả năng phân tích cục bộ trên thiết bị."
     }
-    Card(
-        modifier = modifier.height(170.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.14f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text(result?.title ?: "Trợ lý chi tiêu trên máy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            when (advisor.status) {
-                LocalAdvisorStatus.RUNNING -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 3.dp)
-                        Text("Đang phân tích chi tiêu trên thiết bị…", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                LocalAdvisorStatus.NOT_REQUESTED -> {
-                    Text(
-                        idleDescription,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(
-                        onClick = onGenerate,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        Text("Phân tích chi tiêu", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-                LocalAdvisorStatus.READY -> {
-                    Text(result?.content.orEmpty(), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    InsightCard(
+        modifier = modifier,
+        accentColor = MaterialTheme.colorScheme.primary,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(
+                Icons.Rounded.Psychology,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = result?.title ?: "Trợ lý chi tiêu",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Riêng tư · Trên thiết bị",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        when (advisor.status) {
+            LocalAdvisorStatus.RUNNING -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp,
+                        )
                         Text(
-                            if (result?.provider == AdvisorProvider.GEMINI_NANO) {
-                                "Phân tích bằng AI cục bộ (Gemini Nano)"
+                            text = "Đang phân tích dữ liệu…",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
+
+            LocalAdvisorStatus.NOT_REQUESTED -> {
+                Text(
+                    text = idleDescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = onGenerate,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.Lightbulb,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        text = "Phân tích chi tiêu",
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            LocalAdvisorStatus.READY -> {
+                Text(
+                    text = result?.content.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (result?.provider == AdvisorProvider.GEMINI_NANO) {
+                                "Gemini Nano"
                             } else {
-                                "Phân tích bằng Thống kê cục bộ"
+                                "Thống kê cục bộ"
                             },
                             style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         result?.providerMessage?.let {
-                            Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
+                    }
+
+                    TextButton(
+                        onClick = onGenerate,
+                        modifier = Modifier.heightIn(min = 40.dp),
+                    ) {
+                        Icon(
+                            Icons.Rounded.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Làm mới")
                     }
                 }
             }
@@ -884,56 +1030,310 @@ private fun LocalAdvisorCard(
 }
 
 @Composable
-private fun DynamicDailyBudgetCard(budget: DynamicDailyBudgetData, modifier: Modifier = Modifier) {
-    val progress = if (budget.dailyBudget.amountInCents > 0) (budget.spentToday.amountInCents.toFloat() / budget.dailyBudget.amountInCents).coerceIn(0f, 1f) else 1f
-    val cardColor = if (budget.isExceeded) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = cardColor), border = BorderStroke(1.dp, (if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary).copy(0.25f))) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.Wallet, null, tint = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text("Ngân sách ngày linh hoạt", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            Column {
-                Text("Còn lại hôm nay: ${MoneyFormatter.format(budget.remainingToday)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.ExtraBold)
-                Text("Hạn mức gốc: ${MoneyFormatter.format(budget.dailyBudget)} (Đã tiêu: ${MoneyFormatter.format(budget.spentToday)})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            Text(text = if (budget.isExceeded) "⚠️ Tiêu quá hạn mức! Ngày mai giảm còn ${MoneyFormatter.format(budget.tomorrowBudget)} để bù tiền." else "💡 Chi tiêu thông minh giúp bảo toàn ngân sách tháng.", style = MaterialTheme.typography.labelSmall, color = if (budget.isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+private fun DynamicDailyBudgetCard(
+    budget: DynamicDailyBudgetData,
+    modifier: Modifier = Modifier,
+) {
+    val rawProgress = if (budget.dailyBudget.amountInCents > 0L) {
+        budget.spentToday.amountInCents.toFloat() /
+                budget.dailyBudget.amountInCents.toFloat()
+    } else {
+        1f
     }
-}
-
-@Composable
-private fun AiAdviceCard(advice: AiAdviceItem, onFeedback: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val iconColor = if (advice.type == "warning") MaterialTheme.colorScheme.error else if (advice.type == "success") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = iconColor.copy(alpha = 0.08f)), border = BorderStroke(1.dp, iconColor.copy(alpha = 0.2f))) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(if (advice.type == "warning") Icons.Rounded.Warning else Icons.Rounded.Info, null, tint = iconColor, modifier = Modifier.size(20.dp))
-                Text(advice.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-            Text(advice.content, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onFeedback(1) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Rounded.ThumbUp, null, tint = if (advice.feedback == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(16.dp)) }
-                IconButton(onClick = { onFeedback(-1) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Rounded.ThumbDown, null, tint = if (advice.feedback == -1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(16.dp)) }
-            }
-        }
+    val progress = rawProgress.coerceIn(0f, 1f)
+    val accentColor = if (budget.isExceeded) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.primary
     }
-}
 
-@Composable
-private fun SubscriptionProposalCard(sub: DetectedSubscription, onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.height(170.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text("Phát hiện hóa đơn định kỳ", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
+    InsightCard(
+        modifier = modifier,
+        accentColor = accentColor,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(
+                Icons.Rounded.Wallet,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp),
+            )
             Column(modifier = Modifier.weight(1f)) {
-                Text(sub.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text("${MoneyFormatter.format(sub.amount)} / tháng", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "Ngân sách hôm nay",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = if (budget.isExceeded) {
+                        "Đã vượt hạn mức"
+                    } else {
+                        "Tự điều chỉnh theo ngân sách tháng"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accentColor,
+                )
             }
-            Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(0.dp)) { Text("Thêm hóa đơn", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = if (budget.isExceeded) {
+                    "Đã chi ${MoneyFormatter.format(budget.spentToday)}"
+                } else {
+                    "Còn ${MoneyFormatter.format(budget.remainingToday)}"
+                },
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = accentColor,
+            )
+            Text(
+                text = "Hạn mức hôm nay ${MoneyFormatter.format(budget.dailyBudget)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(7.dp)
+                .clip(CircleShape),
+            color = accentColor,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            strokeCap = StrokeCap.Round,
+        )
+
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = if (budget.isExceeded) {
+                    Icons.Rounded.Warning
+                } else {
+                    Icons.Rounded.CheckCircle
+                },
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = if (budget.isExceeded) {
+                    "Hạn mức ngày mai sẽ điều chỉnh còn ${MoneyFormatter.format(budget.tomorrowBudget)}."
+                } else {
+                    "Bạn đang giữ nhịp chi tiêu phù hợp với ngân sách tháng."
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiAdviceCard(
+    advice: AiAdviceItem,
+    onFeedback: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val accentColor = when (advice.type) {
+        "warning" -> MaterialTheme.colorScheme.error
+        "success" -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondary
+    }
+
+    InsightCard(
+        modifier = modifier,
+        accentColor = accentColor,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(
+                imageVector = if (advice.type == "warning") {
+                    Icons.Rounded.Warning
+                } else {
+                    Icons.Rounded.Info
+                },
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp),
+            )
+            Text(
+                text = advice.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Text(
+            text = advice.content,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 5,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (advice.feedback == 1 || advice.feedback == -1) {
+                    "Cảm ơn phản hồi"
+                } else {
+                    "Gợi ý này hữu ích?"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+
+            IconButton(
+                onClick = { onFeedback(1) },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.ThumbUp,
+                    contentDescription = "Hữu ích",
+                    tint = if (advice.feedback == 1) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    },
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+            IconButton(
+                onClick = { onFeedback(-1) },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.ThumbDown,
+                    contentDescription = "Không hữu ích",
+                    tint = if (advice.feedback == -1) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    },
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionProposalCard(
+    sub: DetectedSubscription,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    InsightCard(
+        modifier = modifier,
+        accentColor = MaterialTheme.colorScheme.primary,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(
+                Icons.Rounded.CalendarMonth,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Khoản chi định kỳ",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Được phát hiện từ lịch sử giao dịch",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = sub.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${MoneyFormatter.format(sub.amount)} mỗi tháng",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        FilledTonalButton(
+            onClick = onAdd,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 44.dp),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+        ) {
+            Icon(
+                Icons.Rounded.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(7.dp))
+            Text(
+                text = "Thêm vào hóa đơn",
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsightCard(
+    modifier: Modifier = Modifier,
+    accentColor: Color,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.height(214.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = accentColor.copy(alpha = 0.075f),
+        ),
+        border = BorderStroke(
+            1.dp,
+            accentColor.copy(alpha = 0.20f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content,
+        )
     }
 }
