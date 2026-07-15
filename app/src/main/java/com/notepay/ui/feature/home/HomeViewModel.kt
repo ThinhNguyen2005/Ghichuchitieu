@@ -1,7 +1,9 @@
 package com.notepay.ui.feature.home
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.ai.LocalAiModelManager
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
@@ -30,6 +32,7 @@ class HomeViewModel @Inject constructor(
     private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val notificationSettingsStore: NotificationSettingsStore,
     private val subscriptionRepository: SubscriptionRepository,
+    private val localAiModelManager: LocalAiModelManager,
 ) : ViewModel() {
 
     private val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -144,6 +147,12 @@ class HomeViewModel @Inject constructor(
         initialValue = com.notepay.data.preferences.NotificationSettings(),
     )
 
+    val localModel = localAiModelManager.state.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = localAiModelManager.state.value,
+    )
+
     fun setAutoCaptureEnabled(enabled: Boolean) {
         viewModelScope.launch {
             notificationSettingsStore.setAutoCaptureEnabled(enabled)
@@ -177,6 +186,18 @@ class HomeViewModel @Inject constructor(
     fun removeCustomBankApp(packageName: String) {
         viewModelScope.launch {
             notificationSettingsStore.removeCustomBankApp(packageName)
+        }
+    }
+
+    fun importLocalAiModel(uri: Uri) {
+        viewModelScope.launch {
+            localAiModelManager.importModel(uri)
+        }
+    }
+
+    fun removeLocalAiModel() {
+        viewModelScope.launch {
+            localAiModelManager.removeModel()
         }
     }
 }

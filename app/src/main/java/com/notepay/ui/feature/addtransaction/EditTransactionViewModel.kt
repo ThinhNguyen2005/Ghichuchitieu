@@ -27,6 +27,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
 import javax.inject.Inject
+import java.util.UUID
 
 data class EditTransactionUiState(
     val isLoading: Boolean = true,
@@ -43,6 +44,7 @@ data class EditTransactionUiState(
     val error: String? = null,
     val availableCategories: List<Category> = emptyList(),
     val suggestedCategory: Category? = null,
+    val suggestionReason: String? = null,
 )
 
 @HiltViewModel
@@ -79,7 +81,7 @@ class EditTransactionViewModel @Inject constructor(
             val dateStr = localDateTime.date.toString()
 
             val isIncome = tx.type == TransactionType.INCOME
-            val initialSuggested = suggestCategoryUseCase.suggest(tx.note, isIncome)
+            val initialSuggestion = suggestCategoryUseCase.suggestDetailed(tx.note, isIncome)
 
             _state.update {
                 it.copy(
@@ -92,7 +94,8 @@ class EditTransactionViewModel @Inject constructor(
                     dateLabel = dateStr,
                     date = localDateTime.date,
                     availableCategories = initialCategories,
-                    suggestedCategory = initialSuggested,
+                    suggestedCategory = initialSuggestion?.category,
+                    suggestionReason = initialSuggestion?.reason,
                 )
             }
         }
@@ -115,11 +118,12 @@ class EditTransactionViewModel @Inject constructor(
         if (_state.value.isAutoCapture) return
         val cleanNote = note.take(200)
         val isIncome = _state.value.type == TransactionType.INCOME
-        val suggested = suggestCategoryUseCase.suggest(cleanNote, isIncome)
+        val suggestion = suggestCategoryUseCase.suggestDetailed(cleanNote, isIncome)
         _state.update {
             it.copy(
                 note = cleanNote,
-                suggestedCategory = suggested
+                suggestedCategory = suggestion?.category,
+                suggestionReason = suggestion?.reason,
             )
         }
     }
@@ -135,16 +139,26 @@ class EditTransactionViewModel @Inject constructor(
     }
 
     /** Tạo danh mục tùy biến mới từ grid của màn chỉnh sửa, đồng thời chọn luôn. */
-    fun createCategory(displayName: String, colorArgb: Long, isIncome: Boolean) {
+    fun createCategory(displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) {
         if (_state.value.isAutoCapture) return
+        val cleanName = displayName.trim().replace(Regex("\\s+"), " ").take(40)
+        if (cleanName.isBlank()) return
+        if (_state.value.availableCategories.any {
+                it.isIncome == isIncome && it.displayName.equals(cleanName, ignoreCase = true)
+            }
+        ) {
+            _feedback.tryEmit(UiFeedback("Danh mục này đã tồn tại", type = FeedbackType.Error))
+            return
+        }
         viewModelScope.launch {
-            val id = "CUSTOM_${System.currentTimeMillis()}"
+            val id = "CUSTOM_${UUID.randomUUID()}"
             val newCategory = Category(
                 id = id,
-                displayName = displayName.trim(),
+                displayName = cleanName,
                 colorArgb = colorArgb,
                 isIncome = isIncome,
                 isCustom = true,
+                iconId = iconId,
             )
             categoryRepository.addCustomCategory(newCategory)
             _state.update { it.copy(category = newCategory) }
@@ -190,7 +204,11 @@ class EditTransactionViewModel @Inject constructor(
                     occurredAt = newOccurredAt,
                 )
                 transactionRepository.upsert(updated)
-                suggestCategoryUseCase.learn(updated.note.trim(), updated.category.id)
+                suggestCategoryUseCase.learn(
+                    note = updated.note.trim(),
+                    categoryId = updated.category.id,
+                    isIncome = updated.type == TransactionType.INCOME,
+                )
                 _state.update { it.copy(isSaving = false, savedSuccessfully = true) }
                 _feedback.emit(UiFeedback("Đã cập nhật giao dịch", type = FeedbackType.Success))
             } catch (e: Exception) {

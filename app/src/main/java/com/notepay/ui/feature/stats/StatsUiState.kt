@@ -4,6 +4,10 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.analytics.SpendingPrediction
+import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.ai.LocalModelState
 
 enum class TimeFilterType(val label: String) {
     MONTH("Tháng"),
@@ -17,7 +21,21 @@ data class BudgetForecast(
     val dailyAverage: Money,
     val projectedSpend: Money,
     val forecastMessage: String,
-    val isProjectedToExceed: Boolean = false
+    val isProjectedToExceed: Boolean = false,
+
+    val previousMonthDailyAverage: Money? = null,
+    val trendPercent: Float? = null,
+    val trendMessage: String? = null,
+    val prediction: SpendingPrediction? = null,
+)
+
+enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
+
+data class LocalAdvisorUiState(
+    val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
+    val result: BudgetAdvisorResult? = null,
+    val availability: AdvisorAvailability = AdvisorAvailability.CHECKING,
+    val localModel: LocalModelState = LocalModelState(),
 )
 
 data class CategoryBreakdownItem(
@@ -26,12 +44,21 @@ data class CategoryBreakdownItem(
     val percentage: Float,
 )
 
+/** A real calendar-month total used by the three-month trend chart. */
+data class MonthlyTrendPoint(
+    val year: Int,
+    val month: Int,
+    val expense: Money,
+    val income: Money,
+)
+
 data class DynamicDailyBudgetData(
     val dailyBudget: Money,
     val spentToday: Money,
     val remainingToday: Money,
     val tomorrowBudget: Money,
-    val isExceeded: Boolean
+    val isExceeded: Boolean,
+    val earlyWarning: String? = null
 )
 
 data class AiAdviceItem(
@@ -59,10 +86,12 @@ data class StatsUiState(
     val balance: Money = Money.ZERO,
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
+    val recentMonths: List<MonthlyTrendPoint> = emptyList(),
     val isLoading: Boolean = true,
     val isCurrentMonth: Boolean = false,
     val selectedCategory: Category? = null,
     val transactions: List<Transaction> = emptyList(),
+    val hasAnyTransactions: Boolean = false,
     
     // Thuộc tính mới phục vụ bộ lọc & hạn mức
     val wallets: List<Wallet> = emptyList(),
@@ -80,4 +109,5 @@ data class StatsUiState(
     val dynamicDailyBudget: DynamicDailyBudgetData? = null,
     val aiAdvices: List<AiAdviceItem> = emptyList(),
     val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
+    val localAdvisor: LocalAdvisorUiState = LocalAdvisorUiState(),
 )

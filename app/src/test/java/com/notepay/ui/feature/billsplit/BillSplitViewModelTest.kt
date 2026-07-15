@@ -21,12 +21,17 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import kotlin.time.Clock
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [34], qualifiers = "vi")
 class BillSplitViewModelTest {
 
     @get:Rule
@@ -268,6 +273,7 @@ class BillSplitViewModelTest {
         val dispatcher = mainDispatcherRule.testDispatcher
         val addTransaction = AddTransactionUseCase(transactionRepository, walletRepository, dispatcher)
         return BillSplitViewModel(
+            appContext = RuntimeEnvironment.getApplication(),
             billSplitRepository = billSplitRepository,
             transactionRepository = transactionRepository,
             walletRepository = walletRepository,

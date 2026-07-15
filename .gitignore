@@ -25,3 +25,6 @@ local.properties
 /app/release.keystore
 /app/signing.properties
 /app/*.jks
+
+# Agent folders
+/.agents/

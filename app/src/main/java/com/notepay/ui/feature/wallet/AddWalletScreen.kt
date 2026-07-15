@@ -1,5 +1,8 @@
 package com.notepay.ui.feature.wallet
 
+import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -124,7 +127,7 @@ fun AddWalletScreen(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .clip(CircleShape)
+                            .clip(AppTheme.shapes.circle)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -162,7 +165,7 @@ fun AddWalletScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), AppTheme.shapes.corner12)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -176,7 +179,7 @@ fun AddWalletScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(AppTheme.shapes.corner8)
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                                     .clickable { viewModel.onBudgetPeriodChanged(period) }
                                     .padding(vertical = 8.dp),
@@ -248,7 +251,7 @@ fun AddWalletScreen(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .clip(CircleShape)
+                                .clip(AppTheme.shapes.circle)
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                     else MaterialTheme.colorScheme.surfaceVariant
@@ -290,7 +293,7 @@ fun AddWalletScreen(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .clip(CircleShape)
+                            .clip(AppTheme.shapes.circle)
                             .background(colorValue)
                             .clickable { viewModel.onColorChanged(key) },
                         contentAlignment = Alignment.Center
@@ -299,7 +302,7 @@ fun AddWalletScreen(
                             Box(
                                 modifier = Modifier
                                     .size(16.dp)
-                                    .clip(CircleShape)
+                                    .clip(AppTheme.shapes.circle)
                                     .background(Color.White)
                             )
                         }
@@ -314,7 +317,7 @@ fun AddWalletScreen(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = AppTheme.shapes.corner12,
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -352,13 +355,12 @@ fun AddWalletScreen(
                 )
             }
 
-            Button(
+            LiquidButton(
                 onClick = { viewModel.save() },
                 enabled = state.canSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .height(56.dp)
             ) {
                 if (state.isSaving) {
                     androidx.compose.material3.CircularProgressIndicator(

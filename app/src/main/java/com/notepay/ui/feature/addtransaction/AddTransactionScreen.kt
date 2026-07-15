@@ -1,6 +1,9 @@
 @file:Suppress("DEPRECATION")
 package com.notepay.ui.feature.addtransaction
 
+import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.LiquidButton
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -32,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
@@ -56,6 +61,11 @@ fun AddTransactionScreen(
 
     val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        uri?.let { viewModel.onEvent(AddTransactionEvent.ImageSelected(it)) }
+    }
 
     // Resolve strings trước khi dùng (đặc biệt cho các callback ngoài Composable scope).
     val title = stringResource(R.string.add_transaction_title)
@@ -124,6 +134,40 @@ fun AddTransactionScreen(
                     incomeLabel = incomeLabel,
                 )
 
+                OutlinedButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        imagePicker.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isImageScanning,
+                    shape = AppTheme.shapes.corner16,
+                ) {
+                    if (state.isImageScanning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (state.isImageScanning) "Đang đọc ảnh…" else "Quét ảnh giao dịch hoặc VietQR")
+                }
+
+                state.imageScanMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
                 // Nhập số tiền: Thiết kế nổi bật to ở giữa, có BasicTextField ẩn và text đọc chữ mờ bên dưới
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -177,9 +221,11 @@ fun AddTransactionScreen(
 
                 // Gợi ý danh mục thời gian thực (nếu có)
                 val suggested = state.suggestedCategory
-                if (suggested != null && suggested != state.category) {
+                if (suggested != null) {
                     SuggestionChipRow(
                         suggestedCategory = suggested,
+                        reason = state.suggestionReason,
+                        isApplied = suggested == state.category,
                         onSelect = { viewModel.onEvent(AddTransactionEvent.CategoryChanged(it)) }
                     )
                 }
@@ -248,7 +294,7 @@ fun AddTransactionScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
@@ -270,23 +316,17 @@ fun AddTransactionScreen(
                 // Chú thích: Đã triển khai bàn phím tự chế (NumericKeypad) nhưng hiện tại tạm dừng sử dụng để dùng bàn phím hệ thống.
 
                 // Nút Lưu giao dịch nổi bật động theo canSave
-                Button(
+                LiquidButton(
                     onClick = {
                         focusManager.clearFocus()
                         keyboardController?.hide()
                         viewModel.onEvent(AddTransactionEvent.Save)
                     },
                     enabled = state.canSave,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1B7F4F), // Xanh thương hiệu nổi bật
-                        contentColor = Color.White,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    ),
+                    tint = Color(0xFF1B7F4F),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp)
+                        .height(56.dp)
                 ) {
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
@@ -353,8 +393,8 @@ fun AddTransactionScreen(
                         viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
                         showAllCategories.value = false
                     },
-                    onCreateCategory = { name, color, isIncome ->
-                        viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, isIncome))
+                    onCreateCategory = { name, color, iconId, isIncome ->
+                        viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, iconId, isIncome))
                     }
                 )
             }
@@ -376,7 +416,7 @@ private fun TransactionTypeSelector(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .clip(CircleShape)
+            .clip(AppTheme.shapes.circle)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .padding(4.dp)
     ) {
@@ -398,7 +438,7 @@ private fun TransactionTypeSelector(
                 .offset(x = indicatorOffset)
                 .width(tabWidth)
                 .fillMaxHeight()
-                .clip(CircleShape)
+                .clip(AppTheme.shapes.circle)
                 .background(MaterialTheme.colorScheme.primary)
         )
 
@@ -416,7 +456,7 @@ private fun TransactionTypeSelector(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CircleShape)
+                        .clip(AppTheme.shapes.circle)
                         .clickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null
@@ -440,31 +480,46 @@ private fun TransactionTypeSelector(
 @Composable
 private fun SuggestionChipRow(
     suggestedCategory: Category,
+    reason: String?,
+    isApplied: Boolean,
     onSelect: (Category) -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect(suggestedCategory) }
             .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
     ) {
-        val suggestionLabel = stringResource(R.string.transaction_suggestion_label)
-        Text(
-            text = suggestionLabel,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        CategoryAvatar(category = suggestedCategory, size = 18.dp)
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = suggestedCategory.displayName,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color(suggestedCategory.colorArgb)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            val suggestionLabel = if (isApplied) "Đã tự động chọn:" else stringResource(R.string.transaction_suggestion_label)
+            Text(
+                text = suggestionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            CategoryAvatar(category = suggestedCategory, size = 18.dp)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = suggestedCategory.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(suggestedCategory.colorArgb)
+            )
+        }
+        reason?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
     }
 }
 

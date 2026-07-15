@@ -9,6 +9,7 @@ import com.notepay.ui.component.CradleShape
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
@@ -68,6 +71,48 @@ import com.notepay.ui.feature.wallet.AddWalletScreen
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackDuration
 import com.notepay.ui.feature.utilities.UtilitiesScreen
+import com.notepay.ui.feature.backup.BackupRestoreScreen
+
+// Backdrop Liquid Glass imports
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.kyant.backdrop.backdrops.rememberBackdrop
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.backdrop.shadow.InnerShadow
+import com.notepay.ui.component.GlassDropBox
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import com.notepay.ui.navigation.utils.liquidPopClick
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import kotlin.math.sign
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.fastCoerceIn
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.RowScope
+import com.notepay.ui.navigation.utils.DampedDragAnimation
+import com.notepay.ui.navigation.utils.InteractiveHighlight
+import com.notepay.ui.navigation.utils.inspectDragGestures
 
 // Thêm các thư viện cần dùng cho giao diện tùy biến mới
 import androidx.compose.foundation.background
@@ -77,8 +122,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -115,11 +162,66 @@ private val bottomTabs = listOf(
         Icons.AutoMirrored.Outlined.CallSplit, Icons.AutoMirrored.Filled.CallSplit),
 )
 
+private val LocalLiquidBottomTabScale = staticCompositionLocalOf { { 1f } }
+
+@Composable
+private fun RowScope.NotePayBottomTabItem(
+    tab: BottomTab,
+    tabLabel: String,
+    isSourceActiveRow: Boolean,
+    onClick: () -> Unit,
+    isInteractive: Boolean = true
+) {
+    val scale = LocalLiquidBottomTabScale.current
+    Column(
+        modifier = Modifier
+            .clip(CircleShape)
+            .then(
+                if (isInteractive) Modifier.clickable(
+                    interactionSource = null,
+                    indication = null,
+                    role = Role.Tab,
+                    onClick = onClick
+                ) else Modifier
+            )
+            .fillMaxHeight()
+            .weight(1f)
+            .graphicsLayer {
+                val s = scale()
+                scaleX = s
+                scaleY = s
+            },
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = if (isSourceActiveRow) tab.selectedIcon else tab.unselectedIcon,
+            contentDescription = tabLabel,
+            tint = if (isSourceActiveRow) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = tabLabel,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                fontWeight = if (isSourceActiveRow) FontWeight.Bold else FontWeight.Normal
+            ),
+            color = if (isSourceActiveRow) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
+    val systemBackground = MaterialTheme.colorScheme.background
+    val backdrop = rememberLayerBackdrop {
+        drawRect(systemBackground)
+        drawContent()
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val isMainTab = currentRoute != null && bottomTabs.any { tab ->
@@ -205,14 +307,18 @@ fun NotePayNavHost(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            NavHost(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(backdrop)
+            ) {
+                NavHost(
                 navController = navController,
                 startDestination = Route.Home.path,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
                         onSeeAll = {
                             navController.navigate(Route.TransactionList.path) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -227,9 +333,8 @@ fun NotePayNavHost(
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
                         onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
                         onTransactionClick = { txId ->
-                            navController.navigate(Route.EditTransaction(txId).path)
-                        },
-                        navigationBarOffset = navigationBarOffset
+                            navController.navigate(Route.TransactionDetail(txId).path)
+                        }
                     )
                 }
                 composable(Route.AddTransaction.path) {
@@ -275,7 +380,7 @@ fun NotePayNavHost(
                 composable(Route.TransactionList.path) {
                     TransactionListScreen(
                         onTransactionClick = { txId ->
-                            navController.navigate(Route.EditTransaction(txId).path)
+                            navController.navigate(Route.TransactionDetail(txId).path)
                         },
                         onFeedback = ::showFeedback,
                     )
@@ -283,6 +388,12 @@ fun NotePayNavHost(
                 composable(Route.Stats.path) {
                     StatsScreen(
                         onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
+                        onTransactionClick = { txId ->
+                            navController.navigate(Route.TransactionDetail(txId).path)
+                        },
+                        onConfigureLocalModel = {
+                            navController.navigate(Route.NotificationSettings.path)
+                        },
                     )
                 }
                 composable(Route.AddWallet.path) {
@@ -396,11 +507,30 @@ fun NotePayNavHost(
                     )
                 }
             }
+            }
 
             if (isMainTab) {
-                val BottomBarShape = remember { CradleShape() }
+                val haptic = LocalHapticFeedback.current
+                val navTabs = remember { bottomTabs.filter { it.route != Route.AddDummy } }
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val isLightTheme = !isSystemInDarkTheme()
+                val containerColor = if (isLightTheme) Color(0xFFFAFAFA).copy(0.65f) else Color(0xFF121212).copy(0.7f)
+                val density = LocalDensity.current
+                val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
-                Box(
+                val selectedIndex = remember(currentRoute) {
+                    when (currentRoute?.split("?")?.firstOrNull()) {
+                        Route.Home.path -> 0
+                        Route.TransactionList.path -> 1
+                        Route.Stats.path -> 2
+                        Route.BillSplit.path -> 3
+                        else -> 0
+                    }
+                }
+
+                val tabsBackdrop = rememberLayerBackdrop()
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
@@ -409,166 +539,281 @@ fun NotePayNavHost(
                                 x = 0,
                                 y = navigationBarOffset.roundToInt()
                             )
-                        },
-                    contentAlignment = Alignment.BottomCenter
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Surface(
+                    // Left: Tabs Bar
+                    BoxWithConstraints(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 16.dp,
-                                shape = BottomBarShape,
-                                clip = false
-                            ),
-                        shape = BottomBarShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                            .weight(1f)
+                            .height(64.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(64.dp)
-                                    .padding(horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                // Left tabs (Home & TransactionList)
-                                bottomTabs.take(2).forEachIndexed { index, tab ->
-                                    val tabLabel = tabLabels[index]
-                                    val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .clickable(
-                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                navController.navigate(tab.route.path) {
-                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        // Top horizontal indicator bar
-                                        if (isSelected) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(40.dp)
-                                                    .height(3.dp)
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        shape = RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)
-                                                    )
-                                                    .align(Alignment.TopCenter)
-                                            )
-                                        }
+                        val tabsCount = navTabs.size
+                        val tabWidth = with(density) {
+                            (constraints.maxWidth.toFloat() - 8f.dp.toPx()) / tabsCount
+                        }
+                        val widthPx = constraints.maxWidth.toFloat()
 
-                                        // Icon & Label Column
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center,
-                                            modifier = Modifier.fillMaxHeight().padding(top = 4.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tabLabel,
-                                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = tabLabel,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 10.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                                ),
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                    }
-                                }
-                                
-                                // Center spacer for the cutout "cradle"
-                                Spacer(modifier = Modifier.weight(0.8f))
-                                
-                                // Right tabs (Stats & BillSplit)
-                                bottomTabs.takeLast(2).forEachIndexed { index, tab ->
-                                    val realIndex = bottomTabs.size - 2 + index
-                                    val tabLabel = tabLabels[realIndex]
-                                    val isSelected = currentRoute != null && currentRoute.split("?").firstOrNull() == tab.route.path
-                                    val shouldColorTab = isSelected
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .clickable(
-                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                navController.navigate(tab.route.path) {
-                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        // Top horizontal indicator bar
-                                        if (shouldColorTab) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(40.dp)
-                                                    .height(3.dp)
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        shape = RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)
-                                                    )
-                                                    .align(Alignment.TopCenter)
-                                            )
-                                        }
-
-                                        // Icon & Label Column
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center,
-                                            modifier = Modifier.fillMaxHeight().padding(top = 4.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tabLabel,
-                                                tint = if (shouldColorTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = tabLabel,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 10.sp,
-                                                    fontWeight = if (shouldColorTab) FontWeight.Bold else FontWeight.Normal
-                                                ),
-                                                color = if (shouldColorTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                    }
+                        val offsetAnimation = remember { Animatable(0f) }
+                        val panelOffset by remember(density, widthPx) {
+                            derivedStateOf {
+                                val fraction = (offsetAnimation.value / widthPx).fastCoerceIn(-1f, 1f)
+                                with(density) {
+                                    4f.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction))
                                 }
                             }
-                            Spacer(modifier = Modifier.navigationBarsPadding())
                         }
+
+                        val dampedDragAnimation: DampedDragAnimation = remember(coroutineScope, tabWidth) {
+                            DampedDragAnimation(
+                                animationScope = coroutineScope,
+                                initialValue = selectedIndex.toFloat(),
+                                valueRange = 0f..(tabsCount - 1).toFloat(),
+                                visibilityThreshold = 0.001f,
+                                initialScale = 1f,
+                                pressedScale = 78f / 56f,
+                                onDragStarted = {},
+                                onDragStopped = {
+                                    val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    navController.navigate(navTabs[targetIndex].route.path) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    coroutineScope.launch {
+                                        offsetAnimation.animateTo(
+                                            0f,
+                                            spring(1f, 300f, 0.5f)
+                                        )
+                                    }
+                                },
+                                onDrag = { size, dragAmount ->
+                                    updateValue(
+                                        (targetValue + dragAmount.x / tabWidth * if (isLtr) 1f else -1f)
+                                            .fastCoerceIn(0f, (tabsCount - 1).toFloat())
+                                    )
+                                    coroutineScope.launch {
+                                        offsetAnimation.snapTo(offsetAnimation.value + dragAmount.x)
+                                    }
+                                }
+                            )
+                        }
+
+                        LaunchedEffect(selectedIndex) {
+                            if (selectedIndex.toFloat() != dampedDragAnimation.targetValue) {
+                                dampedDragAnimation.animateToValue(selectedIndex.toFloat())
+                            }
+                        }
+
+                        val interactiveHighlight = remember(coroutineScope, tabWidth) {
+                            InteractiveHighlight(
+                                animationScope = coroutineScope,
+                                position = { size, offset ->
+                                    Offset(
+                                        if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
+                                        else size.width - (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset,
+                                        size.height / 2f
+                                    )
+                                }
+                            )
+                        }
+
+                        // Row 1: Bottom Layer - Main visible bar
+                        Row(
+                            Modifier
+                                .graphicsLayer {
+                                    translationX = panelOffset
+                                }
+                                .drawBackdrop(
+                                    backdrop = backdrop,
+                                    shape = { CircleShape },
+                                    effects = {
+                                        vibrancy()
+                                        blur(24f.dp.toPx())
+                                        lens(8.dp.toPx(), 8f.dp.toPx())
+                                    },
+                                    layerBlock = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        val scale = androidx.compose.ui.util.lerp(
+                                            1f,
+                                            1f + 16f.dp.toPx() / size.width,
+                                            progress
+                                        )
+                                        scaleX = scale
+                                        scaleY = scale
+                                    },
+                                    onDrawSurface = { drawRect(containerColor) }
+                                )
+                                .then(interactiveHighlight.modifier)
+                                .height(64f.dp)
+                                .fillMaxWidth()
+                                .padding(4f.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            navTabs.forEach { tab ->
+                                NotePayBottomTabItem(
+                                    tab = tab,
+                                    tabLabel = tabLabels[bottomTabs.indexOf(tab)],
+                                    isSourceActiveRow = false,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        val targetIndex = navTabs.indexOf(tab)
+                                        dampedDragAnimation.animateToValue(targetIndex.toFloat())
+                                        navController.navigate(tab.route.path) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        // Row 2: Target active row source (invisible backdrop source)
+                        CompositionLocalProvider(
+                            LocalLiquidBottomTabScale provides {
+                                androidx.compose.ui.util.lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
+                            }
+                        ) {
+                            Row(
+                                Modifier
+                                    .clearAndSetSemantics {}
+                                    .alpha(0f)
+                                    .layerBackdrop(tabsBackdrop)
+                                    .graphicsLayer {
+                                        translationX = panelOffset
+                                    }
+                                    .drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { CircleShape },
+                                        effects = {
+                                            val progress = dampedDragAnimation.pressProgress
+                                            vibrancy()
+                                            blur(8f.dp.toPx())
+                                            lens(
+                                                24f.dp.toPx() * progress,
+                                                24f.dp.toPx() * progress
+                                            )
+                                        },
+                                        highlight = {
+                                            val progress = dampedDragAnimation.pressProgress
+                                            Highlight.Default.copy(alpha = progress)
+                                        },
+                                        onDrawSurface = { drawRect(containerColor) }
+                                    )
+                                    .then(interactiveHighlight.modifier)
+                                    .height(56f.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4f.dp)
+                                    .graphicsLayer(colorFilter = ColorFilter.tint(primaryColor)),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                navTabs.forEach { tab ->
+                                    NotePayBottomTabItem(
+                                        tab = tab,
+                                        tabLabel = tabLabels[bottomTabs.indexOf(tab)],
+                                        isSourceActiveRow = true,
+                                        onClick = {},
+                                        isInteractive = false
+                                    )
+                                }
+                            }
+                        }
+
+                        // Box 3: Sliding Highlight Indicator
+                        Box(
+                            Modifier
+                                .padding(horizontal = 4f.dp)
+                                .graphicsLayer {
+                                    translationX =
+                                        if (isLtr) dampedDragAnimation.value * tabWidth + panelOffset
+                                        else size.width - (dampedDragAnimation.value + 1f) * tabWidth + panelOffset
+                                }
+                                .then(interactiveHighlight.gestureModifier)
+                                .then(dampedDragAnimation.modifier)
+                                .drawBackdrop(
+                                    backdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop),
+                                    shape = { CircleShape },
+                                    effects = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        lens(
+                                            10f.dp.toPx() * progress,
+                                            14f.dp.toPx() * progress,
+                                            chromaticAberration = true
+                                        )
+                                    },
+                                    highlight = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        Highlight.Default.copy(alpha = progress)
+                                    },
+                                    shadow = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        Shadow(alpha = progress)
+                                    },
+                                    innerShadow = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        InnerShadow(
+                                            radius = 8f.dp * progress,
+                                            alpha = progress
+                                        )
+                                    },
+                                    layerBlock = {
+                                        scaleX = dampedDragAnimation.scaleX
+                                        scaleY = dampedDragAnimation.scaleY
+                                        val velocity = dampedDragAnimation.velocity / 10f
+                                        scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
+                                        scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
+                                    },
+                                    onDrawSurface = {
+                                        val progress = dampedDragAnimation.pressProgress
+                                        drawRect(
+                                            if (isLightTheme) Color.Black.copy(0.1f)
+                                            else Color.White.copy(0.1f),
+                                            alpha = 1f - progress
+                                        )
+                                        drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                                    }
+                                )
+                                .height(56f.dp)
+                                .width(with(density) { tabWidth.toDp() })
+                        )
                     }
-                    
-                    // Floating Center Creator Add Button
+
+                    // Right: Add Button
                     Box(
                         modifier = Modifier
-                            .navigationBarsPadding()
-                            .offset(y = (-24).dp)
                             .size(64.dp)
-                            .shadow(8.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .clickable {
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = CircleShape,
+                                clip = false
+                            )
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { CircleShape },
+                                effects = {
+                                    vibrancy()
+                                    blur(20.dp.toPx())
+                                    lens(
+                                        refractionHeight = 8.dp.toPx(),
+                                        refractionAmount = 16.dp.toPx()
+                                    )
+                                },
+                                onDrawSurface = {
+                                    // Nền kính mờ tối + tint primary nhẹ nhàng
+                                    drawRect(Color.Black.copy(alpha = 0.3f))
+                                    drawRect(primaryColor.copy(alpha = 0.25f))
+                                }
+                            )
+                            .liquidPopClick {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 showQuickAddSheet = true
                             },
                         contentAlignment = Alignment.Center
@@ -583,96 +828,107 @@ fun NotePayNavHost(
                 }
             }
 
-            // Render Bottom Sheet
-            if (showQuickAddSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showQuickAddSheet = false },
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = quickAddTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+            // Render Glass Drop Box (inline popup sheet)
+        GlassDropBox(
+            backdrop = backdrop,
+            visible = showQuickAddSheet,
+            onDismissRequest = { showQuickAddSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = quickAddTitle,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f),
+                            offset = Offset(0f, 2f),
+                            blurRadius = 4f
                         )
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
-                        // Option 1: Thêm chi tiêu
-                        QuickAddOption(
-                            icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                            title = quickAddExpenseTitle,
-                            description = quickAddExpenseDesc,
-                            color = MaterialTheme.colorScheme.primary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                navController.navigate(Route.AddTransaction.path)
-                            }
-                        )
-
-                        // Option 2: Chia hóa đơn
-                        QuickAddOption(
-                            icon = Icons.AutoMirrored.Outlined.CallSplit,
-                            title = quickAddBillSplitTitle,
-                            description = quickAddBillSplitDesc,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
-                                if (isAlreadyOnBillSplit) {
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                                } else {
-                                    navController.navigate("bill-split?showCreate=true") {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    try {
-                                        navController.getBackStackEntry("bill-split?showCreate={showCreate}")
-                                            .savedStateHandle["showCreate"] = true
-                                    } catch (e: Exception) {
-                                        // Ignore
-                                    }
-                                }
-                            }
-                        )
-
-                        // Option 3: Hóa đơn định kỳ
-                        QuickAddOption(
-                            icon = Icons.Outlined.Notifications,
-                            title = quickAddSubscriptionTitle,
-                            description = quickAddSubscriptionDesc,
-                            color = MaterialTheme.colorScheme.secondary,
-                            onClick = {
-                                showQuickAddSheet = false
-                                val isAlreadyOnSubscription = currentRoute?.startsWith("subscription") == true
-                                if (isAlreadyOnSubscription) {
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                                } else {
-                                    navController.navigate("subscription?showCreate=true") {
-                                        launchSingleTop = true
-                                    }
-                                    try {
-                                        navController.getBackStackEntry("subscription?showCreate={showCreate}")
-                                            .savedStateHandle["showCreate"] = true
-                                    } catch (e: Exception) {
-                                        // Ignore
-                                    }
-                                }
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
+                // Option 1: Thêm chi tiêu
+                QuickAddOption(
+                    icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+                    title = quickAddExpenseTitle,
+                    description = quickAddExpenseDesc,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        showQuickAddSheet = false
+                        navController.navigate(Route.AddTransaction.path)
                     }
-                }
+                )
+
+                // Option 2: Chia hóa đơn
+                QuickAddOption(
+                    icon = Icons.AutoMirrored.Outlined.CallSplit,
+                    title = quickAddBillSplitTitle,
+                    description = quickAddBillSplitDesc,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    onClick = {
+                        showQuickAddSheet = false
+                        val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
+                        if (isAlreadyOnBillSplit) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                "showCreate",
+                                true
+                            )
+                        } else {
+                            navController.navigate("bill-split?showCreate=true") {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            try {
+                                navController.getBackStackEntry("bill-split?showCreate={showCreate}")
+                                    .savedStateHandle["showCreate"] = true
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    }
+                )
+
+                // Option 3: Hóa đơn định kỳ
+                QuickAddOption(
+                    icon = Icons.Outlined.Notifications,
+                    title = quickAddSubscriptionTitle,
+                    description = quickAddSubscriptionDesc,
+                    color = MaterialTheme.colorScheme.secondaryContainer,                    onClick = {
+                        showQuickAddSheet = false
+                        val isAlreadyOnSubscription =
+                            currentRoute?.startsWith("subscription") == true
+                        if (isAlreadyOnSubscription) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                "showCreate",
+                                true
+                            )
+                        } else {
+                            navController.navigate("subscription?showCreate=true") {
+                                launchSingleTop = true
+                            }
+                            try {
+                                navController.getBackStackEntry("subscription?showCreate={showCreate}")
+                                    .savedStateHandle["showCreate"] = true
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
+        }
         }
     }
 }
@@ -685,21 +941,38 @@ private fun QuickAddOption(
     color: Color,
     onClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth()
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBgColor = if (isLightTheme) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.86f)
+    }
+    val borderStrokeColor = if (isLightTheme) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f)
+    } else {
+        Color.White.copy(alpha = 0.16f)
+    }
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = RoundedCornerShape(18.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(cardBgColor)
+            .border(1.dp, borderStrokeColor, shape)
+            .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(color.copy(alpha = 0.12f), CircleShape),
+                    .background(color.copy(alpha = if (isLightTheme) 0.14f else 0.22f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -715,15 +988,26 @@ private fun QuickAddOption(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = descriptionColor,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
+
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

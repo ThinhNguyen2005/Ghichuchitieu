@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WalletDao {
+    @Query("SELECT * FROM wallets")
+    suspend fun getAll(): List<WalletEntity>
+
+    @Query("DELETE FROM wallets")
+    suspend fun deleteAll()
+
 
     @Query("SELECT * FROM wallets ORDER BY created_at ASC")
     fun observeAll(): Flow<List<WalletEntity>>

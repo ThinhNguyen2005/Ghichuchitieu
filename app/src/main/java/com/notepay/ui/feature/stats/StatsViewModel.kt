@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.stats
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.repository.TransactionRepository
@@ -11,6 +12,13 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.ai.LocalAiModelManager
+import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.domain.analytics.AdvisorCategorySummary
+import com.notepay.domain.analytics.BudgetAdvisorInput
+import com.notepay.domain.analytics.DailyExpense
+import com.notepay.domain.analytics.SpendingForecastEngine
 import com.notepay.ui.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,6 +51,8 @@ class StatsViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val subscriptionRepo: SubscriptionRepository,
     @ApplicationContext private val context: Context,
+    private val budgetAdvisor: OnDeviceBudgetAdvisor,
+    private val localModelManager: LocalAiModelManager,
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -85,6 +95,19 @@ class StatsViewModel @Inject constructor(
     private val _adviceFeedbacks = MutableStateFlow<Map<String, Int>>(
         advicePrefs.all.mapValues { it.value as? Int ?: 0 }
     )
+    private val _localAdvisor = MutableStateFlow(LocalAdvisorUiState())
+    @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
+
+    init {
+        viewModelScope.launch {
+            localModelManager.state.collect { modelState ->
+                _localAdvisor.update { current -> current.copy(localModel = modelState) }
+            }
+        }
+        viewModelScope.launch {
+            refreshAdvisorAvailability()
+        }
+    }
 
     fun sendAdviceFeedback(adviceId: String, score: Int) {
         advicePrefs.edit().putInt(adviceId, score).apply()
@@ -93,7 +116,7 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<StatsUiState> = combine(
+    private val baseState: StateFlow<StatsUiState> = combine(
         transactionRepo.observeAll(),
         walletRepo.observeAll(),
         subscriptionRepo.observeAll(),
@@ -265,29 +288,38 @@ class StatsViewModel @Inject constructor(
         val isViewingCurrentMonth = timeFilter == TimeFilterType.MONTH &&
                 monthYear.year == now.year && monthYear.month == now.monthNumber
         
-        val forecast = if (isViewingCurrentMonth) {
-            val spentCents = walletExpenseInCurrentMonth.amountInCents
-            val currentDay = now.dayOfMonth.coerceIn(1, 31)
-            val daysInMonth = getDaysInMonth(now.year, now.monthNumber)
-            
-            val dailyAverageCents = spentCents.toDouble() / currentDay
-            val projectedSpendCents = dailyAverageCents * daysInMonth
-            
-            val dailyAvgStr = MoneyFormatter.format(Money(dailyAverageCents.toLong()))
-            val projectedSpendStr = MoneyFormatter.format(Money(projectedSpendCents.toLong()))
-            
-            val forecastMessage = "Dự báo chi tiêu: Với tốc độ chi tiêu hiện tại (trung bình $dailyAvgStr/ngày), dự kiến cuối tháng này bạn sẽ chi tiêu khoảng $projectedSpendStr."
-            
-            val isProjectedToExceed = limit != null && projectedSpendCents > limit.amountInCents
-            
-            BudgetForecast(
-                dailyAverage = Money(dailyAverageCents.toLong()),
-                projectedSpend = Money(projectedSpendCents.toLong()),
-                forecastMessage = forecastMessage,
-                isProjectedToExceed = isProjectedToExceed
+        val prediction = if (isViewingCurrentMonth) {
+            val dailyExpenses = allTransactions.asSequence()
+                .filter {
+                    it.type == TransactionType.EXPENSE &&
+                        (selectedWalletId == null || it.walletId == selectedWalletId)
+                }
+                .groupBy { it.occurredAt.toLocalDateTime(zone).date }
+                .map { (date, rows) ->
+                    DailyExpense(date, rows.sumOf { it.amount.amountInCents })
+                }
+            SpendingForecastEngine.forecast(
+                expenses = dailyExpenses,
+                today = now.date,
+                daysInMonth = getDaysInMonth(now.year, now.monthNumber),
+                budgetLimitInCents = limit?.amountInCents,
             )
-        } else {
-            null
+        } else null
+
+        val forecast = prediction?.let { value ->
+            val dailyAvgStr = MoneyFormatter.format(Money(value.dailyRunRateInCents))
+            val projectedSpendStr = MoneyFormatter.format(Money(value.predictedMonthTotalInCents))
+            val probabilityText = value.overBudgetProbability?.let {
+                " Khả năng vượt định mức khoảng ${(it * 100).toInt()}%."
+            }.orEmpty()
+            BudgetForecast(
+                dailyAverage = Money(value.dailyRunRateInCents),
+                projectedSpend = Money(value.predictedMonthTotalInCents),
+                forecastMessage = "Nhịp chi gần đây $dailyAvgStr/ngày; dự báo cuối tháng khoảng $projectedSpendStr.$probabilityText",
+                isProjectedToExceed = limit != null && value.predictedMonthTotalInCents > limit.amountInCents,
+                trendPercent = value.trendVsPreviousMonth?.times(100)?.toFloat(),
+                prediction = value,
+            )
         }
 
         // 8. Tính toán Dynamic Daily Budget
@@ -440,6 +472,55 @@ class StatsViewModel @Inject constructor(
             }
         }
 
+        val advisorInput = prediction?.let { value ->
+            BudgetAdvisorInput(
+                prediction = value,
+                budgetLimitInCents = limit?.amountInCents,
+                incomeThisMonthInCents = income.amountInCents,
+                categories = breakdown.map {
+                    AdvisorCategorySummary(
+                        name = it.category.displayName,
+                        amountInCents = it.amount.amountInCents,
+                        share = it.percentage.toDouble(),
+                    )
+                },
+            )
+        }
+        if (latestAdvisorInput != advisorInput) {
+            latestAdvisorInput = advisorInput
+            _localAdvisor.update { current ->
+                LocalAdvisorUiState(
+                    availability = current.availability,
+                    localModel = current.localModel,
+                )
+            }
+        }
+
+        // Keep the trend chart deterministic and tied to the same wallet filter as this screen.
+        val recentMonths = (2 downTo 0).map { offset ->
+            val absoluteMonth = monthYear.year * 12 + (monthYear.month - 1) - offset
+            val trendYear = absoluteMonth / 12
+            val trendMonth = absoluteMonth % 12 + 1
+            val monthTransactions = allTransactions.asSequence().filter { transaction ->
+                val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
+                (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
+                    localDateTime.year == trendYear && localDateTime.monthNumber == trendMonth
+            }
+            val trendExpense = monthTransactions
+                .filter { it.type == TransactionType.EXPENSE }
+                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
+            val trendIncome = allTransactions.asSequence()
+                .filter { transaction ->
+                    val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
+                    (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
+                        localDateTime.year == trendYear &&
+                        localDateTime.monthNumber == trendMonth &&
+                        transaction.type == TransactionType.INCOME
+                }
+                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
+            MonthlyTrendPoint(trendYear, trendMonth, trendExpense, trendIncome)
+        }
+
         StatsUiState(
             year = monthYear.year,
             month = monthYear.month,
@@ -448,10 +529,12 @@ class StatsViewModel @Inject constructor(
             balance = income - expense,
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
+            recentMonths = recentMonths,
             isLoading = false,
             isCurrentMonth = monthYear.year == now.year && monthYear.month == now.month.ordinal + 1,
             selectedCategory = selectedCat,
             transactions = filteredTxs,
+            hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
             selectedWallet = selectedWallet,
             timeFilter = timeFilter,
@@ -471,6 +554,65 @@ class StatsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = StatsUiState(year = now.year, month = now.month.ordinal + 1),
     )
+
+    val state: StateFlow<StatsUiState> = combine(baseState, _localAdvisor) { base, advisor ->
+        base.copy(localAdvisor = advisor)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = baseState.value.copy(localAdvisor = _localAdvisor.value),
+    )
+
+    fun generateLocalAdvice() {
+        val input = latestAdvisorInput ?: return
+        if (_localAdvisor.value.status == LocalAdvisorStatus.RUNNING) return
+        _localAdvisor.value = _localAdvisor.value.copy(
+            status = LocalAdvisorStatus.RUNNING,
+            result = null,
+        )
+        viewModelScope.launch {
+            val result = budgetAdvisor.generate(input)
+            if (latestAdvisorInput == input) {
+                _localAdvisor.value = LocalAdvisorUiState(
+                    status = LocalAdvisorStatus.READY,
+                    result = result,
+                    availability = when (result.provider) {
+                        com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
+                            AdvisorAvailability.GEMINI_NANO
+                        com.notepay.domain.analytics.AdvisorProvider.LOCAL_LITERT_MODEL ->
+                            AdvisorAvailability.LOCAL_MODEL
+                        com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
+                            _localAdvisor.value.availability
+                    },
+                    localModel = localModelManager.state.value,
+                )
+            }
+        }
+    }
+
+    fun importLocalModel(uri: Uri) {
+        viewModelScope.launch {
+            localModelManager.importModel(uri)
+            refreshAdvisorAvailability()
+        }
+    }
+
+    fun removeLocalModel() {
+        viewModelScope.launch {
+            localModelManager.removeModel()
+            refreshAdvisorAvailability()
+        }
+    }
+
+    private suspend fun refreshAdvisorAvailability() {
+        val availability = budgetAdvisor.availability()
+        _localAdvisor.update { current ->
+            current.copy(
+                availability = availability,
+                localModel = localModelManager.state.value,
+            )
+        }
+    }
 
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
@@ -502,6 +644,8 @@ class StatsViewModel @Inject constructor(
     }
 
     fun onNextMonth() {
+        val current = currentMonthYear.value
+        if (current.year == now.year && current.month == now.monthNumber) return
         currentMonthYear.update { current ->
             if (current.month == 12) {
                 MonthYear(current.year + 1, 1)
@@ -509,6 +653,17 @@ class StatsViewModel @Inject constructor(
                 MonthYear(current.year, current.month + 1)
             }
         }
+    }
+
+    /** Select a historical trend bar without navigating away from the statistics screen. */
+    fun selectMonth(year: Int, month: Int) {
+        val candidate = MonthYear(year, month)
+        val latest = MonthYear(now.year, now.monthNumber)
+        if (candidate.year > latest.year || (candidate.year == latest.year && candidate.month > latest.month)) return
+        currentMonthYear.value = candidate
+        _timeFilter.value = TimeFilterType.MONTH
+        _customDateRange.value = null
+        _selectedCategory.value = null
     }
 
     fun selectTab(index: Int) {

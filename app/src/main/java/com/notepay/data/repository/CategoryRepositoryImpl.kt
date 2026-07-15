@@ -30,14 +30,16 @@ class CategoryRepositoryImpl @Inject constructor(
             val name = prefs.getString("custom_category_${id}_name", null) ?: return@mapNotNull null
             val color = prefs.getLong("custom_category_${id}_color", 0xFF90A4AEL)
             val isIncome = prefs.getBoolean("custom_category_${id}_is_income", false)
+            val iconId = prefs.getString("custom_category_${id}_icon", "category_other") ?: "category_other"
             Category(
                 id = id,
-                displayName = name,
+                displayName = name.trim(),
                 colorArgb = color,
                 isIncome = isIncome,
-                isCustom = true
+                isCustom = true,
+                iconId = iconId,
             )
-        }
+        }.filter { it.displayName.isNotBlank() }
         Category.registerCustomCategories(list)
         _categoriesFlow.value = Category.getAll()
     }
@@ -57,6 +59,7 @@ class CategoryRepositoryImpl @Inject constructor(
             .putString("custom_category_${category.id}_name", category.displayName)
             .putLong("custom_category_${category.id}_color", category.colorArgb)
             .putBoolean("custom_category_${category.id}_is_income", category.isIncome)
+            .putString("custom_category_${category.id}_icon", category.iconId)
             .apply()
             
         loadAndRegister()

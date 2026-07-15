@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,13 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.customCategoryIconOptions
+import com.notepay.ui.theme.AppTheme
 
 /**
  * Lưới chọn danh mục 3 cột dùng chung cho cả AddTransaction và EditTransaction.
  *
- * - Hiển thị các danh mục theo `type` (chi tiêu/thu nhập), kèm danh mục OTHER.
+ * - Hiển thị đúng các danh mục theo `type` (chi tiêu hoặc thu nhập).
  * - Mỗi danh mục là một FilterChip có icon tròn (avatar) màu của danh mục đó.
  * - Có nút "+ Thêm..." ở cuối để mở dialog tạo danh mục tùy biến.
  * - Khi [onCreateCategory] = null thì nút Thêm bị ẩn (dùng cho chế độ read-only).
@@ -53,11 +58,9 @@ fun CategoryGridPicker(
     isIncome: Boolean,
     onCategoryChanged: (Category) -> Unit,
     modifier: Modifier = Modifier,
-    onCreateCategory: ((displayName: String, colorArgb: Long, isIncome: Boolean) -> Unit)? = null,
+    onCreateCategory: ((displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) -> Unit)? = null,
 ) {
-    val visible = categories.filter {
-        it == Category.OTHER || it.isIncome == isIncome
-    }
+    val visible = categories.filter { it.isIncome == isIncome }
 
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -68,11 +71,32 @@ fun CategoryGridPicker(
     }
     val chunkedRows = items.chunked(3)
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.corner20)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f), AppTheme.shapes.corner20)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "Danh mục",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "${visible.size} lựa chọn",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Text(
-            "Danh mục",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            "Chọn danh mục phù hợp nhất với giao dịch này",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         chunkedRows.forEach { rowItems ->
@@ -108,8 +132,8 @@ fun CategoryGridPicker(
         AddCategoryDialog(
             isIncome = isIncome,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, color ->
-                onCreateCategory(name, color, isIncome)
+            onConfirm = { name, color, iconId ->
+                onCreateCategory(name, color, iconId, isIncome)
                 showAddDialog = false
             },
         )
@@ -134,7 +158,18 @@ private fun AddCategoryChip(onClick: () -> Unit, modifier: Modifier = Modifier) 
                 modifier = Modifier.size(18.dp),
             )
         },
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.heightIn(min = 56.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            labelColor = MaterialTheme.colorScheme.onSurface,
+            iconColor = MaterialTheme.colorScheme.primary,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = false,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.68f),
+            selectedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.68f),
+        ),
     )
 }
 
@@ -145,6 +180,7 @@ private fun CategoryChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = Color(category.colorArgb)
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -162,7 +198,22 @@ private fun CategoryChip(
                 iconSize = 16.dp,
             )
         },
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.heightIn(min = 56.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            labelColor = MaterialTheme.colorScheme.onSurface,
+            iconColor = MaterialTheme.colorScheme.onSurface,
+            selectedContainerColor = accent.copy(alpha = 0.20f),
+            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+            selectedLeadingIconColor = accent,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            selectedBorderColor = accent.copy(alpha = 0.90f),
+            selectedBorderWidth = 2.dp,
+        ),
     )
 }
 
@@ -170,7 +221,7 @@ private fun CategoryChip(
 private fun AddCategoryDialog(
     isIncome: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, color: Long) -> Unit,
+    onConfirm: (name: String, color: Long, iconId: String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
 
@@ -187,6 +238,7 @@ private fun AddCategoryDialog(
         0xFF90A4AEL, // Blue Grey
     )
     var selectedColor by remember { mutableStateOf(colors.first()) }
+    var selectedIconId by remember { mutableStateOf(customCategoryIconOptions.first().id) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -224,11 +276,41 @@ private fun AddCategoryDialog(
                         )
                     }
                 }
+
+                Text("Chọn biểu tượng", style = MaterialTheme.typography.titleSmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(customCategoryIconOptions, key = { it.id }) { option ->
+                        val isSelected = selectedIconId == option.id
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) Color(selectedColor).copy(alpha = 0.20f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                )
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) Color(selectedColor) else Color.Transparent,
+                                    shape = CircleShape,
+                                )
+                                .clickable { selectedIconId = option.id },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = option.icon,
+                                contentDescription = option.label,
+                                tint = if (isSelected) Color(selectedColor) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor) },
+                onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor, selectedIconId) },
                 enabled = name.isNotBlank(),
             ) {
                 Text("Thêm")
