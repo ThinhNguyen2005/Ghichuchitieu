@@ -903,8 +903,7 @@ fun NotePayNavHost(
                     icon = Icons.Outlined.Notifications,
                     title = quickAddSubscriptionTitle,
                     description = quickAddSubscriptionDesc,
-                    color = MaterialTheme.colorScheme.secondary,
-                    onClick = {
+                    color = MaterialTheme.colorScheme.secondaryContainer,                    onClick = {
                         showQuickAddSheet = false
                         val isAlreadyOnSubscription =
                             currentRoute?.startsWith("subscription") == true

@@ -50,7 +50,7 @@
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
     <string name="budget_will_exceed">⚠️ Dự báo sẽ vượt hạn mức vào ngày %1$s. Bạn nên giảm chi tiêu xuống dưới %2$s/ngày để giữ an toàn.</string>
-    <string name="budget_safe">Chi tiêu trong tầm kiểm soát. Dự kiến tiêu dùng cuối tháng là %1$s .</string>
+    <string name="budget_safe">Chi tiêu trong tầm kiểm soát.\n Dự kiến cuối tháng: %1$s .</string>
     <string name="budget_title">Dự báo ngân sách</string>
 
     <!-- Add / Edit transaction screen -->
