@@ -21,7 +21,7 @@ Install the resulting debug build from Android Studio or with `:app:installDebug
 
 Open **Settings → Read notifications**, turn on **Automatic transaction capture**, then grant Android's notification-listener permission. Keep the banking app's notifications enabled and disable battery restrictions for NotePay if your device aggressively stops background services.
 
-Only TPBank is currently enabled for automatic recording. Other apps shown in the picker are discovery candidates, not supported parsers. See [BANK_NOTIFICATION_GUIDE.md](BANK_NOTIFICATION_GUIDE.md) for the exact flow, verification, and instructions for contributors.
+Only TPBank is currently enabled for automatic recording. Other apps shown in the picker are discovery candidates, not supported parsers. See [BANK_NOTIFICATION_GUIDE.md](doc/BANK_NOTIFICATION_GUIDE.md) for the exact flow, verification, and instructions for contributors.
 
 ## QR and bill split
 
@@ -29,8 +29,8 @@ The QR payload is generated locally in `ui/util/VietQrGenerator.kt`; it contains
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) for module layout, style, and test commands. Do not commit financial records, notification samples, OCR images, local models, APKs, keystores, or `local.properties`. Add sanitized parser fixtures and tests for every new bank format.
+Read [AGENTS.md](doc/AGENTS.md) for module layout, style, and test commands. Do not commit financial records, notification samples, OCR images, local models, APKs, keystores, or `local.properties`. Add sanitized parser fixtures and tests for every new bank format.
 
 ## Before publishing
 
-This repository currently has no root software license; choose one deliberately before accepting contributions. Also review [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md) before publishing: bundled third-party logos need documented permission or replacement.
+This repository currently has no root software license; choose one deliberately before accepting contributions. Also review [THIRD_PARTY_ASSETS.md](doc/THIRD_PARTY_ASSETS.md) before publishing: bundled third-party logos need documented permission or replacement.
