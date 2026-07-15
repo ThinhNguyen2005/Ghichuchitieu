@@ -17,6 +17,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
 
 object ThemeManager {
     var currentThemeColor by mutableStateOf("green")
@@ -224,26 +227,56 @@ fun NotePayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
-    val colorScheme = when {
-        ThemeManager.currentThemeColor == "system" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> {
-            getDarkColorScheme(ThemeManager.currentThemeColor)
-        }
-        else -> {
-            getLightColorScheme(ThemeManager.currentThemeColor)
-        }
+    val appColors = if (darkTheme) DarkAppColors else LightAppColors
+    val appTypography = DefaultAppTypography
+    val appShapes = DefaultAppShapes
+    val appDimensions = DefaultAppDimensions
+
+    val materialColorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = appColors.primary,
+            onPrimary = Color.White,
+            primaryContainer = appColors.secondary,
+            onPrimaryContainer = Color.White,
+            secondary = appColors.secondary,
+            onSecondary = Color.White,
+            background = appColors.background,
+            onBackground = Color.White,
+            surface = appColors.surface,
+            onSurface = Color.White,
+            surfaceVariant = appColors.secondary,
+            onSurfaceVariant = Color.White.copy(alpha = 0.7f),
+            error = appColors.error,
+            onError = Color.White,
+            outline = appColors.separator,
+            outlineVariant = appColors.separator
+        )
+    } else {
+        lightColorScheme(
+            primary = appColors.primary,
+            onPrimary = Color.White,
+            primaryContainer = appColors.secondary,
+            onPrimaryContainer = Color.Black,
+            secondary = appColors.secondary,
+            onSecondary = Color.Black,
+            background = appColors.background,
+            onBackground = Color.Black,
+            surface = appColors.surface,
+            onSurface = Color.Black,
+            surfaceVariant = appColors.secondary,
+            onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
+            error = appColors.error,
+            onError = Color.White,
+            outline = appColors.separator,
+            outlineVariant = appColors.separator
+        )
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Keep status bar transparent so TopAppBar blends in naturally
             window.statusBarColor = android.graphics.Color.TRANSPARENT
-            // Keep nav bar transparent — NavigationBar fills edge-to-edge via WindowInsets
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -256,9 +289,16 @@ fun NotePayTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = NotePayTypography,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalAppColors provides appColors,
+        LocalAppTypography provides appTypography,
+        LocalAppShapes provides appShapes,
+        LocalAppDimensions provides appDimensions
+    ) {
+        MaterialTheme(
+            colorScheme = materialColorScheme,
+            typography = NotePayTypography,
+            content = content,
+        )
+    }
 }

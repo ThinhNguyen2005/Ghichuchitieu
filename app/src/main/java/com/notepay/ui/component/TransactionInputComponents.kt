@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -111,7 +113,7 @@ fun CategoryQuickSelectionRow(
                     color = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(AppTheme.shapes.corner8)
                     .clickable(onClick = onSeeAllClick)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
@@ -128,7 +130,7 @@ fun CategoryQuickSelectionRow(
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1.1f) // Hơi chữ nhật nhẹ cho cân đối
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(AppTheme.shapes.corner16)
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
@@ -137,7 +139,7 @@ fun CategoryQuickSelectionRow(
                             width = if (isSelected) 2.dp else 1.dp,
                             color = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = AppTheme.shapes.corner16
                         )
                         .clickable { onCategoryChanged(category) }
                         .padding(8.dp),
@@ -179,9 +181,9 @@ fun TransactionInputField(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(AppTheme.shapes.corner16)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         )
@@ -246,12 +248,12 @@ fun RowScope.KeypadButton(
         modifier = modifier
             .weight(1f)
             .aspectRatio(1.5f) // Giúp các phím giữ tỷ lệ cân đối trên mọi màn hình
-            .clip(RoundedCornerShape(12.dp))
+            .clip(AppTheme.shapes.corner12)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(12.dp)
+                shape = AppTheme.shapes.corner12
             )
             .clickable { onClick() },
         contentAlignment = Alignment.Center

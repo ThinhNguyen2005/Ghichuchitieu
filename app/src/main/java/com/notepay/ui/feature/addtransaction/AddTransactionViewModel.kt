@@ -10,6 +10,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.ai.LocalTransactionImageScanner
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
+import java.util.UUID
 
 import com.notepay.domain.repository.CategoryRepository
 
@@ -33,6 +35,7 @@ class AddTransactionViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val categoryRepository: CategoryRepository,
     private val suggestCategoryUseCase: SuggestCategoryUseCase,
+    private val imageScanner: LocalTransactionImageScanner,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -55,7 +58,13 @@ class AddTransactionViewModel @Inject constructor(
             is AddTransactionEvent.NoteChanged -> updateNote(event.note)
             is AddTransactionEvent.DateChanged -> updateDate(event.instant)
             is AddTransactionEvent.WalletChanged -> updateWallet(event.walletId)
-            is AddTransactionEvent.CreateCategory -> createCategory(event.displayName, event.colorArgb, event.isIncome)
+            is AddTransactionEvent.ImageSelected -> scanImage(event.uri)
+            is AddTransactionEvent.CreateCategory -> createCategory(
+                displayName = event.displayName,
+                colorArgb = event.colorArgb,
+                iconId = event.iconId,
+                isIncome = event.isIncome,
+            )
             AddTransactionEvent.Save -> save()
             AddTransactionEvent.Cancel -> Unit
             AddTransactionEvent.Reset -> resetSavedFlag()
@@ -70,18 +79,33 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
-    private fun createCategory(displayName: String, colorArgb: Long, isIncome: Boolean) {
+    private fun createCategory(displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) {
+        val cleanName = displayName.trim().replace(Regex("\\s+"), " ").take(40)
+        if (cleanName.isBlank()) return
+        if (_state.value.availableCategories.any {
+                it.isIncome == isIncome && it.displayName.equals(cleanName, ignoreCase = true)
+            }
+        ) {
+            _feedback.tryEmit(UiFeedback("Danh mục này đã tồn tại", type = FeedbackType.Error))
+            return
+        }
         viewModelScope.launch(ioDispatcher) {
-            val id = "CUSTOM_${System.currentTimeMillis()}"
+            val id = "CUSTOM_${UUID.randomUUID()}"
             val newCategory = Category(
                 id = id,
-                displayName = displayName.trim(),
+                displayName = cleanName,
                 colorArgb = colorArgb,
                 isIncome = isIncome,
-                isCustom = true
+                isCustom = true,
+                iconId = iconId,
             )
             categoryRepository.addCustomCategory(newCategory)
-            _state.update { it.copy(category = newCategory) }
+            _state.update {
+                it.copy(
+                    category = newCategory,
+                    isCategoryExplicitlySelected = true,
+                )
+            }
         }
     }
 
@@ -115,14 +139,39 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
+    private fun scanImage(uri: android.net.Uri) {
+        if (_state.value.isImageScanning) return
+        _state.update { it.copy(isImageScanning = true, imageScanMessage = "Đang đọc ảnh trên thiết bị…") }
+        viewModelScope.launch(ioDispatcher) {
+            val result = imageScanner.scan(uri)
+            val parsed = result.amountInput?.let(AmountParser::parse)
+            _state.update { current ->
+                val updatedErrors = parsed?.let { parseResult ->
+                    current.errors
+                        .minus(FieldError.AMOUNT_EMPTY)
+                        .minus(FieldError.AMOUNT_INVALID)
+                        .let { errors -> parseResult.error?.let(errors::plus) ?: errors }
+                } ?: current.errors
+                current.copy(
+                    amountInput = parsed?.input ?: current.amountInput,
+                    amount = parsed?.amount ?: current.amount,
+                    errors = updatedErrors,
+                    isImageScanning = false,
+                    imageScanMessage = result.message,
+                )
+            }
+        }
+    }
+
     private fun updateType(type: TransactionType) {
-        val suggested = suggestCategoryUseCase.suggest(_state.value.note, type == TransactionType.INCOME)
+        val suggestion = suggestCategoryUseCase.suggestDetailed(_state.value.note, type == TransactionType.INCOME)
         _state.update {
             it.copy(
                 type = type,
-                category = suggested,
+                category = suggestion?.category ?: if (type == TransactionType.INCOME) Category.DEFAULT_INCOME else Category.DEFAULT_EXPENSE,
                 isCategoryExplicitlySelected = false,
-                suggestedCategory = suggested
+                suggestedCategory = suggestion?.category,
+                suggestionReason = suggestion?.reason,
             )
         }
     }
@@ -142,9 +191,9 @@ class AddTransactionViewModel @Inject constructor(
             .let { if (note.length > Transaction.MAX_NOTE_LENGTH) it + FieldError.NOTE_TOO_LONG else it }
 
         val isIncome = _state.value.type == TransactionType.INCOME
-        val suggested = suggestCategoryUseCase.suggest(note, isIncome)
+        val suggestion = suggestCategoryUseCase.suggestDetailed(note, isIncome)
         val finalCategory = if (!_state.value.isCategoryExplicitlySelected) {
-            suggested
+            suggestion?.category ?: if (isIncome) Category.DEFAULT_INCOME else Category.DEFAULT_EXPENSE
         } else {
             _state.value.category
         }
@@ -153,7 +202,8 @@ class AddTransactionViewModel @Inject constructor(
             it.copy(
                 note = note,
                 category = finalCategory,
-                suggestedCategory = suggested,
+                suggestedCategory = suggestion?.category,
+                suggestionReason = suggestion?.reason,
                 errors = errors,
                 saveErrorMessage = null
             )
@@ -203,7 +253,11 @@ class AddTransactionViewModel @Inject constructor(
                 }
             }
             if (result.isSuccess) {
-                suggestCategoryUseCase.learn(current.note.trim(), current.category.id)
+                suggestCategoryUseCase.learn(
+                    note = current.note.trim(),
+                    categoryId = current.category.id,
+                    isIncome = current.type == TransactionType.INCOME,
+                )
                 _feedback.emit(UiFeedback("Đã lưu giao dịch", type = FeedbackType.Success))
             } else {
                 _feedback.emit(
@@ -236,6 +290,10 @@ class AddTransactionViewModel @Inject constructor(
                 saveErrorMessage = null,
                 savedSuccessfully = false,
                 suggestedCategory = null,
+                suggestionReason = null,
+                isCategoryExplicitlySelected = false,
+                isImageScanning = false,
+                imageScanMessage = null,
             )
         }
     }

@@ -19,6 +19,8 @@ data class KnownBankApp(
 )
 
 object KnownBankApps {
+    const val TPBANK_PACKAGE = "com.tpb.mb.gprsandroid"
+
     // Danh sách hiển thị trực quan trên giao diện ứng dụng (Đã chuẩn hóa & Bổ sung)
     val displayApps = listOf(
         // 1. Nhóm Ngân hàng Thương mại Nhà nước (Big 4)
@@ -86,6 +88,22 @@ object KnownBankApps {
 
     val packages = equivalentPackages.values.flatten().toSet()
 
+    /** Formats verified end-to-end and safe to turn into transactions automatically. */
+    val supportedPrimaryPackages: Set<String> = setOf(TPBANK_PACKAGE)
+    val supportedPackages: Set<String> = supportedPrimaryPackages
+        .flatMap { equivalentPackages[it].orEmpty() }
+        .toSet()
+
+    fun isSupported(packageName: String): Boolean =
+        getPrimaryPackageName(packageName) in supportedPrimaryPackages
+
+    fun normalizeSupportedPackages(packageNames: Iterable<String>): Set<String> =
+        packageNames
+            .map(::getPrimaryPackageName)
+            .filter(supportedPrimaryPackages::contains)
+            .flatMap { equivalentPackages[it].orEmpty() }
+            .toSet()
+
     // Chuyển đổi an toàn mọi định danh phụ/sai lệch về Package chính thức
     fun getPrimaryPackageName(packageName: String): String {
         return when (packageName) {
@@ -106,8 +124,8 @@ object KnownBankApps {
 }
 
 data class NotificationSettings(
-    val autoCaptureEnabled: Boolean = true,
-    val enabledPackages: Set<String> = KnownBankApps.packages,
+    val autoCaptureEnabled: Boolean = false,
+    val enabledPackages: Set<String> = KnownBankApps.supportedPackages,
     val customBankApps: Set<String> = emptySet(),
     /** Hạn mức chi tiêu tháng (VND * 100). 0 = chưa cài, bỏ qua Budget Alert. */
     val monthlyBudgetCents: Long = 0L,
@@ -125,8 +143,10 @@ class NotificationSettingsStore @Inject constructor(
 
     val settings: Flow<NotificationSettings> = dataStore.data.map { preferences ->
         NotificationSettings(
-            autoCaptureEnabled = preferences[Keys.AUTO_CAPTURE_ENABLED] ?: true,
-            enabledPackages = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages,
+            autoCaptureEnabled = preferences[Keys.AUTO_CAPTURE_ENABLED] ?: false,
+            enabledPackages = KnownBankApps.normalizeSupportedPackages(
+                preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.supportedPackages,
+            ),
             customBankApps = preferences[Keys.CUSTOM_BANK_APPS] ?: emptySet(),
             monthlyBudgetCents = preferences[Keys.MONTHLY_BUDGET_CENTS] ?: 0L,
         )
@@ -140,9 +160,13 @@ class NotificationSettingsStore @Inject constructor(
 
     suspend fun setPackageEnabled(packageName: String, enabled: Boolean) {
         dataStore.edit { preferences ->
-            val current = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages
-            val packagesToModify = KnownBankApps.equivalentPackages[packageName] ?: listOf(packageName)
-            preferences[Keys.ENABLED_PACKAGES] = if (enabled) {
+            val current = KnownBankApps.normalizeSupportedPackages(
+                preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.supportedPackages,
+            )
+            val primaryPackageName = KnownBankApps.getPrimaryPackageName(packageName)
+            val packagesToModify = KnownBankApps.equivalentPackages[primaryPackageName]
+                ?: listOf(primaryPackageName)
+            preferences[Keys.ENABLED_PACKAGES] = if (enabled && KnownBankApps.isSupported(packageName)) {
                 current + packagesToModify
             } else {
                 current - packagesToModify
@@ -157,10 +181,10 @@ class NotificationSettingsStore @Inject constructor(
             val filteredCustom = currentCustom.filterNot { it.startsWith("$packageName|") }.toSet()
             preferences[Keys.CUSTOM_BANK_APPS] = filteredCustom + "$packageName|$label"
 
-            // Tự động enable package này
-            val currentEnabled = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages
-            val packagesToModify = KnownBankApps.equivalentPackages[packageName] ?: listOf(packageName)
-            preferences[Keys.ENABLED_PACKAGES] = currentEnabled + packagesToModify
+            // Keep unverified custom formats visible without letting them create transactions.
+            val currentEnabled = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.supportedPackages
+            preferences[Keys.ENABLED_PACKAGES] =
+                KnownBankApps.normalizeSupportedPackages(currentEnabled)
         }
     }
 
@@ -173,9 +197,26 @@ class NotificationSettingsStore @Inject constructor(
             }
 
             // Hủy enable package này
-            val currentEnabled = preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.packages
-            val packagesToModify = KnownBankApps.equivalentPackages[packageName] ?: listOf(packageName)
+            val currentEnabled = KnownBankApps.normalizeSupportedPackages(
+                preferences[Keys.ENABLED_PACKAGES] ?: KnownBankApps.supportedPackages,
+            )
+            val primaryPackageName = KnownBankApps.getPrimaryPackageName(packageName)
+            val packagesToModify = KnownBankApps.equivalentPackages[primaryPackageName]
+                ?: listOf(primaryPackageName)
             preferences[Keys.ENABLED_PACKAGES] = currentEnabled - packagesToModify
+        }
+    }
+
+    suspend fun replaceEnabledPackages(packageNames: Set<String>) {
+        dataStore.edit { preferences ->
+            preferences[Keys.ENABLED_PACKAGES] =
+                KnownBankApps.normalizeSupportedPackages(packageNames)
+        }
+    }
+
+    suspend fun replaceCustomBankApps(entries: Set<String>) {
+        dataStore.edit { preferences ->
+            preferences[Keys.CUSTOM_BANK_APPS] = entries
         }
     }
 

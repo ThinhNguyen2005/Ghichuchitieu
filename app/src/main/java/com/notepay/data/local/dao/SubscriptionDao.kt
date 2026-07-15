@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SubscriptionDao {
+    @Query("SELECT * FROM subscriptions")
+    suspend fun getAll(): List<SubscriptionEntity>
+
+    @Query("DELETE FROM subscriptions")
+    suspend fun deleteAll()
+
 
     @Query("SELECT * FROM subscriptions WHERE is_active = 1 ORDER BY next_due_date ASC")
     fun observeAll(): Flow<List<SubscriptionEntity>>

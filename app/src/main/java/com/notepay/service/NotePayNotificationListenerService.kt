@@ -23,9 +23,11 @@ import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.util.StringUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -33,6 +35,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -66,14 +69,18 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     private val job = SupervisorJob()
     private val serviceScope: CoroutineScope
         get() = CoroutineScope(job + ioDispatcher)
+    private val captureJob = SupervisorJob(job)
+    private val captureScope: CoroutineScope
+        get() = CoroutineScope(captureJob + ioDispatcher)
 
-    // Memory cache for settings to avoid persistent reads for every notification.
-    internal var enabledPackages = KnownBankApps.packages
-    internal var autoCaptureEnabled = true
-    internal var monthlyBudgetCents = 0L
+    // Fail closed until the first DataStore value is loaded.
+    @Volatile internal var settingsLoaded = false
+    @Volatile internal var enabledPackages: Set<String> = emptySet()
+    @Volatile internal var autoCaptureEnabled = false
+    @Volatile internal var monthlyBudgetCents = 0L
 
     // Pending Transfer cache for Internal Transfer leg matching (Case 7)
-    private val pendingTransferCache = mutableMapOf<Long, PendingTransfer>()
+    private val pendingTransferCache = ConcurrentHashMap<Long, PendingTransfer>()
 
     data class PendingTransfer(
         val amountCents: Long,
@@ -87,8 +94,6 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         private const val CHANNEL_ID = "notepay_local_parse"
         private const val CHANNEL_NAME = "Tự động nhận diện chi tiêu"
         private const val NOTIFICATION_ID = 99
-
-        val KNOWN_PACKAGES = KnownBankApps.packages
 
         @Volatile
         var isConnected = false
@@ -120,9 +125,21 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
         serviceScope.launch {
             notificationSettingsStore.settings.collect { settings ->
+                val supportedEnabledPackages =
+                    KnownBankApps.normalizeSupportedPackages(settings.enabledPackages)
+                val capturePolicyChanged = settingsLoaded &&
+                    (autoCaptureEnabled != settings.autoCaptureEnabled ||
+                        enabledPackages != supportedEnabledPackages)
+
+                settingsLoaded = false
+                if (capturePolicyChanged) {
+                    captureJob.cancelChildren()
+                    pendingTransferCache.clear()
+                }
                 autoCaptureEnabled = settings.autoCaptureEnabled
-                enabledPackages = settings.enabledPackages
+                enabledPackages = supportedEnabledPackages
                 monthlyBudgetCents = settings.monthlyBudgetCents
+                settingsLoaded = true
             }
         }
     }
@@ -143,19 +160,20 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
 
-        val packageName = if (sbn.packageName.contains("com.notepay")) {
-            "com.tpb.mb.gprsandroid"
-        } else {
-            sbn.packageName
+        val rawPackageName = sbn.packageName
+        val isTpBankDebugSimulation = com.notepay.BuildConfig.DEBUG &&
+            rawPackageName == applicationContext.packageName &&
+            sbn.notification.channelId == "tpbank_simulation_channel"
+        val packageName = when {
+            isTpBankDebugSimulation -> KnownBankApps.TPBANK_PACKAGE
+            rawPackageName == applicationContext.packageName -> return
+            else -> rawPackageName
         }
-        if (!autoCaptureEnabled) return
-
-        // Chỉ xử lý thông báo từ các package ngân hàng đã biết (whitelist)
-        val isWhitelisted = packageName in KNOWN_PACKAGES || packageName in enabledPackages
-        if (!isWhitelisted) return
+        if (!isCaptureAllowed(packageName)) return
 
         // Chuyển toàn bộ các tác vụ xử lý chuỗi và tương tác DB xuống luồng ngầm ioDispatcher
-        serviceScope.launch(ioDispatcher) {
+        captureScope.launch {
+            if (!isCaptureAllowed(packageName)) return@launch
             val extras = sbn.notification.extras
             val title = extras.getCharSequence("android.title")?.toString()
             val text = extras.getCharSequence("android.text")?.toString()
@@ -174,14 +192,6 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 return@launch
             }
 
-            android.util.Log.d("NotePayNotif", "--- NHẬN THÔNG BÁO ---")
-            android.util.Log.d("NotePayNotif", "Package: $packageName")
-            android.util.Log.d("NotePayNotif", "Title: $title")
-            android.util.Log.d("NotePayNotif", "Text: $text")
-            android.util.Log.d("NotePayNotif", "BigText: $bigText")
-            android.util.Log.d("NotePayNotif", "TextLines: $textLinesStr")
-            android.util.Log.d("NotePayNotif", "Final Text to Parse: $textToParse")
-
             val parsedResult = NotificationParser.parse(title, textToParse)
             if (parsedResult == null) {
                 android.util.Log.d("NotePayNotif", "Không thể parse thông tin giao dịch từ thông báo này.")
@@ -189,7 +199,6 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             }
 
             val parsed = parsedResult.copy(sourcePackage = packageName)
-            android.util.Log.d("NotePayNotif", "Parsed thành công: Số tiền = ${parsed.amount.amountInCents}, Loại = ${parsed.type}, Nội dung = ${parsed.note}")
 
             // Tìm ví liên kết với package name của thông báo
             val wallets = walletRepository.observeAll().firstOrNull() ?: emptyList()
@@ -304,7 +313,13 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                             amount = Money(newAmountCents),
                             note = newNote
                         )
-                        val saveResult = runCatching { transactionRepository.upsert(updatedParentTx) }
+                        val saveResult = try {
+                            Result.success(transactionRepository.upsert(updatedParentTx))
+                        } catch (cancellation: CancellationException) {
+                            throw cancellation
+                        } catch (error: Throwable) {
+                            Result.failure(error)
+                        }
                         if (saveResult.isSuccess) {
                             val savedTxId = saveResult.getOrNull() ?: 0L
                             // Save to cache for Case 7 just in case
@@ -422,6 +437,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 isInternalTransfer = false
             )
 
+            if (!isCaptureAllowed(packageName)) return@launch
             val result = addTransaction(transaction)
             if (result.isSuccess) {
                 val savedTxId = result.getOrNull() ?: 0L
@@ -467,6 +483,12 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             }
         }
     }
+
+    private fun isCaptureAllowed(packageName: String): Boolean =
+        settingsLoaded &&
+            autoCaptureEnabled &&
+            KnownBankApps.isSupported(packageName) &&
+            packageName in enabledPackages
 
     override fun onDestroy() {
         super.onDestroy()
@@ -575,7 +597,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle("Đã tự động lưu chi tiêu")
             .setContentText("-$amountFormat  |  $walletName · $categoryEmoji $categoryName")
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -604,7 +626,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle("Nhận tiền thành công 🎉")
             .setContentText("+$amountFormat  |  $walletName")
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -635,7 +657,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle("$debtorName đã trả nợ")
             .setContentText("Nhận +$paidFormat | Dư nợ còn lại: $remainingFormat")
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -665,7 +687,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle("$debtorName đã xóa sạch nợ")
             .setContentText("Nhận +$totalFormat | Xóa gộp $billCount hóa đơn")
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -702,7 +724,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -750,7 +772,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 "Giao dịch $name với số tiền $amountFormat xuất hiện định kỳ.\n" +
                 "Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay tự động theo dõi không?"
             ))
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .addAction(android.R.drawable.ic_menu_add, "Thêm vào lịch", addPendingIntent)
@@ -781,7 +803,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             .setContentTitle("Chuyển khoản nội bộ 🔄")
             .setContentText("$fromWalletName ➔ $toWalletName: $amountFormat")
             .setStyle(bigTextStyle)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
@@ -818,7 +840,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(message)
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)

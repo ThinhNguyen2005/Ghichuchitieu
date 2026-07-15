@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.utilities
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -96,7 +98,7 @@ private fun UtilityCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
@@ -109,7 +111,7 @@ private fun UtilityCard(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(color.copy(alpha = 0.12f), CircleShape),
+                    .background(color.copy(alpha = 0.12f), AppTheme.shapes.circle),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

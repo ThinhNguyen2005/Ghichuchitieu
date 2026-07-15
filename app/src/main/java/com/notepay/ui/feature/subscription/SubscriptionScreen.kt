@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.subscription
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -331,7 +333,7 @@ private fun CalendarTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = AppTheme.shapes.corner16,
             colors = CardDefaults.cardColors(
                 containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
                     MaterialTheme.colorScheme.surfaceContainer
@@ -378,7 +380,7 @@ private fun CalendarTab(
                     val d = sub.nextDueDate.toLocalDateTime(tz).date
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppTheme.shapes.corner12,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
                         )
@@ -416,7 +418,7 @@ private fun CalendarTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
                 )
@@ -636,7 +638,7 @@ private fun SubscriptionCard(
     }
 
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         modifier = Modifier
             .fillMaxWidth()
@@ -651,7 +653,7 @@ private fun SubscriptionCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
-                modifier = Modifier.size(46.dp).clip(CircleShape).background(accentColor.copy(alpha = 0.15f)),
+                modifier = Modifier.size(46.dp).clip(AppTheme.shapes.circle).background(accentColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

@@ -183,6 +183,7 @@ class AddTransactionViewModelTest {
             walletRepository = walletRepository,
             categoryRepository = categoryRepository,
             suggestCategoryUseCase = mockSuggestCategoryUseCase,
+            imageScanner = mockk(relaxed = true),
             ioDispatcher = dispatcher
         )
     }

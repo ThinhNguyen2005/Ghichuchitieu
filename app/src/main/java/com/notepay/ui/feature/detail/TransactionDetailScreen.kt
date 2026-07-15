@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.detail
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,20 +26,16 @@ import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Wallet
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,11 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.rounded.Person
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,8 +69,8 @@ fun TransactionDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Chi tiết giao dịch") },
+            GradientTopAppBar(
+                title = { Text("Chi tiết giao dịch", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Quay lại")
@@ -78,7 +79,7 @@ fun TransactionDetailScreen(
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize()) {
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator()
@@ -92,28 +93,44 @@ fun TransactionDetailScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(PaddingValues(16.dp)),
+                            .padding(
+                                start = 16.dp,
+                                top = padding.calculateTopPadding() + 16.dp,
+                                end = 16.dp,
+                                bottom = padding.calculateBottomPadding() + 24.dp
+                            ),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        SummaryCard(transaction = tx)
+                        TransactionHeader(transaction = tx)
+                        
+                        MetaCard(transaction = tx, walletName = state.walletName)
 
                         if (state.isAutoCapture) {
-                            AutoCaptureBanner()
+                            val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+                            val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = cardBg,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                                shape = AppTheme.shapes.corner24,
+                            ) {
+                                ActionRow(
+                                    icon = Icons.Rounded.Edit,
+                                    title = "Sửa ghi chú",
+                                    onClick = { onEdit(tx.id) }
+                                )
+                            }
+                            
                             Text(
-                                "Giao dịch tự động chỉ cho phép sửa ghi chú.",
+                                "Giao dịch tự động từ ngân hàng chỉ cho phép sửa ghi chú để đảm bảo tính chính xác của dữ liệu.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp)
                             )
-                            FilledTonalButton(
-                                onClick = { onEdit(tx.id) },
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                            ) {
-                                Icon(Icons.Rounded.Edit, contentDescription = null)
-                                Spacer(Modifier.size(8.dp))
-                                Text("Sửa ghi chú")
-                            }
                         } else {
-                            MetaCard(transaction = tx)
                             ActionsBlock(
                                 onEdit = { onEdit(tx.id) },
                                 onCreateBillSplit = { onCreateBillSplit(tx.id) },
@@ -131,102 +148,155 @@ fun TransactionDetailScreen(
 }
 
 @Composable
-private fun SummaryCard(transaction: com.notepay.domain.model.Transaction) {
+private fun TransactionHeader(transaction: com.notepay.domain.model.Transaction) {
     val isIncome = transaction.type == TransactionType.INCOME
     val sign = if (isIncome) "+" else "−"
     val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
 
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        CategoryAvatar(
+            category = transaction.category,
+            size = 64.dp,
+            iconSize = 32.dp,
+        )
+        
+        Text(
+            text = transaction.category.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+        
+        Text(
+            text = "$sign${MoneyFormatter.format(transaction.amount)}",
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = amountColor,
+        )
+        
+        if (transaction.note.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                ),
+                shape = AppTheme.shapes.corner16,
+            ) {
+                Text(
+                    text = transaction.note,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetaCard(
+    transaction: com.notepay.domain.model.Transaction,
+    walletName: String?,
+) {
+    val tz = TimeZone.currentSystemDefault()
+    val date = transaction.occurredAt.toLocalDateTime(tz)
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = cardBg,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
+        shape = AppTheme.shapes.corner24,
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "Thông tin chi tiết",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+            TransactionMetadataRow(
+                icon = Icons.Rounded.CalendarMonth,
+                label = "Thời điểm",
+                value = "${date.dayOfMonth.toString().padStart(2, '0')}/${date.monthNumber.toString().padStart(2, '0')}/${date.year} · ${date.hour.toString().padStart(2, '0')}:${date.minute.toString().padStart(2, '0')}",
+            )
+            
+            TransactionMetadataRow(
+                icon = Icons.Rounded.Wallet,
+                label = "Ví thanh toán",
+                value = walletName ?: "Ví không còn tồn tại",
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 CategoryAvatar(
                     category = transaction.category,
-                    size = 48.dp,
-                    iconSize = 24.dp,
+                    size = 36.dp,
+                    iconSize = 19.dp
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        transaction.category.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    if (transaction.note.isNotBlank()) {
-                        Text(
-                            transaction.note,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                Column {
+                    Text("Danh mục", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(transaction.category.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            Text(
-                text = "$sign${MoneyFormatter.format(transaction.amount)}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor,
+
+            val methodIcon = if (transaction.isAutoCapture) Icons.Rounded.AccountBalance else Icons.Rounded.Person
+            val methodText = if (transaction.isAutoCapture) "Tự động (từ Ngân hàng)" else "Thủ công (tự thêm)"
+            TransactionMetadataRow(
+                icon = methodIcon,
+                label = "Phương thức ghi",
+                value = methodText,
             )
         }
     }
 }
 
 @Composable
-private fun MetaCard(transaction: com.notepay.domain.model.Transaction) {
-    val tz = TimeZone.currentSystemDefault()
-    val date = transaction.occurredAt.toLocalDateTime(tz)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
+private fun TransactionMetadataRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text(
-                    text = "Ngày: ${date.date} • ${date.hour.toString().padStart(2, '0')}:${date.minute.toString().padStart(2, '0')}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.Wallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text(
-                    text = "Ví ID: ${transaction.walletId}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AutoCaptureBanner() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
-            Text(
-                "Giao dịch tự động từ ngân hàng",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                fontWeight = FontWeight.Medium,
-            )
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(19.dp))
+        }
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
+
+
 
 @Composable
 private fun ActionsBlock(
@@ -234,33 +304,72 @@ private fun ActionsBlock(
     onCreateBillSplit: () -> Unit,
     onCreateSubscription: () -> Unit,
 ) {
-    Text(
-        "Hành động",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-    )
-    FilledTonalButton(
-        onClick = onEdit,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBg,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        shape = AppTheme.shapes.corner24,
     ) {
-        Icon(Icons.Rounded.Edit, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
-        Text("Sửa giao dịch")
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            ActionRow(
+                icon = Icons.Rounded.Edit,
+                title = "Sửa giao dịch",
+                onClick = onEdit
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            ActionRow(
+                icon = Icons.Rounded.CallSplit,
+                title = "Tạo chia tiền",
+                onClick = onCreateBillSplit
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            ActionRow(
+                icon = Icons.Rounded.NotificationsActive,
+                title = "Tạo nhắc nhở gia hạn",
+                onClick = onCreateSubscription
+            )
+        }
     }
-    FilledTonalButton(
-        onClick = onCreateBillSplit,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+}
+
+@Composable
+private fun ActionRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(Icons.Rounded.CallSplit, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
-        Text("Tạo chia tiền")
-    }
-    FilledTonalButton(
-        onClick = onCreateSubscription,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
-    ) {
-        Icon(Icons.Rounded.NotificationsActive, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
-        Text("Tạo nhắc nhở gia hạn")
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

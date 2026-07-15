@@ -1,0 +1,15 @@
+{
+  "version": "0.12.3",
+  "integration_state_schema": 1,
+  "installed_integrations": [
+    "any"
+  ],
+  "integration_settings": {
+    "any": {
+      "script": "ps",
+      "invoke_separator": "-"
+    }
+  },
+  "integration": "any",
+  "default_integration": "any"
+}

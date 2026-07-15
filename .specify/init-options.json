@@ -1,0 +1,10 @@
+{
+  "ai": "any",
+  "ai_skills": true,
+  "feature_numbering": "sequential",
+  "here": true,
+  "integration": "any",
+  
+  "script": "ps",
+  "speckit_version": "0.12.3"
+}

@@ -24,7 +24,8 @@ android {
 
     defaultConfig {
         applicationId = "com.notepay"
-        minSdk = 24
+        // ML Kit Prompt API (Gemini Nano) yêu cầu Android 8.0 / API 26.
+        minSdk = 26
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -131,6 +132,9 @@ dependencies {
     // Splash screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Backdrop for Liquid Slider/Toggle
+    implementation(libs.backdrop)
+
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
@@ -149,6 +153,13 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.datetime)
     implementation(libs.zxing.core)
+
+    // Gemini Nano qua Android AICore: inference local, không gửi dữ liệu tài chính lên cloud.
+    implementation(libs.mlkit.genai.prompt)
+    // User-supplied .litertlm model fallback for devices without Android AICore.
+    implementation(libs.litert.lm.android)
+    // OCR Latin bundled in the APK: runs fully offline for Vietnamese bank screenshots.
+    implementation(libs.mlkit.text.recognition)
 
     // WorkManager + Hilt-Work
     implementation(libs.androidx.work.runtime.ktx)

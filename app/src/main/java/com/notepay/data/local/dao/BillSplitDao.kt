@@ -8,6 +8,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BillSplitDao {
+    @Query("SELECT * FROM bill_splits")
+    suspend fun getAll(): List<BillSplitEntity>
+
+    @Query("DELETE FROM bill_splits")
+    suspend fun deleteAll()
+
 
     @Query("SELECT * FROM bill_splits ORDER BY created_at DESC")
     fun observeAll(): Flow<List<BillSplitEntity>>

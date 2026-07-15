@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -15,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -28,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
@@ -55,9 +59,11 @@ fun TransactionItem(
     val subtitleParts = listOfNotNull(
         timeStr,
         transaction.category.displayName,
-        walletName.takeIf { it.isNotBlank() }
+        walletName.takeIf { it.isNotBlank() },
+        if (transaction.isInternalTransfer) "Chuyển khoản" else null
     )
     val subtitleText = subtitleParts.joinToString(" • ")
+    val noteText = transaction.note.trim()
 
     val clickModifier = if (onClick != null || onLongClick != null) {
         Modifier.combinedClickable(
@@ -68,13 +74,16 @@ fun TransactionItem(
         Modifier
     }
 
+    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .then(clickModifier),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = cardBgColor
         ),
         border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
@@ -91,11 +100,27 @@ fun TransactionItem(
                     size = 40.dp,
                     iconSize = 18.dp
                 )
-                if (transaction.isAutoCapture) {
+                if (transaction.isInternalTransfer) {
                     Box(
                         modifier = Modifier
                             .size(16.dp)
-                            .clip(CircleShape)
+                            .clip(AppTheme.shapes.circle)
+                            .background(MaterialTheme.colorScheme.secondary)
+                            .align(Alignment.BottomEnd),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.SwapHoriz,
+                            contentDescription = "Chuyển khoản nội bộ",
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp),
+                        )
+                    }
+                } else if (transaction.isAutoCapture) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(AppTheme.shapes.circle)
                             .background(MaterialTheme.colorScheme.primary)
                             .align(Alignment.BottomEnd),
                         contentAlignment = Alignment.Center,
@@ -121,10 +146,10 @@ fun TransactionItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = transaction.note.ifBlank { transaction.category.displayName },
+                        text = transaction.category.displayName,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 2,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
@@ -135,10 +160,22 @@ fun TransactionItem(
                         color = amountColor,
                     )
                 }
+                if (noteText.isNotBlank()) {
+                    Text(
+                        text = noteText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
                 Text(
                     text = subtitleText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }

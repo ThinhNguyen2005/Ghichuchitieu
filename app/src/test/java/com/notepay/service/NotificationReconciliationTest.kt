@@ -13,6 +13,7 @@ import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.BillSplitRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import io.mockk.coEvery
@@ -35,7 +36,6 @@ import org.junit.Rule
 import com.notepay.ui.feature.addtransaction.MainDispatcherRule
 
 import com.notepay.data.preferences.NotificationSettingsStore
-import com.notepay.data.preferences.NotificationSettings
 import com.notepay.data.preferences.KnownBankApps
 
 /**
@@ -55,6 +55,7 @@ class NotificationReconciliationTest {
     private val walletRepository = mockk<WalletRepository>(relaxed = true)
     private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
     private val billSplitRepository = mockk<BillSplitRepository>(relaxed = true)
+    private val subscriptionRepository = mockk<SubscriptionRepository>(relaxed = true)
     private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
     private lateinit var addTransaction: AddTransactionUseCase
     private lateinit var service: NotePayNotificationListenerService
@@ -105,25 +106,25 @@ class NotificationReconciliationTest {
         val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
         every { suggestCategoryUseCase.suggest(any(), any()) } returns Category.DEFAULT_EXPENSE
 
-        every { notificationSettingsStore.settings } returns flowOf(NotificationSettings())
-
         val controller = Robolectric.buildService(NotePayNotificationListenerService::class.java)
         service = controller.get()
-        controller.create()
 
         service.walletRepository = walletRepository
         service.addTransaction = addTransaction
         service.billSplitRepository = billSplitRepository
         service.transactionRepository = transactionRepository
+        service.subscriptionRepository = subscriptionRepository
         service.suggestCategoryUseCase = suggestCategoryUseCase
         service.ioDispatcher = mainDispatcherRule.testDispatcher
         service.notificationSettingsStore = notificationSettingsStore
 //        service.trackAllBanks = true
-        service.enabledPackages = KnownBankApps.packages
+        service.settingsLoaded = true
+        service.enabledPackages = KnownBankApps.supportedPackages
         service.autoCaptureEnabled = true
 
         every { walletRepository.observeActive() } returns flowOf(tpBankWallet)
         every { walletRepository.observeAll() } returns flowOf(listOf(tpBankWallet))
+        every { subscriptionRepository.observeAll() } returns flowOf(emptyList())
         coEvery { walletRepository.getById(tpBankWallet.id) } returns tpBankWallet
         coEvery { transactionRepository.upsert(any()) } returns 100L
     }

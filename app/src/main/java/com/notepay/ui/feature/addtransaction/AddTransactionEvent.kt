@@ -3,6 +3,7 @@ package com.notepay.ui.feature.addtransaction
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
+import android.net.Uri
 import kotlinx.datetime.Instant
 
 /**
@@ -31,6 +32,9 @@ sealed interface AddTransactionEvent {
     /** User chọn ví */
     data class WalletChanged(val walletId: Long) : AddTransactionEvent
 
+    /** User selected a screenshot or QR image for on-device OCR. */
+    data class ImageSelected(val uri: Uri) : AddTransactionEvent
+
     /** User nhấn nút Lưu */
     data object Save : AddTransactionEvent
 
@@ -41,5 +45,10 @@ sealed interface AddTransactionEvent {
     data object Reset : AddTransactionEvent
 
     /** User thêm danh mục tùy biến mới */
-    data class CreateCategory(val displayName: String, val colorArgb: Long, val isIncome: Boolean) : AddTransactionEvent
+    data class CreateCategory(
+        val displayName: String,
+        val colorArgb: Long,
+        val iconId: String,
+        val isIncome: Boolean,
+    ) : AddTransactionEvent
 }

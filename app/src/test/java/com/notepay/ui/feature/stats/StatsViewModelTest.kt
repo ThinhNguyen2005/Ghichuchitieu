@@ -12,6 +12,12 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import android.content.Context
 import com.notepay.domain.repository.SubscriptionRepository
+import com.notepay.ai.LocalAiModelManager
+import com.notepay.ai.LocalModelState
+import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.domain.analytics.AdvisorAvailability
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -144,7 +150,18 @@ class StatsViewModelTest {
     ): StatsViewModel {
         val fakeContext = mockk<Context>(relaxed = true)
         val fakeSubRepo = FakeSubscriptionRepository()
-        return StatsViewModel(repo, walletRepo, fakeSubRepo, fakeContext)
+        val advisor = mockk<OnDeviceBudgetAdvisor>(relaxed = true)
+        val modelManager = mockk<LocalAiModelManager>(relaxed = true)
+        coEvery { advisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
+        every { modelManager.state } returns MutableStateFlow(LocalModelState())
+        return StatsViewModel(
+            repo,
+            walletRepo,
+            fakeSubRepo,
+            fakeContext,
+            advisor,
+            modelManager,
+        )
     }
 }
 
