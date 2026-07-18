@@ -3,7 +3,7 @@
     <!-- Các màu Material 3 base, dùng cho splash screen và các theme nơi
          Compose color scheme không được áp dụng (vd: native splash screen).
          NotePayTheme() trong Compose sẽ override runtime. -->
-    <color name="note_pay_splash_background_light">#FBFDF7</color>
+    <color name="note_pay_splash_background_light">#FFFF33</color>
     <color name="note_pay_splash_background_dark">#101412</color>
 
     <!-- Legacy palette (giữ lại cho tương thích nếu cần) -->
