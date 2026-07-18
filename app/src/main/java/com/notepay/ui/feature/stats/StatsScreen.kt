@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.ForecastConfidence
@@ -1015,13 +1017,13 @@ private fun LocalAdvisorCard(
                             Icons.Rounded.Lightbulb,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
-                            text = "Phân tích",
+                            text = stringResource(R.string.stats_action_analyze),
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -1037,13 +1039,13 @@ private fun LocalAdvisorCard(
                                 Icons.Rounded.FolderOpen,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                             )
                             Spacer(Modifier.width(5.dp))
                             Text(
-                                text = "Cài đặt",
+                                text = stringResource(R.string.stats_action_ai_settings),
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                color = MaterialTheme.colorScheme.onSecondary,
                                 style = MaterialTheme.typography.labelLarge,
                             )
                         }

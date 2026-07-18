@@ -157,64 +157,18 @@ fun EditTransactionScreen(
                 )
             }
 
-            // Danh mục
+            // Danh mục — giao dịch tự động vẫn cần được phân loại lại.
             item {
-                if (state.isAutoCapture) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppTheme.shapes.corner16,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            com.notepay.ui.component.CategoryAvatar(
-                                category = state.category ?: com.notepay.domain.model.Category.OTHER,
-                                size = 24.dp,
-                                iconSize = 12.dp
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Danh mục",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = state.category?.displayName ?: "",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Rounded.Lock,
-                                contentDescription = "Không thể chỉnh sửa",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                com.notepay.ui.component.CategoryQuickSelectionRow(
+                    categories = state.availableCategories,
+                    selectedCategory = state.category,
+                    isIncome = state.type == TransactionType.INCOME,
+                    onCategoryChanged = { viewModel.onCategoryChanged(it) },
+                    onSeeAllClick = {
+                        showAllCategories = true
                     }
-                } else {
-                    com.notepay.ui.component.CategoryQuickSelectionRow(
-                        categories = state.availableCategories,
-                        selectedCategory = state.category,
-                        isIncome = state.type == TransactionType.INCOME,
-                        onCategoryChanged = { viewModel.onCategoryChanged(it) },
-                        onSeeAllClick = {
-                            showAllCategories = true
-                        }
-                    )
-                }
+                )
             }
-
             // Ghi chú
             item {
                 val suggestedCategory = state.suggestedCategory

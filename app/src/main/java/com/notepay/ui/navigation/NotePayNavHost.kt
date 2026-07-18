@@ -501,9 +501,13 @@ fun NotePayNavHost(
                         }
                     )
                 }
+                composable(Route.BackupRestore.path) {
+                    BackupRestoreScreen(onBack = { navController.popBackStack() })
+                }
                 composable(Route.NotificationSettings.path) {
                     NotificationSettingsScreen(
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
                     )
                 }
             }

@@ -7,12 +7,7 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// Load local signing config nếu có (không commit vào git).
-// Tạo file app/signing.properties với:
-//   storeFile=release.keystore
-//   storePassword=...
-//   keyAlias=notepay
-//   keyPassword=...
+
 val signingProps = Properties().apply {
     val f = rootProject.file("app/signing.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -55,6 +50,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
             // Nếu đã config keystore qua app/signing.properties thì dùng; nếu chưa,
             // build vẫn pass nhưng APK sẽ chưa được ký — cần keystore để đưa lên Play Store.
             if (signingConfigs.findByName("release")?.storeFile?.exists() == true) {

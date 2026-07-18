@@ -2,6 +2,8 @@ package com.notepay.data.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
+import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
@@ -18,13 +20,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.ByteArrayOutputStream
+
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DataImporter @Inject constructor(
+    private val database: NotePayDatabase,
     private val transactionDao: TransactionDao,
     private val walletDao: WalletDao,
     private val billSplitDao: BillSplitDao,
@@ -35,7 +38,17 @@ class DataImporter @Inject constructor(
 ) {
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
-            BufferedReader(InputStreamReader(stream)).readText()
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(16 * 1024)
+            var totalBytes = 0
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                totalBytes += count
+                require(totalBytes <= MAX_BACKUP_BYTES) { "File sao lưu vượt quá 20 MB." }
+                output.write(buffer, 0, count)
+            }
+            output.toString(Charsets.UTF_8.name())
         } ?: throw Exception("Không thể đọc file")
     }
 
@@ -49,9 +62,11 @@ class DataImporter @Inject constructor(
         require(version <= BACKUP_VERSION) { "Phiên bản backup không tương thích: v$version" }
 
         val data = root.getJSONObject("data")
+        validateBackupData(data)
 
         // 1. Clear dữ liệu cũ (thứ tự vì FK constraints)
-        billSplitDao.deleteAll()
+        database.withTransaction {
+            billSplitDao.deleteAll()
         transactionDao.deleteAll()
         subscriptionDao.deleteAll()
         walletDao.deleteAll()
@@ -134,6 +149,8 @@ class DataImporter @Inject constructor(
             }
         }
 
+        }
+
         // 6. Import custom categories
         if (data.has("customCategories")) {
             val catArr = data.getJSONArray("customCategories")
@@ -158,6 +175,40 @@ class DataImporter @Inject constructor(
         }
     }
 
+    private fun validateBackupData(data: JSONObject) {
+        val wallets = data.getJSONArray("wallets")
+        val transactions = data.getJSONArray("transactions")
+        for (index in 0 until wallets.length()) {
+            val wallet = wallets.getJSONObject(index)
+            require(wallet.getLong("id") >= 0L) { "Ví trong bản sao lưu không hợp lệ." }
+            require(wallet.getString("name").isNotBlank()) { "Tên ví không được để trống." }
+            wallet.getLong("initialBalanceCents")
+            wallet.getString("iconKey")
+            wallet.getString("colorKey")
+            wallet.getBoolean("isActive")
+            wallet.getLong("createdAt")
+        }
+        for (index in 0 until transactions.length()) {
+            val transaction = transactions.getJSONObject(index)
+            require(transaction.getLong("id") >= 0L) { "Giao dịch trong bản sao lưu không hợp lệ." }
+            require(transaction.getLong("amountCents") >= 0L) { "Số tiền giao dịch không hợp lệ." }
+            require(transaction.getString("type").isNotBlank()) { "Loại giao dịch không hợp lệ." }
+            require(transaction.getString("category").isNotBlank()) { "Danh mục giao dịch không hợp lệ." }
+            transaction.getString("note")
+            transaction.getLong("occurredAt")
+            transaction.getLong("walletId")
+            transaction.getLong("createdAt")
+        }
+        if (data.has("billSplits")) data.getJSONArray("billSplits")
+        if (data.has("subscriptions")) data.getJSONArray("subscriptions")
+        if (data.has("customCategories")) data.getJSONArray("customCategories")
+        if (data.has("preferences")) data.getJSONObject("preferences")
+    }
+
+    private companion object {
+        const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
+    }
+
     private suspend fun importPreferences(prefsObj: JSONObject) {
         // Theme
         val settingsPrefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
@@ -169,7 +220,7 @@ class DataImporter @Inject constructor(
         // Notification settings via DataStore
         // Old backups may not contain this preference. Restore fail-closed so an
         // import never starts reading bank notifications without explicit intent.
-        val autoCapture = prefsObj.optBoolean("autoCaptureEnabled", false)
+        val autoCapture = false
         notificationSettingsStore.setAutoCaptureEnabled(autoCapture)
 
         if (prefsObj.has("enabledPackages")) {

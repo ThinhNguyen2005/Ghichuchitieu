@@ -64,9 +64,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.util.MoneyFormatter
@@ -176,14 +178,14 @@ private fun StatsHeader(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Tình hình thu chi",
+                stringResource(R.string.stats_screen_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
             )
             IconButton(onClick = onToggleVisibility, modifier = Modifier.size(34.dp)) {
                 Icon(
                     imageVector = if (showAmounts) Icons.Rounded.RemoveRedEye else Icons.Rounded.VisibilityOff,
-                    contentDescription = if (showAmounts) "Ẩn số tiền" else "Hiện số tiền",
+                    contentDescription = if (showAmounts) stringResource(R.string.stats_cd_hide_amounts) else stringResource(R.string.stats_cd_show_amounts),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
@@ -203,13 +205,13 @@ private fun ViewModeToggle(viewType: StatsViewType, onChanged: (StatsViewType) -
             ViewModeItem(
                 active = viewType == StatsViewType.PHAN_BO,
                 icon = Icons.Rounded.PieChart,
-                label = "Phân bổ",
+                label = stringResource(R.string.stats_view_allocation),
                 onClick = { onChanged(StatsViewType.PHAN_BO) },
             )
             ViewModeItem(
                 active = viewType == StatsViewType.XU_HUONG,
                 icon = Icons.Rounded.BarChart,
-                label = "Xu hướng",
+                label = stringResource(R.string.stats_view_trend),
                 onClick = { onChanged(StatsViewType.XU_HUONG) },
             )
         }
@@ -275,7 +277,7 @@ private fun OverviewCard(
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onPreviousMonth, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Rounded.ChevronLeft, contentDescription = "Tháng trước")
+                    Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
                 }
                 Row(
                     modifier = Modifier.weight(1f),
@@ -285,19 +287,19 @@ private fun OverviewCard(
                     Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        if (state.isCurrentMonth) "Tháng này" else "Tháng %02d/%d".format(state.month, state.year),
+                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else stringResource(R.string.stats_month_year_format, state.month, state.year),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                 }
                 IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Tháng sau")
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 MetricCard(
-                    title = "Chi tiêu",
+                    title = stringResource(R.string.stats_expense),
                     amount = state.totalExpense,
                     showAmounts = showAmounts,
                     delta = state.totalExpense.amountInCents - previousExpense.amountInCents,
@@ -309,21 +311,21 @@ private fun OverviewCard(
                     modifier = Modifier.weight(1f),
                 )
                 MetricCard(
-                    title = "Thu nhập",
+                    title = stringResource(R.string.stats_income),
                     amount = state.totalIncome,
                     showAmounts = showAmounts,
                     delta = state.totalIncome.amountInCents - previousIncome.amountInCents,
                     positiveDeltaIsGood = true,
                     active = metric == StatsMetric.THU_NHAP,
                     icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                    tint = Color(0xFF22A06B),
+                    tint = MaterialTheme.colorScheme.primary,
                     onClick = { onMetricChanged(StatsMetric.THU_NHAP) },
                     modifier = Modifier.weight(1f),
                 )
             }
 
             val isDecrease = difference < 0
-            val comparisonPrefix = if (difference == 0L) "Không đổi" else if (isDecrease) "Giảm" else "Tăng"
+            val comparisonPrefix = if (difference == 0L) stringResource(R.string.stats_unchanged) else if (isDecrease) stringResource(R.string.stats_decrease) else stringResource(R.string.stats_increase)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -341,13 +343,13 @@ private fun OverviewCard(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     comparisonPrefix,
-                    color = if (isDecrease) Color(0xFF22A06B) else MaterialTheme.colorScheme.primary,
+                    color = if (isDecrease) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    "${MoneyFormatter.format(Money(kotlin.math.abs(difference)))} so với tháng trước",
+                    stringResource(R.string.stats_compare_previous_format, MoneyFormatter.format(Money(kotlin.math.abs(difference))) ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -389,7 +391,7 @@ private fun MetricCard(
         if (isExpense) {
             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
         } else {
-            Color(0xFF22A06B).copy(alpha = 0.15f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         }
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
@@ -444,15 +446,15 @@ private fun TrendBadge(
     val good = if (isFlat) true else if (positiveDeltaIsGood) isIncrease else !isIncrease
     val color = when {
         isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-        good -> Color(0xFF22A06B)
+        good -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.error
     }
     val icon = if (isIncrease) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown
     val label = when {
-        !showAmounts -> "Đã ẩn số tiền"
-        isFlat -> "Ổn định so với tháng trước"
-        isIncrease -> "Tăng ${MoneyFormatter.format(Money(kotlin.math.abs(delta)))}"
-        else -> "Giảm ${MoneyFormatter.format(Money(kotlin.math.abs(delta)))}"
+        !showAmounts -> stringResource(R.string.stats_amounts_hidden)
+        isFlat -> stringResource(R.string.stats_stable_previous)
+        isIncrease -> stringResource(R.string.stats_increase_amount_format, MoneyFormatter.format(Money(kotlin.math.abs(delta))))
+        else -> stringResource(R.string.stats_decrease_amount_format, MoneyFormatter.format(Money(kotlin.math.abs(delta))))
     }
 
     Surface(
@@ -584,7 +586,7 @@ private fun AllocationChart(
         ) {
             if (legendItems.isEmpty()) {
                 Text(
-                    text = "Chưa phát sinh giao dịch trong tháng này",
+                    text = stringResource(R.string.stats_no_transactions_month),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -637,7 +639,7 @@ private fun CategoryLegendItem(
             Text(
                 text = "${item.category.displayName} — ${(item.percentage * 100).toInt()}%",
                 style = MaterialTheme.typography.labelMedium,
-                color = if (selected) color else MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
@@ -655,7 +657,7 @@ private fun TrendChart(
     onPointClick: (MonthlyTrendPoint) -> Unit,
 ) {
     val expenseColor = MaterialTheme.colorScheme.error
-    val incomeColor = Color(0xFF22A06B)
+    val incomeColor = MaterialTheme.colorScheme.primary
     val expenseValues = points.map { it.expense.amountInCents }
     val incomeValues = points.map { it.income.amountInCents }
     val maxValue = max(

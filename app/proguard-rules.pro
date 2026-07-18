@@ -27,3 +27,10 @@
 -keep class com.notepay.service.NotePayNotificationListenerService { *; }
 -keep class com.notepay.** { *; }
 -keepattributes InnerClasses,EnclosingMethod,Signature
+
+# LiteRT-LM uses a JNI bridge. R8 must not rename or remove its Kotlin API,
+# otherwise the native bridge cannot resolve Engine/Conversation in release builds.
+-keep class com.google.ai.edge.litertlm.** { *; }
+-keepclassmembers class com.google.ai.edge.litertlm.** {
+    native <methods>;
+}

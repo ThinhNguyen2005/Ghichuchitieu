@@ -81,6 +81,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.text.style.TextOverflow
 import com.notepay.domain.model.Money
@@ -265,7 +267,7 @@ private fun TransactionListContent(
         }
 
         Column(
-            modifier = modifier.fillMaxSize()
+            modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
         ) {
             // Calendar Card — same pattern as SubscriptionScreen CalendarTab
             Card(
@@ -299,7 +301,7 @@ private fun TransactionListContent(
             // Day header
             if (selectedDate != null) {
                 Text(
-                    text = "Giao dịch ngày ${selectedDate.dayOfMonth}/${selectedDate.monthNumber}",
+                    text = stringResource(R.string.transaction_day_details_format, selectedDate.dayOfMonth, selectedDate.monthNumber),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 4.dp),
@@ -308,13 +310,12 @@ private fun TransactionListContent(
 
             // Day transaction list
             if (selectedDate != null && dayTxList.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentPadding = PaddingValues(bottom = bottomSystemPadding + 96.dp),
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = bottomSystemPadding + 96.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(dayTxList, key = { it.id }) { transaction ->
-                        val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
+                    dayTxList.forEach { transaction ->
+                        val walletName = state.walletsMap[transaction.walletId] ?: stringResource(R.string.wallet_default)
                         TransactionItem(
                             transaction = transaction,
                             walletName = walletName,
@@ -381,7 +382,9 @@ private fun TransactionListContent(
             }
         }
 
-        Column(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
+        ) {
             // Category Filter Row — fixed above pager, bọc trong Box để thêm khoảng cách với TopAppBar
             Box(
                 modifier = Modifier.padding(top = topSystemPadding + 8.dp, bottom = 4.dp)
