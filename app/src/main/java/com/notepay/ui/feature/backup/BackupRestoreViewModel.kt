@@ -8,6 +8,7 @@ import com.notepay.data.backup.DataExporter
 import com.notepay.data.backup.DataImporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -30,7 +31,7 @@ class BackupRestoreViewModel @Inject constructor(
         if (_state.value.isExporting) return
         _state.update { it.copy(isExporting = true, exportSuccess = false, errorMessage = null) }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val json = dataExporter.exportToJson()
                 context.contentResolver.openOutputStream(uri)?.use { stream ->
@@ -60,7 +61,7 @@ class BackupRestoreViewModel @Inject constructor(
         if (_state.value.isImporting) return
         _state.update { it.copy(isImporting = true, importSuccess = false, errorMessage = null) }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val json = dataImporter.readFromFile(uri)
                 dataImporter.importFromJson(json)

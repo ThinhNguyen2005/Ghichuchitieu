@@ -142,6 +142,10 @@ fun categoryIcon(category: Category): ImageVector {
 }
 
 
+private fun Color.preferredContentColor(): Color {
+    val luminance = 0.2126f * red + 0.7152f * green + 0.0722f * blue
+    return if (luminance > 0.52f) Color(0xFF1B1B1F) else Color.White
+}
 @Composable
 fun CategoryAvatar(
     category: Category,
@@ -159,7 +163,7 @@ fun CategoryAvatar(
         Icon(
             imageVector = categoryIcon(category),
             contentDescription = null,
-            tint = Color.White,
+            tint = Color(category.colorArgb).preferredContentColor(),
             modifier = Modifier.size(iconSize),
         )
     }

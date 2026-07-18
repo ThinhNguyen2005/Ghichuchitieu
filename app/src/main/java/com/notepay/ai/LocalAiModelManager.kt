@@ -192,7 +192,7 @@ class LocalAiModelManager @Inject constructor(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
-            Log.e(TAG, "LiteRT-LM validation failed: ${error.javaClass.simpleName}", error)
+            if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM validation failed: ${error.javaClass.simpleName}")
             throw IllegalArgumentException(
                 "Mô hình không chạy được trên thiết bị này. Hãy chọn một tệp .litertlm tương thích.",
                 error,

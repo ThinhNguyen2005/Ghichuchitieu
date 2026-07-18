@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,8 @@ fun DebtorDetailScreen(
     }
 
     val activeWallet = state.activeWallet
+    val linkedBankName = stringResource(R.string.bank_linked)
+    val vietQrConfiguredMessage = stringResource(R.string.feedback_vietqr_configured)
     var qrConfigWalletId by remember { mutableStateOf<Long?>(null) }
     var pendingDeleteBill by remember { mutableStateOf<BillSplitItemState?>(null) }
     var showReconciliationSheet by remember { mutableStateOf(false) }
@@ -108,9 +111,9 @@ fun DebtorDetailScreen(
         state.wallets.find { it.id == id }
     }
 
-    val bankName = remember(activeWallet) {
+    val bankName = remember(activeWallet, linkedBankName) {
         val matchedBank = SupportedBank.LIST.find { it.bin == activeWallet?.bankBin }
-        matchedBank?.name ?: "Ngân hàng liên kết"
+        matchedBank?.name ?: linkedBankName
     }
 
     val memoCode = remember(debtorName) {
@@ -132,10 +135,10 @@ fun DebtorDetailScreen(
     Scaffold(
         topBar = {
             GradientTopAppBar(
-                title = { Text("Nợ của $debtorName", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.debtor_detail_title, debtorName), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Trở lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 }
             )
@@ -149,7 +152,7 @@ fun DebtorDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Xác nhận đã thanh toán", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.action_confirm_payment), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -167,9 +170,9 @@ fun DebtorDetailScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("Người này không có lịch sử nợ!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.debtor_no_history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onBack, shape = AppTheme.shapes.corner12) { Text("Quay lại") }
+                    Button(onClick = onBack, shape = AppTheme.shapes.corner12) { Text(stringResource(R.string.action_back)) }
                 }
             }
             return@Scaffold
@@ -216,10 +219,10 @@ fun DebtorDetailScreen(
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
-                                Text("Chưa cấu hình VietQR cho ví hiện tại", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.bill_split_vietqr_missing), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             }
                             Text(
-                                text = "Vui lòng cấu hình Ngân hàng và Số tài khoản cho ví hoạt động hiện tại \"${activeWallet?.name ?: "Mặc định"}\" để sinh mã QR gộp tự động.",
+                                text = stringResource(R.string.bill_split_vietqr_prompt_format, activeWallet?.name ?: stringResource(R.string.wallet_default)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -231,7 +234,7 @@ fun DebtorDetailScreen(
                             ) {
                                 Icon(Icons.Rounded.QrCode2, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Cấu hình VietQR ngay", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.action_configure_vietqr), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -245,20 +248,20 @@ fun DebtorDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = "Lịch sử đối soát", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.debt_reconciliation_history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(
-                            text = "${unpaidDebtorSplits.size} cần thu · ${paidDebtorSplits.size} đã thanh toán",
+                            text = stringResource(R.string.debt_reconciliation_summary_format, unpaidDebtorSplits.size, paidDebtorSplits.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Text(text = "Nhấn giữ để xóa", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = stringResource(R.string.debt_hold_to_delete), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             items(allDebtorSplits, key = { it.split.id }) { item ->
                 val parentTx = item.parentTransaction
-                val note = parentTx?.note ?: "Giao dịch chia tiền"
+                val note = parentTx?.note ?: stringResource(R.string.debt_transaction_fallback)
                 val isPaid = item.split.isPaid
 
                 Card(
@@ -301,8 +304,8 @@ fun DebtorDetailScreen(
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "Đã trả", style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold
+                                            text = stringResource(R.string.debt_paid), style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold
                                         )
                                     }
                                 } else {
@@ -314,8 +317,8 @@ fun DebtorDetailScreen(
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "Chờ thu", style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold
+                                            text = stringResource(R.string.debt_pending_collection), style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
@@ -323,9 +326,9 @@ fun DebtorDetailScreen(
                             val muonDate = formatInstant(item.split.createdAt)
                             val dateSubtext = if (isPaid) {
                                 val tradate = formatInstant(item.split.paidAt)
-                                "Mượn: $muonDate • Trả: $tradate"
+                                stringResource(R.string.debt_dates_paid_format, muonDate, tradate)
                             } else {
-                                "Mượn: $muonDate • Chờ thanh toán"
+                                stringResource(R.string.debt_dates_pending_format, muonDate)
                             }
                             Text(text = dateSubtext, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -349,16 +352,16 @@ fun DebtorDetailScreen(
             onSave = { bin, accNum, accName ->
                 viewModel.updateWalletForQr(wallet.id, bin, accNum, accName)
                 qrConfigWalletId = null
-                Toast.makeText(context, "Đã cấu hình VietQR thành công!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, vietQrConfiguredMessage, Toast.LENGTH_SHORT).show()
             }
         )
     }
 
     pendingDeleteBill?.let { item ->
         ConfirmDeleteDialog(
-            title = "Xóa khoản nợ?",
+            title = stringResource(R.string.confirm_delete_bill_title),
             itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
-            message = "Khoản nợ lẻ này sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+            message = stringResource(R.string.debt_delete_message),
             onConfirm = { viewModel.deleteBillSplit(item.split.id) },
             onDismiss = { pendingDeleteBill = null },
         )
@@ -416,14 +419,14 @@ private fun DebtSummaryCard(
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isSettled) "Đã đối soát với $debtorName" else "Khoản cần thu từ $debtorName",
+                        text = if (isSettled) stringResource(R.string.debt_settled_with_format, debtorName) else stringResource(R.string.debt_collect_from_format, debtorName),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = if (isSettled) "Không còn khoản chờ thu" else "$unpaidCount khoản đang chờ thanh toán",
+                        text = if (isSettled) stringResource(R.string.debt_no_pending) else stringResource(R.string.debt_pending_count_format, unpaidCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -433,7 +436,7 @@ private fun DebtSummaryCard(
                     color = accent.copy(alpha = .12f),
                 ) {
                     Text(
-                        text = if (isSettled) "Hoàn tất" else "Cần thu",
+                        text = if (isSettled) stringResource(R.string.debt_complete) else stringResource(R.string.debt_collect),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = accent,
@@ -455,7 +458,7 @@ private fun DebtSummaryCard(
 
 @Composable
 private fun VietQrLogo(modifier: Modifier = Modifier) {
-    Image(painter = painterResource(id = R.drawable.logo_vietqr), contentDescription = "VietQR Logo", modifier = modifier.height(44.dp))
+    Image(painter = painterResource(id = R.drawable.logo_vietqr), contentDescription = stringResource(R.string.cd_vietqr_logo), modifier = modifier.height(44.dp))
 }
 
 private fun getBankLogoRes(bankName: String): Int? {
@@ -499,7 +502,7 @@ private fun NapasBankRow(bankName: String, modifier: Modifier = Modifier) {
     val logoRes = remember(bankName) { getBankLogoRes(bankName) }
 
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-        Image(painter = painterResource(id = R.drawable.logo_napas), contentDescription = "napas 247", modifier = Modifier.height(24.dp))
+        Image(painter = painterResource(id = R.drawable.logo_napas), contentDescription = stringResource(R.string.cd_napas), modifier = Modifier.height(24.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Box(modifier = Modifier.width(1.dp).height(22.dp).background(MaterialTheme.colorScheme.outlineVariant))
         Spacer(modifier = Modifier.width(12.dp))
@@ -564,6 +567,11 @@ private fun TransferDetailsCopyCard(
 ) {
     val context = LocalContext.current
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val copyBankMessage = stringResource(R.string.feedback_copy_bank)
+    val copyAccountNumberMessage = stringResource(R.string.feedback_copy_account_number)
+    val copyAccountNameMessage = stringResource(R.string.feedback_copy_account_name)
+    val copyAmountMessage = stringResource(R.string.feedback_copy_amount_format, amountRaw)
+    val copyMemoMessage = stringResource(R.string.feedback_copy_memo)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -572,32 +580,32 @@ private fun TransferDetailsCopyCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(text = "Thông tin chuyển khoản", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.transfer_details_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-            CopyableDetailRow(label = "Ngân hàng", value = bankName.uppercase(Locale.ROOT), onCopy = {
+            CopyableDetailRow(label = stringResource(R.string.transfer_bank), value = bankName.uppercase(Locale.ROOT), onCopy = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(bankName))
-                Toast.makeText(context, "Đã sao chép tên Ngân hàng", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copyBankMessage, Toast.LENGTH_SHORT).show()
             })
 
-            CopyableDetailRow(label = "Số tài khoản", value = accountNumber, onCopy = {
+            CopyableDetailRow(label = stringResource(R.string.transfer_account_number), value = accountNumber, onCopy = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(accountNumber))
-                Toast.makeText(context, "Đã sao chép Số tài khoản", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copyAccountNumberMessage, Toast.LENGTH_SHORT).show()
             })
 
-            CopyableDetailRow(label = "Tên chủ tài khoản", value = accountName.uppercase(Locale.ROOT), onCopy = {
+            CopyableDetailRow(label = stringResource(R.string.transfer_account_name), value = accountName.uppercase(Locale.ROOT), onCopy = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(accountName))
-                Toast.makeText(context, "Đã sao chép Tên chủ tài khoản", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copyAccountNameMessage, Toast.LENGTH_SHORT).show()
             })
 
-            CopyableDetailRow(label = "Số tiền", value = amountStr, valueColor = MaterialTheme.colorScheme.error, onCopy = {
+            CopyableDetailRow(label = stringResource(R.string.transfer_amount), value = amountStr, valueColor = MaterialTheme.colorScheme.error, onCopy = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(amountRaw))
-                Toast.makeText(context, "Đã sao chép Số tiền: $amountRaw", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copyAmountMessage, Toast.LENGTH_SHORT).show()
             })
 
-            CopyableDetailRow(label = "Cú pháp chuyển khoản", value = memoCode, valueColor = MaterialTheme.colorScheme.primary, onCopy = {
+            CopyableDetailRow(label = stringResource(R.string.transfer_memo), value = memoCode, valueColor = MaterialTheme.colorScheme.primary, onCopy = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(memoCode))
-                Toast.makeText(context, "Đã sao chép Cú pháp chuyển khoản", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copyMemoMessage, Toast.LENGTH_SHORT).show()
             })
         }
     }
@@ -621,7 +629,7 @@ private fun CopyableDetailRow(
             Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
-            Icon(imageVector = Icons.Rounded.ContentCopy, contentDescription = "Sao chép", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
+            Icon(imageVector = Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.cd_copy), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -655,7 +663,7 @@ private fun QrCodeImage(content: String, modifier: Modifier = Modifier) {
             }
         }
     } else {
-        Text("Không thể sinh mã QR")
+        Text(stringResource(R.string.error_generate_qr))
     }
 }
 
@@ -788,11 +796,11 @@ private fun shareVietQrImage(
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 type = "image/png"
             }
-            context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ mã QR thanh toán"))
+            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.action_share_vietqr)))
         }
         // ĐÃ SỬA: Dùng toán tử gạch dưới "_" đại diện cho Exception không dùng đến trong Catch Block
     } catch (_: Exception) {
-        Toast.makeText(context, "Lỗi khi khởi tạo và chia sẻ hình ảnh VietQR", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.getString(R.string.error_share_vietqr), Toast.LENGTH_LONG).show()
     }
 }
 

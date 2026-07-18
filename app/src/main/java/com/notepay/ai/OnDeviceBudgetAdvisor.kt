@@ -38,7 +38,7 @@ class OnDeviceBudgetAdvisor @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                Log.e(TAG, "LiteRT-LM analysis fell back: ${error.javaClass.simpleName}", error)
+                if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM analysis fell back: ${error.javaClass.simpleName}")
                 return (geminiFallback ?: geminiNano.generate(input)).copy(
                     providerMessage = "Mô hình AI cục bộ chưa chạy được (${safeReason(error)}); " +
                         "đang dùng phân tích thống kê trên máy.",

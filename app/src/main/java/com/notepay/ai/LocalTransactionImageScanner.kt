@@ -37,7 +37,7 @@ class LocalTransactionImageScanner @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     fun scan(uri: Uri): LocalImageScanResult {
-        val bitmap = decodeBitmap(uri)
+        val bitmap = decodeBitmap(uri) ?: return LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
         val vietQrAmount = bitmap?.let(::extractVietQrAmount)
         if (vietQrAmount != null) {
             return LocalImageScanResult(
@@ -49,7 +49,7 @@ class LocalTransactionImageScanner @Inject constructor(
 
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         return try {
-            val image = InputImage.fromFilePath(context, uri)
+            val image = InputImage.fromBitmap(bitmap, 0)
             val text = Tasks.await(recognizer.process(image))
             val reconstructedLines = reconstructHorizontalLines(text)
             val amount = extractAmount(reconstructedLines)
@@ -69,11 +69,28 @@ class LocalTransactionImageScanner @Inject constructor(
         }
     }
 
-    private fun decodeBitmap(uri: Uri): Bitmap? = try {
-        context.contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
+    private fun decodeBitmap(uri: Uri): Bitmap? { return try {
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        val width = bounds.outWidth
+        val height = bounds.outHeight
+        if (width <= 0 || height <= 0) return null
+
+        var sampleSize = 1
+        while (width / sampleSize > MAX_IMAGE_SIDE || height / sampleSize > MAX_IMAGE_SIDE) {
+            sampleSize *= 2
+        }
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
     } catch (_: Throwable) {
         null
-    }
+    } catch (_: Throwable) {
+        null
+    } }
 
     private fun extractVietQrAmount(bitmap: Bitmap): Long? = try {
         val pixels = IntArray(bitmap.width * bitmap.height)
@@ -189,6 +206,7 @@ class LocalTransactionImageScanner @Inject constructor(
     private data class AmountCandidate(val value: Long, val score: Int)
 
     private companion object {
+        const val MAX_IMAGE_SIDE = 2048
         val currencyPattern = Regex("""(?i)(?:đ|vnđ|vnd)""")
         val amountPattern = Regex(
             """(?<!\d)(?:\d{1,3}(?:[.,\s]\d{3})+|\d{4,})(?:\s*(?:đ|vnđ|vnd))?(?!\d)""",

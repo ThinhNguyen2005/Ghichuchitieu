@@ -9,6 +9,7 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
+import com.notepay.BuildConfig
 import com.notepay.data.preferences.KnownBankApps
 import com.notepay.data.preferences.NotificationSettingsStore
 import com.notepay.di.IoDispatcher
@@ -81,6 +82,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
     // Pending Transfer cache for Internal Transfer leg matching (Case 7)
     private val pendingTransferCache = ConcurrentHashMap<Long, PendingTransfer>()
+    private val processedNotificationKeys = ConcurrentHashMap<String, Long>()
 
     data class PendingTransfer(
         val amountCents: Long,
@@ -94,6 +96,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         private const val CHANNEL_ID = "notepay_local_parse"
         private const val CHANNEL_NAME = "Tự động nhận diện chi tiêu"
         private const val NOTIFICATION_ID = 99
+        private const val NOTIFICATION_DEDUP_WINDOW_MILLIS = 2 * 60 * 1000L
 
         @Volatile
         var isConnected = false
@@ -102,7 +105,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             val flat = android.provider.Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
             val isEnabled = flat != null && flat.contains(context.packageName)
             if (isEnabled && !isConnected) {
-                android.util.Log.d("NotePayNotif", "Service is enabled in settings but not connected. Toggling component to force rebind.")
+                if (BuildConfig.DEBUG) android.util.Log.d("NotePayNotif", "Listener rebind requested")
                 val pm = context.packageManager
                 val componentName = android.content.ComponentName(context, NotePayNotificationListenerService::class.java)
                 pm.setComponentEnabledSetting(
@@ -147,13 +150,13 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         isConnected = true
-        android.util.Log.d("NotePayNotif", "NotificationListenerService Connected")
+        debugLog("NotificationListenerService Connected")
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         isConnected = false
-        android.util.Log.d("NotePayNotif", "NotificationListenerService Disconnected")
+        debugLog("NotificationListenerService Disconnected")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -194,7 +197,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
             val parsedResult = NotificationParser.parse(title, textToParse)
             if (parsedResult == null) {
-                android.util.Log.d("NotePayNotif", "Không thể parse thông tin giao dịch từ thông báo này.")
+                debugLog("Không thể parse thông tin giao dịch từ thông báo này.")
                 return@launch
             }
 
@@ -212,14 +215,14 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             }
             
             if (walletToUse == null) {
-                android.util.Log.d("NotePayNotif", "Database trống ví, tiến hành tự động tạo ví mặc định.")
+                debugLog("Database trống ví, tiến hành tự động tạo ví mặc định.")
                 val defaultWallet = Wallet.default()
                 val newId = walletRepository.upsert(defaultWallet)
                 walletRepository.setActive(newId)
                 walletToUse = defaultWallet.copy(id = newId)
             }
 
-            android.util.Log.d("NotePayNotif", "Sử dụng ví: ${walletToUse.name} (ID: ${walletToUse.id})")
+            debugLog("Using selected wallet")
 
             val currentTime = System.currentTimeMillis()
             // Clean up old cached items
@@ -265,7 +268,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                     transactionRepository.upsert(prevTx.copy(isInternalTransfer = true))
                 }
 
-                android.util.Log.d("NotePayNotif", "Phát hiện chuyển khoản nội bộ thành công!")
+                debugLog("Phát hiện chuyển khoản nội bộ thành công!")
                 
                 val sourceWallet = wallets.find { 
                     KnownBankApps.getPrimaryPackageName(it.linkedPackageName.orEmpty()) == KnownBankApps.getPrimaryPackageName(matchedTransferPending.packageName)
@@ -295,9 +298,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 }
                 
                 if (matchingSplit != null) {
-                    android.util.Log.d("NotePayNotif", "Khớp mã đối soát chia tiền đơn lẻ: ${matchingSplit.memoCode} cho ${matchingSplit.debtorName}")
-                    
-                    billSplitRepository.markAsPaid(matchingSplit.id, Clock.System.now())
+                    debugLog("Matched single debt repayment")
                     
                     val parentTx = transactionRepository.getById(matchingSplit.transactionId)
                     if (parentTx != null) {
@@ -321,6 +322,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                             Result.failure(error)
                         }
                         if (saveResult.isSuccess) {
+                            billSplitRepository.markAsPaid(matchingSplit.id, Clock.System.now())
                             val savedTxId = saveResult.getOrNull() ?: 0L
                             // Save to cache for Case 7 just in case
                             pendingTransferCache[savedTxId] = PendingTransfer(
@@ -367,7 +369,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                     
                     if (matchedDebtor != null) {
                         val debtorSplits = unpaidSplits.filter { it.debtorName == matchedDebtor }
-                        android.util.Log.d("NotePayNotif", "Khớp mã đối soát chia tiền gộp cho debtor: $matchedDebtor, số khoản nợ = ${debtorSplits.size}")
+                        debugLog("Matched bulk debt repayment")
                         
                         val splitsByTx = debtorSplits.groupBy { it.transactionId }
 
@@ -441,7 +443,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
             val result = addTransaction(transaction)
             if (result.isSuccess) {
                 val savedTxId = result.getOrNull() ?: 0L
-                android.util.Log.d("NotePayNotif", "Lưu giao dịch thành công! Tx ID: $savedTxId")
+                debugLog("Transaction saved")
 
                 // Lưu vào cache cho khớp chuyển khoản nội bộ
                 pendingTransferCache[savedTxId] = PendingTransfer(
@@ -478,10 +480,19 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                 }
             } else {
                 val errorMsg = result.exceptionOrNull()?.message ?: "Lỗi SQLite/Domain"
-                android.util.Log.d("NotePayNotif", "Lưu giao dịch thất bại: $errorMsg")
+                debugLog("Transaction save failed")
                 showErrorNotification("Lỗi ghi nhận giao dịch", errorMsg)
             }
         }
+    }
+
+    private fun reserveNotificationKey(notificationKey: String): Boolean {
+        val now = System.currentTimeMillis()
+        processedNotificationKeys.entries.removeIf { now - it.value > NOTIFICATION_DEDUP_WINDOW_MILLIS }
+        return processedNotificationKeys.putIfAbsent(notificationKey, now) == null
+    }
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) android.util.Log.d("NotePayNotif", message)
     }
 
     private fun isCaptureAllowed(packageName: String): Boolean =

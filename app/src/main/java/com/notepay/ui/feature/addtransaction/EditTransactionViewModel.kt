@@ -140,7 +140,6 @@ class EditTransactionViewModel @Inject constructor(
 
     /** Tạo danh mục tùy biến mới từ grid của màn chỉnh sửa, đồng thời chọn luôn. */
     fun createCategory(displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) {
-        if (_state.value.isAutoCapture) return
         val cleanName = displayName.trim().replace(Regex("\\s+"), " ").take(40)
         if (cleanName.isBlank()) return
         if (_state.value.availableCategories.any {

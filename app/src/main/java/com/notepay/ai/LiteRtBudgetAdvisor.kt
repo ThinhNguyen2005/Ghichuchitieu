@@ -51,7 +51,7 @@ class LiteRtBudgetAdvisor @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (t: Throwable) {
-                        Log.e(TAG, "LiteRT-LM ${backend.label} failed: ${t.javaClass.simpleName}", t)
+                        if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM ${backend.label} failed: ${t.javaClass.simpleName}")
                         throw t
                     }
                 }
