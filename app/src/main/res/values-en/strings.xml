@@ -7,6 +7,8 @@
     <string name="nav_home">Home</string>
     <string name="nav_transactions">Transactions</string>
     <string name="nav_add">Add</string>
+    <string name="quick_add_open_menu">Open create menu</string>
+    <string name="quick_add_close_menu">Close create menu</string>
     <string name="nav_stats">Stats</string>
     <string name="nav_bill_split">Split</string>
 
@@ -64,6 +66,10 @@
     <string name="transaction_field_note_placeholder">Add transaction details…</string>
     <string name="transaction_no_wallet_selected">No wallet selected</string>
     <string name="transaction_no_other_wallet">No other wallet, please create one in the wallet management section.</string>
+    <string name="transaction_validation_amount">Enter an amount greater than zero.</string>
+    <string name="transaction_validation_wallet">Select a payment wallet.</string>
+    <string name="transaction_validation_amount_wallet">Enter an amount and select a payment wallet.</string>
+    <string name="transaction_validation_form">Complete the required information before saving.</string>
     <string name="transaction_save_button">Save transaction</string>
     <string name="transaction_suggestion_label">💡 Suggested:</string>
 

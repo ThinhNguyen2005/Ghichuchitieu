@@ -65,7 +65,7 @@ data class BankAppUiModel(
     val isCustom: Boolean
 )
 
-private const val DEFAULT_LOCAL_MODEL_PAGE = "https://huggingface.co/litert-community/Qwen3-0.6B-int4/tree/main"
+private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"
 
 private fun formatModelSize(sizeBytes: Long): String {
     if (sizeBytes <= 0L) return "không rõ dung lượng"
@@ -167,7 +167,7 @@ private fun LocalAiModelSettingsCard(
                                 localModel.status == LocalModelInstallStatus.IMPORTING ->
                                     "Đang sao chép vào bộ nhớ riêng của ứng dụng"
                                 localModel.message != null -> localModel.message.orEmpty()
-                                else -> "Khuyến nghị: Qwen3 0.6B INT4 bản .litertlm cho máy tầm trung."
+                                else -> "Chỉ chọn tệp .litertlm từ danh sách tương thích chính thức."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

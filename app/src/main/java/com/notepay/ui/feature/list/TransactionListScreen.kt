@@ -383,7 +383,7 @@ private fun TransactionListContent(
         }
 
         Column(
-            modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            modifier = modifier.fillMaxSize()
         ) {
             // Category Filter Row — fixed above pager, bọc trong Box để thêm khoảng cách với TopAppBar
             Box(
@@ -405,7 +405,9 @@ private fun TransactionListContent(
             // 3. HorizontalPager — only the transaction list scrolls horizontally
             androidx.compose.foundation.pager.HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) { page ->
                 val pageCategory = categoriesList[page]
                 val pageTransactions = remember(state.transactions, pageCategory) {
