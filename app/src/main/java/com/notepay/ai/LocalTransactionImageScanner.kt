@@ -52,15 +52,33 @@ class LocalTransactionImageScanner @Inject constructor(
             val image = InputImage.fromBitmap(bitmap, 0)
             val text = Tasks.await(recognizer.process(image))
             val reconstructedLines = reconstructHorizontalLines(text)
-            val amount = extractAmount(reconstructedLines)
-            if (amount == null) {
-                LocalImageScanResult(message = "Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.")
-            } else {
-                LocalImageScanResult(
-                    amountInput = amount.toString(),
-                    message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
-                    source = LocalImageScanResult.Source.OCR,
-                )
+            val fullRawText = reconstructedLines.joinToString("\n")
+            val payload = com.notepay.domain.ingestion.RawTransactionPayload(
+                rawText = fullRawText,
+                source = com.notepay.domain.ingestion.TransactionInputSource.OCR_SCREENSHOT
+            )
+            when (val result = com.notepay.domain.ingestion.TransactionAnalyzer.analyze(payload)) {
+                is com.notepay.domain.ingestion.ParsedTransactionResult.Success -> {
+                    val majorUnits = result.amount.amountInCents / 100L
+                    LocalImageScanResult(
+                        amountInput = majorUnits.toString(),
+                        message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
+                        source = LocalImageScanResult.Source.OCR,
+                    )
+                }
+                is com.notepay.domain.ingestion.ParsedTransactionResult.Unrecognized -> {
+                    // Fallback to extraction from candidates if raw string wasn't structured
+                    val fallbackAmount = extractAmount(reconstructedLines)
+                    if (fallbackAmount != null) {
+                        LocalImageScanResult(
+                            amountInput = fallbackAmount.toString(),
+                            message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
+                            source = LocalImageScanResult.Source.OCR,
+                        )
+                    } else {
+                        LocalImageScanResult(message = "Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.")
+                    }
+                }
             }
         } catch (_: Throwable) {
             LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
