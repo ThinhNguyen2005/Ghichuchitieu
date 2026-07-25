@@ -153,41 +153,7 @@ class HomeViewModel @Inject constructor(
         initialValue = localAiModelManager.state.value,
     )
 
-    fun setAutoCaptureEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            notificationSettingsStore.setAutoCaptureEnabled(enabled)
-        }
-    }
 
-//    fun setTrackAllBanks(enabled: Boolean) {
-//        viewModelScope.launch {
-//            notificationSettingsStore.setTrackAllBanks(enabled)
-//        }
-//    }
-
-    fun setPackageEnabled(packageName: String, enabled: Boolean) {
-        viewModelScope.launch {
-            notificationSettingsStore.setPackageEnabled(packageName, enabled)
-        }
-    }
-
-//    fun setExcludedPackages(packages: Set<String>) {
-//        viewModelScope.launch {
-//            notificationSettingsStore.setExcludedPackages(packages)
-//        }
-//    }
-
-    fun addCustomBankApp(packageName: String, label: String) {
-        viewModelScope.launch {
-            notificationSettingsStore.addCustomBankApp(packageName, label)
-        }
-    }
-
-    fun removeCustomBankApp(packageName: String) {
-        viewModelScope.launch {
-            notificationSettingsStore.removeCustomBankApp(packageName)
-        }
-    }
 
     fun importLocalAiModel(uri: Uri) {
         viewModelScope.launch {

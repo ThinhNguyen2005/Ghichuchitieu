@@ -69,9 +69,6 @@ class DataExporter @Inject constructor(
                 preferences = BackupPreferences(
                     themeColor = themeColor,
                     themeCustomColor = themeCustomColor,
-                    autoCaptureEnabled = settings.autoCaptureEnabled,
-                    enabledPackages = settings.enabledPackages,
-                    customBankApps = settings.customBankApps,
                     categoryHabits = habits,
                 ),
             ),
@@ -181,9 +178,6 @@ class DataExporter @Inject constructor(
         val prefsObj = JSONObject()
         prefsObj.put("themeColor", backup.data.preferences.themeColor)
         prefsObj.put("themeCustomColor", backup.data.preferences.themeCustomColor)
-        prefsObj.put("autoCaptureEnabled", backup.data.preferences.autoCaptureEnabled)
-        prefsObj.put("enabledPackages", JSONArray(backup.data.preferences.enabledPackages.toList()))
-        prefsObj.put("customBankApps", JSONArray(backup.data.preferences.customBankApps.toList()))
         val habitsObj = JSONObject()
         for ((k, v) in backup.data.preferences.categoryHabits) {
             habitsObj.put(k, v)

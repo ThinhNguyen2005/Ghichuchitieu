@@ -32,10 +32,10 @@ data class CustomCategoryDto(
 data class BackupPreferences(
     val themeColor: String,
     val themeCustomColor: String,
-    val autoCaptureEnabled: Boolean,
-    val enabledPackages: Set<String>,
-    val customBankApps: Set<String>,
-    val categoryHabits: Map<String, Int>,
+    val autoCaptureEnabled: Boolean = false,
+    val enabledPackages: Set<String> = emptySet(),
+    val customBankApps: Set<String> = emptySet(),
+    val categoryHabits: Map<String, Int> = emptyMap(),
 )
 
 const val BACKUP_VERSION = 1

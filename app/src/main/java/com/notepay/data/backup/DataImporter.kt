@@ -217,24 +217,7 @@ class DataImporter @Inject constructor(
             .putString("theme_custom_color", prefsObj.optString("themeCustomColor", "#1B7F4F"))
             .commit()
 
-        // Notification settings via DataStore
-        // Old backups may not contain this preference. Restore fail-closed so an
-        // import never starts reading bank notifications without explicit intent.
-        val autoCapture = false
-        notificationSettingsStore.setAutoCaptureEnabled(autoCapture)
 
-        if (prefsObj.has("enabledPackages")) {
-            val arr = prefsObj.getJSONArray("enabledPackages")
-            val packages = (0 until arr.length()).map { arr.getString(it) }.toSet()
-            // Ghi trực tiếp vào DataStore
-            notificationSettingsStore.replaceEnabledPackages(packages)
-        }
-
-        if (prefsObj.has("customBankApps")) {
-            val arr = prefsObj.getJSONArray("customBankApps")
-            val custom = (0 until arr.length()).map { arr.getString(it) }.toSet()
-            notificationSettingsStore.replaceCustomBankApps(custom)
-        }
 
         // Category habits
         if (prefsObj.has("categoryHabits")) {
