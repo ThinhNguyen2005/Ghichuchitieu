@@ -91,8 +91,7 @@ class BillSplitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val newSplits = splits.map { (debtorName, amountCents) ->
-                    val sanitizedDebtor = debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim()
-                    val memoCode = "NP${transactionId} ${sanitizedDebtor.uppercase()}"
+                    val memoCode = com.notepay.domain.billsplit.BillSplitEngine.formatMemoCode(transactionId, debtorName)
 
                     BillSplit(
                         id = 0L,
@@ -120,7 +119,6 @@ class BillSplitViewModel @Inject constructor(
                 if (split.isPaid) return@launch
 
                 billSplitRepository.markAsPaid(splitId, Clock.System.now())
-                reduceParentTransaction(split.debtorName, listOf(split))
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_marked_paid), type = FeedbackType.Success))
             } catch (e: Exception) {
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
@@ -169,20 +167,13 @@ class BillSplitViewModel @Inject constructor(
     fun markDebtorAsPaidWithReconciliation(debtorName: String, splitIds: List<Long>, incomeTxId: Long?) {
         viewModelScope.launch {
             try {
-                if (incomeTxId != null) {
-                    transactionRepository.delete(incomeTxId)
-                }
                 val splitsToProcess = splitIds.mapNotNull { splitId ->
                     billSplitRepository.getById(splitId)?.takeUnless { it.isPaid }
                 }
-                val splitsByTx = splitsToProcess.groupBy { it.transactionId }
-
-                splitsByTx.forEach { (_, splits) ->
-                    splits.forEach { split ->
-                        billSplitRepository.markAsPaid(split.id, Clock.System.now())
-                    }
-                    reduceParentTransaction(debtorName, splits)
+                splitsToProcess.forEach { split ->
+                    billSplitRepository.markAsPaid(split.id, Clock.System.now())
                 }
+
                 val msg = if (incomeTxId != null) {
                     str(R.string.feedback_bill_split_reconciled)
                 } else {
@@ -193,30 +184,6 @@ class BillSplitViewModel @Inject constructor(
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
             }
         }
-    }
-
-    private suspend fun reduceParentTransaction(debtorName: String, splits: List<BillSplit>) {
-        val parentTx = transactionRepository.getById(splits.first().transactionId)
-            ?: error(str(R.string.error_parent_tx_not_found))
-        var currentAmountCents = parentTx.amount.amountInCents
-        var currentNote = parentTx.note
-
-        splits.forEach { split ->
-            currentAmountCents = (currentAmountCents - split.amount.amountInCents).coerceAtLeast(0L)
-            val paidNote = "$debtorName trả ${MoneyFormatter.format(split.amount)}"
-            currentNote = if (currentNote.contains(" trả ")) {
-                "$currentNote, $paidNote"
-            } else {
-                "$currentNote ($paidNote)"
-            }.take(Transaction.MAX_NOTE_LENGTH)
-        }
-
-        transactionRepository.upsert(
-            parentTx.copy(
-                amount = Money(currentAmountCents),
-                note = currentNote,
-            ),
-        )
     }
 
     private val _selectedTab = MutableStateFlow(0)
