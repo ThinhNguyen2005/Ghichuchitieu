@@ -142,20 +142,7 @@ fun HomeScreen(
         onResult = {}
     )
 
-    DisposableEffect(lifecycleOwner, context) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isListenerEnabled = isNotificationListenerEnabled(context)
-                isBatteryOptimizationsIgnored = (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
-                    .isIgnoringBatteryOptimizations(context.packageName)
-                com.notepay.service.NotePayNotificationListenerService.heal(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+
 
     Scaffold(
         topBar = {
@@ -256,120 +243,7 @@ fun HomeScreen(
                 }
             }
 
-            if (!isListenerEnabled) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        ),
-                        shape = AppTheme.shapes.corner16,
-                        onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                            try {
-                                val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                val intent = Intent(Settings.ACTION_SETTINGS)
-                                context.startActivity(intent)
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.NotificationsActive,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = notifPermissionTitle,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = notifPermissionDesc,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = notifPermissionTip,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (!isBatteryOptimizationsIgnored) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            ),
-                            shape = AppTheme.shapes.corner16
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.BatteryAlert,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.tertiary
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = batteryTitle,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = batteryDesc,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                TextButton(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = "package:${context.packageName}".toUri()
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            try {
-                                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                                context.startActivity(intent)
-                                            } catch (ex: Exception) {
-                                                val intent = Intent(Settings.ACTION_SETTINGS)
-                                                context.startActivity(intent)
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Text(batterySetupLabel)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+
 
 
 

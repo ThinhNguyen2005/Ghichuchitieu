@@ -36,8 +36,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        com.notepay.service.NotePayNotificationListenerService.heal(this)
-    }
+
 }

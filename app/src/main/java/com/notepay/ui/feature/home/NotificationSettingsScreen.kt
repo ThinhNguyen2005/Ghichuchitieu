@@ -560,7 +560,7 @@ fun NotificationSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cấu hình đọc thông báo", fontWeight = FontWeight.Bold) },
+                title = { Text("Cài đặt ứng dụng", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
                         playHaptic()
@@ -586,91 +586,6 @@ fun NotificationSettingsScreen(
             // 0. Màu sắc chủ đề (Theme Color)
             item {
                 ThemeSettingsCard(onPlayHaptic = ::playHaptic)
-            }
-
-            // 1. Quyền hệ thống & Trạng thái chạy ngầm
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    ),
-                    shape = AppTheme.shapes.corner16
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            "Quyền hệ thống & Chạy ngầm",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        // Quyền truy cập thông báo
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    playHaptic()
-                                    if (!isListenerEnabled) {
-                                        val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                        context.startActivity(intent)
-                                    }
-                                }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Quyền truy cập thông báo", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    if (isListenerEnabled) "Đã cấp quyền" else "Chưa được cấp quyền (Nhấn để bật)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isListenerEnabled) Color(0xFF1B7F4F) else MaterialTheme.colorScheme.error
-                                )
-                            }
-                            Icon(
-                                imageVector = if (isListenerEnabled) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
-                                contentDescription = null,
-                                tint = if (isListenerEnabled) Color(0xFF1B7F4F) else MaterialTheme.colorScheme.error
-                            )
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                        // Quyền tối ưu hóa pin
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    playHaptic()
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Chế độ pin chạy ngầm", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    if (isBatteryOptimizationsIgnored) "Đang cấu hình: Không hạn chế" else "Đang cấu hình: Tối ưu hóa (Nhấn để chuyển sang Không hạn chế)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isBatteryOptimizationsIgnored) Color(0xFF1B7F4F) else MaterialTheme.colorScheme.error
-                                )
-                            }
-                            Icon(
-                                imageVector = if (isBatteryOptimizationsIgnored) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
-                                contentDescription = null,
-                                tint = if (isBatteryOptimizationsIgnored) Color(0xFF1B7F4F) else MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
             }
 
             item {
