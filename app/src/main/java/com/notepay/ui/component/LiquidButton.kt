@@ -1,25 +1,30 @@
 package com.notepay.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.lerp
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
@@ -32,8 +37,8 @@ import kotlin.math.sin
 import kotlin.math.tanh
 
 /**
- * Self-contained Liquid Glass button.
- * Internally samples the background via rememberLayerBackdrop.
+ * Liquid Glass button that samples the shared NotePay backdrop.
+ * MIUI devices retain the physical interaction but avoid unstable RenderEffects.
  */
 @Composable
 fun LiquidButton(
@@ -42,68 +47,112 @@ fun LiquidButton(
     enabled: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
-    content: @Composable RowScope.() -> Unit
+    backdrop: Backdrop? = null,
+    content: @Composable RowScope.() -> Unit,
 ) {
-    val backdrop = rememberLayerBackdrop()
+    val activeBackdrop = backdrop ?: LocalNotePayBackdrop.current
+    val isDarkTheme = isSystemInDarkTheme()
+    val defaultSurface = MaterialTheme.colorScheme.surface.copy(
+        alpha = if (isDarkTheme) 0.72f else 0.78f,
+    )
+    val disabledSurface = MaterialTheme.colorScheme.onSurface.copy(
+        alpha = if (isDarkTheme) 0.16f else 0.10f,
+    )
+    val shape = RoundedCornerShape(percent = 50)
+    val useSafeFallback = requiresSafeLiquidButtonFallback()
     val animationScope = rememberCoroutineScope()
-
     val interactiveHighlight = remember(animationScope) {
         InteractiveHighlight(animationScope = animationScope)
     }
 
+    val safeSurface = when {
+        surfaceColor.isSpecified -> surfaceColor
+        enabled && tint.isSpecified -> tint.copy(alpha = if (isDarkTheme) 0.34f else 0.22f)
+        enabled -> defaultSurface
+        else -> disabledSurface
+    }
+    val fallbackVisual = Modifier
+        .graphicsLayer {
+            if (enabled) {
+                val width = size.width.coerceAtLeast(1f)
+                val height = size.height.coerceAtLeast(1f)
+                val progress = interactiveHighlight.pressProgress
+                val scale = lerp(1f, 1f + 4.dp.toPx() / height, progress)
+                val maxOffset = size.minDimension.coerceAtLeast(1f)
+                val maxDimension = size.maxDimension.coerceAtLeast(1f)
+                val offset = interactiveHighlight.offset
+                translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+                translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+                val maxDragScale = 4.dp.toPx() / height
+                val offsetAngle = atan2(offset.y, offset.x)
+                scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / maxDimension) *
+                    (width / height).fastCoerceAtMost(1f)
+                scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / maxDimension) *
+                    (height / width).fastCoerceAtMost(1f)
+            }
+        }
+        .clip(shape)
+        .background(safeSurface)
+
+    val glassVisual = Modifier.drawBackdrop(
+        backdrop = activeBackdrop,
+        shape = { shape },
+        effects = {
+            vibrancy()
+            blur(6.dp.toPx())
+            if (supportsLiquidLens()) lens(6.dp.toPx(), 16.dp.toPx())
+        },
+        layerBlock = if (enabled) {
+            {
+                val width = size.width
+                val height = size.height
+                val progress = interactiveHighlight.pressProgress
+                val scale = lerp(1f, 1f + 4.dp.toPx() / height, progress)
+                val maxOffset = size.minDimension
+                val offset = interactiveHighlight.offset
+                translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+                translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+                val maxDragScale = 4.dp.toPx() / height
+                val offsetAngle = atan2(offset.y, offset.x)
+                scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) *
+                    (width / height).fastCoerceAtMost(1f)
+                scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) *
+                    (height / width).fastCoerceAtMost(1f)
+            }
+        } else {
+            null
+        },
+        onDrawSurface = {
+            drawRect(if (enabled) defaultSurface else disabledSurface)
+            if (enabled && tint.isSpecified) {
+                drawRect(tint, blendMode = BlendMode.Hue)
+                drawRect(tint.copy(alpha = 0.22f))
+            }
+            if (surfaceColor.isSpecified) drawRect(surfaceColor)
+        },
+    )
+
     Row(
-        modifier
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { RoundedCornerShape(50) },
-                effects = {
-                    vibrancy()
-                    blur(2f.dp.toPx())
-                    lens(12f.dp.toPx(), 24f.dp.toPx())
-                },
-                layerBlock = if (enabled) {
-                    {
-                        val width = size.width
-                        val height = size.height
-                        val progress = interactiveHighlight.pressProgress
-                        val scale = lerp(1f, 1f + 4f.dp.toPx() / size.height, progress)
-                        val maxOffset = size.minDimension
-                        val initialDerivative = 0.05f
-                        val offset = interactiveHighlight.offset
-                        translationX = maxOffset * tanh(initialDerivative * offset.x / maxOffset)
-                        translationY = maxOffset * tanh(initialDerivative * offset.y / maxOffset)
-                        val maxDragScale = 4f.dp.toPx() / size.height
-                        val offsetAngle = atan2(offset.y, offset.x)
-                        scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) * (width / height).fastCoerceAtMost(1f)
-                        scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) * (height / width).fastCoerceAtMost(1f)
-                    }
-                } else {
-                    null
-                },
-                onDrawSurface = {
-                    if (!enabled) drawRect(Color.Black.copy(alpha = 0.25f))
-                    if (tint.isSpecified) {
-                        drawRect(tint, blendMode = BlendMode.Hue)
-                        drawRect(tint.copy(alpha = 0.75f))
-                    }
-                    if (surfaceColor.isSpecified) drawRect(surfaceColor)
-                }
-            )
+        modifier = modifier
+            .then(if (useSafeFallback) fallbackVisual else glassVisual)
             .clickable(
                 interactionSource = null,
                 indication = null,
                 enabled = enabled,
                 role = Role.Button,
-                onClick = onClick
+                onClick = onClick,
             )
             .then(
-                if (enabled) Modifier.then(interactiveHighlight.modifier).then(interactiveHighlight.gestureModifier)
-                else Modifier
+                if (enabled) {
+                    Modifier.then(interactiveHighlight.modifier).then(interactiveHighlight.gestureModifier)
+                } else {
+                    Modifier
+                },
             )
             .height(52.dp)
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
-        content = content
+        content = content,
     )
 }

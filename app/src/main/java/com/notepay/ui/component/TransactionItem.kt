@@ -30,8 +30,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
@@ -60,7 +62,7 @@ fun TransactionItem(
         timeStr,
         transaction.category.displayName,
         walletName.takeIf { it.isNotBlank() },
-        if (transaction.isInternalTransfer) "Chuyển khoản" else null
+        if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else null
     )
     val subtitleText = subtitleParts.joinToString(" • ")
     val noteText = transaction.note.trim()
@@ -111,7 +113,7 @@ fun TransactionItem(
                     ) {
                         Icon(
                             Icons.Rounded.SwapHoriz,
-                            contentDescription = "Chuyển khoản nội bộ",
+                            contentDescription = stringResource(R.string.cd_internal_transfer_badge),
                             tint = Color.White,
                             modifier = Modifier.size(10.dp),
                         )
@@ -127,7 +129,7 @@ fun TransactionItem(
                     ) {
                         Icon(
                             Icons.Rounded.AccountBalance,
-                            contentDescription = "Tự động từ ngân hàng",
+                            contentDescription = stringResource(R.string.cd_auto_capture_badge),
                             tint = Color.White,
                             modifier = Modifier.size(10.dp),
                         )

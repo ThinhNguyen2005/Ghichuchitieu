@@ -7,6 +7,8 @@
     <string name="nav_home">Trang chủ</string>
     <string name="nav_transactions">Giao dịch</string>
     <string name="nav_add">Thêm</string>
+    <string name="quick_add_open_menu">Mở menu tạo mới</string>
+    <string name="quick_add_close_menu">Đóng menu tạo mới</string>
     <string name="nav_stats">Thống kê</string>
     <string name="nav_bill_split">Chia tiền</string>
 
@@ -64,6 +66,10 @@
     <string name="transaction_field_note_placeholder">Thêm chi tiết giao dịch…</string>
     <string name="transaction_no_wallet_selected">Chưa chọn ví</string>
     <string name="transaction_no_other_wallet">Không có ví nào khác, hãy tạo thêm ví mới trong phần quản lý tài khoản/ví</string>
+    <string name="transaction_validation_amount">Hãy nhập số tiền lớn hơn 0.</string>
+    <string name="transaction_validation_wallet">Hãy chọn ví thanh toán.</string>
+    <string name="transaction_validation_amount_wallet">Hãy nhập số tiền và chọn ví thanh toán.</string>
+    <string name="transaction_validation_form">Hãy điền đầy đủ thông tin bắt buộc trước khi lưu.</string>
     <string name="transaction_save_button">Lưu giao dịch</string>
     <string name="transaction_suggestion_label">💡 Gợi ý:</string>
 
@@ -274,4 +280,13 @@
     <string name="stats_no_data">Chưa có dữ liệu</string>
     <string name="stats_no_transactions_month">Chưa phát sinh giao dịch trong tháng này</string>
     <string name="stats_million_unit">(Triệu)</string>
+
+    <!-- Transaction item labels -->
+    <string name="transaction_internal_transfer">Chuyển khoản</string>
+    <string name="cd_internal_transfer_badge">Chuyển khoản nội bộ</string>
+    <string name="cd_auto_capture_badge">Tự động từ ngân hàng</string>
+    <string name="billsplit_receive_by_transfer">Nhận bằng Chuyển khoản</string>
+
+    <!-- Theme -->
+    <string name="theme_dynamic_color">Màu hệ thống</string>
 </resources>
