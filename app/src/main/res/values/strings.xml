@@ -36,11 +36,8 @@
     <string name="home_empty_wallet_title">Chưa có ví nào</string>
     <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
     <string name="home_create_wallet">Tạo ví</string>
-    <string name="home_notif_permission_title">Tự động ghi chép giao dịch</string>
-    <string name="home_notif_permission_desc">Nhấp vào đây để cấp quyền đọc thông báo ngân hàng và Momo (Local Parse).</string>
-    <string name="home_notif_permission_tip"> Mẹo: Nếu công tắc bị xám màu (Cài đặt bị hạn chế), hãy vào Thông tin ứng dụng NotePay → Bấm dấu 3 chấm góc trên bên phải → Chọn \"Cho phép cài đặt bị hạn chế\" rồi thử lại.</string>
     <string name="home_battery_title">Tối ưu pin</string>
-    <string name="home_battery_desc">Giúp theo dõi thông báo tốt hơn</string>
+    <string name="home_battery_desc">Giúp ứng dụng hoạt động ổn định</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
@@ -155,8 +152,7 @@
     <!-- Accessibility / content descriptions -->
     <string name="cd_vietqr_logo">VietQR Logo</string>
 
-    <!-- Notification listener service label (used in Android system settings) -->
-    <string name="notif_listener_service_label">NotePay Local Parse</string>
+
 
     <!-- Extractions -->
     <string name="transaction_deleted">Đã xóa giao dịch</string>

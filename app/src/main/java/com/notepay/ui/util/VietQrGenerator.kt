@@ -1,17 +1,45 @@
 package com.notepay.ui.util
 
+import java.net.URLEncoder
 import java.util.Locale
 import com.notepay.util.StringUtils
 
 object VietQrGenerator {
 
     /**
-     * Sinh chuỗi VietQR chuẩn EMVCo 100% offline.
+     * Tạo URL ảnh VietQR chuẩn chính thức qua VietQR API (img.vietqr.io).
      *
-     * @param bankBin BIN của ngân hàng nhận (vd: "970423" cho TPBank, "970436" cho Vietcombank).
-     * @param accountNumber Số tài khoản ngân hàng nhận.
-     * @param amountCents Số tiền cần chuyển (cents).
-     * @param memo Cú pháp nội dung chuyển tiền (đối soát).
+     * @param bankBin Mã BIN ngân hàng (VD: 970423 cho TPBank, 970436 cho Vietcombank).
+     * @param accountNumber Số tài khoản ngân hàng.
+     * @param amountCents Số tiền (cents).
+     * @param memo Nội dung chuyển khoản đối soát.
+     * @param accountName Tên chủ tài khoản (tùy chọn).
+     * @param template Khung giao diện VietQR: "compact2" (mặc định), "compact", "qr_only".
+     */
+    fun generateImageUrl(
+        bankBin: String,
+        accountNumber: String,
+        amountCents: Long,
+        memo: String,
+        accountName: String? = null,
+        template: String = "compact2"
+    ): String {
+        val majorAmount = amountCents / 100
+        val cleanMemo = StringUtils.removeVietnameseAccents(memo).uppercase(Locale.ROOT)
+        val encodedMemo = URLEncoder.encode(cleanMemo, "UTF-8")
+        val baseUrl = "https://img.vietqr.io/image/$bankBin-$accountNumber-$template.png"
+        
+        val queryParams = mutableListOf("amount=$majorAmount", "addInfo=$encodedMemo")
+        if (!accountName.isNullOrBlank()) {
+            val cleanName = StringUtils.removeVietnameseAccents(accountName).uppercase(Locale.ROOT)
+            queryParams.add("accountName=${URLEncoder.encode(cleanName, "UTF-8")}")
+        }
+
+        return "$baseUrl?${queryParams.joinToString("&")}"
+    }
+
+    /**
+     * Sinh chuỗi VietQR chuẩn EMVCo 100% offline.
      */
     fun generate(
         bankBin: String,
@@ -19,41 +47,22 @@ object VietQrGenerator {
         amountCents: Long,
         memo: String
     ): String {
-        // Tag 00: Payload Format Indicator (Cố định "01")
         val tag00 = formatTag("00", "01")
-        
-        // Tag 01: Point of Initiation Method ("12" cho QR động có số tiền)
         val tag01 = formatTag("01", "12")
-        
-        // Tag 38: Merchant Account Information
         val guid = formatTag("00", "A000000727")
         val providerInfo = formatTag("00", bankBin) + formatTag("01", accountNumber)
         val serviceCode = formatTag("02", "QRIBFTTA")
         val merchantAccountValue = guid + formatTag("01", providerInfo) + serviceCode
         val tag38 = formatTag("38", merchantAccountValue)
-        
-        // Tag 53: Transaction Currency ("704" cho VND)
         val tag53 = formatTag("53", "704")
-        
-        // Tag 54: Transaction Amount (Đổi cents thành đơn vị đồng nguyên)
         val majorAmount = amountCents / 100
         val tag54 = formatTag("54", majorAmount.toString())
-        
-        // Tag 58: Country Code ("VN")
         val tag58 = formatTag("58", "VN")
-        
-        // Tag 62: Additional Data Field Template (Tag 08 chứa nội dung chuyển khoản)
-        // Loại bỏ dấu tiếng Việt để tránh lỗi hiển thị/parse trên một số ngân hàng
         val cleanMemo = StringUtils.removeVietnameseAccents(memo).uppercase(Locale.ROOT)
         val tag62Value = formatTag("08", cleanMemo)
         val tag62 = formatTag("62", tag62Value)
-        
-        // Tổng hợp payload
         val payloadWithoutCrc = tag00 + tag01 + tag38 + tag53 + tag54 + tag58 + tag62 + "6304"
-        
-        // Tính toán CRC-16
         val crc = calculateCRC16(payloadWithoutCrc)
-        
         return payloadWithoutCrc + crc
     }
 

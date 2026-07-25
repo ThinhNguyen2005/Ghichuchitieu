@@ -110,12 +110,7 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Resolve string resources trước khi dùng trong non-Composable scopes.
-    val notifPermissionTitle = stringResource(R.string.home_notif_permission_title)
-    val notifPermissionDesc = stringResource(R.string.home_notif_permission_desc)
-    val notifPermissionTip = stringResource(R.string.home_notif_permission_tip)
-    val batteryTitle = stringResource(R.string.home_battery_title)
-    val batteryDesc = stringResource(R.string.home_battery_desc)
-    val batterySetupLabel = stringResource(R.string.action_setup)
+
     val recentLabel = stringResource(R.string.home_recent_transactions)
     val seeAllLabel = stringResource(R.string.action_see_all)
     val emptyTx = stringResource(R.string.home_empty_transactions)
