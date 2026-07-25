@@ -44,8 +44,20 @@ object ThemeManager {
     }
 }
 
-fun getLightColorScheme(themeColor: String): ColorScheme {
+fun getLightColorScheme(themeColor: String, context: Context? = null): ColorScheme {
+    if (themeColor == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
+        return dynamicLightColorScheme(context)
+    }
     return when (themeColor) {
+        "ios" -> LightColors.copy(
+            primary = Color(0xFF000000),
+            primaryContainer = Color(0xFFE5E5EA),
+            onPrimaryContainer = Color(0xFF000000),
+            surface = Color(0xFFFFFFFF),
+            background = Color(0xFFF2F2F7),
+            surfaceContainer = Color(0xFFE5E5EA),
+            outlineVariant = Color(0xFFD1D1D6),
+        )
         "blue" -> LightColors.copy(
             primary = Color(0xFF1976D2),
             primaryContainer = Color(0xFFD1E4FF),
@@ -133,8 +145,20 @@ fun getLightColorScheme(themeColor: String): ColorScheme {
     }
 }
 
-fun getDarkColorScheme(themeColor: String): ColorScheme {
+fun getDarkColorScheme(themeColor: String, context: Context? = null): ColorScheme {
+    if (themeColor == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
+        return dynamicDarkColorScheme(context)
+    }
     return when (themeColor) {
+        "ios" -> DarkColors.copy(
+            primary = Color(0xFFFFFFFF),
+            primaryContainer = Color(0xFF2C2C2E),
+            onPrimaryContainer = Color(0xFFFFFFFF),
+            surface = Color(0xFF1C1C1E),
+            background = Color(0xFF000000),
+            surfaceContainer = Color(0xFF2C2C2E),
+            outlineVariant = Color(0xFF3A3A3C),
+        )
         "blue" -> DarkColors.copy(
             primary = Color(0xFF90CAF9),
             primaryContainer = Color(0xFF004881),
@@ -227,50 +251,26 @@ fun NotePayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val appColors = if (darkTheme) DarkAppColors else LightAppColors
+    val context = LocalContext.current
+    val currentTheme = ThemeManager.currentThemeColor
+
+    val materialColorScheme = if (darkTheme) {
+        getDarkColorScheme(currentTheme, context)
+    } else {
+        getLightColorScheme(currentTheme, context)
+    }
+
+    val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
+    val appColors = baseAppColors.copy(
+        primary = materialColorScheme.primary,
+        secondary = materialColorScheme.secondary,
+        background = materialColorScheme.background,
+        surface = materialColorScheme.surface
+    )
+
     val appTypography = DefaultAppTypography
     val appShapes = DefaultAppShapes
     val appDimensions = DefaultAppDimensions
-
-    val materialColorScheme = if (darkTheme) {
-        darkColorScheme(
-            primary = appColors.primary,
-            onPrimary = Color.White,
-            primaryContainer = appColors.secondary,
-            onPrimaryContainer = Color.White,
-            secondary = appColors.secondary,
-            onSecondary = Color.White,
-            background = appColors.background,
-            onBackground = Color.White,
-            surface = appColors.surface,
-            onSurface = Color.White,
-            surfaceVariant = appColors.secondary,
-            onSurfaceVariant = Color.White.copy(alpha = 0.7f),
-            error = appColors.error,
-            onError = Color.White,
-            outline = appColors.separator,
-            outlineVariant = appColors.separator
-        )
-    } else {
-        lightColorScheme(
-            primary = appColors.primary,
-            onPrimary = Color.White,
-            primaryContainer = appColors.secondary,
-            onPrimaryContainer = Color.Black,
-            secondary = appColors.secondary,
-            onSecondary = Color.Black,
-            background = appColors.background,
-            onBackground = Color.Black,
-            surface = appColors.surface,
-            onSurface = Color.Black,
-            surfaceVariant = appColors.secondary,
-            onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
-            error = appColors.error,
-            onError = Color.White,
-            outline = appColors.separator,
-            outlineVariant = appColors.separator
-        )
-    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {

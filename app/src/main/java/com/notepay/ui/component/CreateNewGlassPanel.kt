@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -177,9 +178,14 @@ fun ColumnScope.CreateNewActionCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 76.dp)
+            .heightIn(min = 80.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = if (isSystemInDarkTheme()) 0.48f else 0.74f))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.64f),
+                shape = shape,
+            )
             .semantics(mergeDescendants = true) { role = Role.Button }
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp)

@@ -280,4 +280,13 @@
     <string name="stats_no_data">No data yet</string>
     <string name="stats_no_transactions_month">No transactions this month</string>
     <string name="stats_million_unit">(Million)</string>
+
+    <!-- Transaction item labels -->
+    <string name="transaction_internal_transfer">Transfer</string>
+    <string name="cd_internal_transfer_badge">Internal transfer</string>
+    <string name="cd_auto_capture_badge">Auto-captured from bank</string>
+    <string name="billsplit_receive_by_transfer">Receive by Transfer</string>
+
+    <!-- Theme -->
+    <string name="theme_dynamic_color">System color</string>
 </resources>

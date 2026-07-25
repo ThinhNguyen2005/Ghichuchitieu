@@ -387,19 +387,16 @@ fun HomeScreen(
             if (state.recentTransactions.isEmpty()) {
                 item { EmptyStateWithAction(title = emptyTx) }
             } else {
-                item {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.recentTransactions.forEach { tx ->
-                            val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
-                            TransactionItem(
-                                transaction = tx,
-                                walletName = walletName,
-                                onClick = { onTransactionClick(tx.id) },
-                            )
-                        }
-                    }
+                items(
+                    items = state.recentTransactions,
+                    key = { it.id }
+                ) { tx ->
+                    val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
+                    TransactionItem(
+                        transaction = tx,
+                        walletName = walletName,
+                        onClick = { onTransactionClick(tx.id) },
+                    )
                 }
             }
             item { Spacer(Modifier.height(160.dp)) }

@@ -115,16 +115,25 @@ fun StatsDashboard(
             )
         }
         item(key = "stats-chart-mode") {
-            AnimatedContent(
-                targetState = viewType,
-                transitionSpec = {
-                    (fadeIn(animationSpec = tween(180)) + slideInVertically(animationSpec = tween(220)) { it / 14 }) togetherWith
-                        (fadeOut(animationSpec = tween(120)) + slideOutVertically(animationSpec = tween(160)) { -it / 18 })
-                },
-                label = "stats-chart-mode",
-            ) { mode ->
-                when (mode) {
-                    StatsViewType.PHAN_BO -> OverviewCard(
+            when (viewType) {
+                StatsViewType.PHAN_BO -> OverviewCard(
+                    state = state,
+                    metric = metric,
+                    showAmounts = showAmounts,
+                    difference = difference,
+                    onMetricChanged = { metric = it },
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                ) {
+                    AllocationChart(
+                        breakdown = breakdown,
+                        selectedCategory = state.selectedCategory,
+                        onCategorySelected = onCategorySelected,
+                    )
+                }
+
+                StatsViewType.XU_HUONG -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OverviewCard(
                         state = state,
                         metric = metric,
                         showAmounts = showAmounts,
@@ -132,31 +141,13 @@ fun StatsDashboard(
                         onMetricChanged = { metric = it },
                         onPreviousMonth = onPreviousMonth,
                         onNextMonth = onNextMonth,
-                    ) {
-                        AllocationChart(
-                            breakdown = breakdown,
-                            selectedCategory = state.selectedCategory,
-                            onCategorySelected = onCategorySelected,
-                        )
-                    }
-
-                    StatsViewType.XU_HUONG -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OverviewCard(
-                            state = state,
-                            metric = metric,
-                            showAmounts = showAmounts,
-                            difference = difference,
-                            onMetricChanged = { metric = it },
-                            onPreviousMonth = onPreviousMonth,
-                            onNextMonth = onNextMonth,
-                        )
-                        TrendChart(
-                            points = state.recentMonths,
-                            metric = metric,
-                            isSelectedMonthCurrent = state.isCurrentMonth,
-                            onPointClick = onMonthSelected,
-                        )
-                    }
+                    )
+                    TrendChart(
+                        points = state.recentMonths,
+                        metric = metric,
+                        isSelectedMonthCurrent = state.isCurrentMonth,
+                        onPointClick = onMonthSelected,
+                    )
                 }
             }
         }
@@ -276,7 +267,7 @@ private fun OverviewCard(
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
                 }
                 Row(
@@ -292,7 +283,7 @@ private fun OverviewCard(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
                 }
             }

@@ -324,6 +324,120 @@ private fun simulateMomoNotification(context: Context) {
     manager.notify(1002, notification)
 }
 
+@Composable
+private fun ThemeSettingsCard(
+    onPlayHaptic: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentTheme = com.notepay.ui.theme.ThemeManager.currentThemeColor
+
+    val themeOptions = remember {
+        listOf(
+            Triple("dynamic", "Dynamic Color", Color(0xFF6750A4)),
+            Triple("ios", "iOS (Trắng/Đen)", Color(0xFF1C1C1E)),
+            Triple("green", "Xanh lá", Color(0xFF1B7F4F)),
+            Triple("blue", "Xanh dương", Color(0xFF1976D2)),
+            Triple("red", "Đỏ hồng", Color(0xFFC2185B)),
+            Triple("orange", "Cam", Color(0xFFE65100)),
+            Triple("teal", "Xanh ngọc", Color(0xFF00796B)),
+            Triple("gold", "Vàng", Color(0xFF8A6600)),
+            Triple("brown", "Nâu", Color(0xFF8D4F38)),
+            Triple("gray", "Xám", Color(0xFF566066)),
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = AppTheme.shapes.corner16
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Palette,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column {
+                    Text(
+                        "Màu sắc chủ đề",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Chọn tông màu giao diện bạn muốn sử dụng",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(themeOptions, key = { it.first }) { (key, label, color) ->
+                    val isSelected = currentTheme == key
+                    val isDynamicOption = key == "dynamic"
+                    val isIosOption = key == "ios"
+
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            onPlayHaptic()
+                            com.notepay.ui.theme.ThemeManager.updateThemeColor(context, key)
+                        },
+                        label = {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            when {
+                                isDynamicOption -> Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF6750A4)
+                                )
+                                isIosOption -> Icon(
+                                    imageVector = Icons.Rounded.PhoneIphone,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF1C1C1E)
+                                )
+                                else -> Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                )
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSettingsScreen(
@@ -469,6 +583,11 @@ fun NotificationSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            // 0. Màu sắc chủ đề (Theme Color)
+            item {
+                ThemeSettingsCard(onPlayHaptic = ::playHaptic)
+            }
+
             // 1. Quyền hệ thống & Trạng thái chạy ngầm
             item {
                 Card(

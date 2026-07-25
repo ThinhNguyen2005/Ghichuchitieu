@@ -2,6 +2,9 @@ package com.notepay.ui.feature.stats
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -356,11 +359,7 @@ private fun StatsSupportingContent(
         }
 
         Text(
-            text = if (isExpense) {
-                "Chi tiết danh mục chi"
-            } else {
-                "Chi tiết danh mục thu"
-            },
+            text = stringResource(if (isExpense) R.string.stats_expense_category_detail else R.string.stats_income_category_detail),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 4.dp, top = 2.dp),
@@ -368,7 +367,7 @@ private fun StatsSupportingContent(
 
         if (breakdown.isEmpty()) {
             Text(
-                text = "Chưa có giao dịch trong tháng này.",
+                text = stringResource(R.string.stats_no_transactions_month),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -390,9 +389,13 @@ private fun StatsSupportingContent(
                     },
                 )
 
-                if (isSelected) {
+                AnimatedVisibility(
+                    visible = isSelected,
+                    enter = fadeIn(animationSpec = tween(180)) + expandVertically(animationSpec = tween(220)),
+                    exit = fadeOut(animationSpec = tween(120)) + shrinkVertically(animationSpec = tween(180)),
+                ) {
                     Text(
-                        text = "Giao dịch ${item.category.displayName}",
+                        text = stringResource(R.string.stats_transaction_history_format, item.category.displayName),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
@@ -401,7 +404,7 @@ private fun StatsSupportingContent(
 
                     if (selectedTransactions.isEmpty()) {
                         Text(
-                            text = "Không có giao dịch phù hợp.",
+                            text = stringResource(R.string.stats_empty),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp),
@@ -700,6 +703,20 @@ private fun SpendingPredictionCard(
         ForecastConfidence.HIGH -> "Cao"
     }
 
+    // Pair tinted risk surfaces with matching on-* colors for readable text.
+    val riskContainerColor = when {
+        probability == null -> MaterialTheme.colorScheme.secondaryContainer
+        probability >= 0.70 -> MaterialTheme.colorScheme.errorContainer
+        probability >= 0.35 -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val riskOnContainerColor = when {
+        probability == null -> MaterialTheme.colorScheme.onSecondaryContainer
+        probability >= 0.70 -> MaterialTheme.colorScheme.onErrorContainer
+        probability >= 0.35 -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -722,14 +739,14 @@ private fun SpendingPredictionCard(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = riskColor.copy(alpha = 0.12f),
+                    color = riskContainerColor,
                     modifier = Modifier.size(40.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.AutoGraph,
                             contentDescription = null,
-                            tint = riskColor,
+                            tint = riskOnContainerColor,
                         )
                     }
                 }
@@ -760,13 +777,13 @@ private fun SpendingPredictionCard(
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = riskColor.copy(alpha = 0.12f),
+                    color = riskContainerColor,
                 ) {
                     Text(
                         text = "Tin cậy $confidenceLabel",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = riskColor,
+                        color = riskOnContainerColor,
                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
                     )
                 }
@@ -778,7 +795,7 @@ private fun SpendingPredictionCard(
                 ),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = riskColor,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Text(
@@ -800,7 +817,7 @@ private fun SpendingPredictionCard(
                     "Khả năng vượt hạn mức ${(it * 100).toInt()}% · Dựa trên ${prediction.observedDays} ngày dữ liệu"
                 } ?: "Đặt hạn mức để xem xác suất vượt chi · Dựa trên ${prediction.observedDays} ngày dữ liệu",
                 style = MaterialTheme.typography.labelMedium,
-                color = riskColor,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
             )
         }

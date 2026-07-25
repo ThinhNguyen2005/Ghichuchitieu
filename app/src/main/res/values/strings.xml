@@ -280,4 +280,13 @@
     <string name="stats_no_data">Chưa có dữ liệu</string>
     <string name="stats_no_transactions_month">Chưa phát sinh giao dịch trong tháng này</string>
     <string name="stats_million_unit">(Triệu)</string>
+
+    <!-- Transaction item labels -->
+    <string name="transaction_internal_transfer">Chuyển khoản</string>
+    <string name="cd_internal_transfer_badge">Chuyển khoản nội bộ</string>
+    <string name="cd_auto_capture_badge">Tự động từ ngân hàng</string>
+    <string name="billsplit_receive_by_transfer">Nhận bằng Chuyển khoản</string>
+
+    <!-- Theme -->
+    <string name="theme_dynamic_color">Màu hệ thống</string>
 </resources>
