@@ -13,7 +13,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -95,7 +94,7 @@ private fun LocalAiModelSettingsCard(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                shape = RoundedCornerShape(14.dp)
+                shape = AppTheme.shapes.corner14
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -173,7 +172,7 @@ private fun LocalAiModelSettingsCard(
                 OutlinedButton(
                     onClick = onOpenModelPage,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = AppTheme.shapes.corner12
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.OpenInNew,
@@ -187,7 +186,7 @@ private fun LocalAiModelSettingsCard(
                     onClick = onPickModel,
                     enabled = localModel.status != LocalModelInstallStatus.IMPORTING,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = AppTheme.shapes.corner12
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.FolderOpen,

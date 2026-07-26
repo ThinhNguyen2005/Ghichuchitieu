@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Close
@@ -276,7 +275,7 @@ private fun TransactionListContent(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(top = topSystemPadding + 8.dp, bottom = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
                     containerColor = if (!androidx.compose.foundation.isSystemInDarkTheme()) {
                         Color.White
@@ -333,7 +332,7 @@ private fun TransactionListContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
                     )

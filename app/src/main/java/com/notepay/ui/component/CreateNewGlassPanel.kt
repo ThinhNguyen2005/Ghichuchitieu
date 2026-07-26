@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
@@ -172,7 +174,7 @@ fun ColumnScope.CreateNewActionCard(
         },
         label = "actionTranslation",
     ) { if (it) 0f else 14f }
-    val shape = RoundedCornerShape(20.dp)
+    val shape = AppTheme.shapes.corner20
     val actionTranslationPx = with(LocalDensity.current) { 14.dp.toPx() }
 
     Row(
@@ -201,7 +203,7 @@ fun ColumnScope.CreateNewActionCard(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(accentColor.copy(alpha = if (isSystemInDarkTheme()) 0.26f else 0.14f), RoundedCornerShape(14.dp)),
+                .background(accentColor.copy(alpha = if (isSystemInDarkTheme()) 0.26f else 0.14f), AppTheme.shapes.corner14),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = null, tint = accentColor)

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -117,7 +116,7 @@ fun PaymentReconciliationSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(AppTheme.shapes.corner14)
                             .background(if (isCash) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable {
                                 paymentMethod = "cash"
@@ -167,7 +166,7 @@ fun PaymentReconciliationSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(AppTheme.shapes.corner14)
                             .background(if (isTransfer) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable { paymentMethod = "transfer" }
                             .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -262,7 +261,7 @@ fun PaymentReconciliationSheet(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { selectedIncomeTxId = tx.id },
-                                shape = RoundedCornerShape(14.dp),
+                                shape = AppTheme.shapes.corner14,
                                 colors = CardDefaults.cardColors(containerColor = cardBgColor),
                                 border = borderStroke
                             ) {

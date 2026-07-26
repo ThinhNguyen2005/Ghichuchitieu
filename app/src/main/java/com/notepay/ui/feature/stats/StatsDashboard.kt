@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.stats
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -187,7 +189,7 @@ private fun ViewModeToggle(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = AppTheme.shapes.corner14,
         color = cardBg,
         shadowElevation = 1.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
@@ -202,9 +204,9 @@ private fun ViewModeToggle(
             // 1. Tab Phân bổ
             Surface(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(AppTheme.shapes.corner10)
                     .clickable { onChanged(StatsViewType.PHAN_BO) },
-                shape = RoundedCornerShape(10.dp),
+                shape = AppTheme.shapes.corner10,
                 color = if (isPhanBo) momoPinkBg else Color.Transparent,
             ) {
                 Row(
@@ -235,9 +237,9 @@ private fun ViewModeToggle(
             val isXuHuong = viewType == StatsViewType.XU_HUONG
             Surface(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(AppTheme.shapes.corner10)
                     .clickable { onChanged(StatsViewType.XU_HUONG) },
-                shape = RoundedCornerShape(10.dp),
+                shape = AppTheme.shapes.corner10,
                 color = if (isXuHuong) momoPinkBg else Color.Transparent,
             ) {
                 Row(
@@ -383,7 +385,7 @@ private fun OverviewCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(AppTheme.shapes.corner12)
                     .background(bannerBg)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -427,7 +429,7 @@ private fun MetricCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = AppTheme.shapes.corner16
     val amountText = if (showAmounts) MoneyFormatter.format(amount) else "••••••"
     val amountStyle = if (amountText.length > 13) {
         MaterialTheme.typography.titleSmall

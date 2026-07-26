@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.stats
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -230,9 +232,9 @@ internal fun AllocationChartContent(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(AppTheme.shapes.corner12)
                                 .clickable { onCategorySelected(if (selected) null else item.category) },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppTheme.shapes.corner12,
                             color = color.copy(alpha = if (selected) .18f else .08f),
                         ) {
                             Row(
@@ -310,7 +312,7 @@ private fun AllocationCenter(
             if (item != null) {
                 Spacer(Modifier.height(3.dp))
                 Surface(
-                    shape = RoundedCornerShape(999.dp),
+                    shape = AppTheme.shapes.capsule,
                     color = tint.copy(alpha = 0.18f),
                 ) {
                     Text(

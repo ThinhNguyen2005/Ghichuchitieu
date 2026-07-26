@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -136,7 +138,7 @@ fun DayDetailDialog(
                         }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = containerColor),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppTheme.shapes.corner12,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(

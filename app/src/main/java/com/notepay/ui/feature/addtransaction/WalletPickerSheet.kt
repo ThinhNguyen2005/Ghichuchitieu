@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Check
@@ -127,7 +126,7 @@ private fun WalletPickerRow(
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(AppTheme.shapes.corner10)
                 .padding(2.dp),
         ) {
             Icon(

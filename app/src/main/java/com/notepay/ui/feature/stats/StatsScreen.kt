@@ -1,5 +1,7 @@
 package com.notepay.ui.feature.stats
 
+import com.notepay.ui.theme.AppTheme
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -33,7 +35,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.rounded.Add
@@ -281,7 +282,7 @@ private fun StatsEmptyState(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = AppTheme.shapes.corner24,
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
                 modifier = Modifier.size(88.dp),
             ) {
@@ -312,7 +313,7 @@ private fun StatsEmptyState(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = AppTheme.shapes.corner14,
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -401,7 +402,7 @@ private fun StatsSupportingContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(AppTheme.shapes.corner16)
                     .background(MaterialTheme.colorScheme.surfaceContainerLow)
                     .padding(vertical = 24.dp, horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
@@ -513,7 +514,7 @@ private fun CategoryBreakdownRow(
                 }
             }
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
             containerColor = if (!isSystemInDarkTheme()) {
                 Color.White
@@ -624,7 +625,7 @@ private fun BudgetProgressBar(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
             containerColor = if (!isSystemInDarkTheme()) {
                 Color.White
@@ -676,7 +677,7 @@ private fun BudgetProgressBar(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = AppTheme.shapes.corner10,
                     color = statusColor.copy(alpha = 0.12f),
                 ) {
                     Text(
@@ -760,7 +761,7 @@ private fun SpendingPredictionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
             containerColor = if (!isSystemInDarkTheme()) {
                 Color.White
@@ -817,7 +818,7 @@ private fun SpendingPredictionCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = AppTheme.shapes.corner10,
                     color = riskContainerColor,
                 ) {
                     Text(
@@ -1449,7 +1450,7 @@ private fun SubscriptionProposalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 44.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = AppTheme.shapes.corner12,
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
         ) {
             Icon(
@@ -1474,7 +1475,7 @@ private fun InsightCard(
 ) {
     Card(
         modifier = modifier.height(214.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
             containerColor = if (!isSystemInDarkTheme()) {
                 Color.White

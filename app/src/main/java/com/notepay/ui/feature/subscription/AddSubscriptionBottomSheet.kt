@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
@@ -572,7 +571,7 @@ private fun CategoryPickerSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(AppTheme.shapes.corner10)
                         .background(
                             if (category == current) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else Color.Transparent
@@ -648,7 +647,7 @@ private fun RecentTransactionsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(AppTheme.shapes.corner10)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { onPicked(tx) }
                             .padding(12.dp),
