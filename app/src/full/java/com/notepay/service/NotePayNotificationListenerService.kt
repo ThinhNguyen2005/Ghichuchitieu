@@ -12,7 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.notepay.BuildConfig
 import com.notepay.data.preferences.AutoCaptureSettingsStore
 import com.notepay.data.preferences.KnownBankApps
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
@@ -69,7 +69,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
     lateinit var autoCaptureSettingsStore: AutoCaptureSettingsStore
 
     @Inject
-    lateinit var notificationSettingsStore: NotificationSettingsStore
+    lateinit var budgetSettingsStore: BudgetSettingsStore
 
     private val job = SupervisorJob()
     private val serviceScope: CoroutineScope
@@ -150,7 +150,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         }
 
         serviceScope.launch {
-            notificationSettingsStore.settings.collect { settings ->
+            budgetSettingsStore.settings.collect { settings ->
                 monthlyBudgetCents = settings.monthlyBudgetCents
             }
         }

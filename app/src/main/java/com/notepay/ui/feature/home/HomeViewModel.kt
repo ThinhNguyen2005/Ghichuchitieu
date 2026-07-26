@@ -7,7 +7,7 @@ import com.notepay.ai.LocalAiModelManager
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.model.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +30,7 @@ class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
     private val observeWalletBalance: ObserveWalletBalanceUseCase,
-    private val notificationSettingsStore: NotificationSettingsStore,
+    private val budgetSettingsStore: BudgetSettingsStore,
     private val subscriptionRepository: SubscriptionRepository,
     private val localAiModelManager: LocalAiModelManager,
 ) : ViewModel() {
@@ -141,10 +141,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    val settings = notificationSettingsStore.settings.stateIn(
+    val settings = budgetSettingsStore.settings.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = com.notepay.data.preferences.NotificationSettings(),
+        initialValue = com.notepay.data.preferences.BudgetSettings(),
     )
 
     val localModel = localAiModelManager.state.stateIn(

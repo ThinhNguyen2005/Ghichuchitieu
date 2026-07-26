@@ -12,23 +12,28 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class NotificationSettings(
+data class BudgetSettings(
     /** Hạn mức chi tiêu tháng (VND * 100). 0 = chưa cài, bỏ qua Budget Alert. */
     val monthlyBudgetCents: Long = 0L,
 )
 
-private val Context.notificationSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
+/**
+ * KHÔNG đổi `name`. Đây là tên file DataStore trên máy người dùng; đổi sẽ làm mất hạn mức
+ * chi tiêu họ đã cài. Tên còn là "notification_settings" vì store này từng chứa cả cấu hình
+ * đọc thông báo — phần đó đã chuyển sang AutoCaptureSettingsStore ở flavor full.
+ */
+private val Context.budgetSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "notification_settings",
 )
 
 @Singleton
-class NotificationSettingsStore @Inject constructor(
+class BudgetSettingsStore @Inject constructor(
     @ApplicationContext context: Context,
 ) {
-    private val dataStore = context.applicationContext.notificationSettingsDataStore
+    private val dataStore = context.applicationContext.budgetSettingsDataStore
 
-    val settings: Flow<NotificationSettings> = dataStore.data.map { preferences ->
-        NotificationSettings(
+    val settings: Flow<BudgetSettings> = dataStore.data.map { preferences ->
+        BudgetSettings(
             monthlyBudgetCents = preferences[Keys.MONTHLY_BUDGET_CENTS] ?: 0L,
         )
     }

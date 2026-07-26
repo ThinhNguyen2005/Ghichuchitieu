@@ -6,7 +6,7 @@ import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,7 +29,7 @@ class DataExporter @Inject constructor(
     private val billSplitDao: BillSplitDao,
     private val subscriptionDao: SubscriptionDao,
     private val categoryRepository: CategoryRepositoryImpl,
-    private val notificationSettingsStore: NotificationSettingsStore,
+    private val budgetSettingsStore: BudgetSettingsStore,
     @ApplicationContext private val context: Context,
 ) {
     suspend fun exportToJson(): String {
@@ -50,9 +50,9 @@ class DataExporter @Inject constructor(
         }
 
         val settings = try {
-            notificationSettingsStore.settings.first()
+            budgetSettingsStore.settings.first()
         } catch (_: Exception) {
-            com.notepay.data.preferences.NotificationSettings()
+            com.notepay.data.preferences.BudgetSettings()
         }
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)

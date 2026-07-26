@@ -96,7 +96,7 @@ fun HomeScreen(
     onAddWallet: () -> Unit,
     onEditWallet: (Long) -> Unit,
     onNavigateToReminders: () -> Unit,
-    onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToAppSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -160,7 +160,7 @@ fun HomeScreen(
                             )
                         }
                     }
-                    IconButton(onClick = onNavigateToNotificationSettings) {
+                    IconButton(onClick = onNavigateToAppSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = notifSettingsCd

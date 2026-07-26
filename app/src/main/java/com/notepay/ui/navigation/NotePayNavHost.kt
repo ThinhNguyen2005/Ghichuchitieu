@@ -62,7 +62,7 @@ import com.notepay.ui.feature.billsplit.BillSplitScreen
 import com.notepay.ui.feature.billsplit.DebtorDetailScreen
 import com.notepay.ui.feature.detail.TransactionDetailScreen
 import com.notepay.ui.feature.home.HomeScreen
-import com.notepay.ui.feature.home.NotificationSettingsScreen
+import com.notepay.ui.feature.home.AppSettingsScreen
 import com.notepay.ui.feature.list.TransactionListScreen
 import com.notepay.ui.feature.stats.StatsScreen
 import com.notepay.ui.feature.subscription.SubscriptionScreen
@@ -334,7 +334,7 @@ fun NotePayNavHost(
                         onAddWallet = { navController.navigate(Route.AddWallet.path) },
                         onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
-                        onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
+                        onNavigateToAppSettings = { navController.navigate(Route.AppSettings.path) },
                         onTransactionClick = { txId ->
                             navController.navigate(Route.TransactionDetail(txId).path)
                         }
@@ -395,7 +395,7 @@ fun NotePayNavHost(
                             navController.navigate(Route.TransactionDetail(txId).path)
                         },
                         onConfigureLocalModel = {
-                            navController.navigate(Route.NotificationSettings.path)
+                            navController.navigate(Route.AppSettings.path)
                         },
                     )
                 }
@@ -507,8 +507,8 @@ fun NotePayNavHost(
                 composable(Route.BackupRestore.path) {
                     BackupRestoreScreen(onBack = { navController.popBackStack() })
                 }
-                composable(Route.NotificationSettings.path) {
-                    NotificationSettingsScreen(
+                composable(Route.AppSettings.path) {
+                    AppSettingsScreen(
                         onBack = { navController.popBackStack() },
                         onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
                     )

@@ -12,7 +12,7 @@ import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.data.local.entity.WalletEntity
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.model.Category
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,7 +29,7 @@ class DataImporter @Inject constructor(
     private val billSplitDao: BillSplitDao,
     private val subscriptionDao: SubscriptionDao,
     private val categoryRepository: CategoryRepositoryImpl,
-    private val notificationSettingsStore: NotificationSettingsStore,
+    private val budgetSettingsStore: BudgetSettingsStore,
     @ApplicationContext private val context: Context,
 ) {
     suspend fun readFromFile(uri: Uri): String {

@@ -31,7 +31,7 @@ import org.robolectric.RobolectricTestRunner
 import org.junit.Rule
 import com.notepay.ui.feature.addtransaction.MainDispatcherRule
 
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.preferences.KnownBankApps
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -46,7 +46,7 @@ class NotePayNotificationListenerServiceTest {
     private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
     private val billSplitRepository = mockk<BillSplitRepository>(relaxed = true)
     private val subscriptionRepository = mockk<SubscriptionRepository>(relaxed = true)
-    private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
+    private val budgetSettingsStore = mockk<BudgetSettingsStore>(relaxed = true)
     private lateinit var addTransaction: AddTransactionUseCase
     private lateinit var service: NotePayNotificationListenerService
 
@@ -79,7 +79,7 @@ class NotePayNotificationListenerServiceTest {
         service.subscriptionRepository = subscriptionRepository
         service.suggestCategoryUseCase = suggestCategoryUseCase
         service.ioDispatcher = mainDispatcherRule.testDispatcher
-        service.notificationSettingsStore = notificationSettingsStore
+        service.budgetSettingsStore = budgetSettingsStore
 //        service.trackAllBanks = true
         service.settingsLoaded = true
         service.enabledPackages = KnownBankApps.supportedPackages

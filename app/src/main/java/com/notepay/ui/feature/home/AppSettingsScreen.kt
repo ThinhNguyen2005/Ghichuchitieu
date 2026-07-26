@@ -221,7 +221,7 @@ private fun LocalAiModelSettingsCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationSettingsScreen(
+fun AppSettingsScreen(
     onBack: () -> Unit,
     onNavigateToBackupRestore: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
