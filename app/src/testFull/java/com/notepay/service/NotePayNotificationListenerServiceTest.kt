@@ -1,0 +1,408 @@
+package com.notepay.service
+
+import android.app.Notification
+import android.os.Bundle
+import android.service.notification.StatusBarNotification
+import com.google.common.truth.Truth.assertThat
+import com.notepay.domain.model.Category
+import com.notepay.domain.model.Money
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.repository.BillSplitRepository
+import com.notepay.domain.repository.SubscriptionRepository
+import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.usecase.SuggestCategoryUseCase
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+import org.junit.Rule
+import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+
+import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.data.preferences.KnownBankApps
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [34])
+class NotePayNotificationListenerServiceTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
+    
+    private val walletRepository = mockk<WalletRepository>(relaxed = true)
+    private val transactionRepository = mockk<TransactionRepository>(relaxed = true)
+    private val billSplitRepository = mockk<BillSplitRepository>(relaxed = true)
+    private val subscriptionRepository = mockk<SubscriptionRepository>(relaxed = true)
+    private val notificationSettingsStore = mockk<NotificationSettingsStore>(relaxed = true)
+    private lateinit var addTransaction: AddTransactionUseCase
+    private lateinit var service: NotePayNotificationListenerService
+
+    private val activeWallet = Wallet(
+        id = 2L,
+        name = "Ví ATM",
+        initialBalance = Money.ZERO,
+        iconKey = "bank",
+        colorKey = "secondary",
+        isActive = true
+    )
+
+    @Before
+    fun setUp() {
+        addTransaction = AddTransactionUseCase(
+            transactionRepository,
+            walletRepository,
+            mainDispatcherRule.testDispatcher
+        )
+        val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
+        every { suggestCategoryUseCase.suggest(any(), any()) } returns Category.DEFAULT_EXPENSE
+
+        val controller = org.robolectric.Robolectric.buildService(NotePayNotificationListenerService::class.java)
+        service = controller.get()
+
+        service.walletRepository = walletRepository
+        service.addTransaction = addTransaction
+        service.billSplitRepository = billSplitRepository
+        service.transactionRepository = transactionRepository
+        service.subscriptionRepository = subscriptionRepository
+        service.suggestCategoryUseCase = suggestCategoryUseCase
+        service.ioDispatcher = mainDispatcherRule.testDispatcher
+        service.notificationSettingsStore = notificationSettingsStore
+//        service.trackAllBanks = true
+        service.settingsLoaded = true
+        service.enabledPackages = KnownBankApps.supportedPackages
+        service.autoCaptureEnabled = true
+        
+        every { walletRepository.observeActive() } returns flowOf(activeWallet)
+        every { walletRepository.observeAll() } returns flowOf(emptyList())
+        every { billSplitRepository.observeUnpaid() } returns flowOf(emptyList())
+        every { subscriptionRepository.observeAll() } returns flowOf(emptyList())
+    }
+
+    @Test
+    fun `onNotificationPosted parses TPBank notification and inserts transaction`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank")
+            putString("android.text", """
+                (TPBank): 14/06/26;05:51
+                TK: xxxx1234
+                PS: -50,000VND
+                SD: 2,450,000VND
+                SD KHA DUNG: 2,450,000VND
+                ND: Mua ca phe chieu
+                SO GD: 987654322
+                05:51
+            """.trimIndent())
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.tpbank",
+            "com.tpbank",
+            1,
+            "tag",
+            1000,
+            1000,
+            0, // score
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+        
+        coEvery { walletRepository.getById(activeWallet.id) } returns activeWallet
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        // Trigger notification post
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        // Verify transaction added
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        
+        val tx = capturedTransactions.first()
+        assertThat(tx.amount).isEqualTo(Money(50_000_00)) // 50,000 đ
+        assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(tx.category).isEqualTo(Category.DEFAULT_EXPENSE)
+        assertThat(tx.note).isEqualTo("Mua ca phe chieu")
+        assertThat(tx.walletId).isEqualTo(activeWallet.id)
+    }
+
+    @Test
+    fun `onNotificationPosted parses real TPBank screenshot notification`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", """
+                (TPBank): 14/06/26;06:25
+                TK: xxxx5539020
+                PS:-30.000VND
+                SD: 410.054VND
+                SD KHA DUNG: 410.054VND
+                ND: NAP TIEN VI MOMO - 0945553902
+                - 133366724699
+                SO GD: 661TTMB261662918
+            """.trimIndent())
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.tpbank",
+            "com.tpbank",
+            3,
+            "tag",
+            1000,
+            1000,
+            0,
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+        
+        coEvery { walletRepository.getById(activeWallet.id) } returns activeWallet
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        
+        val tx = capturedTransactions.first()
+        assertThat(tx.amount).isEqualTo(Money(30_000_00)) // 30.000 đ
+        assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(tx.note).isEqualTo("NAP TIEN VI MOMO - 0945553902")
+        assertThat(tx.walletId).isEqualTo(activeWallet.id)
+    }
+
+    @Test
+    fun `onNotificationPosted parses InboxStyle notification using textLines`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25...")
+            putCharSequenceArray("android.textLines", arrayOf(
+                "(TPBank): 14/06/26;06:25",
+                "TK: xxxx5539020",
+                "PS:-30.000VND",
+                "SD: 410.054VND",
+                "SD KHA DUNG: 410.054VND",
+                "ND: NAP TIEN VI MOMO - 0945553902",
+                "- 133366724699",
+                "SO GD: 661TTMB261662918"
+            ))
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.tpbank",
+            "com.tpbank",
+            4,
+            "tag",
+            1000,
+            1000,
+            0,
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+        
+        coEvery { walletRepository.getById(activeWallet.id) } returns activeWallet
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        
+        val tx = capturedTransactions.first()
+        assertThat(tx.amount).isEqualTo(Money(30_000_00)) // 30.000 đ
+        assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(tx.note).isEqualTo("NAP TIEN VI MOMO - 0945553902")
+    }
+
+    @Test
+    fun `onNotificationPosted ignores non-transaction notification`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "Momo")
+            putString("android.text", "Chúc bạn một ngày mới vui vẻ!")
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.momo",
+            "com.momo",
+            2,
+            "tag",
+            1000,
+            1000,
+            0, // score
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+
+        service.onNotificationPosted(sbn)
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted ignores ordinary notification from NotePay package`() = runTest {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", """
+                (TPBank): 14/06/26;06:25
+                TK: xxxx5539020
+                PS:-30.000VND
+                SD: 410.054VND
+                SD KHA DUNG: 410.054VND
+                ND: NAP TIEN VI MOMO - 0945553902
+                - 133366724699
+                SO GD: 661TTMB261662918
+            """.trimIndent())
+        }
+        val notification = Notification().apply {
+            this.extras = extras
+        }
+        val sbn = StatusBarNotification(
+            "com.notepay",
+            "com.notepay",
+            3,
+            "tag",
+            1000,
+            1000,
+            0,
+            notification,
+            android.os.Process.myUserHandle(),
+            System.currentTimeMillis()
+        )
+        
+        coEvery { walletRepository.getById(activeWallet.id) } returns activeWallet
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).isEmpty()
+    }
+
+    @Test
+    fun `onNotificationPosted falls back to first wallet when no active wallet is set`() = runTest {
+        every { walletRepository.observeActive() } returns flowOf(null)
+        every { walletRepository.observeAll() } returns flowOf(listOf(activeWallet))
+        
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: NAP TIEN VI MOMO")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        val sbn = StatusBarNotification(
+            "com.tpbank", "com.tpbank", 3, "tag", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis()
+        )
+        
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        assertThat(capturedTransactions.first().walletId).isEqualTo(activeWallet.id)
+    }
+
+    @Test
+    fun `onNotificationPosted auto creates default wallet when database is completely empty`() = runTest {
+        every { walletRepository.observeActive() } returns flowOf(null)
+        every { walletRepository.observeAll() } returns flowOf(emptyList())
+        coEvery { walletRepository.upsert(any()) } returns 99L
+        
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: NAP TIEN VI MOMO")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        val sbn = StatusBarNotification(
+            "com.tpbank", "com.tpbank", 3, "tag", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis()
+        )
+        
+        val capturedTransactions = mutableListOf<Transaction>()
+        coEvery { transactionRepository.upsert(capture(capturedTransactions)) } returns 1L
+
+        service.onNotificationPosted(sbn)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { walletRepository.upsert(any()) }
+        coVerify(exactly = 1) { walletRepository.setActive(99L) }
+        coVerify(exactly = 1) { transactionRepository.upsert(any()) }
+        assertThat(capturedTransactions).hasSize(1)
+        assertThat(capturedTransactions.first().walletId).isEqualTo(99L)
+    }
+
+    @Test
+    fun `onNotificationPosted ignores TPBank when master capture is off`() = runTest {
+        service.autoCaptureEnabled = false
+
+        service.onNotificationPosted(validTransactionNotification("com.tpbank"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted ignores TPBank when its package is disabled`() = runTest {
+        service.enabledPackages = emptySet()
+
+        service.onNotificationPosted(validTransactionNotification("com.tpbank"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted ignores unsupported bank even when legacy settings enabled it`() = runTest {
+        service.enabledPackages = setOf("com.VCB")
+
+        service.onNotificationPosted(validTransactionNotification("com.VCB"))
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    private fun validTransactionNotification(packageName: String): StatusBarNotification {
+        val extras = Bundle().apply {
+            putString("android.title", "TPBank Mobile")
+            putString("android.text", "(TPBank): 14/06/26;06:25\nPS:-30.000VND\nND: TEST")
+        }
+        val notification = Notification().apply { this.extras = extras }
+        return StatusBarNotification(
+            packageName, packageName, 9, "gate-test", 1000, 1000, 0,
+            notification, android.os.Process.myUserHandle(), System.currentTimeMillis(),
+        )
+    }
+}
+
+

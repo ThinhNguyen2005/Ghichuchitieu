@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.feature.autocapture.autoCaptureSettingsItem
 import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.ai.LocalModelState
 import com.notepay.ui.theme.AppTheme
@@ -271,6 +272,8 @@ fun NotificationSettingsScreen(
             item {
                 ThemeSettingsCard(onPlayHaptic = ::playHaptic)
             }
+
+            autoCaptureSettingsItem()
 
             // 2. Mô hình AI cục bộ
             item {
