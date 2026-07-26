@@ -194,6 +194,7 @@ private class FakeTransactionRepository(
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(transactions)
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(transactions)
     override suspend fun getById(id: Long): Transaction? = null
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(null)
     override suspend fun upsert(transaction: Transaction): Long = 0
     override suspend fun delete(id: Long) = Unit
     override suspend fun findRecentSimilar(

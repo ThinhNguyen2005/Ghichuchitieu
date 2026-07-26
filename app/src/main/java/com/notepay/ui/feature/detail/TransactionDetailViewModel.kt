@@ -41,23 +41,24 @@ class TransactionDetailViewModel @Inject constructor(
         if (transactionId <= 0L) {
             _state.update { it.copy(isLoading = false, error = "Không tìm thấy giao dịch") }
         } else {
-            load()
+            observeTransaction()
         }
     }
 
-    private fun load() {
+    private fun observeTransaction() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                val tx = transactionRepository.getById(transactionId)
-                val walletName = tx?.let { walletRepository.getById(it.walletId)?.name }
-                _state.update {
-                    it.copy(
-                        transaction = tx,
-                        walletName = walletName,
-                        isLoading = false,
-                        error = if (tx == null) "Không tìm thấy giao dịch" else null,
-                    )
+                transactionRepository.observeById(transactionId).collect { tx ->
+                    val walletName = tx?.let { walletRepository.getById(it.walletId)?.name }
+                    _state.update {
+                        it.copy(
+                            transaction = tx,
+                            walletName = walletName,
+                            isLoading = false,
+                            error = if (tx == null) "Không tìm thấy giao dịch" else null,
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message ?: "Lỗi tải giao dịch") }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -104,6 +105,26 @@ class TransactionRepositoryImplTest {
         collectJob.cancel()
     }
 
+    @Test
+    fun observeByIdMapsTheLatestTransaction() = runTest {
+        val tx = TransactionEntity(
+            id = 11L,
+            amountCents = 25000L,
+            type = "EXPENSE",
+            category = Category.FOOD.id,
+            note = "An trua",
+            occurredAt = 1000L,
+            walletId = 1L,
+            createdAt = 1000L,
+        )
+        fakeDao.emit(listOf(tx))
+
+        val observed = transactionRepository.observeById(tx.id).first()
+
+        assertThat(observed?.id).isEqualTo(tx.id)
+        assertThat(observed?.amount?.amountInCents).isEqualTo(tx.amountCents)
+    }
+
     private class FakeTransactionDao : TransactionDao {
         private val flow = MutableStateFlow<List<TransactionEntity>>(emptyList())
 
@@ -119,6 +140,8 @@ class TransactionRepositoryImplTest {
         override fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = flow
         override fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>> = flow
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
+        override fun observeById(id: Long): Flow<TransactionEntity?> =
+            flow.map { entities -> entities.find { it.id == id } }
         override suspend fun upsert(entity: TransactionEntity): Long = 0L
         override suspend fun delete(id: Long) = Unit
 

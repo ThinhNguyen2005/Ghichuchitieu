@@ -231,6 +231,7 @@ private class FakeTransactionRepository(
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions.filter { it.walletId == walletId })
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
     override suspend fun getById(id: Long): Transaction? = savedTransactions.firstOrNull { it.id == id }
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.firstOrNull { it.id == id })
     override suspend fun upsert(transaction: Transaction): Long {
         return upsertResult.getOrThrow().also { savedTransactions += transaction }
     }

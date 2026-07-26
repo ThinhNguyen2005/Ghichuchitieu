@@ -17,6 +17,9 @@ interface TransactionRepository {
     /** Observe tổng hợp theo ví, real-time. */
     fun observeByWallet(walletId: Long): Flow<List<Transaction>>
 
+    /** Observe một giao dịch, real-time. */
+    fun observeById(id: Long): Flow<Transaction?>
+
     suspend fun getById(id: Long): Transaction?
 
     /** Insert hoặc update. Trả về row id. */

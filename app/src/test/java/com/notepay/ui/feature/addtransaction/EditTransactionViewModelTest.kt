@@ -151,6 +151,7 @@ class EditTransactionViewModelTest {
             override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
             override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
             override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+            override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
             override suspend fun upsert(transaction: Transaction): Long {
                 throw IllegalStateException("db failed")
             }
@@ -216,6 +217,7 @@ private class EditFakeTransactionRepository(
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
     override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
     override suspend fun upsert(transaction: Transaction): Long {
         val idx = savedTransactions.indexOfFirst { it.id == transaction.id }
         if (idx != -1) {

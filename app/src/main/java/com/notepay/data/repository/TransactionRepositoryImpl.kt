@@ -43,6 +43,9 @@ class TransactionRepositoryImpl @Inject constructor(
             list.map(mapper::toDomain)
         }.flowOn(dispatcher)
 
+    override fun observeById(id: Long): Flow<Transaction?> =
+        dao.observeById(id).map { it?.let(mapper::toDomain) }.flowOn(dispatcher)
+
     override suspend fun getById(id: Long): Transaction? =
         dao.getById(id)?.let(mapper::toDomain)
 
