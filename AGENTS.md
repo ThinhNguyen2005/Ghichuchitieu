@@ -1,7 +1,20 @@
 # Shared agent instructions
 
 All agents working in this repository, including Codex and Gemini, use the
-existing `.agents/` directory as the shared source of truth.
+`.agents/` directory as the shared source of truth.
+
+`.agents/` is a local workspace and is deliberately not committed. It is
+excluded through `.git/info/exclude` rather than `.gitignore`, because
+`.gitignore` would stop Antigravity and Gemini from indexing the rules, skills
+and workflows inside it. On a fresh clone the directory will be missing;
+recreate it with:
+
+```
+npx @vudovn/ag-kit init
+```
+
+If `.agents/` is absent, skip the four steps below and follow this file plus
+`CLAUDE.md` directly.
 
 At the start of a task:
 
