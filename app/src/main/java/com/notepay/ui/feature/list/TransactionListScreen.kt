@@ -2,6 +2,7 @@ package com.notepay.ui.feature.list
 
 import com.notepay.ui.theme.AppTheme
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.notepay.R
@@ -545,9 +546,17 @@ private fun TransactionMonthOverview(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("Dòng tiền tháng này", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "$transactionCount giao dịch đã ghi nhận",
+                        stringResource(R.string.transaction_cash_flow_this_month),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        pluralStringResource(
+                            R.plurals.transaction_recorded_count,
+                            transactionCount,
+                            transactionCount,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

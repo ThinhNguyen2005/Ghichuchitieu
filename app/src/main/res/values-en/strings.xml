@@ -108,8 +108,29 @@
     <string name="bill_split_empty_unpaid">No pending debts.</string>
     <string name="bill_split_empty_paid">No paid debts yet.</string>
     <string name="bill_split_vietqr_cd">VietQR configuration</string>
-    <string name="bill_split_total_count">Total: %1$d debts</string>
+    <plurals name="bill_split_total_count">
+        <item quantity="one">Total: %1$d debt</item>
+        <item quantity="other">Total: %1$d debts</item>
+    </plurals>
     <string name="bill_split_vietqr_saved">VietQR settings saved for %1$s</string>
+    <string name="billsplit_no_debtor_yet">No one added yet</string>
+    <string name="billsplit_reconcile_summary_format">%1$s · %2$s</string>
+    <plurals name="billsplit_debtor_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <plurals name="billsplit_debtor_added_count">
+        <item quantity="one">%1$d person added</item>
+        <item quantity="other">%1$d people added</item>
+    </plurals>
+    <plurals name="billsplit_split_completed_count">
+        <item quantity="one">%1$d split completed</item>
+        <item quantity="other">%1$d splits completed</item>
+    </plurals>
+    <plurals name="billsplit_split_to_reconcile_count">
+        <item quantity="one">%1$d split to reconcile</item>
+        <item quantity="other">%1$d splits to reconcile</item>
+    </plurals>
 
     <!-- Subscription screen -->
     <string name="subscription_title">Subscriptions</string>
@@ -179,15 +200,46 @@
     <string name="cd_clear_search">Clear search</string>
     <string name="transaction_search_notes_category_placeholder">Search by notes or category</string>
     <string name="date_today">Today</string>
-    <string name="date_days_remaining_format">%1$d days remaining</string>
-    <string name="date_days_ago_format">%1$d days ago</string>
+    <plurals name="date_days_remaining">
+        <item quantity="one">%1$d day remaining</item>
+        <item quantity="other">%1$d days remaining</item>
+    </plurals>
+    <plurals name="date_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
     <string name="day_detail_empty_desc">No transactions or reminders on this day.</string>
     <string name="subscription_reminders_title">Reminders</string>
-    <string name="subscription_overdue_format">Overdue by %1$d days</string>
+    <plurals name="subscription_overdue">
+        <item quantity="one">Overdue by %1$d day</item>
+        <item quantity="other">Overdue by %1$d days</item>
+    </plurals>
     <string name="subscription_due_today">Due today</string>
+    <string name="subscription_due_tomorrow">Due tomorrow</string>
     <string name="subscription_due_one_day">1 day left</string>
-    <string name="subscription_due_days_format">Remaining %1$d days</string>
+    <plurals name="subscription_due_days">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="subscription_remind_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="subscription_cycle_months">
+        <item quantity="one">Every %1$d month</item>
+        <item quantity="other">Every %1$d months</item>
+    </plurals>
+    <plurals name="subscription_remind_before_days">
+        <item quantity="one">Remind %1$d day before</item>
+        <item quantity="other">Remind %1$d days before</item>
+    </plurals>
+    <string name="subscription_detail_summary_format">%1$s • %2$s</string>
     <string name="day_detail_transactions_title">Transactions today</string>
+    <string name="transaction_cash_flow_this_month">Cash flow this month</string>
+    <plurals name="transaction_recorded_count">
+        <item quantity="one">%1$d transaction recorded</item>
+        <item quantity="other">%1$d transactions recorded</item>
+    </plurals>
     <string name="state_empty">Empty</string>
     <string name="stats_empty_state">Add income/expense transactions during this period to analyze financial structure.</string>
     <string name="stats_tab_expense_structure">Expense structure</string>
@@ -236,7 +288,10 @@
     <string name="debt_settled_with_format">Settled with %1$s</string>
     <string name="debt_collect_from_format">Amount to collect from %1$s</string>
     <string name="debt_no_pending">No pending collection</string>
-    <string name="debt_pending_count_format">%1$d pending payment(s)</string>
+    <plurals name="debt_pending_count">
+        <item quantity="one">%1$d pending payment</item>
+        <item quantity="other">%1$d pending payments</item>
+    </plurals>
     <string name="debt_complete">Complete</string>
     <string name="debt_collect">Collect</string>
     <string name="transfer_details_title">Transfer details</string>

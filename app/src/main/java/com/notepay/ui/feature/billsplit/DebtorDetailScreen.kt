@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -421,7 +422,15 @@ private fun DebtSummaryCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = if (isSettled) stringResource(R.string.debt_no_pending) else stringResource(R.string.debt_pending_count_format, unpaidCount),
+                        text = if (isSettled) {
+                            stringResource(R.string.debt_no_pending)
+                        } else {
+                            pluralStringResource(
+                                R.plurals.debt_pending_count,
+                                unpaidCount,
+                                unpaidCount,
+                            )
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

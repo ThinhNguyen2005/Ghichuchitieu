@@ -108,8 +108,24 @@
     <string name="bill_split_empty_unpaid">Tất cả nợ đã được thanh toán\nKhông còn khoản nợ nhóm nào đang chờ xử lý.</string>
     <string name="bill_split_empty_paid">Chưa có lịch sử thanh toán\nCác khoản chia tiền đã hoàn tất sẽ hiển thị tại đây.</string>
     <string name="bill_split_vietqr_cd">Cấu hình VietQR</string>
-    <string name="bill_split_total_count">Tổng: %1$d khoản nợ</string>
+    <plurals name="bill_split_total_count">
+        <item quantity="other">Tổng: %1$d khoản nợ</item>
+    </plurals>
     <string name="bill_split_vietqr_saved">Đã lưu cấu hình VietQR cho ví %1$s</string>
+    <string name="billsplit_no_debtor_yet">Chưa thêm ai</string>
+    <string name="billsplit_reconcile_summary_format">%1$s · %2$s</string>
+    <plurals name="billsplit_debtor_count">
+        <item quantity="other">%1$d người</item>
+    </plurals>
+    <plurals name="billsplit_debtor_added_count">
+        <item quantity="other">%1$d người đã thêm</item>
+    </plurals>
+    <plurals name="billsplit_split_completed_count">
+        <item quantity="other">%1$d khoản đã hoàn tất</item>
+    </plurals>
+    <plurals name="billsplit_split_to_reconcile_count">
+        <item quantity="other">%1$d khoản cần đối soát</item>
+    </plurals>
 
     <!-- Subscription screen -->
     <string name="subscription_title">Hóa đơn định kỳ</string>
@@ -179,15 +195,38 @@
     <string name="cd_clear_search">Xóa tìm kiếm</string>
     <string name="transaction_search_notes_category_placeholder">Tìm theo ghi chú hoặc danh mục</string>
     <string name="date_today">Hôm nay</string>
-    <string name="date_days_remaining_format">Còn %1$d ngày nữa</string>
-    <string name="date_days_ago_format">%1$d ngày trước</string>
+    <plurals name="date_days_remaining">
+        <item quantity="other">Còn %1$d ngày nữa</item>
+    </plurals>
+    <plurals name="date_days_ago">
+        <item quantity="other">%1$d ngày trước</item>
+    </plurals>
     <string name="day_detail_empty_desc">Không có giao dịch hoặc nhắc nhở nào trong ngày này.</string>
     <string name="subscription_reminders_title">Nhắc nhở</string>
-    <string name="subscription_overdue_format">Quá hạn %1$d ngày</string>
+    <plurals name="subscription_overdue">
+        <item quantity="other">Quá hạn %1$d ngày</item>
+    </plurals>
     <string name="subscription_due_today">Hết hạn hôm nay</string>
+    <string name="subscription_due_tomorrow">Hết hạn ngày mai</string>
     <string name="subscription_due_one_day">Còn 1 ngày</string>
-    <string name="subscription_due_days_format">Còn %1$d ngày</string>
+    <plurals name="subscription_due_days">
+        <item quantity="other">Còn %1$d ngày</item>
+    </plurals>
+    <plurals name="subscription_remind_days">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
+    <plurals name="subscription_cycle_months">
+        <item quantity="other">Chu kỳ %1$d tháng</item>
+    </plurals>
+    <plurals name="subscription_remind_before_days">
+        <item quantity="other">Nhắc trước %1$d ngày</item>
+    </plurals>
+    <string name="subscription_detail_summary_format">%1$s • %2$s</string>
     <string name="day_detail_transactions_title">Giao dịch trong ngày</string>
+    <string name="transaction_cash_flow_this_month">Dòng tiền tháng này</string>
+    <plurals name="transaction_recorded_count">
+        <item quantity="other">%1$d giao dịch đã ghi nhận</item>
+    </plurals>
     <string name="state_empty">Trống</string>
     <string name="stats_empty_state">Thêm giao dịch thu/chi trong thời gian này để phân tích cơ cấu tài chính.</string>
     <string name="stats_tab_expense_structure">Cơ cấu chi tiêu</string>
@@ -236,7 +275,9 @@
     <string name="debt_settled_with_format">Đã đối soát với %1$s</string>
     <string name="debt_collect_from_format">Khoản cần thu từ %1$s</string>
     <string name="debt_no_pending">Không còn khoản chờ thu</string>
-    <string name="debt_pending_count_format">%1$d khoản đang chờ thanh toán</string>
+    <plurals name="debt_pending_count">
+        <item quantity="other">%1$d khoản đang chờ thanh toán</item>
+    </plurals>
     <string name="debt_complete">Hoàn tất</string>
     <string name="debt_collect">Cần thu</string>
     <string name="transfer_details_title">Thông tin chuyển khoản</string>

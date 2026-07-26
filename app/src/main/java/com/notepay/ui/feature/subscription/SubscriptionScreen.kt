@@ -76,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -697,10 +698,18 @@ private fun SubscriptionCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = when {
-                                isOverdue -> "Quá hạn ${-daysLeft} ngày"
-                                daysLeft == 0L -> "Hết hạn hôm nay!"
-                                daysLeft == 1L -> "Hết hạn ngày mai"
-                                else -> "Còn $daysLeft ngày"
+                                isOverdue -> pluralStringResource(
+                                    R.plurals.subscription_overdue,
+                                    (-daysLeft).toInt(),
+                                    (-daysLeft).toInt(),
+                                )
+                                daysLeft == 0L -> stringResource(R.string.subscription_due_today)
+                                daysLeft == 1L -> stringResource(R.string.subscription_due_tomorrow)
+                                else -> pluralStringResource(
+                                    R.plurals.subscription_due_days,
+                                    daysLeft.toInt(),
+                                    daysLeft.toInt(),
+                                )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (daysLeft <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -722,7 +731,19 @@ private fun SubscriptionCard(
                     )
                 }
                 Text(
-                    "Chu kỳ ${subscription.repeatMonths} tháng • Nhắc trước ${subscription.remindDaysBefore} ngày",
+                    stringResource(
+                        R.string.subscription_detail_summary_format,
+                        pluralStringResource(
+                            R.plurals.subscription_cycle_months,
+                            subscription.repeatMonths,
+                            subscription.repeatMonths,
+                        ),
+                        pluralStringResource(
+                            R.plurals.subscription_remind_before_days,
+                            subscription.remindDaysBefore,
+                            subscription.remindDaysBefore,
+                        ),
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

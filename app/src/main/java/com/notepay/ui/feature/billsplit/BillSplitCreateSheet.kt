@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -527,7 +528,15 @@ fun BillSplitCreateSheet(
                                 )
 
                                 Text(
-                                    text = if (debtors.isEmpty()) "Chưa thêm ai" else "${debtors.size} người đã thêm",
+                                    text = if (debtors.isEmpty()) {
+                                        stringResource(R.string.billsplit_no_debtor_yet)
+                                    } else {
+                                        pluralStringResource(
+                                            R.plurals.billsplit_debtor_added_count,
+                                            debtors.size,
+                                            debtors.size,
+                                        )
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

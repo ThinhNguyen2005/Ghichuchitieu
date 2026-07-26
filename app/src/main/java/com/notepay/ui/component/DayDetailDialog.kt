@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,20 +68,28 @@ fun DayDetailDialog(
         title = {
             // P2-13: title có "Thứ X," phía trước + subtitle tương đối.
             val weekday = when (date.dayOfWeek.ordinal) {
-                0 -> "Thứ 2"
-                1 -> "Thứ 3"
-                2 -> "Thứ 4"
-                3 -> "Thứ 5"
-                4 -> "Thứ 6"
-                5 -> "Thứ 7"
-                6 -> "Chủ nhật"
+                0 -> stringResource(R.string.day_monday)
+                1 -> stringResource(R.string.day_tuesday)
+                2 -> stringResource(R.string.day_wednesday)
+                3 -> stringResource(R.string.day_thursday)
+                4 -> stringResource(R.string.day_friday)
+                5 -> stringResource(R.string.day_saturday)
+                6 -> stringResource(R.string.day_sunday)
                 else -> ""
             }
             val diffDays = date.toEpochDays().toLong() - today.toEpochDays().toLong()
             val relative = when {
-                diffDays == 0L -> "Hôm nay"
-                diffDays > 0L -> "Còn $diffDays ngày nữa"
-                else -> "${-diffDays} ngày trước"
+                diffDays == 0L -> stringResource(R.string.date_today)
+                diffDays > 0L -> pluralStringResource(
+                    R.plurals.date_days_remaining,
+                    diffDays.toInt(),
+                    diffDays.toInt(),
+                )
+                else -> pluralStringResource(
+                    R.plurals.date_days_ago,
+                    (-diffDays).toInt(),
+                    (-diffDays).toInt(),
+                )
             }
             Column {
                 Text(
@@ -162,10 +171,17 @@ fun DayDetailDialog(
                                         fontWeight = FontWeight.Medium,
                                     )
                                     val dueLabel = when {
-                                        isExpired -> "Quá hạn ${-daysLeft} ngày"
-                                        daysLeft == 0L -> "Hết hạn hôm nay"
-                                        daysLeft == 1L -> "Còn 1 ngày"
-                                        else -> "Còn $daysLeft ngày"
+                                        isExpired -> pluralStringResource(
+                                            R.plurals.subscription_overdue,
+                                            (-daysLeft).toInt(),
+                                            (-daysLeft).toInt(),
+                                        )
+                                        daysLeft == 0L -> stringResource(R.string.subscription_due_today)
+                                        else -> pluralStringResource(
+                                            R.plurals.subscription_due_days,
+                                            daysLeft.toInt(),
+                                            daysLeft.toInt(),
+                                        )
                                     }
                                     Text(
                                         dueLabel,

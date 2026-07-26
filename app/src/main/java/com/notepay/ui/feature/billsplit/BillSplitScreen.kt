@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -249,7 +250,11 @@ fun BillSplitScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "${unpaidGroups.size} người",
+                            text = pluralStringResource(
+                                R.plurals.billsplit_debtor_count,
+                                unpaidGroups.size,
+                                unpaidGroups.size,
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -406,7 +411,11 @@ private fun PaidHistoryContent(
     ) {
         item {
             Text(
-                text = "${paidSplits.size} khoản đã hoàn tất",
+                text = pluralStringResource(
+                    R.plurals.billsplit_split_completed_count,
+                    paidSplits.size,
+                    paidSplits.size,
+                ),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
@@ -474,7 +483,19 @@ private fun BillSplitOverview(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "$debtorCount người · $splitCount khoản cần đối soát",
+                    text = stringResource(
+                        R.string.billsplit_reconcile_summary_format,
+                        pluralStringResource(
+                            R.plurals.billsplit_debtor_count,
+                            debtorCount,
+                            debtorCount,
+                        ),
+                        pluralStringResource(
+                            R.plurals.billsplit_split_to_reconcile_count,
+                            splitCount,
+                            splitCount,
+                        ),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -492,7 +513,11 @@ private fun DebtorGroupRow(
     onShare: () -> Unit,
 ) {
     val amount = MoneyFormatter.format(Money(totalAmountCents))
-    val totalCountFormat = stringResource(R.string.bill_split_total_count)
+    val totalCountText = pluralStringResource(
+        R.plurals.bill_split_total_count,
+        splitCount,
+        splitCount,
+    )
     val initial = debtorName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
 
     val cardBgColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
@@ -542,7 +567,7 @@ private fun DebtorGroupRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = totalCountFormat.format(splitCount),
+                        text = totalCountText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
