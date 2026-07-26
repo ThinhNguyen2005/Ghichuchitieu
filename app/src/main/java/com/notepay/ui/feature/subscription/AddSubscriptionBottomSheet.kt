@@ -624,7 +624,7 @@ private fun RecentTransactionsSheet(
                 Icon(Icons.Rounded.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Giao dịch gần đây",
+                    stringResource(R.string.home_recent_transactions),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )

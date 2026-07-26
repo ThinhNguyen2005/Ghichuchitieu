@@ -242,7 +242,7 @@ private fun MetaCard(
             
             TransactionMetadataRow(
                 icon = Icons.Rounded.Wallet,
-                label = "Ví thanh toán",
+                label = stringResource(R.string.transaction_field_wallet),
                 value = walletName ?: "Ví không còn tồn tại",
             )
 

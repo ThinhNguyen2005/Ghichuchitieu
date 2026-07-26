@@ -38,6 +38,7 @@
     <string name="home_empty_wallet_title">Chưa có ví nào</string>
     <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
     <string name="home_create_wallet">Tạo ví</string>
+    <string name="home_save_wallet_changes">Lưu thay đổi</string>
     <string name="home_battery_title">Tối ưu pin</string>
     <string name="home_battery_desc">Giúp ứng dụng hoạt động ổn định</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
@@ -60,6 +61,7 @@
     <string name="transaction_type_expense">Chi tiêu</string>
     <string name="transaction_type_income">Thu nhập</string>
     <string name="transaction_field_date">Ngày</string>
+    <string name="transaction_field_amount">Số tiền</string>
     <string name="transaction_field_wallet">Ví thanh toán</string>
     <string name="transaction_field_note">Ghi chú</string>
     <string name="transaction_field_note_placeholder">Thêm chi tiết giao dịch…</string>
@@ -71,6 +73,7 @@
     <string name="transaction_validation_form">Hãy điền đầy đủ thông tin bắt buộc trước khi lưu.</string>
     <string name="transaction_save_button">Lưu giao dịch</string>
     <string name="transaction_suggestion_label">💡 Gợi ý:</string>
+    <string name="transaction_suggestion_applied_label">Đã tự động chọn:</string>
 
     <!-- Date label prefixes -->
     <string name="date_today_prefix">Hôm nay, </string>
@@ -108,6 +111,7 @@
     <string name="bill_split_empty_unpaid">Tất cả nợ đã được thanh toán\nKhông còn khoản nợ nhóm nào đang chờ xử lý.</string>
     <string name="bill_split_empty_paid">Chưa có lịch sử thanh toán\nCác khoản chia tiền đã hoàn tất sẽ hiển thị tại đây.</string>
     <string name="bill_split_vietqr_cd">Cấu hình VietQR</string>
+    <string name="bill_split_vietqr_config_title">Cấu hình VietQR</string>
     <plurals name="bill_split_total_count">
         <item quantity="other">Tổng: %1$d khoản nợ</item>
     </plurals>
@@ -162,6 +166,10 @@
     <string name="feedback_bill_split_delete_failed">Không thể xóa khoản chia tiền</string>
     <string name="feedback_vietqr_saved">Đã cập nhật cấu hình VietQR</string>
     <string name="feedback_vietqr_failed">Không thể cập nhật cấu hình VietQR</string>
+
+    <!-- Subscription notification channel -->
+    <string name="notif_channel_subscription_name">Nhắc nhở gia hạn</string>
+    <string name="notif_channel_subscription_desc">Thông báo nhắc nhở gia hạn dịch vụ định kỳ</string>
 
     <!-- Errors -->
     <string name="error_wallet_not_found">Không tìm thấy ví</string>

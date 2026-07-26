@@ -81,7 +81,15 @@ fun AddWalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditMode) "Chỉnh sửa ví" else "Thêm ví mới") },
+                title = {
+                    Text(
+                        if (state.isEditMode) {
+                            stringResource(R.string.home_edit_wallet)
+                        } else {
+                            stringResource(R.string.home_add_new_wallet)
+                        }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Trở lại")
@@ -372,7 +380,15 @@ fun AddWalletScreen(
                     Spacer(Modifier.size(8.dp))
                     Text("Đang lưu...", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 } else {
-                    Text(if (state.isEditMode) "Lưu thay đổi" else "Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (state.isEditMode) {
+                            stringResource(R.string.home_save_wallet_changes)
+                        } else {
+                            stringResource(R.string.home_create_wallet)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

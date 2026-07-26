@@ -1,7 +1,7 @@
 package com.notepay.ui.feature.list
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.R
 import com.notepay.domain.TestData
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
@@ -9,6 +9,9 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetTransactionsUseCase
+import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.UiFeedback
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +21,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.feedback.FeedbackType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransactionListViewModelTest {
@@ -161,7 +162,19 @@ class TransactionListViewModelTest {
         val walletRepo = FakeWalletRepository()
         val addUseCase = AddTransactionUseCase(transactionRepository, walletRepo, dispatcher)
 
-        return TransactionListViewModel(getUseCase, deleteUseCase, addUseCase, walletRepo, dispatcher)
+        return TransactionListViewModel(
+            getUseCase,
+            deleteUseCase,
+            addUseCase,
+            walletRepo,
+            dispatcher,
+        ) { resId ->
+            when (resId) {
+                R.string.transaction_deleted -> "Đã xóa giao dịch"
+                R.string.feedback_undo -> "Hoàn tác"
+                else -> error("Unexpected string resource: $resId")
+            }
+        }
     }
 }
 

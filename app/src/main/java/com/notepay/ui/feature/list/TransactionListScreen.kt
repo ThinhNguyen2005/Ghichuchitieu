@@ -662,7 +662,7 @@ private fun CategoryFilterRow(
     ) {
         categoriesList.forEachIndexed { index, category ->
             val isSelected = selectedIndex == index
-            val text = category?.displayName ?: "Tất cả"
+            val text = category?.displayName ?: stringResource(R.string.transaction_list_filter_all)
 
             Tab(
                 selected = isSelected,

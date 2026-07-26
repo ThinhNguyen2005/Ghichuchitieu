@@ -123,6 +123,7 @@ fun BillSplitScreen(
     val vietqrSavedFormat = stringResource(R.string.bill_split_vietqr_saved)
     val confirmDeleteTitle = stringResource(R.string.confirm_delete_bill_title)
     val confirmDeleteMessageFormat = stringResource(R.string.confirm_delete_permanent)
+    val linkedBankLabel = stringResource(R.string.bank_linked)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -296,7 +297,8 @@ fun BillSplitScreen(
                                         memo = memoCode,
                                         accountName = qrWallet.accountName,
                                     )
-                                    val bankName = state.banks.find { it.bin == qrWallet.bankBin }?.shortName ?: "Ngân hàng liên kết"
+                                    val bankName = state.banks.find { it.bin == qrWallet.bankBin }?.shortName
+                                        ?: linkedBankLabel
                                     val shareMessage = "Chào $debtorName, vui lòng chuyển $amountStr đến $bankName - ${qrWallet.accountNumber} (${qrWallet.accountName.orEmpty()}). Nội dung: $memoCode\nQR: $qrUrl"
                                     val intent = Intent().apply {
                                         action = Intent.ACTION_SEND

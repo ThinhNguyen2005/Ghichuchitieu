@@ -38,6 +38,7 @@
     <string name="home_empty_wallet_title">No wallets yet</string>
     <string name="home_empty_wallet_desc">Create a wallet to start tracking transactions and managing your spending.</string>
     <string name="home_create_wallet">Create wallet</string>
+    <string name="home_save_wallet_changes">Save changes</string>
     <string name="home_battery_title">Background optimization (recommended)</string>
     <string name="home_battery_desc">Open Battery → choose Unrestricted for smoother auto-capture.</string>
     <string name="home_recent_transactions">Recent transactions</string>
@@ -60,6 +61,7 @@
     <string name="transaction_type_expense">Expense</string>
     <string name="transaction_type_income">Income</string>
     <string name="transaction_field_date">Date</string>
+    <string name="transaction_field_amount">Amount</string>
     <string name="transaction_field_wallet">Wallet</string>
     <string name="transaction_field_note">Note</string>
     <string name="transaction_field_note_placeholder">Add transaction details…</string>
@@ -71,6 +73,7 @@
     <string name="transaction_validation_form">Complete the required information before saving.</string>
     <string name="transaction_save_button">Save transaction</string>
     <string name="transaction_suggestion_label">💡 Suggested:</string>
+    <string name="transaction_suggestion_applied_label">Selected automatically:</string>
 
     <!-- Date label prefixes -->
     <string name="date_today_prefix">Today, </string>
@@ -108,6 +111,7 @@
     <string name="bill_split_empty_unpaid">No pending debts.</string>
     <string name="bill_split_empty_paid">No paid debts yet.</string>
     <string name="bill_split_vietqr_cd">VietQR configuration</string>
+    <string name="bill_split_vietqr_config_title">VietQR setup</string>
     <plurals name="bill_split_total_count">
         <item quantity="one">Total: %1$d debt</item>
         <item quantity="other">Total: %1$d debts</item>
@@ -167,6 +171,10 @@
     <string name="feedback_bill_split_delete_failed">Couldn\'t delete bill split</string>
     <string name="feedback_vietqr_saved">VietQR settings updated</string>
     <string name="feedback_vietqr_failed">Couldn\'t update VietQR settings</string>
+
+    <!-- Subscription notification channel -->
+    <string name="notif_channel_subscription_name">Renewal reminders</string>
+    <string name="notif_channel_subscription_desc">Reminders for recurring service renewals</string>
 
     <!-- Errors -->
     <string name="error_wallet_not_found">Wallet not found</string>

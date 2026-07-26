@@ -137,7 +137,7 @@ fun EditTransactionScreen(
                     value = state.amountInput,
                     onValueChange = { viewModel.onAmountChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.transfer_amount)) },
+                    label = { Text(stringResource(R.string.transaction_field_amount)) },
                     singleLine = true,
                     readOnly = state.isAutoCapture,
                     enabled = !state.isAutoCapture,

@@ -28,7 +28,7 @@ import androidx.compose.runtime.Composable
  * }
  * ```
  *
- * @param title tiêu đề, ví dụ "Xóa khoản nợ?"
+ * @param title tiêu đề, ví dụ chuỗi từ `confirm_delete_bill_title`
  * @param itemName tên mục sẽ bị xóa, hiển thị trong message mặc định
  * @param onConfirm callback khi người dùng nhấn nút xác nhận
  * @param onDismiss callback khi người dùng nhấn Hủy hoặc ngoài dialog

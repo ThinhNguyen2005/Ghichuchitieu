@@ -104,11 +104,11 @@ import kotlinx.datetime.toLocalDateTime
  *  - UPCOMING: sắp đến hạn trong khoảng remindDaysBefore
  *  - COMPLETED: đã hoàn thành (isActive = false)
  */
-private enum class ReminderFilter(val label: String, val shortLabel: String) {
-    ALL("Tất cả", "Tất cả"),
-    OVERDUE("Quá hạn", "Quá hạn"),
-    UPCOMING("Sắp đến hạn", "Sắp đến"),
-    COMPLETED("Đã hoàn thành", "Hoàn thành"),
+private enum class ReminderFilter(val label: String? = null) {
+    ALL,
+    OVERDUE("Quá hạn"),
+    UPCOMING("Sắp đến hạn"),
+    COMPLETED("Đã hoàn thành"),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,7 +207,11 @@ fun SubscriptionScreen(
                     ) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Rounded.Close else Icons.Outlined.Search,
-                            contentDescription = if (isSearchActive) "Đóng" else "Tìm kiếm"
+                            contentDescription = if (isSearchActive) {
+                                "Đóng"
+                            } else {
+                                stringResource(R.string.action_search)
+                            }
                         )
                     }
                     val isCalendarMode = selectedTab == 0
@@ -510,10 +514,11 @@ private fun ReminderListTab(
             ) {
                 items(ReminderFilter.entries) { option ->
                     val isSelected = filter == option
+                    val label = option.label ?: stringResource(R.string.transaction_list_filter_all)
                     FilterChip(
                         selected = isSelected,
                         onClick = { filter = option },
-                        label = { Text(option.label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,

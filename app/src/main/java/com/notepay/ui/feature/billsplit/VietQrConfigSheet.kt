@@ -232,7 +232,7 @@ fun VietQrConfigSheet(
                         Spacer(Modifier.size(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Cấu hình VietQR",
+                                stringResource(R.string.bill_split_vietqr_config_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                             )

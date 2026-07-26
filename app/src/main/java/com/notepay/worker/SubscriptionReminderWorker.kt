@@ -11,6 +11,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.notepay.R
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.ui.util.MoneyFormatter
 import dagger.assisted.Assisted
@@ -89,10 +90,10 @@ class SubscriptionReminderWorker @AssistedInject constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Nhắc nhở gia hạn",
+                context.getString(R.string.notif_channel_subscription_name),
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "Thông báo nhắc nhở gia hạn dịch vụ định kỳ"
+                description = context.getString(R.string.notif_channel_subscription_desc)
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)

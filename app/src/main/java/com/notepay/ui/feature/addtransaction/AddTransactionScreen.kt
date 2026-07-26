@@ -507,7 +507,11 @@ private fun SuggestionChipRow(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            val suggestionLabel = if (isApplied) "Đã tự động chọn:" else stringResource(R.string.transaction_suggestion_label)
+            val suggestionLabel = if (isApplied) {
+                stringResource(R.string.transaction_suggestion_applied_label)
+            } else {
+                stringResource(R.string.transaction_suggestion_label)
+            }
             Text(
                 text = suggestionLabel,
                 style = MaterialTheme.typography.bodyMedium,

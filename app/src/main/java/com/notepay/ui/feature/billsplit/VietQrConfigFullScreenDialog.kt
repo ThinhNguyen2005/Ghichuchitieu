@@ -155,7 +155,7 @@ private fun StepIndicator(step: VietQrStep, modifier: Modifier = Modifier) {
     val active = MaterialTheme.colorScheme.primary
     val inactive = MaterialTheme.colorScheme.outlineVariant
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        StepDot("1", "Ngân hàng", true, active)
+        StepDot("1", stringResource(R.string.transfer_bank), true, active)
         Box(Modifier.weight(1f).height(2.dp).background(if (step == VietQrStep.EnterAccount) active else inactive))
         StepDot("2", "Tài khoản", step == VietQrStep.EnterAccount, active)
     }

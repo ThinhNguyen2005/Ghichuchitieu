@@ -115,13 +115,13 @@ fun DayDetailDialog(
                     EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
                         title = stringResource(R.string.state_empty),
-                        description = "Không có giao dịch hoặc nhắc nhở nào trong ngày này."
+                        description = stringResource(R.string.day_detail_empty_desc)
                     )
                 }
 
                 if (subscriptions.isNotEmpty()) {
                     Text(
-                        "Nhắc nhở",
+                        stringResource(R.string.subscription_reminders_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -199,7 +199,7 @@ fun DayDetailDialog(
                         HorizontalDivider()
                     }
                     Text(
-                        "Giao dịch trong ngày",
+                        stringResource(R.string.day_detail_transactions_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
