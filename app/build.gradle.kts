@@ -38,6 +38,26 @@ android {
         }
     }
 
+    // Hai biến thể sản phẩm vĩnh viễn:
+    // - play: bản đưa lên Google Play, KHÔNG có mã đọc thông báo. Mã đó nằm ở
+    //   src/full/ nên không hề được biên dịch vào APK này.
+    // - full: bản cài tay, có NotificationListenerService tự ghi chi tiêu.
+    // Dùng flavor thay vì hai nhánh git, để mọi sửa đổi UI/UX ở src/main/ đều
+    // vào cả hai bản mà không phải merge qua lại.
+    flavorDimensions += "distribution"
+
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+        }
+
+        create("full") {
+            dimension = "distribution"
+            applicationIdSuffix = ".full"
+            versionNameSuffix = "-full"
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
