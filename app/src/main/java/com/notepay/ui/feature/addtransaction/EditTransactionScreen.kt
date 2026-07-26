@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.layout.Arrangement
@@ -42,10 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,7 +90,7 @@ fun EditTransactionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -300,31 +298,19 @@ fun EditTransactionScreen(
         }
 
         if (showAllCategories) {
-            ModalBottomSheet(
-                onDismissRequest = { showAllCategories = false },
-                dragHandle = { BottomSheetDefaults.DragHandle() },
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .padding(bottom = 32.dp)
-                ) {
-                    CategoryGridPicker(
-                        categories = state.availableCategories,
-                        selectedCategory = state.category,
-                        isIncome = state.type == TransactionType.INCOME,
-                        onCategoryChanged = {
-                            viewModel.onCategoryChanged(it)
-                            showAllCategories = false
-                        },
-                        onCreateCategory = { name, color, iconId, isIncome ->
-                            viewModel.createCategory(name, color, iconId, isIncome)
-                        }
-                    )
-                }
-            }
+            CategoryPickerSheet(
+                categories = state.availableCategories,
+                selectedCategory = state.category,
+                isIncome = state.type == TransactionType.INCOME,
+                onCategoryChanged = {
+                    viewModel.onCategoryChanged(it)
+                    showAllCategories = false
+                },
+                onDismiss = { showAllCategories = false },
+                onCreateCategory = { name, color, iconId, isIncome ->
+                    viewModel.createCategory(name, color, iconId, isIncome)
+                },
+            )
         }
     }
 }

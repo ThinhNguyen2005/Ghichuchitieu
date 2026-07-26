@@ -103,10 +103,6 @@ fun DebtorDetailScreen(
         state.banks.find { it.bin == activeWallet?.bankBin }?.shortName ?: linkedBankName
     }
 
-    val bankLogoUrl = remember(activeWallet, state.banks) {
-        state.banks.find { it.bin == activeWallet?.bankBin }?.logoUrl
-    }
-
     val memoCode = remember(debtorName) {
         val sanitized = debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim().uppercase()
         "NP $sanitized"
@@ -138,13 +134,24 @@ fun DebtorDetailScreen(
         bottomBar = {
             if (unpaidDebtorSplits.isNotEmpty()) {
                 GradientBottomActionBar {
+                    // surfaceColor vẽ màu đục hoàn toàn, khác tint chỉ phủ alpha 0.32
+                    // nên nút hành động chính không bị loãng trên nền kính mờ.
                     LiquidButton(
                         onClick = { showReconciliationSheet = true },
-                        tint = MaterialTheme.colorScheme.primary,
+                        surfaceColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.action_confirm_payment), fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Rounded.Payments,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            stringResource(R.string.action_confirm_payment),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }
@@ -186,13 +193,7 @@ fun DebtorDetailScreen(
             item {
                 if (qrImageUrl != null && activeWallet != null && totalAmountCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        VietQrTemplateCard(
-                            bankName = bankName,
-                            bankLogoUrl = bankLogoUrl,
-                            accountNumber = activeWallet.accountNumber.orEmpty(),
-                            accountName = activeWallet.accountName.orEmpty(),
-                            qrImageUrl = qrImageUrl
-                        )
+                        VietQrTemplateCard(qrImageUrl = qrImageUrl)
 
                         TransferDetailsCopyCard(
                             bankName = bankName,
@@ -450,17 +451,14 @@ private fun DebtSummaryCard(
     }
 }
 
-@Composable
-private fun VietQrLogo(modifier: Modifier = Modifier) {
-    Image(painter = painterResource(id = R.drawable.logo_vietqr), contentDescription = stringResource(R.string.cd_vietqr_logo), modifier = modifier.height(44.dp))
-}
-
+/**
+ * Ảnh QR dùng template "compact2" của VietQR — bản thân ảnh đã in sẵn logo VietQR,
+ * logo Napas, tên ngân hàng, tên chủ tài khoản và số tài khoản. Vì vậy card này chỉ
+ * hiển thị đúng ảnh đó; vẽ lại các thông tin trên bằng Compose sẽ lặp thông tin 3 lần.
+ * Dùng FillWidth thay cho khung 200.dp cố định để chữ in trong ảnh đủ lớn để đọc.
+ */
 @Composable
 private fun VietQrTemplateCard(
-    bankName: String,
-    bankLogoUrl: String?,
-    accountNumber: String,
-    accountName: String,
     qrImageUrl: String,
     modifier: Modifier = Modifier
 ) {
@@ -470,59 +468,15 @@ private fun VietQrTemplateCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            VietQrLogo()
-
-            AsyncImage(
-                model = qrImageUrl,
-                contentDescription = stringResource(R.string.cd_vietqr_logo),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(AppTheme.shapes.corner12)
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_napas),
-                    contentDescription = stringResource(R.string.cd_napas),
-                    modifier = Modifier.height(24.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(22.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
-                )
-                Spacer(Modifier.width(12.dp))
-                if (!bankLogoUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = bankLogoUrl,
-                        contentDescription = bankName,
-                        modifier = Modifier.height(32.dp)
-                    )
-                } else {
-                    Text(
-                        text = bankName.uppercase(Locale.ROOT),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = accountName.uppercase(Locale.ROOT), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = accountNumber, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-            }
-        }
+        AsyncImage(
+            model = qrImageUrl,
+            contentDescription = stringResource(R.string.cd_vietqr_logo),
+            contentScale = ContentScale.FillWidth,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+                .clip(AppTheme.shapes.corner16)
+        )
     }
 }
 

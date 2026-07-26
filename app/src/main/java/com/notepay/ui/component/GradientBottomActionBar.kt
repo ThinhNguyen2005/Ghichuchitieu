@@ -1,19 +1,25 @@
 package com.notepay.ui.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+/**
+ * Thanh hành động cố định ở đáy màn hình.
+ *
+ * Trước đây dùng gradient trong suốt 55–88% nên nội dung cuộn phía dưới lộ mờ qua thanh,
+ * gây rối mắt. Nay dùng nền đặc + đường kẻ mảnh ở mép trên để tách bạch rõ vùng nội dung
+ * và vùng hành động.
+ */
 @Composable
 fun GradientBottomActionBar(
     modifier: Modifier = Modifier,
@@ -25,23 +31,24 @@ fun GradientBottomActionBar(
     ),
     content: @Composable () -> Unit,
 ) {
-    val isLightTheme = !isSystemInDarkTheme()
-    val bottomBarColor = if (isLightTheme) Color(0xFFFAFAFA) else Color(0xFF121212)
-    val gradientBrush = remember(isLightTheme) {
-        Brush.verticalGradient(
-            0.0f to Color.Transparent,
-            0.35f to bottomBarColor.copy(alpha = 0.55f),
-            1.0f to bottomBarColor.copy(alpha = 0.88f),
-        )
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(gradientBrush)
-            .navigationBarsPadding()
-            .padding(contentPadding),
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
     ) {
-        content()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(contentPadding),
+            ) {
+                content()
+            }
+        }
     }
 }

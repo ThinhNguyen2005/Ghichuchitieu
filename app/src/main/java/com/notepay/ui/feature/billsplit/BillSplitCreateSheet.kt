@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,13 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -52,10 +50,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.FirefliesBackground
 import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.theme.AppTheme
@@ -69,6 +70,13 @@ data class DebtorEntry(
     val name: String,
     val amountInput: String,
 )
+
+/**
+ * Tách luồng chia hóa đơn thành 2 bước rời nhau để mỗi bước chỉ hiển thị đúng phần
+ * đang cần thao tác, tránh vừa chọn giao dịch vừa nhập danh sách người nợ trên cùng
+ * một màn hình chật.
+ */
+private enum class BillSplitStep { SELECT_TRANSACTION, MANAGE_DEBTORS }
 
 private fun vndInputToCents(input: String): Long? {
     val vnd = input.toLongOrNull() ?: return null
@@ -117,7 +125,6 @@ private fun splitEvenlyInVnd(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BillSplitCreateSheet(
     recentTransactions: List<Transaction>,
@@ -127,16 +134,13 @@ fun BillSplitCreateSheet(
         entries: List<Pair<String, Long>>,
     ) -> Unit,
     onDismiss: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-    ),
 ) {
     val expenses = remember(recentTransactions) {
         recentTransactions.filter { it.type == TransactionType.EXPENSE }
     }
 
     var selectedTx by remember { mutableStateOf<Transaction?>(null) }
-    var showTxPicker by remember { mutableStateOf(true) }
+    var step by remember { mutableStateOf(BillSplitStep.SELECT_TRANSACTION) }
     var newDebtorName by remember { mutableStateOf("") }
 
     val debtors = remember { mutableStateListOf<DebtorEntry>() }
@@ -252,23 +256,34 @@ fun BillSplitCreateSheet(
         playSelectionHaptic()
     }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f)
-                .imePadding(),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+            FirefliesBackground(Modifier.fillMaxSize())
+            // Column + weight(1f): thanh nút tự lấy chiều cao thật, danh sách nhận phần
+            // còn lại. Trước đây dùng Box chồng lớp với bottom = 104.dp cố định, nhỏ hơn
+            // chiều cao thật của thanh nút (~112dp trở lên) nên nội dung bị đè.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .imePadding(),
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                 contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = 0.dp,
+                    top = 12.dp,
                     end = 16.dp,
-                    bottom = 104.dp,
+                    bottom = 12.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -285,7 +300,11 @@ fun BillSplitCreateSheet(
                             )
 
                             Text(
-                                text = "Chọn giao dịch, thêm người và chia số tiền.",
+                                text = if (step == BillSplitStep.SELECT_TRANSACTION) {
+                                    "Bước 1/2 — Chọn hóa đơn cần chia."
+                                } else {
+                                    "Bước 2/2 — Thêm người và chia số tiền."
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
@@ -302,15 +321,17 @@ fun BillSplitCreateSheet(
                     }
                 }
 
-                item {
-                    BillSplitSectionTitle(
-                        step = 1,
-                        title = "Chọn giao dịch",
-                        completed = selectedTx != null,
-                    )
+                if (step == BillSplitStep.SELECT_TRANSACTION) {
+                    item {
+                        BillSplitSectionTitle(
+                            step = 1,
+                            title = "Chọn giao dịch",
+                            completed = selectedTx != null,
+                        )
+                    }
                 }
 
-                if (expenses.isEmpty()) {
+                if (step == BillSplitStep.SELECT_TRANSACTION && expenses.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -350,45 +371,39 @@ fun BillSplitCreateSheet(
                             }
                         }
                     }
-                } else {
-                    selectedTx?.let { transaction ->
-                        item {
-                            SelectedTransactionCard(
-                                transaction = transaction,
-                                expanded = showTxPicker,
-                                onClick = {
-                                    showTxPicker = !showTxPicker
-                                },
-                            )
-                        }
-                    }
-
-                    if (selectedTx == null || showTxPicker) {
-                        items(
-                            items = expenses.take(20),
-                            key = { transaction -> transaction.id },
-                        ) { transaction ->
-                            TransactionPickerRow(
-                                transaction = transaction,
-                                selected = transaction.id == selectedTx?.id,
-                                onClick = {
-                                    selectedTx = transaction
-                                    showTxPicker = false
+                } else if (step == BillSplitStep.SELECT_TRANSACTION) {
+                    items(
+                        items = expenses.take(20),
+                        key = { transaction -> transaction.id },
+                    ) { transaction ->
+                        TransactionPickerRow(
+                            transaction = transaction,
+                            selected = transaction.id == selectedTx?.id,
+                            onClick = {
+                                // Chỉ xóa danh sách người nợ khi thực sự đổi sang giao dịch
+                                // khác, để quay lại bước 1 rồi chọn lại cùng giao dịch
+                                // không làm mất dữ liệu đã nhập.
+                                if (selectedTx?.id != transaction.id) {
                                     debtors.clear()
-                                    playSelectionHaptic()
-                                },
-                            )
-                        }
+                                }
+
+                                selectedTx = transaction
+                                playSelectionHaptic()
+                            },
+                        )
                     }
                 }
 
-                if (selectedTx != null) {
-                    item {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme
-                                .outlineVariant
-                                .copy(alpha = 0.6f),
-                        )
+                if (step == BillSplitStep.MANAGE_DEBTORS && selectedTx != null) {
+                    selectedTx?.let { transaction ->
+                        item {
+                            // Bấm vào thẻ để quay lại bước 1 đổi giao dịch.
+                            SelectedTransactionCard(
+                                transaction = transaction,
+                                expanded = false,
+                                onClick = { step = BillSplitStep.SELECT_TRANSACTION },
+                            )
+                        }
                     }
 
                     item {
@@ -396,6 +411,15 @@ fun BillSplitCreateSheet(
                             step = 2,
                             title = "Thêm người cùng chia",
                             completed = debtors.isNotEmpty(),
+                        )
+                    }
+
+                    item {
+                        BillSplitProgressCard(
+                            parentCents = parentCents,
+                            totalCents = totalCents,
+                            remainingCents = remainingCents,
+                            isOverLimit = isOverLimit,
                         )
                     }
 
@@ -589,14 +613,43 @@ fun BillSplitCreateSheet(
             }
 
             GradientBottomActionBar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    if (step == BillSplitStep.SELECT_TRANSACTION) {
+                        if (selectedTx == null) {
+                            Text(
+                                text = "Chọn một giao dịch cần chia.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        LiquidButton(
+                            onClick = {
+                                localView.performHapticFeedback(
+                                    HapticFeedbackConstants.KEYBOARD_TAP,
+                                )
+
+                                step = BillSplitStep.MANAGE_DEBTORS
+                            },
+                            enabled = selectedTx != null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                        ) {
+                            Text(
+                                text = "Tiếp tục",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    } else {
                     disabledReason?.let { reason ->
                         Text(
                             text = reason,
@@ -648,7 +701,9 @@ fun BillSplitCreateSheet(
                             fontWeight = FontWeight.Bold,
                         )
                     }
+                    }
                 }
+            }
             }
         }
     }
@@ -700,6 +755,70 @@ private fun BillSplitSectionTitle(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+@Composable
+private fun BillSplitProgressCard(
+    parentCents: Long,
+    totalCents: Long,
+    remainingCents: Long,
+    isOverLimit: Boolean,
+) {
+    val progress = if (parentCents > 0L) {
+        totalCents.toFloat().div(parentCents.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val accentColor = when {
+        isOverLimit -> MaterialTheme.colorScheme.error
+        remainingCents == 0L -> AppTheme.colors.success
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val status = when {
+        isOverLimit -> "Vượt ${MoneyFormatter.format(Money(abs(remainingCents)))}"
+        remainingCents == 0L -> "Đã chia vừa đủ"
+        else -> "Còn thiếu ${MoneyFormatter.format(Money(remainingCents))}"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner16,
+        colors = CardDefaults.cardColors(
+            containerColor = accentColor.copy(alpha = 0.10f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Tiến trình chia tiền",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = accentColor,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                strokeCap = StrokeCap.Round,
+            )
+        }
     }
 }
 

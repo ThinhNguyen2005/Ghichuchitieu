@@ -119,7 +119,7 @@ fun AddTransactionScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -398,31 +398,19 @@ fun AddTransactionScreen(
         )
     }
     if (showAllCategories.value) {
-        ModalBottomSheet(
-            onDismissRequest = { showAllCategories.value = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp)
-            ) {
-                CategoryGridPicker(
-                    categories = state.availableCategories,
-                    selectedCategory = state.category,
-                    isIncome = state.type == TransactionType.INCOME,
-                    onCategoryChanged = {
-                        viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
-                        showAllCategories.value = false
-                    },
-                    onCreateCategory = { name, color, iconId, isIncome ->
-                        viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, iconId, isIncome))
-                    }
-                )
-            }
-        }
+        CategoryPickerSheet(
+            categories = state.availableCategories,
+            selectedCategory = state.category,
+            isIncome = state.type == TransactionType.INCOME,
+            onCategoryChanged = {
+                viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
+                showAllCategories.value = false
+            },
+            onDismiss = { showAllCategories.value = false },
+            onCreateCategory = { name, color, iconId, isIncome ->
+                viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, iconId, isIncome))
+            },
+        )
     }
 }
 

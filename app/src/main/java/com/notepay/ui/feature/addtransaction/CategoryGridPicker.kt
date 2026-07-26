@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.domain.model.Category
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.customCategoryIconOptions
 import com.notepay.ui.theme.AppTheme
 
@@ -60,7 +61,13 @@ fun CategoryGridPicker(
     modifier: Modifier = Modifier,
     onCreateCategory: ((displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) -> Unit)? = null,
 ) {
-    val visible = categories.filter { it.isIncome == isIncome }
+    val allVisible = categories.filter { it.isIncome == isIncome }
+    var query by remember(isIncome) { mutableStateOf("") }
+    val visible = if (allVisible.size > 8) {
+        allVisible.filter { it.displayName.contains(query, ignoreCase = true) }
+    } else {
+        allVisible
+    }
 
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -71,15 +78,19 @@ fun CategoryGridPicker(
     }
     val chunkedRows = items.chunked(3)
 
-    Column(
+    LiquidGlassPanel(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(AppTheme.shapes.corner20)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f), AppTheme.shapes.corner20)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .fillMaxWidth(),
+        shape = AppTheme.shapes.corner20,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+        ),
     ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 "Danh mục",
@@ -98,6 +109,16 @@ fun CategoryGridPicker(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (allVisible.size > 8) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Tìm kiếm") },
+            )
+        }
 
         chunkedRows.forEach { rowItems ->
             Row(
@@ -125,6 +146,7 @@ fun CategoryGridPicker(
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
+        }
         }
     }
 

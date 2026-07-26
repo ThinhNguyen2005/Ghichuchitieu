@@ -7,13 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,9 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -70,10 +62,9 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.component.FirefliesBackground
 import com.notepay.ui.theme.AppTheme
 import java.text.Normalizer
-import kotlin.math.cos
-import kotlin.math.sin
 
 private enum class VietQrStep { SelectBank, EnterAccount }
 
@@ -312,24 +303,6 @@ private fun BankLogo(logoUrl: String?, modifier: Modifier = Modifier) {
             Icon(Icons.Rounded.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     } else AsyncImage(model = logoUrl, contentDescription = null, modifier = modifier.clip(AppTheme.shapes.corner12))
-}
-
-@Composable
-private fun FirefliesBackground(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "vietqr-fireflies")
-    val particleColor = MaterialTheme.colorScheme.primary
-    val progress by transition.animateFloat(0f, (2 * Math.PI).toFloat(), infiniteRepeatable(tween(9_000, easing = LinearEasing)), label = "motion")
-    Canvas(modifier) {
-        repeat(12) { index ->
-            val x = size.width * ((index * 37 % 100) / 100f) + sin(progress + index) * 20.dp.toPx()
-            val y = size.height * ((index * 61 % 100) / 100f) + cos(progress + index * .7f) * 26.dp.toPx()
-            drawCircle(
-                brush = Brush.radialGradient(listOf(particleColor.copy(alpha = .10f), Color.Transparent), center = Offset(x, y), radius = 36.dp.toPx()),
-                radius = 36.dp.toPx(),
-                center = Offset(x, y),
-            )
-        }
-    }
 }
 
 private fun normalizeSearch(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFD)
