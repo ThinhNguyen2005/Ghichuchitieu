@@ -76,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +85,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
@@ -159,7 +161,7 @@ fun SubscriptionScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Quay lại"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -188,7 +190,7 @@ fun SubscriptionScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         )
                     } else {
-                        Text("Hóa đơn định kỳ")
+                        Text(stringResource(R.string.subscription_title))
                     }
                 },
                 actions = {

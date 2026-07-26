@@ -54,12 +54,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.FirefliesBackground
@@ -275,7 +277,7 @@ private fun AccountDetailsStep(
             value = accountName,
             onValueChange = onAccountNameChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Tên chủ tài khoản") },
+            label = { Text(stringResource(R.string.transfer_account_name)) },
             supportingText = { Text("Tên được chuẩn hóa thành CHỮ IN HOA không dấu.") },
             leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
             singleLine = true,

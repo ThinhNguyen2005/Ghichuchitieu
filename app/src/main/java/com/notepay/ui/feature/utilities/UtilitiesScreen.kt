@@ -33,8 +33,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,7 @@ fun UtilitiesScreen(
             // Card 1: Chia tiền nhóm
             UtilityCard(
                 icon = Icons.Outlined.CallSplit,
-                title = "Quản lý Chia tiền",
+                title = stringResource(R.string.bill_split_title),
                 description = "Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.",
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onNavigateToBillSplit
@@ -77,7 +79,7 @@ fun UtilitiesScreen(
             // Card 2: Nhắc nhở gia hạn
             UtilityCard(
                 icon = Icons.Outlined.NotificationsActive,
-                title = "Nhắc nhở gia hạn",
+                title = stringResource(R.string.utilities_reminder_title),
                 description = "Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm...), tự động thông báo trước ngày hết hạn.",
                 color = MaterialTheme.colorScheme.secondary,
                 onClick = onNavigateToSubscription

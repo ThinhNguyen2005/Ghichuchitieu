@@ -2,6 +2,7 @@
 <resources>
     <!-- App -->
     <string name="app_name">NotePay</string>
+    <string name="app_settings_title">App settings</string>
 
     <!-- Bottom navigation labels -->
     <string name="nav_home">Home</string>
@@ -13,6 +14,7 @@
     <string name="nav_bill_split">Split</string>
 
     <!-- Common actions -->
+    <string name="action_add">Add</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_done">Done</string>
@@ -112,6 +114,7 @@
     <!-- Subscription screen -->
     <string name="subscription_title">Subscriptions</string>
     <string name="subscription_empty">No subscriptions yet.</string>
+    <string name="utilities_reminder_title">Renewal reminders</string>
 
     <!-- AddWallet screen -->
     <string name="add_wallet_title">Add wallet</string>

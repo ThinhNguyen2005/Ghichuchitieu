@@ -65,12 +65,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
@@ -178,7 +180,7 @@ fun AddSubscriptionBottomSheet(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Đóng")
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_close))
                 }
             }
 
@@ -499,7 +501,7 @@ fun AddSubscriptionBottomSheet(
                 }) { Text("Chọn") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         ) {
             DatePicker(state = pickerState)

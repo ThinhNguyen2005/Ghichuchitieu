@@ -52,11 +52,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
@@ -109,7 +111,7 @@ fun EditTransactionScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -135,7 +137,7 @@ fun EditTransactionScreen(
                     value = state.amountInput,
                     onValueChange = { viewModel.onAmountChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Số tiền") },
+                    label = { Text(stringResource(R.string.transfer_amount)) },
                     singleLine = true,
                     readOnly = state.isAutoCapture,
                     enabled = !state.isAutoCapture,
@@ -215,7 +217,7 @@ fun EditTransactionScreen(
                         value = state.note,
                         onValueChange = { viewModel.onNoteChanged(it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Ghi chú") },
+                        label = { Text(stringResource(R.string.transaction_field_note)) },
                         minLines = 2,
                         readOnly = state.isAutoCapture,
                         enabled = !state.isAutoCapture,
@@ -265,10 +267,10 @@ fun EditTransactionScreen(
                                     viewModel.onDateChanged(picked)
                                 }
                                 showDatePicker = false
-                            }) { Text("Xong") }
+                            }) { Text(stringResource(R.string.action_done)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                            TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) }
                         },
                     ) {
                         DatePicker(state = datePickerState)

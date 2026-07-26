@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -294,7 +296,7 @@ fun BillSplitCreateSheet(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Chia hóa đơn",
+                                text = stringResource(R.string.quick_add_bill_split_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -316,7 +318,7 @@ fun BillSplitCreateSheet(
                             onClick = onDismiss,
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) {
-                            Text("Đóng")
+                            Text(stringResource(R.string.action_close))
                         }
                     }
                 }

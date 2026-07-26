@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.horizontalScroll
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
@@ -99,7 +101,7 @@ fun AddWalletScreen(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onNameChanged,
-                label = { Text("Tên ví") },
+                label = { Text(stringResource(R.string.wallet_field_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -107,7 +109,7 @@ fun AddWalletScreen(
             OutlinedTextField(
                 value = state.initialBalanceInput,
                 onValueChange = viewModel::onInitialBalanceChanged,
-                label = { Text("Số dư ban đầu") },
+                label = { Text(stringResource(R.string.wallet_field_initial_balance)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,

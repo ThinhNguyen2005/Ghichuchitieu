@@ -2,6 +2,7 @@
 <resources>
     <!-- App -->
     <string name="app_name">Quản lí chi tiêu</string>
+    <string name="app_settings_title">Cài đặt ứng dụng</string>
 
     <!-- Bottom navigation labels -->
     <string name="nav_home">Trang chủ</string>
@@ -13,6 +14,7 @@
     <string name="nav_bill_split">Chia tiền</string>
 
     <!-- Common actions -->
+    <string name="action_add">Thêm</string>
     <string name="action_save">Lưu</string>
     <string name="action_cancel">Hủy</string>
     <string name="action_done">Xong</string>
@@ -112,6 +114,7 @@
     <!-- Subscription screen -->
     <string name="subscription_title">Hóa đơn định kỳ</string>
     <string name="subscription_empty">Chưa có hóa đơn định kỳ nào.</string>
+    <string name="utilities_reminder_title">Nhắc nhở gia hạn</string>
 
     <!-- AddWallet screen -->
     <string name="add_wallet_title">Thêm ví</string>

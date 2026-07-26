@@ -30,8 +30,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.util.WalletUiHelper
 
@@ -74,7 +76,7 @@ fun WalletPickerSheet(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                TextButton(onClick = onDismiss) { Text("Đóng") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
             }
             if (wallets.isEmpty()) {
                 Text(

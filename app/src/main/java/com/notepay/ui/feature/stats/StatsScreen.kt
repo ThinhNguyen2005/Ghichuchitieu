@@ -316,7 +316,7 @@ private fun StatsEmptyState(
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Thêm giao dịch", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.add_transaction_title), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -663,7 +663,7 @@ private fun BudgetProgressBar(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Hạn mức chi tiêu",
+                        text = stringResource(R.string.wallet_field_budget),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )

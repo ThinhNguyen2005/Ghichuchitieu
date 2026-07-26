@@ -47,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.notepay.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -119,7 +121,7 @@ fun BackupRestoreScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Hủy")
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
         )
@@ -131,7 +133,7 @@ fun BackupRestoreScreen(
                 title = { Text("Sao lưu & Khôi phục") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )

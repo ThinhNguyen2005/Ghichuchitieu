@@ -59,11 +59,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.theme.AppTheme
@@ -127,7 +129,7 @@ fun VietQrConfigSheet(
                             playHaptic()
                             isPickingBank = false
                         }) {
-                            Icon(Icons.Rounded.ArrowBack, contentDescription = "Quay lại")
+                            Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
@@ -152,7 +154,7 @@ fun VietQrConfigSheet(
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Rounded.Close, contentDescription = "Xóa")
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_delete))
                                 }
                             }
                         },
@@ -241,7 +243,7 @@ fun VietQrConfigSheet(
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Đóng")
+                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_close))
                         }
                     }
 
@@ -353,7 +355,7 @@ fun VietQrConfigSheet(
                     OutlinedTextField(
                         value = accountName,
                         onValueChange = { accountName = stripAccents(it) },
-                        label = { Text("Tên chủ tài khoản") },
+                        label = { Text(stringResource(R.string.transfer_account_name)) },
                         placeholder = { Text("NGUYEN VAN A") },
                         leadingIcon = {
                             Icon(

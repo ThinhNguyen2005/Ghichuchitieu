@@ -30,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -103,7 +105,7 @@ fun MonthlyCalendarView(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                    contentDescription = "Tháng trước",
+                    contentDescription = stringResource(R.string.stats_previous_month),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -118,7 +120,7 @@ fun MonthlyCalendarView(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                    contentDescription = "Tháng sau",
+                    contentDescription = stringResource(R.string.stats_next_month),
                     modifier = Modifier.size(28.dp)
                 )
             }

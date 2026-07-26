@@ -35,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.LiquidGlassPanel
@@ -116,7 +118,7 @@ fun CategoryGridPicker(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Tìm kiếm") },
+                label = { Text(stringResource(R.string.action_search)) },
             )
         }
 
@@ -335,12 +337,12 @@ private fun AddCategoryDialog(
                 onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor, selectedIconId) },
                 enabled = name.isNotBlank(),
             ) {
-                Text("Thêm")
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy")
+                Text(stringResource(R.string.action_cancel))
             }
         },
     )

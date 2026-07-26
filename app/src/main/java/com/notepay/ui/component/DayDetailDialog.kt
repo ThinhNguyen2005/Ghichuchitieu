@@ -29,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -103,7 +105,7 @@ fun DayDetailDialog(
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
                     EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
-                        title = "Trống",
+                        title = stringResource(R.string.state_empty),
                         description = "Không có giao dịch hoặc nhắc nhở nào trong ngày này."
                     )
                 }
@@ -230,7 +232,7 @@ fun DayDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Đóng") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
 }

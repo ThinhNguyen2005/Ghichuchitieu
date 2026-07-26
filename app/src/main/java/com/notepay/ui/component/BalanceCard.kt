@@ -144,7 +144,7 @@ fun BalanceCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Thu nhập",
+                            text = stringResource(R.string.stats_income),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -181,7 +181,7 @@ fun BalanceCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Chi tiêu",
+                            text = stringResource(R.string.stats_expense),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

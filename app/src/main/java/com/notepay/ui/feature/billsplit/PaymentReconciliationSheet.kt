@@ -98,7 +98,7 @@ fun PaymentReconciliationSheet(
                     onClick = onDismiss,
                     modifier = Modifier.offset(x = 12.dp, y = (-8).dp) // Đẩy sát góc gọn gàng
                 ) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Đóng")
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_close))
                 }
             }
 

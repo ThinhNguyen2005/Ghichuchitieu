@@ -440,7 +440,7 @@ private fun BudgetProjectionCard(
 
             Icon(
                 imageVector = Icons.Rounded.Close,
-                contentDescription = "Đóng",
+                contentDescription = stringResource(R.string.action_close),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(18.dp)

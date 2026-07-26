@@ -42,10 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.GradientTopAppBar
@@ -73,7 +75,7 @@ fun TransactionDetailScreen(
                 title = { Text("Chi tiết giao dịch", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -320,7 +322,7 @@ private fun ActionsBlock(
         ) {
             ActionRow(
                 icon = Icons.Rounded.Edit,
-                title = "Sửa giao dịch",
+                title = stringResource(R.string.edit_transaction_title),
                 onClick = onEdit
             )
             HorizontalDivider(

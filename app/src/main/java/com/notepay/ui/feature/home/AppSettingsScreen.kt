@@ -245,13 +245,13 @@ fun AppSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cài đặt ứng dụng", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.app_settings_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
                         playHaptic()
                         onBack()
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
