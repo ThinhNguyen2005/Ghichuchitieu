@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -59,16 +58,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
+import coil3.compose.AsyncImage
+import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
-import com.notepay.ui.feature.wallet.SupportedBank
 import com.notepay.ui.theme.AppTheme
 import java.text.Normalizer
 
@@ -76,17 +73,15 @@ import java.text.Normalizer
 @Composable
 fun VietQrConfigSheet(
     wallet: Wallet,
+    banks: List<VietQrBank>,
     onDismiss: () -> Unit,
     onSave: (bankBin: String, accountNumber: String, accountName: String) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val realBanks = remember { SupportedBank.LIST.filter { it.bin != null } }
-
-    val context = LocalContext.current
     val localView = LocalView.current
-    
+
     var selectedBank by remember {
-        mutableStateOf(realBanks.find { it.bin == wallet.bankBin } ?: realBanks.first())
+        mutableStateOf(banks.find { it.bin == wallet.bankBin } ?: banks.firstOrNull())
     }
     var accountNumber by remember { mutableStateOf(wallet.accountNumber.orEmpty()) }
     var accountName by remember { mutableStateOf(wallet.accountName.orEmpty()) }
@@ -128,9 +123,9 @@ fun VietQrConfigSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             playHaptic()
-                            isPickingBank = false 
+                            isPickingBank = false
                         }) {
                             Icon(Icons.Rounded.ArrowBack, contentDescription = "Quay lại")
                         }
@@ -172,9 +167,12 @@ fun VietQrConfigSheet(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    val filteredBanks = remember(searchQuery) {
-                        realBanks.filter {
-                            it.name.contains(searchQuery, ignoreCase = true)
+                    val q = searchQuery.trim()
+                    val filteredBanks = remember(q, banks) {
+                        if (q.isBlank()) banks
+                        else banks.filter {
+                            it.shortName.contains(q, ignoreCase = true) ||
+                                it.name.contains(q, ignoreCase = true)
                         }
                     }
 
@@ -184,10 +182,10 @@ fun VietQrConfigSheet(
                             .fillMaxWidth()
                             .height(360.dp),
                     ) {
-                        items(filteredBanks, key = { it.packageName }) { bank ->
+                        items(filteredBanks, key = { it.bin }) { bank ->
                             BankRow(
                                 bank = bank,
-                                isSelected = bank.bin == selectedBank.bin,
+                                isSelected = bank.bin == selectedBank?.bin,
                                 onClick = {
                                     playHaptic()
                                     selectedBank = bank
@@ -284,21 +282,13 @@ fun VietQrConfigSheet(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
-                    val selectedBankIcon = remember(selectedBank.packageName) {
-                        try {
-                            context.packageManager.getApplicationIcon(selectedBank.packageName).toBitmap().asImageBitmap()
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                    
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { 
+                            .clickable {
                                 playHaptic()
-                                isPickingBank = true 
+                                isPickingBank = true
                             },
                         shape = AppTheme.shapes.corner16,
                         colors = CardDefaults.cardColors(
@@ -311,37 +301,22 @@ fun VietQrConfigSheet(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (selectedBankIcon != null) {
-                                Image(
-                                    bitmap = selectedBankIcon,
-                                    contentDescription = selectedBank.name,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(AppTheme.shapes.corner8)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(AppTheme.shapes.circle)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.AccountBalance,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            }
+                            BankLogo(logoUrl = selectedBank?.logoUrl, modifier = Modifier.size(40.dp))
                             Spacer(Modifier.size(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = selectedBank.name,
+                                    text = selectedBank?.shortName ?: "Chọn ngân hàng",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Bold,
                                 )
+                                if (selectedBank != null) {
+                                    Text(
+                                        text = selectedBank!!.name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                    )
+                                }
                             }
                             Icon(
                                 Icons.Rounded.ArrowDropDown,
@@ -410,12 +385,12 @@ fun VietQrConfigSheet(
                     Button(
                         onClick = {
                             playHaptic()
-                            val bin = selectedBank.bin
+                            val bin = selectedBank?.bin
                             if (bin != null && accountNumber.isNotBlank() && accountName.isNotBlank()) {
                                 onSave(bin, accountNumber, accountName)
                             }
                         },
-                        enabled = accountNumber.isNotBlank() && accountName.isNotBlank(),
+                        enabled = selectedBank != null && accountNumber.isNotBlank() && accountName.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -435,19 +410,10 @@ fun VietQrConfigSheet(
 
 @Composable
 private fun BankRow(
-    bank: SupportedBank,
+    bank: VietQrBank,
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val appIcon = remember(bank.packageName) {
-        try {
-            context.packageManager.getApplicationIcon(bank.packageName).toBitmap().asImageBitmap()
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     val containerColor = if (isSelected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     } else {
@@ -476,39 +442,23 @@ private fun BankRow(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (appIcon != null) {
-                Image(
-                    bitmap = appIcon,
-                    contentDescription = bank.name,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(AppTheme.shapes.corner8)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(AppTheme.shapes.circle)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.AccountBalance,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
+            BankLogo(logoUrl = bank.logoUrl, modifier = Modifier.size(36.dp))
             Spacer(Modifier.size(12.dp))
-            Text(
-                bank.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    bank.shortName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    bank.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
             if (isSelected) {
                 Icon(
                     Icons.Rounded.Check,
@@ -516,6 +466,31 @@ private fun BankRow(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BankLogo(logoUrl: String?, modifier: Modifier = Modifier) {
+    if (!logoUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = logoUrl,
+            contentDescription = null,
+            modifier = modifier.clip(AppTheme.shapes.corner8),
+        )
+    } else {
+        Box(
+            modifier = modifier
+                .clip(AppTheme.shapes.circle)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.AccountBalance,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

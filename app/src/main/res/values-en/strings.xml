@@ -289,4 +289,14 @@
 
     <!-- Theme -->
     <string name="theme_dynamic_color">System color</string>
+
+    <!-- Scan & BillSplit -->
+    <string name="scan_image_reading">Reading image…</string>
+    <string name="scan_image_button">Scan transaction image or VietQR</string>
+    <string name="billsplit_cd_back">Back to Bill Split</string>
+    <string name="billsplit_tab_paid">Paid</string>
+    <string name="billsplit_cd_history">View paid items</string>
+    <string name="billsplit_title">Bill Split Management</string>
+    <string name="billsplit_total_to_receive">Total to receive</string>
+    <string name="billsplit_default_note">Bill split invoice</string>
 </resources>

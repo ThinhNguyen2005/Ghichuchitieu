@@ -1,14 +1,13 @@
 package com.notepay.ui.feature.stats
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
@@ -39,8 +38,6 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.PieChart
-import androidx.compose.material.icons.rounded.RemoveRedEye
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -48,6 +45,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -84,6 +83,7 @@ enum class StatsMetric { CHI_TIEU, THU_NHAP }
 @Composable
 fun StatsDashboard(
     state: StatsUiState,
+    showAmounts: Boolean,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
@@ -93,7 +93,6 @@ fun StatsDashboard(
 ) {
     var viewType by rememberSaveable { mutableStateOf(StatsViewType.PHAN_BO) }
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
-    var showAmounts by rememberSaveable { mutableStateOf(true) }
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
     val previousTotal = state.recentMonths.getOrNull(1)?.let {
         if (metric == StatsMetric.CHI_TIEU) it.expense else it.income
@@ -109,31 +108,26 @@ fun StatsDashboard(
         item {
             StatsHeader(
                 viewType = viewType,
-                showAmounts = showAmounts,
-                onToggleVisibility = { showAmounts = !showAmounts },
                 onViewTypeChanged = { viewType = it },
             )
         }
         item(key = "stats-chart-mode") {
-            when (viewType) {
-                StatsViewType.PHAN_BO -> OverviewCard(
-                    state = state,
-                    metric = metric,
-                    showAmounts = showAmounts,
-                    difference = difference,
-                    onMetricChanged = { metric = it },
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                ) {
-                    AllocationChart(
-                        breakdown = breakdown,
-                        selectedCategory = state.selectedCategory,
-                        onCategorySelected = onCategorySelected,
-                    )
-                }
-
-                StatsViewType.XU_HUONG -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OverviewCard(
+            AnimatedContent(
+                targetState = viewType,
+                transitionSpec = {
+                    val direction = if (targetState == StatsViewType.XU_HUONG) 1 else -1
+                    (
+                        slideInHorizontally(animationSpec = tween(220)) { it * direction } +
+                            fadeIn(animationSpec = tween(180))
+                        ) togetherWith (
+                        slideOutHorizontally(animationSpec = tween(180)) { -it * direction } +
+                            fadeOut(animationSpec = tween(140))
+                        )
+                },
+                label = "stats-view-mode",
+            ) { targetViewType ->
+                when (targetViewType) {
+                    StatsViewType.PHAN_BO -> OverviewCard(
                         state = state,
                         metric = metric,
                         showAmounts = showAmounts,
@@ -141,13 +135,30 @@ fun StatsDashboard(
                         onMetricChanged = { metric = it },
                         onPreviousMonth = onPreviousMonth,
                         onNextMonth = onNextMonth,
-                    )
-                    TrendChart(
-                        points = state.recentMonths,
-                        metric = metric,
-                        isSelectedMonthCurrent = state.isCurrentMonth,
-                        onPointClick = onMonthSelected,
-                    )
+                    ) {
+                        AllocationChart(
+                            breakdown = breakdown,
+                            selectedCategory = state.selectedCategory,
+                            onCategorySelected = onCategorySelected,
+                        )
+                    }
+                    StatsViewType.XU_HUONG -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        OverviewCard(
+                            state = state,
+                            metric = metric,
+                            showAmounts = showAmounts,
+                            difference = difference,
+                            onMetricChanged = { metric = it },
+                            onPreviousMonth = onPreviousMonth,
+                            onNextMonth = onNextMonth,
+                        )
+                        TrendChart(
+                            points = state.recentMonths,
+                            metric = metric,
+                            isSelectedMonthCurrent = state.isCurrentMonth,
+                            onPointClick = onMonthSelected,
+                        )
+                    }
                 }
             }
         }
@@ -158,93 +169,38 @@ fun StatsDashboard(
 @Composable
 private fun StatsHeader(
     viewType: StatsViewType,
-    showAmounts: Boolean,
-    onToggleVisibility: () -> Unit,
     onViewTypeChanged: (StatsViewType) -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        contentAlignment = Alignment.Center,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.stats_screen_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            IconButton(onClick = onToggleVisibility, modifier = Modifier.size(34.dp)) {
-                Icon(
-                    imageVector = if (showAmounts) Icons.Rounded.RemoveRedEye else Icons.Rounded.VisibilityOff,
-                    contentDescription = if (showAmounts) stringResource(R.string.stats_cd_hide_amounts) else stringResource(R.string.stats_cd_show_amounts),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
         ViewModeToggle(viewType = viewType, onChanged = onViewTypeChanged)
     }
 }
 
 @Composable
 private fun ViewModeToggle(viewType: StatsViewType, onChanged: (StatsViewType) -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    val selectedIndex = if (viewType == StatsViewType.PHAN_BO) 0 else 1
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Row(modifier = Modifier.padding(3.dp), verticalAlignment = Alignment.CenterVertically) {
-            ViewModeItem(
-                active = viewType == StatsViewType.PHAN_BO,
-                icon = Icons.Rounded.PieChart,
-                label = stringResource(R.string.stats_view_allocation),
-                onClick = { onChanged(StatsViewType.PHAN_BO) },
-            )
-            ViewModeItem(
-                active = viewType == StatsViewType.XU_HUONG,
-                icon = Icons.Rounded.BarChart,
-                label = stringResource(R.string.stats_view_trend),
-                onClick = { onChanged(StatsViewType.XU_HUONG) },
-            )
-        }
+        Tab(
+            selected = selectedIndex == 0,
+            onClick = { onChanged(StatsViewType.PHAN_BO) },
+            text = { Text(stringResource(R.string.stats_view_allocation)) },
+            icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
+        )
+        Tab(
+            selected = selectedIndex == 1,
+            onClick = { onChanged(StatsViewType.XU_HUONG) },
+            text = { Text(stringResource(R.string.stats_view_trend)) },
+            icon = { Icon(Icons.Rounded.BarChart, contentDescription = null) },
+        )
     }
 }
-
-@Composable
-private fun ViewModeItem(
-    active: Boolean,
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(enabled = !active, onClick = onClick)
-            .animateContentSize(animationSpec = tween(220)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = if (active) 10.dp else 9.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp), tint = tint)
-            AnimatedVisibility(active) {
-                Row {
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = tint,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun OverviewCard(
     state: StatsUiState,

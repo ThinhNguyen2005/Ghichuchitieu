@@ -2,23 +2,18 @@ package com.notepay.ui.feature.billsplit
 
 import com.notepay.ui.theme.AppTheme
 
-import android.content.Context
-import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Paint
-import android.graphics.Typeface
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.Color
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -27,17 +22,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
-import androidx.core.graphics.createBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
@@ -49,11 +40,8 @@ import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.feature.wallet.SupportedBank
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
-import java.io.File
-import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -111,9 +99,12 @@ fun DebtorDetailScreen(
         state.wallets.find { it.id == id }
     }
 
-    val bankName = remember(activeWallet, linkedBankName) {
-        val matchedBank = SupportedBank.LIST.find { it.bin == activeWallet?.bankBin }
-        matchedBank?.name ?: linkedBankName
+    val bankName = remember(activeWallet, state.banks, linkedBankName) {
+        state.banks.find { it.bin == activeWallet?.bankBin }?.shortName ?: linkedBankName
+    }
+
+    val bankLogoUrl = remember(activeWallet, state.banks) {
+        state.banks.find { it.bin == activeWallet?.bankBin }?.logoUrl
     }
 
     val memoCode = remember(debtorName) {
@@ -121,13 +112,14 @@ fun DebtorDetailScreen(
         "NP $sanitized"
     }
 
-    val qrCodeString = remember(activeWallet, totalAmountCents, memoCode) {
+    val qrImageUrl = remember(activeWallet, totalAmountCents, memoCode) {
         if (activeWallet?.bankBin != null && activeWallet.accountNumber != null) {
-            VietQrGenerator.generate(
+            VietQrGenerator.generateImageUrl(
                 bankBin = activeWallet.bankBin,
                 accountNumber = activeWallet.accountNumber,
                 amountCents = totalAmountCents,
-                memo = memoCode
+                memo = memoCode,
+                accountName = activeWallet.accountName,
             )
         } else null
     }
@@ -192,13 +184,14 @@ fun DebtorDetailScreen(
             }
 
             item {
-                if (qrCodeString != null && activeWallet != null && totalAmountCents > 0) {
+                if (qrImageUrl != null && activeWallet != null && totalAmountCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         VietQrTemplateCard(
                             bankName = bankName,
+                            bankLogoUrl = bankLogoUrl,
                             accountNumber = activeWallet.accountNumber.orEmpty(),
                             accountName = activeWallet.accountName.orEmpty(),
-                            qrCodeString = qrCodeString
+                            qrImageUrl = qrImageUrl
                         )
 
                         TransferDetailsCopyCard(
@@ -346,8 +339,9 @@ fun DebtorDetailScreen(
     }
 
     qrConfigWallet?.let { wallet ->
-        VietQrConfigSheet(
+        VietQrConfigFullScreenDialog(
             wallet = wallet,
+            banks = state.banks,
             onDismiss = { qrConfigWalletId = null },
             onSave = { bin, accNum, accName ->
                 viewModel.updateWalletForQr(wallet.id, bin, accNum, accName)
@@ -360,7 +354,7 @@ fun DebtorDetailScreen(
     pendingDeleteBill?.let { item ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_bill_title),
-            itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
+            itemName = "${item.split.debtorName} â€¢ ${MoneyFormatter.format(item.split.amount)}",
             message = stringResource(R.string.debt_delete_message),
             onConfirm = { viewModel.deleteBillSplit(item.split.id) },
             onDismiss = { pendingDeleteBill = null },
@@ -461,66 +455,13 @@ private fun VietQrLogo(modifier: Modifier = Modifier) {
     Image(painter = painterResource(id = R.drawable.logo_vietqr), contentDescription = stringResource(R.string.cd_vietqr_logo), modifier = modifier.height(44.dp))
 }
 
-private fun getBankLogoRes(bankName: String): Int? {
-    val name = bankName.lowercase(Locale.ROOT)
-    return when {
-        name.contains("vib") -> R.drawable.logo_vib
-        name.contains("vietcom") || name.contains("vcb") -> R.drawable.logo_vcb
-        name.contains("tpbank") || name.contains("tp bank") || name.contains(" tiên phong") -> R.drawable.logo_tp
-        name.contains("mb") || name.contains("quân đội") -> R.drawable.logo_mb
-        name.contains("acb") || name.contains("á châu") -> R.drawable.logo_acb
-        name.contains("agri") || name.contains("nông nghiệp") -> R.drawable.logo_agrbank
-        name.contains("sacom") -> R.drawable.logo_sacom
-        name.contains("vp") || name.contains("thịnh vượng") -> R.drawable.logo_vpbank
-        name.contains("hd") -> R.drawable.logo_hdbank
-        name.contains("timo") -> R.drawable.logo_timo
-        name.contains("shb") -> R.drawable.logo_shb
-        name.contains("scb") -> R.drawable.logo_scb
-        name.contains("bao viet") || name.contains("baoviet") -> R.drawable.logo_baoviet
-        name.contains("viettel") -> R.drawable.logo_viettheomoney
-        else -> null
-    }
-}
-
-private fun getBankColor(bankName: String): Color {
-    val name = bankName.uppercase(Locale.ROOT)
-    return when {
-        name.contains("VIB") -> Color(0xFF0F3D8C)
-        name.contains("VIETCOMBANK") || name.contains("VCB") -> Color(0xFF008A4E)
-        name.contains("TECHCOMBANK") || name.contains("TCB") -> Color(0xFFE31837)
-        name.contains("TPBANK") || name.contains("TPB") -> Color(0xFF5C287B)
-        name.contains("MB") -> Color(0xFF0054A6)
-        name.contains("BIDV") -> Color(0xFF008345)
-        name.contains("VIETINBANK") -> Color(0xFF0054A6)
-        name.contains("ACB") -> Color(0xFF0072BC)
-        else -> Color(0xFF1B365D)
-    }
-}
-
-@Composable
-private fun NapasBankRow(bankName: String, modifier: Modifier = Modifier) {
-    val logoRes = remember(bankName) { getBankLogoRes(bankName) }
-
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-        Image(painter = painterResource(id = R.drawable.logo_napas), contentDescription = stringResource(R.string.cd_napas), modifier = Modifier.height(24.dp))
-        Spacer(modifier = Modifier.width(12.dp))
-        Box(modifier = Modifier.width(1.dp).height(22.dp).background(MaterialTheme.colorScheme.outlineVariant))
-        Spacer(modifier = Modifier.width(12.dp))
-        if (logoRes != null) {
-            Image(painter = painterResource(id = logoRes), contentDescription = bankName, modifier = Modifier.height(32.dp))
-        } else {
-            // ĐÃ SỬA: Gọi trực tiếp hàm getBankColor inline loại bỏ cảnh báo Assigned value is never read
-            Text(text = bankName.uppercase(Locale.ROOT), color = getBankColor(bankName), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
 @Composable
 private fun VietQrTemplateCard(
     bankName: String,
+    bankLogoUrl: String?,
     accountNumber: String,
     accountName: String,
-    qrCodeString: String,
+    qrImageUrl: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -536,16 +477,46 @@ private fun VietQrTemplateCard(
         ) {
             VietQrLogo()
 
-            Box(
+            AsyncImage(
+                model = qrImageUrl,
+                contentDescription = stringResource(R.string.cd_vietqr_logo),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .clip(AppTheme.shapes.corner16)
-                    .background(Color.White)
-                    .padding(12.dp)
-            ) {
-                QrCodeImage(content = qrCodeString)
-            }
+                    .size(200.dp)
+                    .clip(AppTheme.shapes.corner12)
+            )
 
-            NapasBankRow(bankName = bankName)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_napas),
+                    contentDescription = stringResource(R.string.cd_napas),
+                    modifier = Modifier.height(24.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(22.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                Spacer(Modifier.width(12.dp))
+                if (!bankLogoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = bankLogoUrl,
+                        contentDescription = bankName,
+                        modifier = Modifier.height(32.dp)
+                    )
+                } else {
+                    Text(
+                        text = bankName.uppercase(Locale.ROOT),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(text = accountName.uppercase(Locale.ROOT), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -553,6 +524,19 @@ private fun VietQrTemplateCard(
             }
         }
     }
+}
+
+private fun formatInstant(instant: kotlin.time.Instant?): String {
+    if (instant == null) return ""
+    val tz = TimeZone.currentSystemDefault()
+    val localDateTime = instant.toLocalDateTime(tz)
+    return String.format(
+        Locale.US,
+        "%02d/%02d/%d",
+        localDateTime.day,
+        localDateTime.month.number,
+        localDateTime.year
+    )
 }
 
 @Composable
@@ -634,185 +618,3 @@ private fun CopyableDetailRow(
     }
 }
 
-@Composable
-private fun QrCodeImage(content: String, modifier: Modifier = Modifier) {
-    val size = 200
-    val bitMatrix = remember(content) {
-        try {
-            com.google.zxing.qrcode.QRCodeWriter().encode(content, com.google.zxing.BarcodeFormat.QR_CODE, size, size)
-        } catch (e: Exception) { null }
-    }
-
-    if (bitMatrix != null) {
-        Canvas(modifier = modifier.size(200.dp)) {
-            val width = bitMatrix.width
-            val height = bitMatrix.height
-            val cellWidth = 200.dp.toPx() / width
-            val cellHeight = 200.dp.toPx() / height
-
-            for (x in 0 until width) {
-                for (y in 0 until height) {
-                    if (bitMatrix.get(x, y)) {
-                        drawRect(
-                            color = Color.Black,
-                            topLeft = Offset(x * cellWidth, y * cellHeight),
-                            size = Size(cellWidth, cellHeight)
-                        )
-                    }
-                }
-            }
-        }
-    } else {
-        Text(stringResource(R.string.error_generate_qr))
-    }
-}
-
-// ĐÃ SỬA: Loại bỏ các tham số thừa amountStr và memo để giải quyết triệt để cảnh báo Parameter never used
-private fun generateVietQrCardBitmap(
-    context: Context,
-    qrCodeString: String,
-    bankName: String,
-    accountNumber: String,
-    accountName: String
-): Bitmap {
-    val width = 600
-    val height = 720
-    val bitmap = createBitmap(width, height)
-    val canvas = android.graphics.Canvas(bitmap)
-    val paint = Paint()
-
-    paint.color = 0xFFFFFFFF.toInt()
-    canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-
-    val vietQrRaw = android.graphics.BitmapFactory.decodeResource(context.resources, R.drawable.logo_vietqr)
-    val targetVietQrHeight = 80f
-    val vietQrScale = targetVietQrHeight / vietQrRaw.height
-    val vietQrTargetWidth = vietQrRaw.width * vietQrScale
-    val vietQrLeft = (width - vietQrTargetWidth) / 2f
-    val vietQrDest = android.graphics.RectF(vietQrLeft, 40f, vietQrLeft + vietQrTargetWidth, 40f + targetVietQrHeight)
-    canvas.drawBitmap(vietQrRaw, null, vietQrDest, paint)
-
-    val qrSize = 380
-    val qrLeft = (width - qrSize) / 2
-    val qrTop = 130
-
-    try {
-        val bitMatrix = com.google.zxing.qrcode.QRCodeWriter().encode(qrCodeString, com.google.zxing.BarcodeFormat.QR_CODE, qrSize, qrSize)
-        paint.color = 0xFF000000.toInt()
-        val pixelSize = qrSize / bitMatrix.width
-        val offsetLeft = qrLeft + (qrSize - pixelSize * bitMatrix.width) / 2
-        val offsetTop = qrTop + (qrSize - pixelSize * bitMatrix.height) / 2
-        for (x in 0 until bitMatrix.width) {
-            for (y in 0 until bitMatrix.height) {
-                if (bitMatrix.get(x, y)) {
-                    canvas.drawRect(
-                        (offsetLeft + x * pixelSize).toFloat(), (offsetTop + y * pixelSize).toFloat(),
-                        (offsetLeft + (x + 1) * pixelSize).toFloat(), (offsetTop + (y + 1) * pixelSize).toFloat(), paint
-                    )
-                }
-            }
-        }
-    } catch (e: Exception) { e.printStackTrace() }
-
-    val targetNapasHeight = 48f
-    val targetBankLogoHeight = 64f
-    val napasRaw = android.graphics.BitmapFactory.decodeResource(context.resources, R.drawable.logo_napas)
-    val napasScale = targetNapasHeight / napasRaw.height
-    val napasTargetWidth = napasRaw.width * napasScale
-
-    val bankLogoRes = getBankLogoRes(bankName)
-    val bankRaw = bankLogoRes?.let { android.graphics.BitmapFactory.decodeResource(context.resources, it) }
-    val bankTargetWidth = if (bankRaw != null) {
-        val bankScale = targetBankLogoHeight / bankRaw.height
-        bankRaw.width * bankScale
-    } else {
-        paint.textSize = 32f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        paint.measureText(bankName.uppercase(Locale.ROOT))
-    }
-
-    val spacing = 20f
-    val totalRowWidth = napasTargetWidth + spacing + 2f + spacing + bankTargetWidth
-    var currentX = (width - totalRowWidth) / 2f
-
-    val napasDest = android.graphics.RectF(currentX, 530f, currentX + napasTargetWidth, 530f + targetNapasHeight)
-    canvas.drawBitmap(napasRaw, null, napasDest, paint)
-    currentX += napasTargetWidth
-
-    paint.color = 0xFFE2E8F0.toInt()
-    paint.strokeWidth = 2f
-    canvas.drawLine(currentX + spacing / 2, 532f, currentX + spacing / 2, 532f + 44f, paint)
-    currentX += spacing
-
-    if (bankRaw != null) {
-        val bankDest = android.graphics.RectF(currentX, 522f, currentX + bankTargetWidth, 522f + targetBankLogoHeight)
-        canvas.drawBitmap(bankRaw, null, bankDest, paint)
-    } else {
-        val upperBank = bankName.uppercase(Locale.ROOT)
-        paint.color = 0xFF1B365D.toInt()
-        paint.textSize = 32f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(upperBank, currentX, 565f, paint)
-    }
-
-    paint.color = 0xFF1E293B.toInt()
-    paint.textSize = 34f
-    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-    val nameText = accountName.uppercase(Locale.ROOT)
-    val nameWidth = paint.measureText(nameText)
-    canvas.drawText(nameText, (width - nameWidth) / 2f, 625f, paint)
-
-    paint.color = 0xFF64748B.toInt()
-    paint.textSize = 30f
-    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-    val numWidth = paint.measureText(accountNumber)
-    canvas.drawText(accountNumber, (width - numWidth) / 2f, 670f, paint)
-
-    return bitmap
-}
-
-// ĐÃ SỬA: Đồng bộ chữ ký hàm loại bỏ tham số dư thừa để khớp logic sạch warnings
-private fun shareVietQrImage(
-    context: Context,
-    qrCodeString: String,
-    bankName: String,
-    accountNumber: String,
-    accountName: String
-) {
-    try {
-        val bitmap = generateVietQrCardBitmap(context, qrCodeString, bankName, accountNumber, accountName)
-        val cachePath = File(context.cacheDir, "shared_images").apply { mkdirs() }
-        val file = File(cachePath, "vietqr_payment.png")
-        val stream = FileOutputStream(file)
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        stream.close()
-
-        val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        if (contentUri != null) {
-            val shareIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                setDataAndType(contentUri, context.contentResolver.getType(contentUri))
-                putExtra(Intent.EXTRA_STREAM, contentUri)
-                type = "image/png"
-            }
-            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.action_share_vietqr)))
-        }
-        // ĐÃ SỬA: Dùng toán tử gạch dưới "_" đại diện cho Exception không dùng đến trong Catch Block
-    } catch (_: Exception) {
-        Toast.makeText(context, context.getString(R.string.error_share_vietqr), Toast.LENGTH_LONG).show()
-    }
-}
-
-private fun formatInstant(instant: kotlin.time.Instant?): String {
-    if (instant == null) return ""
-    val tz = TimeZone.currentSystemDefault()
-    val localDateTime = instant.toLocalDateTime(tz)
-    return String.format(
-        Locale.US,
-        "%02d/%02d/%d",
-        localDateTime.day,
-        localDateTime.month.number,
-        localDateTime.year
-    )
-}

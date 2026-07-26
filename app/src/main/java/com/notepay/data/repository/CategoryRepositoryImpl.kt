@@ -64,4 +64,23 @@ class CategoryRepositoryImpl @Inject constructor(
             
         loadAndRegister()
     }
+    suspend fun replaceCustomCategories(categories: List<Category>) {
+        val previousIds = prefs.getStringSet("custom_category_ids", emptySet()).orEmpty()
+        val editor = prefs.edit()
+        previousIds.forEach { id ->
+            editor.remove("custom_category_${id}_name")
+            editor.remove("custom_category_${id}_color")
+            editor.remove("custom_category_${id}_is_income")
+            editor.remove("custom_category_${id}_icon")
+        }
+        editor.putStringSet("custom_category_ids", categories.mapTo(mutableSetOf()) { it.id })
+        categories.forEach { category ->
+            editor.putString("custom_category_${category.id}_name", category.displayName)
+            editor.putLong("custom_category_${category.id}_color", category.colorArgb)
+            editor.putBoolean("custom_category_${category.id}_is_income", category.isIncome)
+            editor.putString("custom_category_${category.id}_icon", category.iconId)
+        }
+        check(editor.commit()) { "Không thể lưu danh mục tùy chỉnh." }
+        loadAndRegister()
+    }
 }

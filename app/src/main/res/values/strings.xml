@@ -285,4 +285,14 @@
 
     <!-- Theme -->
     <string name="theme_dynamic_color">Màu hệ thống</string>
+
+    <!-- Scan & BillSplit -->
+    <string name="scan_image_reading">Đang đọc ảnh…</string>
+    <string name="scan_image_button">Quét ảnh giao dịch hoặc VietQR</string>
+    <string name="billsplit_cd_back">Quay lại quản lý chia tiền</string>
+    <string name="billsplit_tab_paid">Đã thanh toán</string>
+    <string name="billsplit_cd_history">Xem các khoản đã thanh toán</string>
+    <string name="billsplit_title">Quản lý chia tiền</string>
+    <string name="billsplit_total_to_receive">Tổng cần thu</string>
+    <string name="billsplit_default_note">Hóa đơn chia tiền</string>
 </resources>

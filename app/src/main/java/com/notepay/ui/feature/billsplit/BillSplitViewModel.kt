@@ -4,30 +4,30 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.repository.BillSplitRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietQrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
@@ -37,40 +37,40 @@ class BillSplitViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
     private val addTransaction: AddTransactionUseCase,
+    private val vietQrBankRepository: VietQrBankRepository,
 ) : ViewModel() {
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
+    private val _banks = MutableStateFlow<List<VietQrBank>>(emptyList())
+
     private fun str(resId: Int): String = appContext.getString(resId)
     private fun str(resId: Int, vararg args: Any): String = appContext.getString(resId, *args)
+
+    init {
+        viewModelScope.launch {
+            _banks.value = vietQrBankRepository.getBanks()
+        }
+    }
 
     val state = combine(
         billSplitRepository.observeUnpaid(),
         billSplitRepository.observePaid(),
         transactionRepository.observeAll(),
         walletRepository.observeAll(),
-    ) { unpaid, paid, transactions, wallets ->
+        _banks,
+    ) { unpaid, paid, transactions, wallets, banks ->
         val activeWallet = wallets.find { it.isActive } ?: wallets.firstOrNull()
         val unpaidItems = unpaid.map { split ->
             val parent = transactions.find { it.id == split.transactionId }
             val wallet = wallets.find { it.id == parent?.walletId }
-            val qr = if (wallet?.bankBin != null && wallet.accountNumber != null) {
-                VietQrGenerator.generate(
-                    bankBin = wallet.bankBin,
-                    accountNumber = wallet.accountNumber,
-                    amountCents = split.amount.amountInCents,
-                    memo = split.memoCode,
-                )
-            } else {
-                null
-            }
-            BillSplitItemState(split, parent, qr, wallet)
+            BillSplitItemState(split, parent, wallet)
         }
 
         val paidItems = paid.map { split ->
             val parent = transactions.find { it.id == split.transactionId }
-            BillSplitItemState(split, parent, null, null)
+            BillSplitItemState(split, parent, null)
         }
 
         BillSplitUiState(
@@ -79,6 +79,7 @@ class BillSplitViewModel @Inject constructor(
             recentTransactions = transactions,
             wallets = wallets,
             activeWallet = activeWallet,
+            banks = banks,
             isLoading = false,
         )
     }.stateIn(

@@ -92,4 +92,14 @@ class CategoryRepositoryTest {
         val retrieved = Category.safeValueOf("CUSTOM_TEST")
         assertThat(retrieved.displayName).isEqualTo("Ủng hộ")
     }
+    @Test
+    fun replaceCustomCategories_removesCategoriesMissingFromBackup() = runTest {
+        repository.addCustomCategory(Category("OLD", "Cũ", 0xFF000000L, isCustom = true))
+        val restored = Category("RESTORED", "Đã khôi phục", 0xFFFFFFFFL, isCustom = true)
+
+        repository.replaceCustomCategories(listOf(restored))
+
+        val customs = repository.observeCategories().first().filter { it.isCustom }
+        assertThat(customs).containsExactly(restored)
+    }
 }

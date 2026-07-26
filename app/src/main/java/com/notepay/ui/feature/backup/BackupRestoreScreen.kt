@@ -108,7 +108,7 @@ fun BackupRestoreScreen(
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             title = { Text("Xác nhận khôi phục") },
-            text = { Text("Việc này sẽ thay thế toàn bộ dữ liệu hiện tại. Bạn có chắc chắn không?") },
+            text = { Text("Ví, giao dịch, chia tiền, đăng ký và danh mục tùy chỉnh hiện tại sẽ bị thay thế. Thiết lập không có trong file sao lưu sẽ được giữ lại.") },
             confirmButton = {
                 TextButton(onClick = {
                     showConfirmDialog = false

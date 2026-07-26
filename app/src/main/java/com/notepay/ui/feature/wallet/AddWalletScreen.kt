@@ -377,31 +377,3 @@ fun AddWalletScreen(
     }
 }
 
-data class SupportedBank(
-    val name: String,
-    val packageName: String,
-    val bin: String?
-) {
-    companion object {
-        val LIST = listOf(
-            SupportedBank("Không liên kết", "", null),
-            SupportedBank("TPBank", "com.tpb.mb.gprsandroid", "970423"),
-            SupportedBank("Vietcombank", "com.VCB", "970436"),
-            SupportedBank("Techcombank", "com.technologies.tcb", "970407"),
-            SupportedBank("MB Bank", "com.mbmobile", "970422"),
-            SupportedBank("BIDV", "com.bidv.smartbanking", "970418"),
-            SupportedBank("VietinBank", "com.vietinbank.ipay", "970415"),
-            SupportedBank("ACB", "vn.com.acb.mbanking", "970416"),
-            SupportedBank("VIB", "vn.com.vib.vibmobile", "970441"),
-            SupportedBank("Agribank", "com.vnpay.Agribank3g", "970405"),
-            SupportedBank("Sacombank", "com.sacombank.mbanking", "970403"),
-            SupportedBank("VPBank", "com.vpbank.neo", "970432"),
-            SupportedBank("HDBank", "vn.com.hdbank.smartbanking", "970420"),
-            SupportedBank("Timo (BVBank)", "vn.timo.digitalbank", "970454"),
-            SupportedBank("SHB", "com.shb.mobile", "970443"),
-            SupportedBank("SCB", "com.scb.mobile", "970429"),
-            SupportedBank("BaoViet Bank", "com.baovietbank.bvmobile", "970438"),
-            SupportedBank("Momo (Ví)", "com.mservice.momotransfer", null)
-        )
-    }
-}

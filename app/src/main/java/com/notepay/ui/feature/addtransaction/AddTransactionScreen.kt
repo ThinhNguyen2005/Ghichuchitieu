@@ -68,7 +68,6 @@ fun AddTransactionScreen(
         uri?.let { viewModel.onEvent(AddTransactionEvent.ImageSelected(it)) }
     }
 
-    // Resolve strings trĂ†Â°Ă¡Â»â€ºc khi dÄ‚Â¹ng (Ă„â€˜Ă¡ÂºÂ·c biĂ¡Â»â€¡t cho cÄ‚Â¡c callback ngoÄ‚Â i Composable scope).
     val title = stringResource(R.string.add_transaction_title)
     val backCd = stringResource(R.string.action_back)
     val fieldDate = stringResource(R.string.transaction_field_date)
@@ -173,7 +172,7 @@ fun AddTransactionScreen(
                         Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (state.isImageScanning) "Ă„Âang Ă„â€˜Ă¡Â»Âc Ă¡ÂºÂ£nhĂ¢â‚¬Â¦" else "QuÄ‚Â©t Ă¡ÂºÂ£nh giao dĂ¡Â»â€¹ch hoĂ¡ÂºÂ·c VietQR")
+                    Text(if (state.isImageScanning) stringResource(R.string.scan_image_reading) else stringResource(R.string.scan_image_button))
                 }
 
                 state.imageScanMessage?.let { message ->
@@ -520,7 +519,7 @@ private fun SuggestionChipRow(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            val suggestionLabel = if (isApplied) "Ă„ÂÄ‚Â£ tĂ¡Â»Â± Ă„â€˜Ă¡Â»â„¢ng chĂ¡Â»Ân:" else stringResource(R.string.transaction_suggestion_label)
+            val suggestionLabel = if (isApplied) "Đã tự động chọn:" else stringResource(R.string.transaction_suggestion_label)
             Text(
                 text = suggestionLabel,
                 style = MaterialTheme.typography.bodyMedium,
@@ -572,7 +571,7 @@ private fun formatDateLabel(
 private fun convertNumberToVietnameseWords(number: Long, zeroWord: String): String {
     if (number == 0L) return zeroWord
     
-    val units = listOf("", "mĂ¡Â»â„¢t", "hai", "ba", "bĂ¡Â»â€˜n", "nĂ„Æ’m", "sÄ‚Â¡u", "bĂ¡ÂºÂ£y", "tÄ‚Â¡m", "chÄ‚Â­n")
+    val units = listOf("", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín")
     
     fun readThreeDigits(n: Int, showZeroHundred: Boolean): String {
         val hundred = n / 100
@@ -583,26 +582,26 @@ private fun convertNumberToVietnameseWords(number: Long, zeroWord: String): Stri
         
         val sb = StringBuilder()
         if (hundred > 0 || showZeroHundred) {
-            sb.append(units[hundred]).append(" trĂ„Æ’m ")
+            sb.append(units[hundred]).append(" trăm ")
         }
         
         if (ten > 0) {
             if (ten == 1) {
-                sb.append("mĂ†Â°Ă¡Â»Âi ")
+                sb.append("mười ")
             } else {
-                sb.append(units[ten]).append(" mĂ†Â°Ă†Â¡i ")
+                sb.append(units[ten]).append(" mươi ")
             }
             if (unit > 0) {
                 when {
-                    unit == 1 && ten > 1 -> sb.append("mĂ¡Â»â€˜t ")
-                    unit == 5 -> sb.append("lĂ„Æ’m ")
-                    unit == 4 && ten > 1 -> sb.append("tĂ†Â° ")
+                    unit == 1 && ten > 1 -> sb.append("mốt ")
+                    unit == 5 -> sb.append("lăm ")
+                    unit == 4 && ten > 1 -> sb.append("tư ")
                     else -> sb.append(units[unit])
                 }
             }
         } else {
             if ((hundred > 0 || showZeroHundred) && unit > 0) {
-                sb.append("lĂ¡ÂºÂ» ").append(units[unit])
+                sb.append("lẻ ").append(units[unit])
             } else if (unit > 0) {
                 sb.append(units[unit])
             }
@@ -621,13 +620,13 @@ private fun convertNumberToVietnameseWords(number: Long, zeroWord: String): Stri
     val result = StringBuilder()
     
     if (billions > 0) {
-        result.append(readThreeDigits(billions, false)).append(" tĂ¡Â»Â· ")
+        result.append(readThreeDigits(billions, false)).append(" tỷ ")
     }
     if (millions > 0) {
-        result.append(readThreeDigits(millions, billions > 0)).append(" triĂ¡Â»â€¡u ")
+        result.append(readThreeDigits(millions, billions > 0)).append(" triệu ")
     }
     if (thousands > 0) {
-        result.append(readThreeDigits(thousands, billions > 0 || millions > 0)).append(" nghÄ‚Â¬n ")
+        result.append(readThreeDigits(thousands, billions > 0 || millions > 0)).append(" nghìn ")
     }
     if (remaining > 0) {
         result.append(readThreeDigits(remaining, billions > 0 || millions > 0 || thousands > 0))

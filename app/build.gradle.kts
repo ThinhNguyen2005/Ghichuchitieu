@@ -131,6 +131,10 @@ dependencies {
     // Backdrop for Liquid Slider/Toggle
     implementation(libs.backdrop)
 
+    // Image loading (VietQR CDN logos + QR images)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network)
+
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
