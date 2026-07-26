@@ -13,6 +13,9 @@ data class ParsedNotification(
 
 object NotificationParser {
 
+    /** Số tiền lớn nhất (đơn vị VND) còn nhân được với 100 mà không tràn Long. */
+    private const val MAX_MAJOR_UNITS = Long.MAX_VALUE / 100L
+
     // Regex trích xuất ngân hàng chung: GD +100,000 VND hoặc GD -50,000VND hoặc PS: +100,000VND
     private val BANK_TRANSACTION_REGEX = Regex(
         """(?:GD|Giao dịch|PS)\s*:?\s*([+-])\s*([0-9.,\s]+)\s*(?:VND|đ)""",
@@ -76,7 +79,9 @@ object NotificationParser {
         // Loại bỏ khoảng trắng, dấu chấm, dấu phẩy phân cách hàng nghìn
         val cleanText = text.replace(Regex("""[\s.,]"""), "")
         val majorUnits = cleanText.toLongOrNull() ?: return null
-        if (majorUnits <= 0) return null
+        // Chặn trên trước khi nhân 100, nếu không phép nhân sẽ wrap sang số âm. Dùng cùng
+        // ngưỡng với đường nhập tay ở AmountParser để hai đường vào không lệch validation.
+        if (majorUnits <= 0 || majorUnits > MAX_MAJOR_UNITS) return null
         return Money(majorUnits * 100) // Đổi sang cents
     }
 

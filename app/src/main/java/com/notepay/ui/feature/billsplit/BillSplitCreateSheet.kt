@@ -770,11 +770,32 @@ private fun BillSplitProgressCard(
     } else {
         0f
     }
+    // accentColor chỉ dùng cho progress bar và lớp tint 10% của card — đây là thành phần UI,
+    // chỉ cần 3:1.
     val accentColor = when {
         isOverLimit -> MaterialTheme.colorScheme.error
         remainingCents == 0L -> AppTheme.colors.success
         else -> MaterialTheme.colorScheme.primary
     }
+
+    /*
+     * Chữ trạng thái KHÔNG dùng accentColor. Trên nền card là chính accentColor pha alpha 0.10,
+     * ở light theme tỉ lệ tương phản chỉ đạt 1.78:1 với success (#30D158) và 4.25:1 với primary
+     * (#1B7F4F) — đều dưới mức 4.5:1 của WCAG AA.
+     *
+     * Không hard-code màu tối thay thế, vì app có 10 tuỳ chọn theme cộng dynamic color lấy từ
+     * hình nền, nên mọi giá trị chọn tay đều có thể vỡ ở một theme nào đó. onSurface là token
+     * Material bảo đảm tương phản với surface ở mọi theme (đo được 15.45:1 ở light mặc định).
+     *
+     * Trạng thái vẫn phân biệt được không cần màu chữ: nội dung chữ đã nói rõ, và progress bar
+     * vẫn giữ accentColor.
+     */
+    val statusColor = if (isOverLimit) {
+        MaterialTheme.colorScheme.error // 5.25:1 ở light mặc định, đạt AA
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
     val status = when {
         isOverLimit -> "Vượt ${MoneyFormatter.format(Money(abs(remainingCents)))}"
         remainingCents == 0L -> "Đã chia vừa đủ"
@@ -806,7 +827,7 @@ private fun BillSplitProgressCard(
                     text = status,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = accentColor,
+                    color = statusColor,
                 )
             }
             LinearProgressIndicator(

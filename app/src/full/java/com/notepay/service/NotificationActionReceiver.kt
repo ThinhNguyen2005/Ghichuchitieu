@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import javax.inject.Inject
@@ -33,6 +34,13 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** Hiện Toast trên main thread và chờ xong, để không bị cắt bởi pendingResult.finish(). */
+    private suspend fun toast(context: Context, message: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent == null) return
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -47,7 +55,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
                 if (walletId == -1L || amountCents == 0L) return
 
-                val type = TransactionType.valueOf(typeStr)
+                // valueOf() ném IllegalArgumentException nếu intent mang giá trị lạ; ném từ
+                // onReceive sẽ làm crash app nên phải chặn tại đây.
+                val type = runCatching { TransactionType.valueOf(typeStr) }.getOrNull() ?: return
                 val category = suggestCategoryUseCase.suggest(note, type == TransactionType.INCOME)
 
                 val transaction = Transaction(
@@ -61,19 +71,22 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     isAutoCapture = true
                 )
 
+                // goAsync() giữ process sống tới khi ghi xong. Không có nó, Android được phép
+                // kill process ngay sau onReceive và giao dịch có thể không bao giờ vào DB.
+                val pendingResult = goAsync()
                 receiverScope.launch {
-                    val result = addTransaction(transaction)
-                    if (result.isSuccess) {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "Đã lưu giao dịch thành công! ✨", Toast.LENGTH_SHORT).show()
+                    try {
+                        val result = runCatching { addTransaction(transaction) }.getOrNull()
+                        if (result?.isSuccess == true) {
+                            toast(context, "Đã lưu giao dịch thành công! ✨")
+                        } else {
+                            toast(context, "Lỗi: Không thể lưu giao dịch.")
                         }
-                    } else {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "Lỗi: Không thể lưu giao dịch.", Toast.LENGTH_SHORT).show()
+                        if (notificationId != -1) {
+                            notificationManager.cancel(notificationId)
                         }
-                    }
-                    if (notificationId != -1) {
-                        notificationManager.cancel(notificationId)
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
             }
@@ -99,19 +112,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     isActive = true
                 )
 
+                val pendingResult = goAsync()
                 receiverScope.launch {
-                    val result = runCatching { subscriptionRepository.upsert(subscription) }
-                    if (result.isSuccess) {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "Đã thêm hóa đơn định kỳ thành công! 📅", Toast.LENGTH_SHORT).show()
+                    try {
+                        val result = runCatching { subscriptionRepository.upsert(subscription) }
+                        if (result.isSuccess) {
+                            toast(context, "Đã thêm hóa đơn định kỳ thành công! 📅")
+                        } else {
+                            toast(context, "Lỗi: Không thể thêm hóa đơn định kỳ.")
                         }
-                    } else {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "Lỗi: Không thể thêm hóa đơn định kỳ.", Toast.LENGTH_SHORT).show()
+                        if (notificationId != -1) {
+                            notificationManager.cancel(notificationId)
                         }
-                    }
-                    if (notificationId != -1) {
-                        notificationManager.cancel(notificationId)
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
             }

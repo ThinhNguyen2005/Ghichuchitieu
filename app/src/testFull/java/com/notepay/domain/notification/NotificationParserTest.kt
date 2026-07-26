@@ -98,5 +98,23 @@ class NotificationParserTest {
 
         assertThat(result).isNull()
     }
+
+    @Test
+    fun parseRejectsAmountThatWouldOverflowWhenConvertedToCents() {
+        // Long.MAX_VALUE / 100 + 1: toLongOrNull() vẫn đọc được nhưng nhân 100 sẽ tràn.
+        val tooLarge = Long.MAX_VALUE / 100L + 1L
+        val result = NotificationParser.parse("VCB", "VCB: GD +$tooLarge VND")
+
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun parseAcceptsLargestAmountThatStillFitsInCents() {
+        val largestSafe = Long.MAX_VALUE / 100L
+        val result = NotificationParser.parse("VCB", "VCB: GD +$largestSafe VND")
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.amount.amountInCents).isEqualTo(largestSafe * 100L)
+    }
 }
 
