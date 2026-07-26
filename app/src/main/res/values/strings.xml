@@ -102,9 +102,9 @@
     <string name="bill_split_title">Quản lý Chia tiền</string>
     <string name="bill_split_tab_unpaid">Chờ thanh toán</string>
     <string name="bill_split_tab_paid">Đã thanh toán</string>
-    <string name="bill_split_empty">Chưa có hóa đơn nào.\nNhấn nút (+) để tạo phiếu chia tiền đầu tiên.</string>
-    <string name="bill_split_empty_unpaid">Không có khoản nợ nào chờ thanh toán.\nTất cả các khoản nợ chưa trả của bạn sẽ xuất hiện tại đây.</string>
-    <string name="bill_split_empty_paid">Chưa có khoản nợ nào được trả.\nCác khoản nợ sau khi thanh toán sẽ được lưu trữ tại đây.</string>
+    <string name="bill_split_empty">Chưa có khoản chia tiền nào\nBấm nút (+) ở bên dưới để tạo phiếu chia tiền nhóm mới.</string>
+    <string name="bill_split_empty_unpaid">Tất cả nợ đã được thanh toán\nKhông còn khoản nợ nhóm nào đang chờ xử lý.</string>
+    <string name="bill_split_empty_paid">Chưa có lịch sử thanh toán\nCác khoản chia tiền đã hoàn tất sẽ hiển thị tại đây.</string>
     <string name="bill_split_vietqr_cd">Cấu hình VietQR</string>
     <string name="bill_split_total_count">Tổng: %1$d khoản nợ</string>
     <string name="bill_split_vietqr_saved">Đã lưu cấu hình VietQR cho ví %1$s</string>
@@ -276,6 +276,17 @@
     <string name="stats_no_data">Chưa có dữ liệu</string>
     <string name="stats_no_transactions_month">Chưa phát sinh giao dịch trong tháng này</string>
     <string name="stats_million_unit">(Triệu)</string>
+    <string name="stats_thousand_unit">(Nghìn)</string>
+    <string name="stats_banner_expense_decrease">Giảm mạnh %1$s so với cùng kỳ tháng trước</string>
+    <string name="stats_banner_expense_increase">Tăng %1$s so với cùng kỳ tháng trước</string>
+    <string name="stats_banner_income_increase">Tăng %1$s so với cùng kỳ tháng trước</string>
+    <string name="stats_banner_income_decrease">Giảm %1$s so với cùng kỳ tháng trước</string>
+    <string name="stats_allocation_no_data">Chưa có phân bổ danh mục</string>
+    <string name="stats_total_allocation">Tổng phân bổ</string>
+    <string name="stats_forecast_legend">Vùng mờ: dự báo cuối tháng</string>
+    <string name="stats_month_label_format">T%1$d</string>
+    <string name="stats_advisor_title">Trợ lý chi tiêu</string>
+    <string name="stats_advisor_privacy">Riêng tư · Trên thiết bị</string>
 
     <!-- Transaction item labels -->
     <string name="transaction_internal_transfer">Chuyển khoản</string>

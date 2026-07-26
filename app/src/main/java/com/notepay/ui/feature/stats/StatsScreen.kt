@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -51,12 +52,14 @@ import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Wallet
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -97,6 +100,7 @@ import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.TransactionItem
@@ -133,7 +137,7 @@ fun StatsScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.stats_screen_title),
@@ -394,12 +398,21 @@ private fun StatsSupportingContent(
         )
 
         if (breakdown.isEmpty()) {
-            Text(
-                text = stringResource(R.string.stats_no_transactions_month),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(vertical = 24.dp, horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_no_transactions_month),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
 
         breakdown.forEach { item ->
@@ -980,14 +993,14 @@ private fun LocalAdvisorCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = result?.title ?: "Trợ lý chi tiêu",
+                    text = result?.title ?: stringResource(R.string.stats_advisor_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Riêng tư · Trên thiết bị",
+                    text = stringResource(R.string.stats_advisor_privacy),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1056,19 +1069,18 @@ private fun LocalAdvisorCard(
                         enabled = advisor.availability != AdvisorAvailability.CHECKING,
                         modifier = Modifier.weight(1.3f),
                         tint = MaterialTheme.colorScheme.primary,
-                        surfaceColor = MaterialTheme.colorScheme.primary.copy(alpha = .92f),
                     ) {
                         Icon(
                             Icons.Rounded.Lightbulb,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
                             text = stringResource(R.string.stats_action_analyze),
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -1078,20 +1090,21 @@ private fun LocalAdvisorCard(
                             onClick = onSelectModel,
                             modifier = Modifier.weight(1f),
                             tint = MaterialTheme.colorScheme.secondary,
-                            surfaceColor = MaterialTheme.colorScheme.secondary.copy(alpha = .92f),
                         ) {
                             Icon(
-                                Icons.Rounded.FolderOpen,
+                                Icons.Rounded.Settings,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSecondary,
+                                tint = MaterialTheme.colorScheme.secondary,
                             )
                             Spacer(Modifier.width(5.dp))
                             Text(
                                 text = stringResource(R.string.stats_action_ai_settings),
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary,
-                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.secondary,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }

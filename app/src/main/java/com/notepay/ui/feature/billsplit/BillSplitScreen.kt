@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CallReceived
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -265,7 +266,7 @@ fun BillSplitScreen(
                         ) {
                             EmptyStateWithAction(
                                 title = emptyTitle,
-                                icon = Icons.Rounded.CallReceived,
+                                icon = Icons.Outlined.ReceiptLong,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }

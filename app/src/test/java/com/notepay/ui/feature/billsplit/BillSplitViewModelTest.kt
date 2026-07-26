@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.billsplit
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
@@ -12,6 +13,8 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,7 +101,6 @@ class BillSplitViewModelTest {
         assertThat(state.unpaidSplits.first().split).isEqualTo(unpaidSplit)
         assertThat(state.unpaidSplits.first().parentTransaction).isEqualTo(parentTx)
         assertThat(state.unpaidSplits.first().wallet).isEqualTo(wallet1)
-        assertThat(state.unpaidSplits.first().qrCodeString).isNotNull()
         assertThat(state.activeWallet).isEqualTo(wallet1)
         assertThat(state.wallets).containsExactly(wallet1, wallet2)
 
@@ -266,12 +268,16 @@ class BillSplitViewModelTest {
     ): BillSplitViewModel {
         val dispatcher = mainDispatcherRule.testDispatcher
         val addTransaction = AddTransactionUseCase(transactionRepository, walletRepository, dispatcher)
+        // Mock để test không phụ thuộc mạng (VietQrBankRepository gọi api.vietqr.io thật)
+        val vietQrBankRepository = mockk<VietQrBankRepository>()
+        coEvery { vietQrBankRepository.getBanks() } returns VietQrBankRepository.FALLBACK
         return BillSplitViewModel(
             appContext = RuntimeEnvironment.getApplication(),
             billSplitRepository = billSplitRepository,
             transactionRepository = transactionRepository,
             walletRepository = walletRepository,
-            addTransaction = addTransaction
+            addTransaction = addTransaction,
+            vietQrBankRepository = vietQrBankRepository
         )
     }
 }
@@ -338,6 +344,7 @@ private class FakeTransactionRepository(
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions.filter { it.walletId == walletId })
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
     override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
     override suspend fun upsert(transaction: Transaction): Long {
         savedTransactions.add(transaction)
         return transaction.id

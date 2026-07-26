@@ -1,6 +1,8 @@
 package com.notepay.ui.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +40,8 @@ import kotlin.math.tanh
 
 /**
  * Liquid Glass button that samples the shared NotePay backdrop.
- * MIUI devices retain the physical interaction but avoid unstable RenderEffects.
+ * Incorporates authentic Kyant0 AndroidLiquidGlass specular highlights, translucent surface fills,
+ * and high-depth lens refraction.
  */
 @Composable
 fun LiquidButton(
@@ -52,12 +55,20 @@ fun LiquidButton(
 ) {
     val activeBackdrop = backdrop ?: LocalNotePayBackdrop.current
     val isDarkTheme = isSystemInDarkTheme()
-    val defaultSurface = MaterialTheme.colorScheme.surface.copy(
-        alpha = if (isDarkTheme) 0.72f else 0.78f,
-    )
+    val defaultSurface = if (isDarkTheme) {
+        Color(0xFF2B2C30).copy(alpha = 0.65f)
+    } else {
+        Color(0xFFE2E2E8).copy(alpha = 0.72f)
+    }
     val disabledSurface = MaterialTheme.colorScheme.onSurface.copy(
         alpha = if (isDarkTheme) 0.16f else 0.10f,
     )
+    val glassRimColor = if (isDarkTheme) {
+        Color.White.copy(alpha = 0.32f)
+    } else {
+        Color.White.copy(alpha = 0.70f)
+    }
+
     val shape = RoundedCornerShape(percent = 50)
     val useSafeFallback = requiresSafeLiquidButtonFallback()
     val animationScope = rememberCoroutineScope()
@@ -67,10 +78,11 @@ fun LiquidButton(
 
     val safeSurface = when {
         surfaceColor.isSpecified -> surfaceColor
-        enabled && tint.isSpecified -> tint.copy(alpha = if (isDarkTheme) 0.34f else 0.22f)
+        enabled && tint.isSpecified -> tint.copy(alpha = if (isDarkTheme) 0.50f else 0.38f)
         enabled -> defaultSurface
         else -> disabledSurface
     }
+
     val fallbackVisual = Modifier
         .graphicsLayer {
             if (enabled) {
@@ -99,8 +111,8 @@ fun LiquidButton(
         shape = { shape },
         effects = {
             vibrancy()
-            blur(6.dp.toPx())
-            if (supportsLiquidLens()) lens(6.dp.toPx(), 16.dp.toPx())
+            blur(10.dp.toPx())
+            if (supportsLiquidLens()) lens(8.dp.toPx(), 20.dp.toPx())
         },
         layerBlock = if (enabled) {
             {
@@ -125,16 +137,18 @@ fun LiquidButton(
         onDrawSurface = {
             drawRect(if (enabled) defaultSurface else disabledSurface)
             if (enabled && tint.isSpecified) {
-                drawRect(tint, blendMode = BlendMode.Hue)
-                drawRect(tint.copy(alpha = 0.22f))
+                drawRect(tint.copy(alpha = 0.32f))
             }
-            if (surfaceColor.isSpecified) drawRect(surfaceColor)
+            if (enabled && surfaceColor.isSpecified) {
+                drawRect(surfaceColor)
+            }
         },
     )
 
     Row(
         modifier = modifier
             .then(if (useSafeFallback) fallbackVisual else glassVisual)
+            .border(1.2.dp, glassRimColor, shape)
             .clickable(
                 interactionSource = null,
                 indication = null,
