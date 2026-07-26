@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.notepay.R
 
 object WalletUiHelper {
     fun getIcon(key: String): ImageVector = when (key) {
@@ -25,19 +26,19 @@ object WalletUiHelper {
     }
 
     val iconList = listOf(
-        Triple("cash", Icons.Rounded.Payments, "Tiền mặt"),
-        Triple("bank", Icons.Rounded.AccountBalance, "Ngân hàng"),
-        Triple("momo", Icons.Rounded.AccountBalanceWallet, "Ví điện tử"),
-        Triple("card", Icons.Rounded.CreditCard, "Thẻ tín dụng"),
-        Triple("savings", Icons.Rounded.Savings, "Tiết kiệm"),
-        Triple("atm", Icons.Rounded.LocalAtm, "Thẻ ATM"),
-        Triple("business", Icons.Rounded.Storefront, "Kinh doanh"),
-        Triple("work", Icons.Rounded.Work, "Công việc"),
-        Triple("crypto", Icons.AutoMirrored.Rounded.TrendingUp, "Đầu tư"),
-        Triple("home", Icons.Rounded.Home, "Nhà cửa"),
-        Triple("car", Icons.Rounded.DirectionsCar, "Xe cộ"),
-        Triple("shopping", Icons.Rounded.ShoppingBag, "Mua sắm"),
-        Triple("gift", Icons.Rounded.CardGiftcard, "Quà tặng")
+        Triple("cash", Icons.Rounded.Payments, R.string.icon_label_cash),
+        Triple("bank", Icons.Rounded.AccountBalance, R.string.icon_label_bank),
+        Triple("momo", Icons.Rounded.AccountBalanceWallet, R.string.icon_label_ewallet),
+        Triple("card", Icons.Rounded.CreditCard, R.string.icon_label_credit_card),
+        Triple("savings", Icons.Rounded.Savings, R.string.icon_label_savings),
+        Triple("atm", Icons.Rounded.LocalAtm, R.string.icon_label_atm),
+        Triple("business", Icons.Rounded.Storefront, R.string.icon_label_business),
+        Triple("work", Icons.Rounded.Work, R.string.icon_label_work),
+        Triple("crypto", Icons.AutoMirrored.Rounded.TrendingUp, R.string.icon_label_crypto),
+        Triple("home", Icons.Rounded.Home, R.string.icon_label_home),
+        Triple("car", Icons.Rounded.DirectionsCar, R.string.icon_label_car),
+        Triple("shopping", Icons.Rounded.ShoppingBag, R.string.icon_label_shopping),
+        Triple("gift", Icons.Rounded.CardGiftcard, R.string.icon_label_gift)
     )
 
     fun getColor(key: String): Color = when (key) {

@@ -372,4 +372,33 @@
     <string name="billsplit_title">Bill Split Management</string>
     <string name="billsplit_total_to_receive">Total to receive</string>
     <string name="billsplit_default_note">Bill split invoice</string>
+    <!-- Icon picker labels -->
+    <string name="icon_label_food">Food</string>
+    <string name="icon_label_coffee">Coffee</string>
+    <string name="icon_label_shopping">Shopping</string>
+    <string name="icon_label_transport">Transport</string>
+    <string name="icon_label_gas">Fuel</string>
+    <string name="icon_label_home">Home</string>
+    <string name="icon_label_bill">Bills</string>
+    <string name="icon_label_entertainment">Entertainment</string>
+    <string name="icon_label_health">Health</string>
+    <string name="icon_label_education">Education</string>
+    <string name="icon_label_pet">Pets</string>
+    <string name="icon_label_travel">Travel</string>
+    <string name="icon_label_family">Family</string>
+    <string name="icon_label_savings">Savings</string>
+    <string name="icon_label_investment">Investment</string>
+    <string name="icon_label_income">Income</string>
+    <string name="icon_label_gift">Gifts</string>
+    <string name="icon_label_insurance">Insurance</string>
+    <string name="icon_label_other">Other</string>
+    <string name="icon_label_cash">Cash</string>
+    <string name="icon_label_bank">Bank</string>
+    <string name="icon_label_ewallet">E-wallet</string>
+    <string name="icon_label_credit_card">Credit card</string>
+    <string name="icon_label_atm">ATM card</string>
+    <string name="icon_label_business">Business</string>
+    <string name="icon_label_work">Work</string>
+    <string name="icon_label_crypto">Crypto</string>
+    <string name="icon_label_car">Vehicle</string>
 </resources>

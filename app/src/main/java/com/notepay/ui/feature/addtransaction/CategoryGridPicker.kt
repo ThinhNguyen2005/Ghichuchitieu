@@ -323,7 +323,7 @@ private fun AddCategoryDialog(
                         ) {
                             Icon(
                                 imageVector = option.icon,
-                                contentDescription = option.label,
+                                contentDescription = stringResource(option.labelRes),
                                 tint = if (isSelected) Color(selectedColor) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp),
                             )

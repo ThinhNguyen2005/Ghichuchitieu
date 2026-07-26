@@ -250,7 +250,7 @@ fun AddWalletScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                WalletUiHelper.iconList.forEach { (key, vector, label) ->
+                WalletUiHelper.iconList.forEach { (key, vector, labelRes) ->
                     val isSelected = state.iconKey == key
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -270,14 +270,14 @@ fun AddWalletScreen(
                         ) {
                             Icon(
                                 imageVector = vector,
-                                contentDescription = label,
+                                contentDescription = stringResource(labelRes),
                                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = label,
+                            text = stringResource(labelRes),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal

@@ -358,4 +358,33 @@
     <string name="billsplit_title">Quản lý chia tiền</string>
     <string name="billsplit_total_to_receive">Tổng cần thu</string>
     <string name="billsplit_default_note">Hóa đơn chia tiền</string>
+    <!-- Icon picker labels -->
+    <string name="icon_label_food">Ăn uống</string>
+    <string name="icon_label_coffee">Cà phê</string>
+    <string name="icon_label_shopping">Mua sắm</string>
+    <string name="icon_label_transport">Di chuyển</string>
+    <string name="icon_label_gas">Xăng xe</string>
+    <string name="icon_label_home">Nhà cửa</string>
+    <string name="icon_label_bill">Hóa đơn</string>
+    <string name="icon_label_entertainment">Giải trí</string>
+    <string name="icon_label_health">Sức khỏe</string>
+    <string name="icon_label_education">Học tập</string>
+    <string name="icon_label_pet">Thú cưng</string>
+    <string name="icon_label_travel">Du lịch</string>
+    <string name="icon_label_family">Gia đình</string>
+    <string name="icon_label_savings">Tiết kiệm</string>
+    <string name="icon_label_investment">Đầu tư</string>
+    <string name="icon_label_income">Thu nhập</string>
+    <string name="icon_label_gift">Quà tặng</string>
+    <string name="icon_label_insurance">Bảo hiểm</string>
+    <string name="icon_label_other">Khác</string>
+    <string name="icon_label_cash">Tiền mặt</string>
+    <string name="icon_label_bank">Ngân hàng</string>
+    <string name="icon_label_ewallet">Ví điện tử</string>
+    <string name="icon_label_credit_card">Thẻ tín dụng</string>
+    <string name="icon_label_atm">Thẻ ATM</string>
+    <string name="icon_label_business">Kinh doanh</string>
+    <string name="icon_label_work">Công việc</string>
+    <string name="icon_label_crypto">Đầu tư</string>
+    <string name="icon_label_car">Xe cộ</string>
 </resources>
