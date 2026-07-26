@@ -47,7 +47,7 @@
     <string name="home_edit_wallet">Edit wallet</string>
     <string name="home_add_new_wallet">Add new wallet</string>
     <string name="home_reminder_cd">Renewal reminders</string>
-    <string name="home_notification_settings_cd">Notification settings</string>
+    <string name="home_app_settings_cd">App settings</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 You have overspent your wallet limit by %1$s!</string>

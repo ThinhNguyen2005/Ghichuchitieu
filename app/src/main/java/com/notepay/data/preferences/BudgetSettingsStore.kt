@@ -18,12 +18,12 @@ data class BudgetSettings(
 )
 
 /**
- * KHÔNG đổi `name`. Đây là tên file DataStore trên máy người dùng; đổi sẽ làm mất hạn mức
- * chi tiêu họ đã cài. Tên còn là "notification_settings" vì store này từng chứa cả cấu hình
- * đọc thông báo — phần đó đã chuyển sang AutoCaptureSettingsStore ở flavor full.
+ * `name` là tên file DataStore trên máy. Đổi giá trị này sẽ làm mất hạn mức chi tiêu người
+ * dùng đã cài, nên chỉ đổi khi app chưa phát hành. Lần đổi từ "notification_settings" sang
+ * "budget_settings" thực hiện trong giai đoạn thử nghiệm, khi chưa có người dùng thật.
  */
 private val Context.budgetSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "notification_settings",
+    name = "budget_settings",
 )
 
 @Singleton

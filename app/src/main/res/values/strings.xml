@@ -44,7 +44,7 @@
     <string name="home_edit_wallet">Chỉnh sửa ví</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
     <string name="home_reminder_cd">Nhắc nhở gia hạn</string>
-    <string name="home_notification_settings_cd">Cài đặt thông báo</string>
+    <string name="home_app_settings_cd">Cài đặt ứng dụng</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
