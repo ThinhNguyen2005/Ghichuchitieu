@@ -1360,7 +1360,7 @@ private fun AiAdviceCard(
 
             IconButton(
                 onClick = { onFeedback(1) },
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     Icons.Rounded.ThumbUp,
@@ -1375,7 +1375,7 @@ private fun AiAdviceCard(
             }
             IconButton(
                 onClick = { onFeedback(-1) },
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     Icons.Rounded.ThumbDown,

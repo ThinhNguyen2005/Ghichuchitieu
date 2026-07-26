@@ -23,24 +23,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 
 object ThemeManager {
     var currentThemeColor by mutableStateOf("green")
-    var customColorHex by mutableStateOf("#1B7F4F")
 
     fun initialize(context: Context) {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         currentThemeColor = prefs.getString("theme_color", "green") ?: "green"
-        customColorHex = prefs.getString("theme_custom_color", "#1B7F4F") ?: "#1B7F4F"
     }
 
     fun updateThemeColor(context: Context, color: String) {
         currentThemeColor = color
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         prefs.edit().putString("theme_color", color).apply()
-    }
-
-    fun updateCustomColor(context: Context, hex: String) {
-        customColorHex = hex
-        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit().putString("theme_custom_color", hex).apply()
     }
 }
 
@@ -121,18 +113,6 @@ fun getLightColorScheme(themeColor: String, context: Context? = null): ColorSche
             surfaceContainer = Color(0xFFEAECEE),
             outlineVariant = Color(0xFFDDE1E3),
         )
-        "custom" -> {
-            val customColor = try {
-                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
-            } catch (e: Exception) {
-                Color(0xFF1B7F4F)
-            }
-            LightColors.copy(
-                primary = customColor,
-                primaryContainer = customColor.copy(alpha = 0.12f),
-                onPrimaryContainer = customColor,
-            )
-        }
         else -> LightColors.copy(
             primary = Color(0xFF1B7F4F),
             primaryContainer = Color(0xFFB6F2CE),
@@ -222,18 +202,6 @@ fun getDarkColorScheme(themeColor: String, context: Context? = null): ColorSchem
             surfaceContainer = Color(0xFF374151),
             outlineVariant = Color(0xFF4B5563),
         )
-        "custom" -> {
-            val customColor = try {
-                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
-            } catch (e: Exception) {
-                Color(0xFF9BD6B0)
-            }
-            DarkColors.copy(
-                primary = customColor,
-                primaryContainer = customColor.copy(alpha = 0.2f),
-                onPrimaryContainer = customColor,
-            )
-        }
         else -> DarkColors.copy(
             primary = Color(0xFF9BD6B0),
             primaryContainer = Color(0xFF005233),

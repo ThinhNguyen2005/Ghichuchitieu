@@ -36,9 +36,6 @@
     <string name="home_empty_wallet_title">No wallets yet</string>
     <string name="home_empty_wallet_desc">Create a wallet to start tracking transactions and managing your spending.</string>
     <string name="home_create_wallet">Create wallet</string>
-    <string name="home_notif_permission_title">Auto-capture transactions</string>
-    <string name="home_notif_permission_desc">Tap here to grant access to read bank and MoMo notifications (Local Parse).</string>
-    <string name="home_notif_permission_tip">💡 Tip: if the toggle is greyed out (restricted settings), open NotePay App info → tap the 3-dot menu → choose \"Allow restricted settings\" and try again.</string>
     <string name="home_battery_title">Background optimization (recommended)</string>
     <string name="home_battery_desc">Open Battery → choose Unrestricted for smoother auto-capture.</string>
     <string name="home_recent_transactions">Recent transactions</string>
@@ -156,7 +153,6 @@
     <string name="cd_vietqr_logo">VietQR Logo</string>
 
     <!-- Notification listener service label (used in Android system settings) -->
-    <string name="notif_listener_service_label">NotePay Local Parse</string>
 
     <!-- Extractions -->
     <string name="transaction_deleted">Transaction deleted</string>
@@ -280,6 +276,17 @@
     <string name="stats_no_data">No data yet</string>
     <string name="stats_no_transactions_month">No transactions this month</string>
     <string name="stats_million_unit">(Million)</string>
+    <string name="stats_thousand_unit">(Thousands)</string>
+    <string name="stats_advisor_title">Spending advisor</string>
+    <string name="stats_advisor_privacy">Private · On-device</string>
+    <string name="stats_allocation_no_data">No category allocation yet</string>
+    <string name="stats_total_allocation">Total allocation</string>
+    <string name="stats_forecast_legend">Shaded area: end-of-month forecast</string>
+    <string name="stats_month_label_format">M%1$d</string>
+    <string name="stats_banner_expense_increase">Up %1$s vs. the same period last month</string>
+    <string name="stats_banner_expense_decrease">Down sharply %1$s vs. the same period last month</string>
+    <string name="stats_banner_income_increase">Up %1$s vs. the same period last month</string>
+    <string name="stats_banner_income_decrease">Down %1$s vs. the same period last month</string>
 
     <!-- Transaction item labels -->
     <string name="transaction_internal_transfer">Transfer</string>

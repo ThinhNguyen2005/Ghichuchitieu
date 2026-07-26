@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="notif_listener_service_label">NotePay Local Parse</string>
+    <string name="autocapture_save_success">Đã lưu giao dịch thành công! ✨</string>
+    <string name="autocapture_save_error">Lỗi: Không thể lưu giao dịch.</string>
+    <string name="autocapture_subscription_success">Đã thêm hóa đơn định kỳ thành công! 📅</string>
+    <string name="autocapture_subscription_error">Lỗi: Không thể thêm hóa đơn định kỳ.</string>
 </resources>

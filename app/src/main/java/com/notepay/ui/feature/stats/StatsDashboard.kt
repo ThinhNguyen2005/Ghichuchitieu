@@ -293,7 +293,7 @@ private fun OverviewCard(
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Month navigation row
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(44.dp)) {
+                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
                 }
                 Row(
@@ -309,7 +309,7 @@ private fun OverviewCard(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(44.dp)) {
+                IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
                 }
             }

@@ -281,7 +281,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(state.wallets) { wallet ->
+                    items(state.wallets, key = { it.id }) { wallet ->
                         val isSelected = wallet.id == state.activeWallet?.id
                         val iconVector = WalletUiHelper.getIcon(wallet.iconKey)
                         val tintColor = WalletUiHelper.getColor(wallet.colorKey)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notif_listener_service_label">NotePay Local Parse</string>
+    <string name="autocapture_save_success">Transaction saved! ✨</string>
+    <string name="autocapture_save_error">Error: cannot save the transaction.</string>
+    <string name="autocapture_subscription_success">Subscription added! 📅</string>
+    <string name="autocapture_subscription_error">Error: cannot add the subscription.</string>
+</resources>

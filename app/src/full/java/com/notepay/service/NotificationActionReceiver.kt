@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -78,9 +79,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     try {
                         val result = runCatching { addTransaction(transaction) }.getOrNull()
                         if (result?.isSuccess == true) {
-                            toast(context, "Đã lưu giao dịch thành công! ✨")
+                            toast(context, context.getString(R.string.autocapture_save_success))
                         } else {
-                            toast(context, "Lỗi: Không thể lưu giao dịch.")
+                            toast(context, context.getString(R.string.autocapture_save_error))
                         }
                         if (notificationId != -1) {
                             notificationManager.cancel(notificationId)
@@ -117,9 +118,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     try {
                         val result = runCatching { subscriptionRepository.upsert(subscription) }
                         if (result.isSuccess) {
-                            toast(context, "Đã thêm hóa đơn định kỳ thành công! 📅")
+                            toast(context, context.getString(R.string.autocapture_subscription_success))
                         } else {
-                            toast(context, "Lỗi: Không thể thêm hóa đơn định kỳ.")
+                            toast(context, context.getString(R.string.autocapture_subscription_error))
                         }
                         if (notificationId != -1) {
                             notificationManager.cancel(notificationId)
