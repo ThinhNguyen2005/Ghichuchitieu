@@ -16,9 +16,28 @@ When work needs to be handed to another agent, create a concise dedicated
 handoff at `.agents/<task>/handoff.md`. Do not overwrite existing briefings,
 progress files, or handoffs belonging to another workstream.
 
-Preserve established UI/UX and architecture unless a request explicitly asks
-for a redesign. Prefer minimal, evidence-based changes. After Android/Kotlin
-edits, run relevant Gradle compilation or focused tests and report the actual
-result.
+# Build
+
+./gradlew.bat :app:assembleDebug
+
+# Unit test
+
+./gradlew.bat :app:testDebugUnitTest
+
+# Device test
+
+./gradlew.bat :app:connectedDebugAndroidTest
+
+# Quy tắc sửa code
+
+- Đọc file liên quan trước khi sửa.
+- Chỉ sửa trong phạm vi nhiệm vụ.
+- Không thêm dependency khi chưa được yêu cầu.
+- Không thay Room schema ngoài nhiệm vụ migration.
+- Không thay UI khi task chỉ liên quan logic.
+- Mọi logic parse mới phải có unit test.
+- Không bỏ qua lỗi build có sẵn; phải báo rõ lỗi nào có trước thay đổi.
+- Giữ nguyên UI/UX và kiến trúc đã có, trừ khi yêu cầu nói rõ là thiết kế lại.
+- Sau khi sửa Android/Kotlin, chạy build hoặc test liên quan và báo kết quả thật.
 
 User instructions take precedence over this file.
