@@ -29,3 +29,5 @@ local.properties
 # Agent folders
 /.agents/
 /app/release/
+# Kotlin incremental compilation cache
+.kotlin/
