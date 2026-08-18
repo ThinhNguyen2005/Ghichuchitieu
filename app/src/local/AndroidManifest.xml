@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Bản local (100% offline): TẮT hoàn toàn quyền Internet -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <queries>
+        <!-- I. NGÂN HÀNG THƯƠNG MẠI NHÀ NƯỚC (BIG 4) -->
+        <package android:name="com.VCB" />
+        <package android:name="com.vietinbank.ipay" />
+        <package android:name="com.vnpay.bidv" />
+        <package android:name="com.vnpay.Agribank3g" />
+
+        <!-- II. NGÂN HÀNG THƯƠNG MẠI CỔ PHẦN TƯ NHÂN -->
+        <package android:name="vn.com.techcombank.bb.app" />
+        <package android:name="com.mbmobile" />
+        <package android:name="com.vnpay.vpbankonline" />
+        <package android:name="com.tpb.mb.gprsandroid" />
+        <package android:name="mobile.acb.com.vn" />
+        <package android:name="com.vib.myvib2" />
+        <package android:name="com.msb.digibank.retail" />
+        <package android:name="vn.com.ocb.awe" />
+        <package android:name="vn.lienviet.app" />
+        <package android:name="src.com.sacombank" />
+        <package android:name="com.sacombank.ewallet" />
+
+        <!-- III. NGÂN HÀNG SỐ / NƯỚC NGOÀI -->
+        <package android:name="com.shinhan.global.vn.bank" />
+        <package android:name="com.ocb.liobank" />
+        <package android:name="xyz.be.cake" />
+        <package android:name="vn.banvietbank.mobilebanking" />
+        <package android:name="io.lifestyle.plus" />
+
+        <!-- IV. VÍ ĐIỆN TỬ -->
+        <package android:name="com.mservice.momotransfer" />
+        <package android:name="vn.com.vng.zalopay" />
+        <package android:name="com.beeasy.toppay" />
+        <package android:name="com.beeasy.airpay" />
+        <package android:name="vnpay.smartacccount" />
+        <package android:name="com.viettelpay.android" />
+        <package android:name="com.bplus.vtpay" />
+    </queries>
+
+    <application>
+        <service
+            android:name=".service.NotePayNotificationListenerService"
+            android:label="@string/notif_listener_service_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".service.NotificationActionReceiver"
+            android:exported="false" />
+    </application>
+
+</manifest>

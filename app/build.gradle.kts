@@ -56,6 +56,25 @@ android {
             applicationIdSuffix = ".full"
             versionNameSuffix = "-full"
         }
+
+        create("local") {
+            dimension = "distribution"
+            applicationIdSuffix = ".local"
+            versionNameSuffix = "-local"
+        }
+    }
+
+    sourceSets {
+        getByName("local") {
+            java.srcDirs("src/full/java")
+            kotlin.srcDirs("src/full/java")
+            res.srcDirs("src/full/res")
+        }
+        getByName("testLocal") {
+            java.srcDirs("src/testFull/java")
+            kotlin.srcDirs("src/testFull/java")
+            res.srcDirs("src/testFull/res")
+        }
     }
 
     buildTypes {

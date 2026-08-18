@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import coil3.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -109,6 +110,18 @@ fun DebtorDetailScreen(
         "NP $sanitized"
     }
 
+    val emvPayload = remember(activeWallet, totalAmountCents, memoCode) {
+        if (activeWallet?.bankBin != null && activeWallet.accountNumber != null) {
+            VietQrGenerator.generateEmvCoPayload(
+                bankBin = activeWallet.bankBin,
+                accountNumber = activeWallet.accountNumber,
+                amountCents = totalAmountCents,
+                memo = memoCode,
+                accountName = activeWallet.accountName,
+            )
+        } else null
+    }
+
     val qrImageUrl = remember(activeWallet, totalAmountCents, memoCode) {
         if (activeWallet?.bankBin != null && activeWallet.accountNumber != null) {
             VietQrGenerator.generateImageUrl(
@@ -192,9 +205,9 @@ fun DebtorDetailScreen(
             }
 
             item {
-                if (qrImageUrl != null && activeWallet != null && totalAmountCents > 0) {
+                if ((qrImageUrl != null || emvPayload != null) && activeWallet != null && totalAmountCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        VietQrTemplateCard(qrImageUrl = qrImageUrl)
+                        VietQrTemplateCard(qrImageUrl = qrImageUrl.orEmpty(), emvPayload = emvPayload)
 
                         TransferDetailsCopyCard(
                             bankName = bankName,
@@ -469,23 +482,47 @@ private fun DebtSummaryCard(
 @Composable
 private fun VietQrTemplateCard(
     qrImageUrl: String,
+    emvPayload: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val localQrBitmap = remember(emvPayload) {
+        if (!emvPayload.isNullOrBlank()) {
+            try {
+                VietQrGenerator.generateLocalQrBitmap(emvPayload, 512, 512)
+            } catch (_: Exception) {
+                null
+            }
+        } else null
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        AsyncImage(
-            model = qrImageUrl,
-            contentDescription = stringResource(R.string.cd_vietqr_logo),
-            contentScale = ContentScale.FillWidth,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-                .clip(AppTheme.shapes.corner16)
-        )
+        if (localQrBitmap != null) {
+            Image(
+                bitmap = localQrBitmap.asImageBitmap(),
+                contentDescription = stringResource(R.string.cd_vietqr_logo),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .padding(24.dp)
+                    .clip(AppTheme.shapes.corner16)
+            )
+        } else {
+            AsyncImage(
+                model = qrImageUrl,
+                contentDescription = stringResource(R.string.cd_vietqr_logo),
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .clip(AppTheme.shapes.corner16)
+            )
+        }
     }
 }
 

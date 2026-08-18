@@ -28,11 +28,17 @@ class SecuritySmokeTest {
         // Print ra console các permission được tìm thấy (để debug)
         println("Found permissions: ${requestedPermissions.joinToString()}")
 
-        // Cho phép quyền INTERNET để lấy ảnh QR qua VietQR API (img.vietqr.io)
-        assertThat(requestedPermissions.toList()).contains("android.permission.INTERNET")
+        // Bản local không có INTERNET, bản play và full có INTERNET
+        if (context.packageName.contains(".local")) {
+            assertThat(requestedPermissions.toList()).doesNotContain("android.permission.INTERNET")
+        } else {
+            assertThat(requestedPermissions.toList()).contains("android.permission.INTERNET")
+        }
 
-        // Bảo đảm không xin quyền đọc SMS / lắng nghe thông báo ngầm
-        assertThat(requestedPermissions.toList()).doesNotContain("android.permission.BIND_NOTIFICATION_LISTENER_SERVICE")
+        // Bản play không xin quyền đọc SMS / lắng nghe thông báo ngầm
+        if (!context.packageName.contains(".full") && !context.packageName.contains(".local")) {
+            assertThat(requestedPermissions.toList()).doesNotContain("android.permission.BIND_NOTIFICATION_LISTENER_SERVICE")
+        }
         assertThat(requestedPermissions.toList()).doesNotContain("android.permission.READ_SMS")
     }
 

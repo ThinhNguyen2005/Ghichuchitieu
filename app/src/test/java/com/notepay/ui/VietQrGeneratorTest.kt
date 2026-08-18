@@ -7,6 +7,10 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
 /**
  * Unit tests cho VietQrGenerator.
  *
@@ -15,6 +19,8 @@ import org.junit.Test
  * - Quy đổi số tiền từ cents sang VND
  * - Chuẩn hóa nội dung chuyển khoản (bỏ dấu, in hoa, URL-encode)
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class VietQrGeneratorTest {
 
     // Trường hợp cơ bản: tạo QR thanh toán cho một khoản chia tiền đơn giản
@@ -188,6 +194,36 @@ class VietQrGeneratorTest {
             "So sánh memoCode phải không phân biệt chữ hoa/thường",
             notificationBodyLower.contains(memoCode, ignoreCase = true)
         )
+    }
+
+    // ─────────────────────── Sinh mã VietQR EMVCo 100% Offline ───────────────────────
+
+    @Test
+    fun `generateEmvCoPayload - creates valid Napas EMVCo payload with CRC16`() {
+        val payload = VietQrGenerator.generateEmvCoPayload(BANK_BIN_TPBANK, ACCOUNT_NUMBER, TEST_AMOUNT_CENTS, TEST_MEMO)
+        assertNotNull("Payload không được null", payload)
+        assertTrue("Payload phải bắt đầu bằng 000201", payload.startsWith("000201"))
+        assertTrue("Payload phải chứa NAPAS AID A000000727", payload.contains("A000000727"))
+        assertTrue("Payload phải chứa mã BIN TPBank 970423", payload.contains("970423"))
+        assertTrue("Payload phải chứa số tài khoản 0945553902", payload.contains("0945553902"))
+        assertTrue("Payload phải chứa mã CRC 6304", payload.contains("6304"))
+    }
+
+    @Test
+    fun `calculateCrc16 - calculates correct 4-digit hex checksum`() {
+        val testData = "00020101021238570010A00000072701270006970423011009455539020208QRIBFTTA53037045405200005802VN62140810NP15 BAN A6304"
+        val crc = VietQrGenerator.calculateCrc16(testData)
+        assertEquals("CRC16 phải dài 4 ký tự hex", 4, crc.length)
+        assertTrue("CRC16 phải là chuỗi hex in hoa", crc.all { it.isDigit() || (it in 'A'..'F') })
+    }
+
+    @Test
+    fun `generateLocalQrBitmap - creates valid non-empty bitmap offline`() {
+        val payload = VietQrGenerator.generateEmvCoPayload(BANK_BIN_TPBANK, ACCOUNT_NUMBER, TEST_AMOUNT_CENTS, TEST_MEMO)
+        val bitmap = VietQrGenerator.generateLocalQrBitmap(payload, 200, 200)
+        assertNotNull("Bitmap không được null", bitmap)
+        assertEquals("Chiều rộng bitmap đúng 200", 200, bitmap.width)
+        assertEquals("Chiều cao bitmap đúng 200", 200, bitmap.height)
     }
 
     // ─────────────────────── Helpers ───────────────────────

@@ -26,34 +26,36 @@ Gọi Codex là "bạn Codex".
 - Không sửa ngoài phạm vi task.
 - Mỗi đợt refactor phải giữ nguyên hành vi hoặc ghi rõ hành vi thay đổi.
 
-# Hai biến thể sản phẩm
+# Ba biến thể sản phẩm
 
-Repo có 2 product flavor trên cùng một nhánh, chiều `distribution`:
+Repo có 3 product flavor trên cùng một nhánh, chiều `distribution`:
 
-- `play` — bản nộp Google Play, **không** có mã đọc thông báo.
-- `full` — bản cá nhân, có đọc thông báo để tự động ghi chi tiêu.
-  `applicationIdSuffix = ".full"`.
+- `play` — bản nộp Google Play, **không** có mã đọc thông báo, có quyền Internet (dùng VietQR).
+- `full` — bản cá nhân đầy đủ, có đọc thông báo + có quyền Internet (hỗ trợ VietQR, Cloud sync...). `applicationIdSuffix = ".full"`.
+- `local` — bản cá nhân 100% offline, có đọc thông báo + **TẮT hoàn toàn quyền Internet**. `applicationIdSuffix = ".local"`. Tái sử dụng code từ `src/full/`.
 
-Mã riêng của bản full nằm ở `app/src/full/`, bản play ở `app/src/play/`.
-Điểm nối duy nhất giữa hai bản là `autoCaptureSettingsItem()` — extension của
-`LazyListScope`, mỗi flavor có một bản, gọi từ `AppSettingsScreen`.
+Mã riêng đọc thông báo nằm ở `app/src/full/` (được dùng chung cho cả `full` và `local`), bản play ở `app/src/play/`.
+Điểm nối duy nhất giữa các bản là `autoCaptureSettingsItem()` — extension của
+`LazyListScope`, gọi từ `AppSettingsScreen`.
 
 Hệ quả: mọi thay đổi liên quan đọc thông báo chỉ chạm `app/src/full/`. Không
 đưa mã đó vào `app/src/main/`, vì đó là lý do tồn tại của cách chia flavor này.
 
 # Lệnh
 
-Vì có flavor, `assembleDebug` sẽ build cả hai biến thể. Dùng lệnh cụ thể:
+Vì có flavor, dùng lệnh cụ thể:
 
 ```
 ./gradlew.bat :app:assemblePlayDebug
 ./gradlew.bat :app:assembleFullDebug
+./gradlew.bat :app:assembleLocalDebug
 ./gradlew.bat :app:testPlayDebugUnitTest
 ./gradlew.bat :app:testFullDebugUnitTest
+./gradlew.bat :app:testLocalDebugUnitTest
 ```
 
-Test riêng của bản full nằm ở `app/src/testFull/`, nên `testPlayDebugUnitTest`
-sẽ **không** chạy chúng. Đổi code trong `app/src/full/` thì phải chạy cả hai.
+Test riêng nằm ở `app/src/testFull/` (được dùng chung cho cả `testFull` và `testLocal`), nên `testPlayDebugUnitTest`
+sẽ **không** chạy chúng. Đổi code trong `app/src/full/` thì phải chạy tất cả.
 
 # Kiểm chứng
 

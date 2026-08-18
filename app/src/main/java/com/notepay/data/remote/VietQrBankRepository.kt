@@ -1,8 +1,8 @@
 package com.notepay.data.remote
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.notepay.domain.model.VietQrBank
-import java.net.HttpURLConnection
-import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -10,52 +10,28 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * Fetches and caches the official VietQR bank list from api.vietqr.io/v2/banks.
- * Results are cached in memory for the app session — the list rarely changes.
+ * Loads the VietQR bank snapshot bundled with the app.
  */
 @Singleton
-class VietQrBankRepository @Inject constructor() {
+class VietQrBankRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
 
     @Volatile
     private var cached: List<VietQrBank>? = null
 
     /**
-     * Returns the bank list, using the in-memory cache if available.
-     * Falls back to [FALLBACK] on network failure so the UI is never empty.
+     * Returns the bundled bank list, using the in-memory cache if available.
+     * Falls back to [FALLBACK] if the bundled snapshot cannot be read.
      */
     suspend fun getBanks(): List<VietQrBank> = withContext(Dispatchers.IO) {
-        cached ?: fetchAndCache()
+        cached ?: loadAndCache()
     }
 
-    private fun fetchAndCache(): List<VietQrBank> {
+    private fun loadAndCache(): List<VietQrBank> {
         return try {
-            val url = URL("https://api.vietqr.io/v2/banks")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 8_000
-            conn.readTimeout = 8_000
-            conn.setRequestProperty("Accept", "application/json")
-
-            val body = conn.inputStream.bufferedReader().readText()
-            conn.disconnect()
-
-            val json = JSONObject(body)
-            val arr = json.getJSONArray("data")
-            val banks = mutableListOf<VietQrBank>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val bin = obj.optString("bin").takeIf { it.isNotBlank() } ?: continue
-                val transfer = obj.optInt("transferSupported", 0) == 1
-                banks += VietQrBank(
-                    id = obj.optInt("id"),
-                    bin = bin,
-                    code = obj.optString("code"),
-                    shortName = obj.optString("shortName"),
-                    name = obj.optString("name"),
-                    logoUrl = "https://cdn.vietqr.io/img/${obj.optString("code")}.png",
-                    transferSupported = transfer,
-                )
-            }
-            val result = banks.filter { it.transferSupported }
+            val body = context.assets.open(ASSET_FILE).bufferedReader().use { it.readText() }
+            val result = parseBundledBanks(body)
             cached = result
             result
         } catch (e: Exception) {
@@ -64,7 +40,9 @@ class VietQrBankRepository @Inject constructor() {
     }
 
     companion object {
-        /** Minimal fallback list used when the API is unreachable. */
+        private const val ASSET_FILE = "vietqr/banks.json"
+
+        /** Comprehensive offline fallback bank list used when API is unreachable. */
         val FALLBACK: List<VietQrBank> = listOf(
             VietQrBank(39, "970423", "TPB", "TPBank", "Ngân hàng TMCP Tiên Phong", "https://cdn.vietqr.io/img/TPB.png", true),
             VietQrBank(43, "970436", "VCB", "Vietcombank", "Ngân hàng TMCP Ngoại Thương Việt Nam", "https://cdn.vietqr.io/img/VCB.png", true),
@@ -75,6 +53,38 @@ class VietQrBankRepository @Inject constructor() {
             VietQrBank(38, "970407", "TCB", "Techcombank", "Ngân hàng TMCP Kỹ thương Việt Nam", "https://cdn.vietqr.io/img/TCB.png", true),
             VietQrBank(2, "970416", "ACB", "ACB", "Ngân hàng TMCP Á Châu", "https://cdn.vietqr.io/img/ACB.png", true),
             VietQrBank(47, "970432", "VPB", "VPBank", "Ngân hàng TMCP Việt Nam Thịnh Vượng", "https://cdn.vietqr.io/img/VPB.png", true),
+            VietQrBank(34, "970403", "STB", "Sacombank", "Ngân hàng TMCP Sài Gòn Thương Tín", "https://cdn.vietqr.io/img/STB.png", true),
+            VietQrBank(41, "970441", "VIB", "VIB", "Ngân hàng TMCP Quốc tế Việt Nam", "https://cdn.vietqr.io/img/VIB.png", true),
+            VietQrBank(22, "970431", "MSB", "MSB", "Ngân hàng TMCP Hàng Hải Việt Nam", "https://cdn.vietqr.io/img/MSB.png", true),
+            VietQrBank(26, "970448", "OCB", "OCB", "Ngân hàng TMCP Phương Đông", "https://cdn.vietqr.io/img/OCB.png", true),
+            VietQrBank(19, "970449", "LPB", "LPBank", "Ngân hàng TMCP Lộc Phát Việt Nam", "https://cdn.vietqr.io/img/LPB.png", true),
+            VietQrBank(33, "970424", "SHB", "ShinhanBank", "Ngân hàng TNHH MTV Shinhan Việt Nam", "https://cdn.vietqr.io/img/SHB.png", true),
+            VietQrBank(50, "970454", "CAKE", "Cake", "Ngân hàng số Cake by VPBank", "https://cdn.vietqr.io/img/CAKE.png", true),
+            VietQrBank(51, "970458", "TIMO", "Timo", "Ngân hàng số Timo", "https://cdn.vietqr.io/img/TIMO.png", true),
         )
     }
+}
+
+internal fun parseBundledBanks(body: String): List<VietQrBank> {
+    val banks = JSONObject(body).getJSONArray("banks")
+    return buildList {
+        for (index in 0 until banks.length()) {
+            val bank = banks.getJSONObject(index)
+            val bin = bank.optString("bin").takeIf { it.isNotBlank() } ?: continue
+            val logoAssetPath = bank.optString("logoAssetPath")
+            add(
+                VietQrBank(
+                    id = bank.optInt("id"),
+                    bin = bin,
+                    code = bank.optString("code"),
+                    shortName = bank.optString("shortName"),
+                    name = bank.optString("name"),
+                    logoUrl = logoAssetPath.takeIf { it.isNotBlank() }
+                        ?.let { "file:///android_asset/$it" }
+                        .orEmpty(),
+                    transferSupported = bank.optBoolean("transferSupported"),
+                ),
+            )
+        }
+    }.filter { it.transferSupported }
 }
