@@ -53,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,6 +84,8 @@ import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.BalanceCard
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.SmartInsightsCard
+import com.notepay.ui.component.SwipeableTransactionItem
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
@@ -139,10 +142,42 @@ fun HomeScreen(
 
 
 
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            state.activeWallet?.id?.let { walletId ->
+                viewModel.setWalletBackground(walletId, uri)
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             GradientTopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(stringResource(R.string.app_name))
+                        if (state.streakDays > 0) {
+                            Surface(
+                                shape = AppTheme.shapes.corner8,
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(start = 4.dp)
+                            ) {
+                                Text(
+                                    text = "🔥 ${state.streakDays}d",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToReminders) {
                         BadgedBox(
@@ -219,8 +254,24 @@ fun HomeScreen(
                     balance = state.currentBalance,
                     income = state.monthlyIncome,
                     expense = state.monthlyExpense,
+                    backgroundImageUri = state.walletBackgroundUri,
                     onClick = { showWalletSwitcher = true },
                     onEditWallet = onEditWallet,
+                    onChangeBackground = {
+                        photoPickerLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                )
+            }
+
+            item {
+                SmartInsightsCard(
+                    streakDays = state.streakDays,
+                    isBudgetExceeded = state.isBudgetExceeded,
+                    budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
                 )
             }
 
@@ -261,10 +312,11 @@ fun HomeScreen(
                     key = { it.id }
                 ) { tx ->
                     val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
-                    TransactionItem(
+                    SwipeableTransactionItem(
                         transaction = tx,
                         walletName = walletName,
                         onClick = { onTransactionClick(tx.id) },
+                        onEdit = { onTransactionClick(tx.id) },
                     )
                 }
             }

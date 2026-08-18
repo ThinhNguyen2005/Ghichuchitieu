@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.notepay.domain.repository.CategoryRepository
+import com.notepay.worker.ReminderScheduler
 import com.notepay.worker.SubscriptionReminderWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -25,6 +26,7 @@ class NotePayApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         SubscriptionReminderWorker.schedule(this)
+        ReminderScheduler.scheduleDailyReminder(this)
     }
 }
 

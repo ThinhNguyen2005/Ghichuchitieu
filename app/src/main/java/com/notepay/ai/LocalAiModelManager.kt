@@ -175,20 +175,32 @@ class LocalAiModelManager @Inject constructor(
     private suspend fun validateModel(file: File) = withTimeout(MODEL_VALIDATION_TIMEOUT_MILLIS) {
         try {
             Engine.setNativeMinLogSeverity(LogSeverity.ERROR)
-            Engine(
-                EngineConfig(
-                    modelPath = file.absolutePath,
-                    backend = Backend.CPU(),
-                    cacheDir = appContext.cacheDir.absolutePath,
-                ),
-            ).use { engine ->
-                engine.initialize()
-                engine.createConversation().use { conversation ->
-                    // Verify that conversation creation succeeds; test prompt call is non-blocking
-                    runCatching {
-                        conversation.sendMessage("Hello")
+            var lastError: Throwable? = null
+            var initialized = false
+            for (backend in listOf(Backend.CPU(), Backend.GPU())) {
+                try {
+                    Engine(
+                        EngineConfig(
+                            modelPath = file.absolutePath,
+                            backend = backend,
+                            cacheDir = appContext.cacheDir.absolutePath,
+                        ),
+                    ).use { engine ->
+                        engine.initialize()
+                        engine.createConversation().use { conversation ->
+                            runCatching {
+                                conversation.sendMessage("Hello")
+                            }
+                        }
                     }
+                    initialized = true
+                    break
+                } catch (t: Throwable) {
+                    lastError = t
                 }
+            }
+            if (!initialized) {
+                throw lastError ?: RuntimeException("Không thể khởi tạo mô hình.")
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -196,7 +208,7 @@ class LocalAiModelManager @Inject constructor(
             if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM validation failed", error)
             val detail = error.localizedMessage?.takeIf { it.isNotBlank() }
             val errorMsg = if (detail != null && !detail.startsWith("Mô hình không chạy")) {
-                "Không thể khởi tạo mô hình: $detail"
+                "Không thể khởi tạo mô hình ($detail). Vui lòng kiểm tra định dạng tệp .litertlm tương thích."
             } else {
                 "Mô hình không chạy được trên thiết bị này. Hãy chọn một tệp .litertlm tương thích."
             }

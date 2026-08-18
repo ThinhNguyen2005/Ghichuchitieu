@@ -33,6 +33,7 @@ import com.notepay.R
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
 import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.ai.LocalModelState
+import com.notepay.domain.util.OsCompatHelper
 import com.notepay.ui.theme.AppTheme
 
 private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"
@@ -228,6 +229,8 @@ fun AppSettingsScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val localModel by viewModel.localModel.collectAsStateWithLifecycle()
+    val liquidGlassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
+    val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsStateWithLifecycle()
 
     val modelPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -296,6 +299,94 @@ fun AppSettingsScreen(
                         viewModel.removeLocalAiModel()
                     },
                 )
+            }
+
+            // Giao diện & Hiệu ứng Liquid Glass
+            item {
+                val isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = AppTheme.shapes.corner16
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Hiệu ứng kính mờ (Liquid Glass)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                if (isLiquidGlassSupported) {
+                                    if (liquidGlassEnabled) "Đang bật hiệu ứng kính mờ và hoạt ảnh mượt mà."
+                                    else "Đang tắt — Sử dụng giao diện phẳng tiêu chuẩn."
+                                } else {
+                                    "Yêu cầu Android 12 trở lên (${OsCompatHelper.getAndroidVersionName()}) — Đang tối ưu chế độ mượt mà."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = liquidGlassEnabled && isLiquidGlassSupported,
+                            onCheckedChange = {
+                                playHaptic()
+                                viewModel.setLiquidGlassEnabled(it)
+                            },
+                            enabled = isLiquidGlassSupported
+                        )
+                    }
+                }
+            }
+
+            // Nhắc nhở ghi chép mỗi tối (20:30)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = AppTheme.shapes.corner16
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Nhắc nhở ghi chép mỗi tối",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                if (dailyReminderEnabled) "Thông báo lúc 20:30 tối nếu trong ngày chưa ghi chép chi tiêu."
+                                else "Đang tắt thông báo nhắc nhở.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = dailyReminderEnabled,
+                            onCheckedChange = {
+                                playHaptic()
+                                viewModel.setDailyReminderEnabled(context, it)
+                            }
+                        )
+                    }
+                }
             }
 
             // 3. Sao lưu & Khôi phục dữ liệu

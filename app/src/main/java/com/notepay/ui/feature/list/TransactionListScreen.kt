@@ -95,10 +95,12 @@ import com.notepay.domain.model.Category
 import kotlinx.datetime.LocalDate
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.DayDetailDialog
-import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.SwipeableTransactionItem
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.TransactionItem
+import com.notepay.ui.component.DayDetailDialog
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.coroutines.launch
 
@@ -316,11 +318,12 @@ private fun TransactionListContent(
                 ) {
                     dayTxList.forEach { transaction ->
                         val walletName = state.walletsMap[transaction.walletId] ?: stringResource(R.string.wallet_default)
-                        TransactionItem(
+                        SwipeableTransactionItem(
                             transaction = transaction,
                             walletName = walletName,
                             onClick = { onTransactionClick(transaction.id) },
-                            onLongClick = { onDelete(transaction) },
+                            onDelete = { onDelete(transaction) },
+                            onEdit = { onTransactionClick(transaction.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
@@ -502,11 +505,12 @@ private fun TransactionListContent(
 
                             items(dayTxList, key = { it.id }) { transaction ->
                                 val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
-                                TransactionItem(
+                                SwipeableTransactionItem(
                                     transaction = transaction,
                                     walletName = walletName,
                                     onClick = { onTransactionClick(transaction.id) },
-                                    onLongClick = { onDelete(transaction) },
+                                    onDelete = { onDelete(transaction) },
+                                    onEdit = { onTransactionClick(transaction.id) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp)

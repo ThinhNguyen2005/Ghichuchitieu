@@ -115,9 +115,11 @@ class LiteRtBudgetAdvisor @Inject constructor(
         val create: () -> Backend,
     ) {
         companion object {
-            // This Qwen3 LiteRT package is reliable on CPU/XNNPACK. A GPU attempt can
-            // block a request, then fail and fall back to CPU on many Android devices.
-            val DEFAULT_ORDER = listOf(BackendAttempt(label = "CPU") { Backend.CPU() })
+            // Tận dụng GPU Adreno (OpenCL) trước, nếu thiết bị không hỗ trợ thì fallback mượt về CPU (XNNPACK).
+            val DEFAULT_ORDER = listOf(
+                BackendAttempt(label = "GPU") { Backend.GPU() },
+                BackendAttempt(label = "CPU") { Backend.CPU() },
+            )
         }
     }
 }

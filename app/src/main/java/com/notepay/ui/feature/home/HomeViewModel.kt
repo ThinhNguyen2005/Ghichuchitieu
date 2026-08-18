@@ -1,14 +1,22 @@
 package com.notepay.ui.feature.home
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.ai.LocalAiModelManager
+import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.preferences.BudgetSettings
+import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.domain.model.Money
+import com.notepay.domain.repository.SubscriptionRepository
+import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
-import com.notepay.data.preferences.BudgetSettingsStore
-import com.notepay.domain.model.Money
+import com.notepay.domain.util.OsCompatHelper
+import com.notepay.domain.util.StreakTrackerHelper
+import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,21 +24,21 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
-import com.notepay.domain.repository.SubscriptionRepository
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
+    private val transactionRepo: TransactionRepository,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
     private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val budgetSettingsStore: BudgetSettingsStore,
+    private val appSettingsDataStore: AppSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
     private val localAiModelManager: LocalAiModelManager,
 ) : ViewModel() {
@@ -58,14 +66,26 @@ class HomeViewModel @Inject constructor(
         _selectedMonth.flatMapLatest { (year, month) -> getMonthlySummary(year, month) },
         walletRepo.observeActive(),
         walletRepo.observeAll(),
-        subscriptionRepository.observeAll()
-    ) { summary, activeWallet, wallets, subscriptions ->
+        subscriptionRepository.observeAll(),
+        transactionRepo.observeAll(),
+    ) { summary, activeWallet, wallets, subscriptions, allTransactions ->
         val balance = activeWallet?.let { observeWalletBalance(it.id).first() }
         
-        // Calculate due/upcoming reminders count
+        // Tính số lời nhắc sắp đến hạn
         val now = Clock.System.now()
         val dueCount = subscriptions.count { sub ->
             sub.isActive && (sub.nextDueDate - now).inWholeDays <= sub.remindDaysBefore.toLong()
+        }
+
+        // Tính chuỗi ngày ghi chép liên tiếp (Streak 🔥)
+        val streak = StreakTrackerHelper.calculateStreak(
+            transactionInstants = allTransactions.map { it.createdAt },
+            today = today.date
+        )
+
+        // Đọc ảnh nền của ví active
+        val bgUri = activeWallet?.id?.let {
+            appSettingsDataStore.observeWalletBackground(it).first()
         }
 
         val activeWalletExpense = if (activeWallet != null) {
@@ -80,7 +100,6 @@ class HomeViewModel @Inject constructor(
         val projection = if (activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
             val spentCents = activeWalletExpense.amountInCents
             val limitCents = budgetLimit.amountInCents
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val currentDay = today.dayOfMonth.coerceIn(1, 31)
             val daysInMonth = getDaysInMonth(today.year, today.monthNumber)
             
@@ -120,14 +139,16 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             activeWallet = activeWallet,
             wallets = wallets,
-            currentBalance = balance ?: com.notepay.domain.model.Money.ZERO,
+            currentBalance = balance ?: Money.ZERO,
             monthlyIncome = summary.totalIncome,
             monthlyExpense = summary.totalExpense,
             recentTransactions = summary.transactions.take(5),
             monthLabel = "Tháng ${summary.month}/${summary.year}",
             isLoading = false,
             budgetProjection = projection,
-            dueRemindersCount = dueCount
+            dueRemindersCount = dueCount,
+            walletBackgroundUri = bgUri,
+            streakDays = streak,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -141,10 +162,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun setWalletBackground(walletId: Long, uri: Uri?) {
+        viewModelScope.launch {
+            appSettingsDataStore.setWalletBackground(walletId, uri?.toString())
+        }
+    }
+
     val settings = budgetSettingsStore.settings.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = com.notepay.data.preferences.BudgetSettings(),
+        initialValue = BudgetSettings(),
     )
 
     val localModel = localAiModelManager.state.stateIn(
@@ -153,7 +180,40 @@ class HomeViewModel @Inject constructor(
         initialValue = localAiModelManager.state.value,
     )
 
+    val liquidGlassEnabled = appSettingsDataStore.liquidGlassEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = OsCompatHelper.supportsLiquidGlass(),
+    )
 
+    val dailyReminderEnabled = appSettingsDataStore.dailyReminderEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
+    fun setLiquidGlassEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setLiquidGlassEnabled(enabled)
+        }
+    }
+
+    fun setDailyReminderEnabled(context: Context, enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setDailyReminderEnabled(enabled)
+            if (enabled) {
+                ReminderScheduler.scheduleDailyReminder(context)
+            } else {
+                ReminderScheduler.cancelDailyReminder(context)
+            }
+        }
+    }
+
+    fun setMonthlyBudget(amountCents: Long) {
+        viewModelScope.launch {
+            budgetSettingsStore.setMonthlyBudget(amountCents)
+        }
+    }
 
     fun importLocalAiModel(uri: Uri) {
         viewModelScope.launch {

@@ -47,6 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -315,11 +320,17 @@ fun NotePayNavHost(
                     .fillMaxSize()
                     .layerBackdrop(backdrop)
             ) {
-                NavHost(
-                navController = navController,
-                startDestination = Route.Home.path,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+                @OptIn(ExperimentalSharedTransitionApi::class)
+                SharedTransitionLayout {
+                    NavHost(
+                        navController = navController,
+                        startDestination = Route.Home.path,
+                        modifier = Modifier.fillMaxSize(),
+                        enterTransition = { fadeIn(tween(250)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(250)) },
+                        exitTransition = { fadeOut(tween(200)) },
+                        popEnterTransition = { fadeIn(tween(200)) },
+                        popExitTransition = { fadeOut(tween(250)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(250)) }
+                    ) {
                 composable(Route.Home.path) {
                     HomeScreen(
                         onSeeAll = {
@@ -514,6 +525,7 @@ fun NotePayNavHost(
                     )
                 }
             }
+                }
             }
 
             if (isMainTab) {

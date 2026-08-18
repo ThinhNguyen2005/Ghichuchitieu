@@ -1,0 +1,91 @@
+package com.notepay.data.preferences
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.notepay.domain.util.OsCompatHelper
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "notepay_app_settings")
+
+@Singleton
+class AppSettingsDataStore @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
+    private val dataStore = context.appSettingsDataStore
+
+    companion object {
+        val KEY_LIQUID_GLASS_ENABLED = booleanPreferencesKey("liquid_glass_enabled")
+        val KEY_DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
+        val KEY_DAILY_REMINDER_HOUR = intPreferencesKey("daily_reminder_hour")
+        val KEY_DAILY_REMINDER_MINUTE = intPreferencesKey("daily_reminder_minute")
+        
+        fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
+    }
+
+    /**
+     * Trạng thái bật/tắt hiệu ứng Liquid Glass.
+     * Mặc định là true nếu thiết bị hỗ trợ Android 12+, ngược lại là false.
+     */
+    val liquidGlassEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        val defaultVal = OsCompatHelper.supportsLiquidGlass()
+        preferences[KEY_LIQUID_GLASS_ENABLED] ?: defaultVal
+    }
+
+    suspend fun setLiquidGlassEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_LIQUID_GLASS_ENABLED] = enabled
+        }
+    }
+
+    val dailyReminderEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_DAILY_REMINDER_ENABLED] ?: true
+    }
+
+    suspend fun setDailyReminderEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_DAILY_REMINDER_ENABLED] = enabled
+        }
+    }
+
+    val reminderHour: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[KEY_DAILY_REMINDER_HOUR] ?: 20
+    }
+
+    val reminderMinute: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[KEY_DAILY_REMINDER_MINUTE] ?: 30
+    }
+
+    suspend fun setReminderTime(hour: Int, minute: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_DAILY_REMINDER_HOUR] = hour
+            preferences[KEY_DAILY_REMINDER_MINUTE] = minute
+        }
+    }
+
+    fun observeWalletBackground(walletId: Long): Flow<String?> {
+        return dataStore.data.map { preferences ->
+            preferences[walletBackgroundKey(walletId)]
+        }
+    }
+
+    suspend fun setWalletBackground(walletId: Long, uriString: String?) {
+        dataStore.edit { preferences ->
+            val key = walletBackgroundKey(walletId)
+            if (uriString == null) {
+                preferences.remove(key)
+            } else {
+                preferences[key] = uriString
+            }
+        }
+    }
+}
