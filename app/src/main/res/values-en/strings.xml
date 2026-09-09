@@ -401,4 +401,9 @@
     <string name="icon_label_work">Work</string>
     <string name="icon_label_crypto">Crypto</string>
     <string name="icon_label_car">Vehicle</string>
+    <string name="navigation_glass_title">Navigation Liquid Glass</string>
+    <string name="navigation_glass_enabled">Glass effects apply only to the navigation bar.</string>
+    <string name="navigation_glass_disabled">Using a solid navigation bar.</string>
+    <string name="navigation_glass_block_android">Unavailable: Android 13 (API 33) or newer is required.</string>
+    <string name="navigation_glass_block_hardware">Unavailable: hardware acceleration is disabled for the app window.</string>
 </resources>

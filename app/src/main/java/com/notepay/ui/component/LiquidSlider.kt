@@ -1,5 +1,6 @@
 package com.notepay.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -29,12 +30,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 
-/** A 48dp accessible Liquid Glass slider primitive. */
+/** A 48dp accessible solid slider primitive. */
 @Composable
 fun LiquidSlider(
     value: Float,
@@ -48,7 +45,6 @@ fun LiquidSlider(
     backdrop: Backdrop? = null,
 ) {
     require(valueRange.start <= valueRange.endInclusive) { "valueRange must not be descending." }
-    val activeBackdrop = backdrop ?: LocalNotePayBackdrop.current
     val isDarkTheme = isSystemInDarkTheme()
     val rangeLength = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
     val fraction = ((value - valueRange.start) / rangeLength).coerceIn(0f, 1f)
@@ -93,28 +89,14 @@ fun LiquidSlider(
                 .fillMaxWidth()
                 .height(10.dp)
                 .clip(trackShape)
-                .drawBackdrop(
-                    backdrop = activeBackdrop,
-                    shape = { trackShape },
-                    effects = {
-                        vibrancy()
-                        blur(4.dp.toPx())
-                        if (supportsLiquidLens()) lens(4.dp.toPx(), 12.dp.toPx())
-                    },
-                    onDrawSurface = { drawRect(inactiveSurface) },
-                ),
+                .background(inactiveSurface.compositeOver(MaterialTheme.colorScheme.surface)),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction)
                     .height(10.dp)
                     .clip(trackShape)
-                    .drawBackdrop(
-                        backdrop = activeBackdrop,
-                        shape = { trackShape },
-                        effects = { vibrancy() },
-                        onDrawSurface = { drawRect(activeSurface) },
-                    ),
+                    .background(activeSurface.compositeOver(MaterialTheme.colorScheme.surface)),
             )
         }
 
@@ -125,15 +107,7 @@ fun LiquidSlider(
                 .offset { IntOffset(thumbOffset.roundToPx(), 0) }
                 .size(24.dp)
                 .clip(CircleShape)
-                .drawBackdrop(
-                    backdrop = activeBackdrop,
-                    shape = { CircleShape },
-                    effects = {
-                        blur(3.dp.toPx())
-                        if (supportsLiquidLens()) lens(4.dp.toPx(), 10.dp.toPx())
-                    },
-                    onDrawSurface = { drawRect(thumbSurface) },
-                ),
+                .background(thumbSurface.compositeOver(MaterialTheme.colorScheme.surface)),
         )
 
         if (enabled) {

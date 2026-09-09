@@ -26,36 +26,29 @@ Gọi Codex là "bạn Codex".
 - Không sửa ngoài phạm vi task.
 - Mỗi đợt refactor phải giữ nguyên hành vi hoặc ghi rõ hành vi thay đổi.
 
-# Ba biến thể sản phẩm
+# Hai biến thể sản phẩm
 
-Repo có 3 product flavor trên cùng một nhánh, chiều `distribution`:
+Repo dùng hai product flavor trên cùng nhánh, chiều `distribution`:
 
-- `play` — bản nộp Google Play, **không** có mã đọc thông báo, có quyền Internet (dùng VietQR).
-- `full` — bản cá nhân đầy đủ, có đọc thông báo + có quyền Internet (hỗ trợ VietQR, Cloud sync...). `applicationIdSuffix = ".full"`.
-- `local` — bản cá nhân 100% offline, có đọc thông báo + **TẮT hoàn toàn quyền Internet**. `applicationIdSuffix = ".local"`. Tái sử dụng code từ `src/full/`.
+- `play`: có Internet, dùng ảnh VietQR qua mạng; không có mã đọc thông báo.
+- `local`: offline, có đọc thông báo; `applicationIdSuffix = ".local"`.
 
-Mã riêng đọc thông báo nằm ở `app/src/full/` (được dùng chung cho cả `full` và `local`), bản play ở `app/src/play/`.
-Điểm nối duy nhất giữa các bản là `autoCaptureSettingsItem()` — extension của
-`LazyListScope`, gọi từ `AppSettingsScreen`.
-
-Hệ quả: mọi thay đổi liên quan đọc thông báo chỉ chạm `app/src/full/`. Không
-đưa mã đó vào `app/src/main/`, vì đó là lý do tồn tại của cách chia flavor này.
+Mã đọc thông báo và resource riêng nằm trong `app/src/local/`; test riêng
+nằm trong `app/src/testLocal/`. Play dùng `app/src/play/`.
+Giữ UI/nghiệp vụ dùng chung trong `app/src/main/`.
+Chỉ thanh điều hướng được dùng Liquid Glass khi tương thích và người dùng bật.
+AI API cho Play chờ quyết định nhà cung cấp/cấu hình; chưa triển khai.
 
 # Lệnh
 
-Vì có flavor, dùng lệnh cụ thể:
-
 ```
 ./gradlew.bat :app:assemblePlayDebug
-./gradlew.bat :app:assembleFullDebug
-./gradlew.bat :app:assembleLocalDebug
 ./gradlew.bat :app:testPlayDebugUnitTest
-./gradlew.bat :app:testFullDebugUnitTest
+./gradlew.bat :app:assembleLocalDebug
 ./gradlew.bat :app:testLocalDebugUnitTest
 ```
 
-Test riêng nằm ở `app/src/testFull/` (được dùng chung cho cả `testFull` và `testLocal`), nên `testPlayDebugUnitTest`
-sẽ **không** chạy chúng. Đổi code trong `app/src/full/` thì phải chạy tất cả.
+Play không chạy test đọc thông báo; thay đổi code chung phải kiểm tra cả hai bản.
 
 # Kiểm chứng
 

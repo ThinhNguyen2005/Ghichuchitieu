@@ -54,12 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 
-/** A short-lived glass panel anchored above NotePay's floating navigation. */
+/** A short-lived solid panel anchored above NotePay's floating navigation. */
 @Composable
 fun BoxScope.CreateNewGlassPanel(
     backdrop: Backdrop,
@@ -123,19 +119,11 @@ fun BoxScope.CreateNewGlassPanel(
                     .fillMaxWidth()
                     .clip(shape)
                     .semantics { paneTitle = title }
-                    .drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { shape },
-                        effects = {
-                            vibrancy()
-                            blur(8.dp.toPx())
-                        },
-                        layerBlock = {
-                            alpha = panelAlpha
-                            translationY = 36.dp.toPx() * translationProgress
-                        },
-                        onDrawSurface = { drawRect(panelSurface) },
-                    )
+                    .graphicsLayer {
+                        alpha = panelAlpha
+                        translationY = 36.dp.toPx() * translationProgress
+                    }
+                    .background(panelSurface.copy(alpha = 1f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -254,21 +242,13 @@ fun FloatingAddButton(
     Box(
         modifier = modifier
             .size(64.dp)
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { shape },
-                effects = {
-                    vibrancy()
-                    blur(6.dp.toPx())
-                    if (supportsLiquidLens()) lens(6.dp.toPx(), 12.dp.toPx())
-                },
-                layerBlock = {
-                    val scale = pressScale * expandedLift
-                    scaleX = scale
-                    scaleY = scale
-                },
-                onDrawSurface = { drawRect(buttonSurface) },
-            )
+            .graphicsLayer {
+                val scale = pressScale * expandedLift
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .background(buttonSurface.copy(alpha = 1f))
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = interactionSource,

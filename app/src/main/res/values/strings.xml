@@ -387,4 +387,9 @@
     <string name="icon_label_work">Công việc</string>
     <string name="icon_label_crypto">Đầu tư</string>
     <string name="icon_label_car">Xe cộ</string>
+    <string name="navigation_glass_title">Liquid Glass cho thanh điều hướng</string>
+    <string name="navigation_glass_enabled">Hiệu ứng kính chỉ áp dụng cho thanh điều hướng.</string>
+    <string name="navigation_glass_disabled">Đang dùng thanh điều hướng nền đặc.</string>
+    <string name="navigation_glass_block_android">Không hỗ trợ: cần Android 13 (API 33) trở lên.</string>
+    <string name="navigation_glass_block_hardware">Không hỗ trợ: cửa sổ ứng dụng chưa bật tăng tốc phần cứng.</string>
 </resources>

@@ -44,9 +44,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NorthEast
 import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.RemoveRedEye
 import androidx.compose.material.icons.rounded.SouthEast
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -83,9 +81,10 @@ private val MoMoPink = Color(0xFFE91E63)
 private val MoMoPinkLightBorder = Color(0xFFF48FB1)
 
 @Composable
-fun StatsDashboard(
+internal fun StatsDashboard(
     state: StatsUiState,
     showAmounts: Boolean,
+    viewType: StatsViewType,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
@@ -93,7 +92,6 @@ fun StatsDashboard(
     supportingContent: @Composable (StatsMetric) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var viewType by rememberSaveable { mutableStateOf(StatsViewType.XU_HUONG) }
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
     val previousTotal = state.recentMonths.getOrNull(1)?.let {
@@ -107,12 +105,6 @@ fun StatsDashboard(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            StatsHeader(
-                viewType = viewType,
-                onViewTypeChanged = { viewType = it },
-            )
-        }
         item(key = "stats-chart-mode") {
             when (viewType) {
                 StatsViewType.PHAN_BO -> OverviewCard(
@@ -157,19 +149,14 @@ fun StatsDashboard(
 }
 
 @Composable
-private fun StatsHeader(
+internal fun StatsHeader(
     viewType: StatsViewType,
     onViewTypeChanged: (StatsViewType) -> Unit,
 ) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        ViewModeToggle(
-            viewType = viewType,
-            onChanged = onViewTypeChanged,
-        )
-    }
+    ViewModeToggle(
+        viewType = viewType,
+        onChanged = onViewTypeChanged,
+    )
 }
 
 /**

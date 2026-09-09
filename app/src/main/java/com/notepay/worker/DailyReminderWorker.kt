@@ -83,7 +83,7 @@ class DailyReminderWorker @AssistedInject constructor(
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
-            .setSmallIcon(R.drawable.ic_stat_notepay)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

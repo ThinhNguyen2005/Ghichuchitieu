@@ -1,5 +1,6 @@
 package com.notepay.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -15,18 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 
-/** A 48dp accessible Liquid Glass switch primitive. */
+/** A 48dp accessible solid switch primitive. */
 @Composable
 fun LiquidToggle(
     checked: Boolean,
@@ -36,7 +33,6 @@ fun LiquidToggle(
     contentDescription: String? = null,
     backdrop: Backdrop? = null,
 ) {
-    val activeBackdrop = backdrop ?: LocalNotePayBackdrop.current
     val isDarkTheme = isSystemInDarkTheme()
     val shape = RoundedCornerShape(percent = 50)
     val thumbOffset = animateDpAsState(
@@ -71,16 +67,7 @@ fun LiquidToggle(
             modifier = Modifier
                 .size(width = 52.dp, height = 32.dp)
                 .clip(shape)
-                .drawBackdrop(
-                    backdrop = activeBackdrop,
-                    shape = { shape },
-                    effects = {
-                        vibrancy()
-                        blur(4.dp.toPx())
-                        if (supportsLiquidLens()) lens(4.dp.toPx(), 12.dp.toPx())
-                    },
-                    onDrawSurface = { drawRect(trackSurface) },
-                ),
+                .background(trackSurface.compositeOver(MaterialTheme.colorScheme.surface)),
         ) {
             Box(
                 modifier = Modifier
@@ -88,15 +75,7 @@ fun LiquidToggle(
                     .offset(x = thumbOffset.value)
                     .size(24.dp)
                     .clip(CircleShape)
-                    .drawBackdrop(
-                        backdrop = activeBackdrop,
-                        shape = { CircleShape },
-                        effects = {
-                            blur(3.dp.toPx())
-                            if (supportsLiquidLens()) lens(4.dp.toPx(), 10.dp.toPx())
-                        },
-                        onDrawSurface = { drawRect(thumbSurface) },
-                    ),
+                    .background(thumbSurface.compositeOver(MaterialTheme.colorScheme.surface)),
             )
         }
     }

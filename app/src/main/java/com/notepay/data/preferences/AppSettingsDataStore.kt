@@ -34,7 +34,7 @@ class AppSettingsDataStore @Inject constructor(
 
     /**
      * Trạng thái bật/tắt hiệu ứng Liquid Glass.
-     * Mặc định là true nếu thiết bị hỗ trợ Android 12+, ngược lại là false.
+     * Mặc định bật khi thiết bị hỗ trợ Liquid Glass trên thanh điều hướng.
      */
     val liquidGlassEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
         val defaultVal = OsCompatHelper.supportsLiquidGlass()

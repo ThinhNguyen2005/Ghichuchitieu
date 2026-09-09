@@ -34,6 +34,7 @@ import com.notepay.feature.autocapture.autoCaptureSettingsItem
 import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.ai.LocalModelState
 import com.notepay.domain.util.OsCompatHelper
+import com.notepay.domain.util.LiquidGlassBlockReason
 import com.notepay.ui.theme.AppTheme
 
 private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"
@@ -303,7 +304,20 @@ fun AppSettingsScreen(
 
             // Giao diện & Hiệu ứng Liquid Glass
             item {
-                val isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass()
+                val glassCompatibility = OsCompatHelper.liquidGlassCompatibility(
+                    isHardwareAccelerated = view.isHardwareAccelerated,
+                )
+                val glassStatus = when (glassCompatibility.blockReason) {
+                    null -> if (liquidGlassEnabled) {
+                        stringResource(R.string.navigation_glass_enabled)
+                    } else {
+                        stringResource(R.string.navigation_glass_disabled)
+                    }
+                    LiquidGlassBlockReason.ANDROID_VERSION ->
+                        stringResource(R.string.navigation_glass_block_android)
+                    LiquidGlassBlockReason.HARDWARE_ACCELERATION ->
+                        stringResource(R.string.navigation_glass_block_hardware)
+                }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -320,29 +334,30 @@ fun AppSettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Hiệu ứng kính mờ (Liquid Glass)",
+                                stringResource(R.string.navigation_glass_title),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                if (isLiquidGlassSupported) {
-                                    if (liquidGlassEnabled) "Đang bật hiệu ứng kính mờ và hoạt ảnh mượt mà."
-                                    else "Đang tắt — Sử dụng giao diện phẳng tiêu chuẩn."
-                                } else {
-                                    "Yêu cầu Android 12 trở lên (${OsCompatHelper.getAndroidVersionName()}) — Đang tối ưu chế độ mượt mà."
-                                },
+                                glassCompatibility.deviceDescription,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                glassStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         Switch(
-                            checked = liquidGlassEnabled && isLiquidGlassSupported,
+                            checked = liquidGlassEnabled && glassCompatibility.isSupported,
                             onCheckedChange = {
                                 playHaptic()
                                 viewModel.setLiquidGlassEnabled(it)
                             },
-                            enabled = isLiquidGlassSupported
+                            enabled = glassCompatibility.isSupported
                         )
                     }
                 }

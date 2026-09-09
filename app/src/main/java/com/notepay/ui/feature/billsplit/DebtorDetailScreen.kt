@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.BuildConfig
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
@@ -485,8 +486,10 @@ private fun VietQrTemplateCard(
     emvPayload: String? = null,
     modifier: Modifier = Modifier
 ) {
-    val localQrBitmap = remember(emvPayload) {
-        if (!emvPayload.isNullOrBlank()) {
+    var remoteFailed by remember(qrImageUrl) { mutableStateOf(false) }
+    val useRemoteQr = BuildConfig.FLAVOR == "play" && qrImageUrl.isNotBlank() && !remoteFailed
+    val localQrBitmap = remember(emvPayload, useRemoteQr) {
+        if (!useRemoteQr && !emvPayload.isNullOrBlank()) {
             try {
                 VietQrGenerator.generateLocalQrBitmap(emvPayload, 512, 512)
             } catch (_: Exception) {
@@ -501,7 +504,15 @@ private fun VietQrTemplateCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        if (localQrBitmap != null) {
+        if (useRemoteQr) {
+            AsyncImage(
+                model = qrImageUrl,
+                contentDescription = stringResource(R.string.cd_vietqr_logo),
+                contentScale = ContentScale.Fit,
+                onError = { remoteFailed = true },
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f).padding(16.dp),
+            )
+        } else if (localQrBitmap != null) {
             Image(
                 bitmap = localQrBitmap.asImageBitmap(),
                 contentDescription = stringResource(R.string.cd_vietqr_logo),
@@ -513,14 +524,9 @@ private fun VietQrTemplateCard(
                     .clip(AppTheme.shapes.corner16)
             )
         } else {
-            AsyncImage(
-                model = qrImageUrl,
-                contentDescription = stringResource(R.string.cd_vietqr_logo),
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .clip(AppTheme.shapes.corner16)
+            Text(
+                text = stringResource(R.string.bill_split_vietqr_missing),
+                modifier = Modifier.padding(24.dp),
             )
         }
     }

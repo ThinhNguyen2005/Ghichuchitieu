@@ -47,8 +47,6 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.RemoveRedEye
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
@@ -128,6 +126,7 @@ fun StatsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var showAmounts by rememberSaveable { mutableStateOf(true) }
+    var viewType by rememberSaveable { mutableStateOf(StatsViewType.XU_HUONG) }
 
     val contentState = when {
         state.isLoading -> StatsContentState.LOADING
@@ -146,14 +145,10 @@ fun StatsScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { showAmounts = !showAmounts }) {
-                        Icon(
-                            imageVector = if (showAmounts) Icons.Rounded.RemoveRedEye else Icons.Rounded.VisibilityOff,
-                            contentDescription = stringResource(
-                                if (showAmounts) R.string.stats_cd_hide_amounts else R.string.stats_cd_show_amounts,
-                            ),
-                        )
-                    }
+                    StatsHeader(
+                        viewType = viewType,
+                        onViewTypeChanged = { viewType = it },
+                    )
                 },
             )
         },
@@ -177,6 +172,7 @@ fun StatsScreen(
                     StatsDashboard(
                         state = state,
                         showAmounts = showAmounts,
+                        viewType = viewType,
                         onPreviousMonth = viewModel::onPreviousMonth,
                         onNextMonth = viewModel::onNextMonth,
                         onMonthSelected = { point ->

@@ -38,12 +38,8 @@ android {
         }
     }
 
-    // Hai biến thể sản phẩm vĩnh viễn:
-    // - play: bản đưa lên Google Play, KHÔNG có mã đọc thông báo. Mã đó nằm ở
-    //   src/full/ nên không hề được biên dịch vào APK này.
-    // - full: bản cài tay, có NotificationListenerService tự ghi chi tiêu.
-    // Dùng flavor thay vì hai nhánh git, để mọi sửa đổi UI/UX ở src/main/ đều
-    // vào cả hai bản mà không phải merge qua lại.
+    // Play has Internet access; Local owns offline notification capture.
+    // Shared UI and business logic stay in src/main.
     flavorDimensions += "distribution"
 
     productFlavors {
@@ -51,29 +47,10 @@ android {
             dimension = "distribution"
         }
 
-        create("full") {
-            dimension = "distribution"
-            applicationIdSuffix = ".full"
-            versionNameSuffix = "-full"
-        }
-
         create("local") {
             dimension = "distribution"
             applicationIdSuffix = ".local"
             versionNameSuffix = "-local"
-        }
-    }
-
-    sourceSets {
-        getByName("local") {
-            java.srcDirs("src/full/java")
-            kotlin.srcDirs("src/full/java")
-            res.srcDirs("src/full/res")
-        }
-        getByName("testLocal") {
-            java.srcDirs("src/testFull/java")
-            kotlin.srcDirs("src/testFull/java")
-            res.srcDirs("src/testFull/res")
         }
     }
 
