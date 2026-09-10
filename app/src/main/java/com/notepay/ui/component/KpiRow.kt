@@ -1,7 +1,5 @@
 package com.notepay.ui.component
 
-import com.notepay.ui.theme.AppTheme
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +11,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.TrendingDown
-import androidx.compose.material.icons.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -24,10 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import com.notepay.domain.model.Money
-import com.notepay.ui.util.MoneyFormatter
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.notepay.R
+import com.notepay.domain.model.Money
+import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.util.MoneyFormatter
 
 @Composable
 fun KpiRow(
@@ -41,17 +42,17 @@ fun KpiRow(
     ) {
         KpiCard(
             modifier = Modifier.weight(1f),
-            label = "Thu nhập",
+            label = stringResource(R.string.transaction_type_income),
             value = MoneyFormatter.format(income),
             color = MaterialTheme.colorScheme.primary,
-            icon = Icons.Rounded.TrendingUp,
+            icon = Icons.AutoMirrored.Rounded.TrendingUp,
         )
         KpiCard(
             modifier = Modifier.weight(1f),
-            label = "Chi tiêu",
+            label = stringResource(R.string.transaction_type_expense),
             value = MoneyFormatter.format(expense),
             color = MaterialTheme.colorScheme.error,
-            icon = Icons.Rounded.TrendingDown,
+            icon = Icons.AutoMirrored.Rounded.TrendingDown,
         )
     }
 }

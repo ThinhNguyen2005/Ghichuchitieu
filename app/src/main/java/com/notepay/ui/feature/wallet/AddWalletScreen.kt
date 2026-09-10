@@ -39,14 +39,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.horizontalScroll
 import com.notepay.ui.util.WalletUiHelper
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
@@ -79,10 +81,18 @@ fun AddWalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditMode) "Chỉnh sửa ví" else "Thêm ví mới") },
+                title = {
+                    Text(
+                        if (state.isEditMode) {
+                            stringResource(R.string.home_edit_wallet)
+                        } else {
+                            stringResource(R.string.home_add_new_wallet)
+                        }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Trở lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.wallet_back))
                     }
                 }
             )
@@ -99,7 +109,7 @@ fun AddWalletScreen(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onNameChanged,
-                label = { Text("Tên ví") },
+                label = { Text(stringResource(R.string.wallet_field_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -107,7 +117,7 @@ fun AddWalletScreen(
             OutlinedTextField(
                 value = state.initialBalanceInput,
                 onValueChange = viewModel::onInitialBalanceChanged,
-                label = { Text("Số dư ban đầu") },
+                label = { Text(stringResource(R.string.wallet_field_initial_balance)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,
@@ -139,12 +149,12 @@ fun AddWalletScreen(
                     }
                     Column {
                         Text(
-                            text = "Đặt hạn mức cảnh báo",
+                            text = stringResource(R.string.wallet_budget_alert_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Cảnh báo khi tiêu lố tay ngân sách",
+                            text = stringResource(R.string.wallet_budget_alert_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -170,9 +180,9 @@ fun AddWalletScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         val periods = listOf(
-                            BudgetPeriod.DAILY to "Hàng ngày",
-                            BudgetPeriod.WEEKLY to "Hàng tuần",
-                            BudgetPeriod.MONTHLY to "Hàng tháng"
+                            BudgetPeriod.DAILY to stringResource(R.string.wallet_period_daily),
+                            BudgetPeriod.WEEKLY to stringResource(R.string.wallet_period_weekly),
+                            BudgetPeriod.MONTHLY to stringResource(R.string.wallet_period_monthly),
                         )
                         periods.forEach { (period, label) ->
                             val isSelected = state.budgetPeriod == period
@@ -198,7 +208,7 @@ fun AddWalletScreen(
                     OutlinedTextField(
                         value = state.budgetLimitInput,
                         onValueChange = viewModel::onBudgetLimitChanged,
-                        label = { Text("Số tiền hạn mức") },
+                        label = { Text(stringResource(R.string.wallet_budget_amount)) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         visualTransformation = currencyTransformation,
@@ -218,7 +228,7 @@ fun AddWalletScreen(
                             formatter.format(monthlyEquivalent).replace(",", ".")
                         }
                         Text(
-                            text = "Quy đổi sang hàng tháng để cảnh báo: $formattedMonthly đ/tháng",
+                            text = stringResource(R.string.wallet_monthly_budget_format, formattedMonthly),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
@@ -230,7 +240,7 @@ fun AddWalletScreen(
 
             // Chọn Icon
             Text(
-                text = "Biểu tượng ví",
+                text = stringResource(R.string.wallet_icon_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -240,7 +250,7 @@ fun AddWalletScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                WalletUiHelper.iconList.forEach { (key, vector, label) ->
+                WalletUiHelper.iconList.forEach { (key, vector, labelRes) ->
                     val isSelected = state.iconKey == key
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -260,14 +270,14 @@ fun AddWalletScreen(
                         ) {
                             Icon(
                                 imageVector = vector,
-                                contentDescription = label,
+                                contentDescription = stringResource(labelRes),
                                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = label,
+                            text = stringResource(labelRes),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -278,7 +288,7 @@ fun AddWalletScreen(
 
             // Chọn Màu sắc
             Text(
-                text = "Màu sắc nhận diện",
+                text = stringResource(R.string.wallet_color_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -331,12 +341,12 @@ fun AddWalletScreen(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Cấu hình VietQR sau",
+                            stringResource(R.string.wallet_vietqr_later_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            "Sau khi tạo ví, vào Chia tiền → icon QR trên thanh trên cùng để cấu hình ngân hàng + STK + tên chủ TK nhanh chóng.",
+                            stringResource(R.string.wallet_vietqr_later_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
@@ -368,40 +378,20 @@ fun AddWalletScreen(
                         strokeWidth = 2.dp,
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text("Đang lưu...", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.wallet_saving), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 } else {
-                    Text(if (state.isEditMode) "Lưu thay đổi" else "Tạo ví", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (state.isEditMode) {
+                            stringResource(R.string.home_save_wallet_changes)
+                        } else {
+                            stringResource(R.string.home_create_wallet)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     }
 }
 
-data class SupportedBank(
-    val name: String,
-    val packageName: String,
-    val bin: String?
-) {
-    companion object {
-        val LIST = listOf(
-            SupportedBank("Không liên kết", "", null),
-            SupportedBank("TPBank", "com.tpb.mb.gprsandroid", "970423"),
-            SupportedBank("Vietcombank", "com.VCB", "970436"),
-            SupportedBank("Techcombank", "com.technologies.tcb", "970407"),
-            SupportedBank("MB Bank", "com.mbmobile", "970422"),
-            SupportedBank("BIDV", "com.bidv.smartbanking", "970418"),
-            SupportedBank("VietinBank", "com.vietinbank.ipay", "970415"),
-            SupportedBank("ACB", "vn.com.acb.mbanking", "970416"),
-            SupportedBank("VIB", "vn.com.vib.vibmobile", "970441"),
-            SupportedBank("Agribank", "com.vnpay.Agribank3g", "970405"),
-            SupportedBank("Sacombank", "com.sacombank.mbanking", "970403"),
-            SupportedBank("VPBank", "com.vpbank.neo", "970432"),
-            SupportedBank("HDBank", "vn.com.hdbank.smartbanking", "970420"),
-            SupportedBank("Timo (BVBank)", "vn.timo.digitalbank", "970454"),
-            SupportedBank("SHB", "com.shb.mobile", "970443"),
-            SupportedBank("SCB", "com.scb.mobile", "970429"),
-            SupportedBank("BaoViet Bank", "com.baovietbank.bvmobile", "970438"),
-            SupportedBank("Momo (Ví)", "com.mservice.momotransfer", null)
-        )
-    }
-}

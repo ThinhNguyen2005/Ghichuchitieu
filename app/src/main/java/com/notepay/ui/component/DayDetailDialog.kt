@@ -1,5 +1,7 @@
 package com.notepay.ui.component
 
+import com.notepay.ui.theme.AppTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,15 +31,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -65,24 +71,32 @@ fun DayDetailDialog(
         title = {
             // P2-13: title có "Thứ X," phía trước + subtitle tương đối.
             val weekday = when (date.dayOfWeek.ordinal) {
-                0 -> "Thứ 2"
-                1 -> "Thứ 3"
-                2 -> "Thứ 4"
-                3 -> "Thứ 5"
-                4 -> "Thứ 6"
-                5 -> "Thứ 7"
-                6 -> "Chủ nhật"
+                0 -> stringResource(R.string.day_monday)
+                1 -> stringResource(R.string.day_tuesday)
+                2 -> stringResource(R.string.day_wednesday)
+                3 -> stringResource(R.string.day_thursday)
+                4 -> stringResource(R.string.day_friday)
+                5 -> stringResource(R.string.day_saturday)
+                6 -> stringResource(R.string.day_sunday)
                 else -> ""
             }
             val diffDays = date.toEpochDays().toLong() - today.toEpochDays().toLong()
             val relative = when {
-                diffDays == 0L -> "Hôm nay"
-                diffDays > 0L -> "Còn $diffDays ngày nữa"
-                else -> "${-diffDays} ngày trước"
+                diffDays == 0L -> stringResource(R.string.date_today)
+                diffDays > 0L -> pluralStringResource(
+                    R.plurals.date_days_remaining,
+                    diffDays.toInt(),
+                    diffDays.toInt(),
+                )
+                else -> pluralStringResource(
+                    R.plurals.date_days_ago,
+                    (-diffDays).toInt(),
+                    (-diffDays).toInt(),
+                )
             }
             Column {
                 Text(
-                    text = "$weekday, ${date.dayOfMonth}/${date.monthNumber}/${date.year}",
+                    text = "$weekday, ${date.day}/${date.month.number}/${date.year}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -103,14 +117,14 @@ fun DayDetailDialog(
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
                     EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
-                        title = "Trống",
-                        description = "Không có giao dịch hoặc nhắc nhở nào trong ngày này."
+                        title = stringResource(R.string.state_empty),
+                        description = stringResource(R.string.day_detail_empty_desc)
                     )
                 }
 
                 if (subscriptions.isNotEmpty()) {
                     Text(
-                        "Nhắc nhở",
+                        stringResource(R.string.subscription_reminders_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -125,7 +139,7 @@ fun DayDetailDialog(
                         }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = containerColor),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppTheme.shapes.corner12,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
@@ -160,10 +174,17 @@ fun DayDetailDialog(
                                         fontWeight = FontWeight.Medium,
                                     )
                                     val dueLabel = when {
-                                        isExpired -> "Quá hạn ${-daysLeft} ngày"
-                                        daysLeft == 0L -> "Hết hạn hôm nay"
-                                        daysLeft == 1L -> "Còn 1 ngày"
-                                        else -> "Còn $daysLeft ngày"
+                                        isExpired -> pluralStringResource(
+                                            R.plurals.subscription_overdue,
+                                            (-daysLeft).toInt(),
+                                            (-daysLeft).toInt(),
+                                        )
+                                        daysLeft == 0L -> stringResource(R.string.subscription_due_today)
+                                        else -> pluralStringResource(
+                                            R.plurals.subscription_due_days,
+                                            daysLeft.toInt(),
+                                            daysLeft.toInt(),
+                                        )
                                     }
                                     Text(
                                         dueLabel,
@@ -181,7 +202,7 @@ fun DayDetailDialog(
                         HorizontalDivider()
                     }
                     Text(
-                        "Giao dịch trong ngày",
+                        stringResource(R.string.day_detail_transactions_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -230,7 +251,7 @@ fun DayDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Đóng") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
 }

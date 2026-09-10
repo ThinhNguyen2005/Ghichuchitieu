@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -22,7 +21,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -79,14 +80,14 @@ fun PaymentReconciliationSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Thu tiền nợ từ $debtorName",
+                        text = stringResource(R.string.billsplit_collect_debt_format, debtorName),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Tổng dư nợ: ${MoneyFormatter.format(totalDebt)}",
+                        text = stringResource(R.string.billsplit_total_debt_format, MoneyFormatter.format(totalDebt)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error, // Dùng màu Error chuẩn hệ thống
                         fontWeight = FontWeight.Bold
@@ -96,7 +97,7 @@ fun PaymentReconciliationSheet(
                     onClick = onDismiss,
                     modifier = Modifier.offset(x = 12.dp, y = (-8).dp) // Đẩy sát góc gọn gàng
                 ) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Đóng")
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_close))
                 }
             }
 
@@ -115,7 +116,7 @@ fun PaymentReconciliationSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(AppTheme.shapes.corner14)
                             .background(if (isCash) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable {
                                 paymentMethod = "cash"
@@ -147,12 +148,12 @@ fun PaymentReconciliationSheet(
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Nhận bằng Tiền mặt",
+                                text = stringResource(R.string.billsplit_cash_payment),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Giảm trực tiếp chi tiêu gốc, không đối soát giao dịch.",
+                                text = stringResource(R.string.billsplit_cash_payment_desc),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -165,7 +166,7 @@ fun PaymentReconciliationSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(AppTheme.shapes.corner14)
                             .background(if (isTransfer) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent)
                             .clickable { paymentMethod = "transfer" }
                             .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -191,12 +192,12 @@ fun PaymentReconciliationSheet(
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Nhận bằng Chuyển khoản",
+                                text = stringResource(R.string.billsplit_receive_by_transfer),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Đối soát và tự động liên kết với biến động số dư từ ngân hàng.",
+                                text = stringResource(R.string.billsplit_transfer_payment_desc),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -208,7 +209,7 @@ fun PaymentReconciliationSheet(
             // Phân vùng hiển thị danh sách giao dịch Ngân hàng (Chỉ bung ra khi chọn Chuyển khoản)
             if (paymentMethod == "transfer") {
                 Text(
-                    text = "Chọn giao dịch ngân hàng khớp đối soát:",
+                    text = stringResource(R.string.billsplit_choose_matching_transaction),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -235,7 +236,7 @@ fun PaymentReconciliationSheet(
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "Không tìm thấy giao dịch thu nhập gần đây",
+                                text = stringResource(R.string.billsplit_no_recent_income),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -250,7 +251,8 @@ fun PaymentReconciliationSheet(
                     ) {
                         items(incomeTransactions, key = { it.id }) { tx ->
                             val isSelected = selectedIncomeTxId == tx.id
-                            val walletName = wallets.find { it.id == tx.walletId }?.name ?: "Ví khác"
+                            val walletName = wallets.find { it.id == tx.walletId }?.name
+                                ?: stringResource(R.string.billsplit_other_wallet)
 
                             // Phối màu nền bám theo Token Theme khi item được chọn
                             val cardBgColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerHigh
@@ -260,7 +262,7 @@ fun PaymentReconciliationSheet(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { selectedIncomeTxId = tx.id },
-                                shape = RoundedCornerShape(14.dp),
+                                shape = AppTheme.shapes.corner14,
                                 colors = CardDefaults.cardColors(containerColor = cardBgColor),
                                 border = borderStroke
                             ) {
@@ -323,7 +325,7 @@ fun PaymentReconciliationSheet(
                                         if (isSelected) {
                                             Icon(
                                                 imageVector = Icons.Rounded.CheckCircle,
-                                                contentDescription = "Đã chọn",
+                                                contentDescription = stringResource(R.string.billsplit_selected),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(18.dp)
                                             )
@@ -359,7 +361,10 @@ fun PaymentReconciliationSheet(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = if (paymentMethod == "cash") "Ghi nhận thu tiền mặt" else "Xác nhận đối soát & khớp số dư",
+                    text = stringResource(
+                        if (paymentMethod == "cash") R.string.billsplit_record_cash_payment
+                        else R.string.billsplit_confirm_reconcile,
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )

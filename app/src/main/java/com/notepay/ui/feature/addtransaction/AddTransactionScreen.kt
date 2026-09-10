@@ -1,4 +1,3 @@
-@file:Suppress("DEPRECATION")
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
@@ -33,8 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,9 +42,10 @@ import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.*
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +68,6 @@ fun AddTransactionScreen(
         uri?.let { viewModel.onEvent(AddTransactionEvent.ImageSelected(it)) }
     }
 
-    // Resolve strings trước khi dùng (đặc biệt cho các callback ngoài Composable scope).
     val title = stringResource(R.string.add_transaction_title)
     val backCd = stringResource(R.string.action_back)
     val fieldDate = stringResource(R.string.transaction_field_date)
@@ -78,6 +78,10 @@ fun AddTransactionScreen(
     val noOtherWalletToast = stringResource(R.string.transaction_no_other_wallet)
     val saveLabel = stringResource(R.string.transaction_save_button)
     val cancelLabel = stringResource(R.string.action_cancel)
+    val validationAmount = stringResource(R.string.transaction_validation_amount)
+    val validationWallet = stringResource(R.string.transaction_validation_wallet)
+    val validationAmountWallet = stringResource(R.string.transaction_validation_amount_wallet)
+    val validationForm = stringResource(R.string.transaction_validation_form)
     val doneLabel = stringResource(R.string.action_done)
     val expenseLabel = stringResource(R.string.transaction_type_expense)
     val incomeLabel = stringResource(R.string.transaction_type_income)
@@ -94,17 +98,28 @@ fun AddTransactionScreen(
         }
     }
 
-    // Tự động yêu cầu focus vào ô số tiền để kích hoạt mở bàn phím mặc định của hệ thống
+    // TĂ¡Â»Â± Ă„â€˜Ă¡Â»â„¢ng yÄ‚Âªu cĂ¡ÂºÂ§u focus vÄ‚Â o Ä‚Â´ sĂ¡Â»â€˜ tiĂ¡Â»Ân Ă„â€˜Ă¡Â»Æ’ kÄ‚Â­ch hoĂ¡ÂºÂ¡t mĂ¡Â»Å¸ bÄ‚Â n phÄ‚Â­m mĂ¡ÂºÂ·c Ă„â€˜Ă¡Â»â€¹nh cĂ¡Â»Â§a hĂ¡Â»â€¡ thĂ¡Â»â€˜ng
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val screenScope = rememberCoroutineScope()
+    val currentAmount = state.amount
+    val amountMissing = currentAmount == null || currentAmount.amountInCents <= 0
+    val validationMessage = when {
+        amountMissing && state.walletId == null -> validationAmountWallet
+        amountMissing -> validationAmount
+        state.walletId == null -> validationWallet
+        else -> validationForm
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -120,7 +135,7 @@ fun AddTransactionScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            // Phần trên: Form có thể cuộn
+            // PhĂ¡ÂºÂ§n trÄ‚Âªn: Form cÄ‚Â³ thĂ¡Â»Æ’ cuĂ¡Â»â„¢n
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -157,7 +172,7 @@ fun AddTransactionScreen(
                         Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (state.isImageScanning) "Đang đọc ảnh…" else "Quét ảnh giao dịch hoặc VietQR")
+                    Text(if (state.isImageScanning) stringResource(R.string.scan_image_reading) else stringResource(R.string.scan_image_button))
                 }
 
                 state.imageScanMessage?.let { message ->
@@ -168,7 +183,7 @@ fun AddTransactionScreen(
                     )
                 }
 
-                // Nhập số tiền: Thiết kế nổi bật to ở giữa, có BasicTextField ẩn và text đọc chữ mờ bên dưới
+                // NhĂ¡ÂºÂ­p sĂ¡Â»â€˜ tiĂ¡Â»Ân: ThiĂ¡ÂºÂ¿t kĂ¡ÂºÂ¿ nĂ¡Â»â€¢i bĂ¡ÂºÂ­t to Ă¡Â»Å¸ giĂ¡Â»Â¯a, cÄ‚Â³ BasicTextField Ă¡ÂºÂ©n vÄ‚Â  text Ă„â€˜Ă¡Â»Âc chĂ¡Â»Â¯ mĂ¡Â»Â bÄ‚Âªn dĂ†Â°Ă¡Â»â€ºi
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -202,7 +217,7 @@ fun AddTransactionScreen(
                             amountInput = state.amountInput
                         )
 
-                        // Đọc số tiền bằng chữ mờ bên dưới
+                        // Ă„ÂĂ¡Â»Âc sĂ¡Â»â€˜ tiĂ¡Â»Ân bĂ¡ÂºÂ±ng chĂ¡Â»Â¯ mĂ¡Â»Â bÄ‚Âªn dĂ†Â°Ă¡Â»â€ºi
                         val amountLong = remember(state.amountInput) { state.amountInput.toLongOrNull() ?: 0L }
                         val amountInWords = remember(amountLong, currencySuffix, zeroWords) {
                             if (amountLong > 0L) convertNumberToVietnameseWords(amountLong, zeroWords) + " " + currencySuffix else ""
@@ -219,7 +234,7 @@ fun AddTransactionScreen(
                     }
                 }
 
-                // Gợi ý danh mục thời gian thực (nếu có)
+                // GĂ¡Â»Â£i Ä‚Â½ danh mĂ¡Â»Â¥c thĂ¡Â»Âi gian thĂ¡Â»Â±c (nĂ¡ÂºÂ¿u cÄ‚Â³)
                 val suggested = state.suggestedCategory
                 if (suggested != null) {
                     SuggestionChipRow(
@@ -230,7 +245,7 @@ fun AddTransactionScreen(
                     )
                 }
 
-                // Dải chọn nhanh danh mục
+                // DĂ¡ÂºÂ£i chĂ¡Â»Ân nhanh danh mĂ¡Â»Â¥c
                 CategoryQuickSelectionRow(
                     categories = state.availableCategories,
                     selectedCategory = state.category,
@@ -243,7 +258,7 @@ fun AddTransactionScreen(
                     }
                 )
 
-                // Ô chọn ngày giờ
+                // Ä‚â€ chĂ¡Â»Ân ngÄ‚Â y giĂ¡Â»Â
                 val dateLabel = remember(state.occurredAt, todayPrefix, yesterdayPrefix, monthSuffixFmt) {
                     formatDateLabel(state.occurredAt, todayPrefix, yesterdayPrefix, monthSuffixFmt)
                 }
@@ -258,7 +273,7 @@ fun AddTransactionScreen(
                     }
                 )
 
-                // Ô chọn ví - Click vào hiện thông báo nhẹ nếu chỉ có 1 ví
+                // Ä‚â€ chĂ¡Â»Ân vÄ‚Â­ - Click vÄ‚Â o hiĂ¡Â»â€¡n thÄ‚Â´ng bÄ‚Â¡o nhĂ¡ÂºÂ¹ nĂ¡ÂºÂ¿u chĂ¡Â»â€° cÄ‚Â³ 1 vÄ‚Â­
                 val selectedWallet = state.availableWallets.firstOrNull { it.id == state.walletId }
                 val walletName = selectedWallet?.name ?: noWalletSelected
                 TransactionInputField(
@@ -280,7 +295,7 @@ fun AddTransactionScreen(
                     }
                 )
 
-                // Ghi chú trực tiếp (Inline TextField)
+                // Ghi chÄ‚Âº trĂ¡Â»Â±c tiĂ¡ÂºÂ¿p (Inline TextField)
                 OutlinedTextField(
                     value = state.note,
                     onValueChange = { if (it.length <= 200) viewModel.onEvent(AddTransactionEvent.NoteChanged(it)) },
@@ -308,21 +323,30 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Phần dưới: Nút lưu giao dịch (Ẩn bàn phím tự chế theo yêu cầu người dùng)
+            // PhĂ¡ÂºÂ§n dĂ†Â°Ă¡Â»â€ºi: NÄ‚Âºt lĂ†Â°u giao dĂ¡Â»â€¹ch (Ă¡ÂºÂ¨n bÄ‚Â n phÄ‚Â­m tĂ¡Â»Â± chĂ¡ÂºÂ¿ theo yÄ‚Âªu cĂ¡ÂºÂ§u ngĂ†Â°Ă¡Â»Âi dÄ‚Â¹ng)
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Chú thích: Đã triển khai bàn phím tự chế (NumericKeypad) nhưng hiện tại tạm dừng sử dụng để dùng bàn phím hệ thống.
+                // ChÄ‚Âº thÄ‚Â­ch: Ă„ÂÄ‚Â£ triĂ¡Â»Æ’n khai bÄ‚Â n phÄ‚Â­m tĂ¡Â»Â± chĂ¡ÂºÂ¿ (NumericKeypad) nhĂ†Â°ng hiĂ¡Â»â€¡n tĂ¡ÂºÂ¡i tĂ¡ÂºÂ¡m dĂ¡Â»Â«ng sĂ¡Â»Â­ dĂ¡Â»Â¥ng Ă„â€˜Ă¡Â»Æ’ dÄ‚Â¹ng bÄ‚Â n phÄ‚Â­m hĂ¡Â»â€¡ thĂ¡Â»â€˜ng.
 
-                // Nút Lưu giao dịch nổi bật động theo canSave
+                // NÄ‚Âºt LĂ†Â°u giao dĂ¡Â»â€¹ch nĂ¡Â»â€¢i bĂ¡ÂºÂ­t Ă„â€˜Ă¡Â»â„¢ng theo canSave
                 LiquidButton(
                     onClick = {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                        viewModel.onEvent(AddTransactionEvent.Save)
+                        if (state.canSave) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                            viewModel.onEvent(AddTransactionEvent.Save)
+                        } else {
+                            viewModel.onEvent(AddTransactionEvent.Save)
+                            if (amountMissing) focusRequester.requestFocus()
+                            screenScope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                snackbarHostState.showSnackbar(validationMessage)
+                            }
+                        }
                     },
-                    enabled = state.canSave,
+                    enabled = !state.isSaving,
                     tint = Color(0xFF1B7F4F),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -344,7 +368,7 @@ fun AddTransactionScreen(
         }
     }
 
-    // Các BottomSheet và Dialog picker
+    // CÄ‚Â¡c BottomSheet vÄ‚Â  Dialog picker
     if (showDatePicker.value) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = state.occurredAt.toEpochMilliseconds())
         DatePickerDialog(
@@ -374,31 +398,19 @@ fun AddTransactionScreen(
         )
     }
     if (showAllCategories.value) {
-        ModalBottomSheet(
-            onDismissRequest = { showAllCategories.value = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp)
-            ) {
-                CategoryGridPicker(
-                    categories = state.availableCategories,
-                    selectedCategory = state.category,
-                    isIncome = state.type == TransactionType.INCOME,
-                    onCategoryChanged = {
-                        viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
-                        showAllCategories.value = false
-                    },
-                    onCreateCategory = { name, color, iconId, isIncome ->
-                        viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, iconId, isIncome))
-                    }
-                )
-            }
-        }
+        CategoryPickerSheet(
+            categories = state.availableCategories,
+            selectedCategory = state.category,
+            isIncome = state.type == TransactionType.INCOME,
+            onCategoryChanged = {
+                viewModel.onEvent(AddTransactionEvent.CategoryChanged(it))
+                showAllCategories.value = false
+            },
+            onDismiss = { showAllCategories.value = false },
+            onCreateCategory = { name, color, iconId, isIncome ->
+                viewModel.onEvent(AddTransactionEvent.CreateCategory(name, color, iconId, isIncome))
+            },
+        )
     }
 }
 
@@ -432,10 +444,10 @@ private fun TransactionTypeSelector(
             label = "IndicatorOffset"
         )
 
-        // Khối màu nền trượt di chuyển mượt mà
+        // KhĂ¡Â»â€˜i mÄ‚Â u nĂ¡Â»Ân trĂ†Â°Ă¡Â»Â£t di chuyĂ¡Â»Æ’n mĂ†Â°Ă¡Â»Â£t mÄ‚Â 
         Box(
             modifier = Modifier
-                .offset(x = indicatorOffset)
+                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                 .width(tabWidth)
                 .fillMaxHeight()
                 .clip(AppTheme.shapes.circle)
@@ -495,7 +507,11 @@ private fun SuggestionChipRow(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            val suggestionLabel = if (isApplied) "Đã tự động chọn:" else stringResource(R.string.transaction_suggestion_label)
+            val suggestionLabel = if (isApplied) {
+                stringResource(R.string.transaction_suggestion_applied_label)
+            } else {
+                stringResource(R.string.transaction_suggestion_label)
+            }
             Text(
                 text = suggestionLabel,
                 style = MaterialTheme.typography.bodyMedium,

@@ -8,7 +8,7 @@ import com.notepay.domain.model.Wallet
 import kotlin.time.Clock
 
 object TestData {
-    val NOW: kotlinx.datetime.Instant = Clock.System.now()
+    val NOW: kotlin.time.Instant = Clock.System.now()
 
     fun wallet(
         id: Long = 1L,

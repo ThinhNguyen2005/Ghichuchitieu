@@ -4,73 +4,73 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.repository.BillSplitRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietQrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class BillSplitViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val billSplitRepository: BillSplitRepository,
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
     private val addTransaction: AddTransactionUseCase,
+    private val vietQrBankRepository: VietQrBankRepository,
 ) : ViewModel() {
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
+    private val _banks = MutableStateFlow<List<VietQrBank>>(emptyList())
+
     private fun str(resId: Int): String = appContext.getString(resId)
     private fun str(resId: Int, vararg args: Any): String = appContext.getString(resId, *args)
+
+    init {
+        viewModelScope.launch {
+            _banks.value = vietQrBankRepository.getBanks()
+        }
+    }
 
     val state = combine(
         billSplitRepository.observeUnpaid(),
         billSplitRepository.observePaid(),
         transactionRepository.observeAll(),
         walletRepository.observeAll(),
-    ) { unpaid, paid, transactions, wallets ->
+        _banks,
+    ) { unpaid, paid, transactions, wallets, banks ->
         val activeWallet = wallets.find { it.isActive } ?: wallets.firstOrNull()
         val unpaidItems = unpaid.map { split ->
             val parent = transactions.find { it.id == split.transactionId }
             val wallet = wallets.find { it.id == parent?.walletId }
-            val qr = if (wallet?.bankBin != null && wallet.accountNumber != null) {
-                VietQrGenerator.generate(
-                    bankBin = wallet.bankBin,
-                    accountNumber = wallet.accountNumber,
-                    amountCents = split.amount.amountInCents,
-                    memo = split.memoCode,
-                )
-            } else {
-                null
-            }
-            BillSplitItemState(split, parent, qr, wallet)
+            BillSplitItemState(split, parent, wallet)
         }
 
         val paidItems = paid.map { split ->
             val parent = transactions.find { it.id == split.transactionId }
-            BillSplitItemState(split, parent, null, null)
+            BillSplitItemState(split, parent, null)
         }
 
         BillSplitUiState(
@@ -79,6 +79,7 @@ class BillSplitViewModel @Inject constructor(
             recentTransactions = transactions,
             wallets = wallets,
             activeWallet = activeWallet,
+            banks = banks,
             isLoading = false,
         )
     }.stateIn(
@@ -91,8 +92,7 @@ class BillSplitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val newSplits = splits.map { (debtorName, amountCents) ->
-                    val sanitizedDebtor = debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim()
-                    val memoCode = "NP${transactionId} ${sanitizedDebtor.uppercase()}"
+                    val memoCode = com.notepay.domain.billsplit.BillSplitEngine.formatMemoCode(transactionId, debtorName)
 
                     BillSplit(
                         id = 0L,
@@ -120,7 +120,6 @@ class BillSplitViewModel @Inject constructor(
                 if (split.isPaid) return@launch
 
                 billSplitRepository.markAsPaid(splitId, Clock.System.now())
-                reduceParentTransaction(split.debtorName, listOf(split))
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_marked_paid), type = FeedbackType.Success))
             } catch (e: Exception) {
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
@@ -169,20 +168,13 @@ class BillSplitViewModel @Inject constructor(
     fun markDebtorAsPaidWithReconciliation(debtorName: String, splitIds: List<Long>, incomeTxId: Long?) {
         viewModelScope.launch {
             try {
-                if (incomeTxId != null) {
-                    transactionRepository.delete(incomeTxId)
-                }
                 val splitsToProcess = splitIds.mapNotNull { splitId ->
                     billSplitRepository.getById(splitId)?.takeUnless { it.isPaid }
                 }
-                val splitsByTx = splitsToProcess.groupBy { it.transactionId }
-
-                splitsByTx.forEach { (_, splits) ->
-                    splits.forEach { split ->
-                        billSplitRepository.markAsPaid(split.id, Clock.System.now())
-                    }
-                    reduceParentTransaction(debtorName, splits)
+                splitsToProcess.forEach { split ->
+                    billSplitRepository.markAsPaid(split.id, Clock.System.now())
                 }
+
                 val msg = if (incomeTxId != null) {
                     str(R.string.feedback_bill_split_reconciled)
                 } else {
@@ -193,30 +185,6 @@ class BillSplitViewModel @Inject constructor(
                 _feedback.emit(UiFeedback(str(R.string.feedback_bill_split_mark_failed), type = FeedbackType.Error))
             }
         }
-    }
-
-    private suspend fun reduceParentTransaction(debtorName: String, splits: List<BillSplit>) {
-        val parentTx = transactionRepository.getById(splits.first().transactionId)
-            ?: error(str(R.string.error_parent_tx_not_found))
-        var currentAmountCents = parentTx.amount.amountInCents
-        var currentNote = parentTx.note
-
-        splits.forEach { split ->
-            currentAmountCents = (currentAmountCents - split.amount.amountInCents).coerceAtLeast(0L)
-            val paidNote = "$debtorName trả ${MoneyFormatter.format(split.amount)}"
-            currentNote = if (currentNote.contains(" trả ")) {
-                "$currentNote, $paidNote"
-            } else {
-                "$currentNote ($paidNote)"
-            }.take(Transaction.MAX_NOTE_LENGTH)
-        }
-
-        transactionRepository.upsert(
-            parentTx.copy(
-                amount = Money(currentAmountCents),
-                note = currentNote,
-            ),
-        )
     }
 
     private val _selectedTab = MutableStateFlow(0)

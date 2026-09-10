@@ -46,10 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.notepay.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -64,7 +65,8 @@ fun BackupRestoreScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
+    val exportSuccessMessage = stringResource(R.string.backup_export_success)
+    val restoreSuccessMessage = stringResource(R.string.backup_restore_success)
 
     // Export launcher
     val exportLauncher = rememberLauncherForActivityResult(
@@ -86,13 +88,13 @@ fun BackupRestoreScreen(
     // Snackbar for success/error
     LaunchedEffect(state.exportSuccess) {
         if (state.exportSuccess) {
-            snackbarHostState.showSnackbar("Sao lưu thành công")
+            snackbarHostState.showSnackbar(exportSuccessMessage)
             viewModel.clearSuccess()
         }
     }
     LaunchedEffect(state.importSuccess) {
         if (state.importSuccess) {
-            snackbarHostState.showSnackbar("Khôi phục thành công")
+            snackbarHostState.showSnackbar(restoreSuccessMessage)
             viewModel.clearSuccess()
         }
     }
@@ -107,19 +109,19 @@ fun BackupRestoreScreen(
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Xác nhận khôi phục") },
-            text = { Text("Việc này sẽ thay thế toàn bộ dữ liệu hiện tại. Bạn có chắc chắn không?") },
+            title = { Text(stringResource(R.string.backup_restore_confirm_title)) },
+            text = { Text(stringResource(R.string.backup_restore_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showConfirmDialog = false
                     pendingImportUri?.let { viewModel.importFromFile(it) }
                 }) {
-                    Text("Khôi phục", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.backup_restore_action), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Hủy")
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
         )
@@ -128,10 +130,10 @@ fun BackupRestoreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sao lưu & Khôi phục") },
+                title = { Text(stringResource(R.string.settings_backup_restore_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -148,8 +150,8 @@ fun BackupRestoreScreen(
             // Section: Sao lưu
             BackupCard(
                 icon = Icons.Rounded.Backup,
-                title = "Sao lưu dữ liệu",
-                description = "Xuất toàn bộ giao dịch, ví, danh mục và thiết lập ra file JSON để lưu trữ an toàn.",
+                title = stringResource(R.string.backup_export_title),
+                description = stringResource(R.string.backup_export_description),
                 color = MaterialTheme.colorScheme.primary,
                 isLoading = state.isExporting,
                 onClick = {
@@ -162,8 +164,8 @@ fun BackupRestoreScreen(
             // Section: Khôi phục
             BackupCard(
                 icon = Icons.Rounded.Restore,
-                title = "Khôi phục dữ liệu",
-                description = "Nhập dữ liệu từ file backup đã sao lưu trước đó. Dữ liệu hiện tại sẽ bị thay thế.",
+                title = stringResource(R.string.backup_import_title),
+                description = stringResource(R.string.backup_import_description),
                 color = MaterialTheme.colorScheme.error,
                 isLoading = state.isImporting,
                 onClick = {
@@ -175,7 +177,7 @@ fun BackupRestoreScreen(
             if (state.lastBackupDate != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Lần sao lưu cuối: ${state.lastBackupDate}",
+                    text = stringResource(R.string.backup_last_backup_format, state.lastBackupDate.orEmpty()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

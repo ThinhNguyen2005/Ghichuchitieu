@@ -1,0 +1,590 @@
+package com.notepay.ui.feature.home
+
+import android.content.Intent
+import android.net.Uri
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
+import com.notepay.feature.autocapture.autoCaptureSettingsItem
+import com.notepay.ai.LocalModelInstallStatus
+import com.notepay.ai.LocalModelState
+import com.notepay.domain.util.OsCompatHelper
+import com.notepay.domain.util.LiquidGlassBlockReason
+import com.notepay.ui.theme.AppTheme
+
+private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"
+
+private fun formatModelSize(sizeBytes: Long, unknownSize: String): String {
+    if (sizeBytes <= 0L) return unknownSize
+    val mb = sizeBytes / (1024.0 * 1024.0)
+    return if (mb >= 1024.0) {
+        "%.1f GB".format(mb / 1024.0)
+    } else {
+        "%.0f MB".format(mb)
+    }
+}
+
+@Composable
+private fun LocalAiModelSettingsCard(
+    localModel: LocalModelState,
+    onOpenModelPage: () -> Unit,
+    onPickModel: () -> Unit,
+    onRemoveModel: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+        ),
+        shape = AppTheme.shapes.corner16
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Psychology,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.settings_local_ai_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        stringResource(R.string.settings_local_ai_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                shape = AppTheme.shapes.corner14
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = when (localModel.status) {
+                            LocalModelInstallStatus.READY -> Icons.Rounded.CheckCircle
+                            LocalModelInstallStatus.IMPORTING -> Icons.Rounded.Downloading
+                            LocalModelInstallStatus.ERROR -> Icons.Rounded.Error
+                            LocalModelInstallStatus.NOT_INSTALLED -> Icons.Rounded.CloudOff
+                        },
+                        contentDescription = null,
+                        tint = when (localModel.status) {
+                            LocalModelInstallStatus.READY -> Color(0xFF1B7F4F)
+                            LocalModelInstallStatus.ERROR -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = when (localModel.status) {
+                                LocalModelInstallStatus.READY ->
+                                    localModel.displayName
+                                        ?: stringResource(R.string.settings_local_ai_status_model)
+                                LocalModelInstallStatus.IMPORTING ->
+                                    stringResource(R.string.settings_local_ai_status_importing)
+                                LocalModelInstallStatus.ERROR ->
+                                    stringResource(R.string.settings_local_ai_status_error)
+                                LocalModelInstallStatus.NOT_INSTALLED ->
+                                    stringResource(R.string.settings_local_ai_status_not_installed)
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = when {
+                                localModel.status == LocalModelInstallStatus.READY ->
+                                    stringResource(
+                                        R.string.settings_local_ai_saved_format,
+                                        formatModelSize(
+                                            localModel.sizeBytes,
+                                            stringResource(R.string.settings_local_ai_unknown_size),
+                                        ),
+                                    )
+                                localModel.status == LocalModelInstallStatus.IMPORTING ->
+                                    stringResource(R.string.settings_local_ai_copying)
+                                localModel.message != null -> localModel.message.orEmpty()
+                                else -> stringResource(R.string.settings_local_ai_choose_file_hint)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            if (localModel.status == LocalModelInstallStatus.IMPORTING) {
+                val progress = localModel.progress
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onOpenModelPage,
+                    modifier = Modifier.weight(1f),
+                    shape = AppTheme.shapes.corner12
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.settings_local_ai_download_page))
+                }
+                Button(
+                    onClick = onPickModel,
+                    enabled = localModel.status != LocalModelInstallStatus.IMPORTING,
+                    modifier = Modifier.weight(1f),
+                    shape = AppTheme.shapes.corner12
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(
+                            if (localModel.status == LocalModelInstallStatus.READY) {
+                                R.string.settings_local_ai_change_model
+                            } else {
+                                R.string.settings_local_ai_choose_file
+                            },
+                        ),
+                    )
+                }
+            }
+
+            if (localModel.status == LocalModelInstallStatus.READY) {
+                TextButton(
+                    onClick = onRemoveModel,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.settings_local_ai_remove))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppSettingsScreen(
+    onBack: () -> Unit,
+    onNavigateToBackupRestore: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+    val localModel by viewModel.localModel.collectAsStateWithLifecycle()
+    val liquidGlassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
+    val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsStateWithLifecycle()
+
+    val modelPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.importLocalAiModel(uri)
+        }
+    }
+
+    fun playHaptic() {
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_settings_title), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        playHaptic()
+                        onBack()
+                    }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // 1. Màu sắc chủ đề (Theme Color)
+            item {
+                ThemeSettingsCard(onPlayHaptic = ::playHaptic)
+            }
+
+            autoCaptureSettingsItem()
+
+            // 2. Mô hình AI cục bộ
+            item {
+                LocalAiModelSettingsCard(
+                    localModel = localModel,
+                    onOpenModelPage = {
+                        playHaptic()
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                DEFAULT_LOCAL_MODEL_PAGE.toUri()
+                            )
+                        )
+                    },
+                    onPickModel = {
+                        playHaptic()
+                        modelPicker.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
+                    },
+                    onRemoveModel = {
+                        playHaptic()
+                        viewModel.removeLocalAiModel()
+                    },
+                )
+            }
+
+            // Giao diện & Hiệu ứng Liquid Glass
+            item {
+                val glassCompatibility = OsCompatHelper.liquidGlassCompatibility(
+                    isHardwareAccelerated = view.isHardwareAccelerated,
+                )
+                val glassStatus = when (glassCompatibility.blockReason) {
+                    null -> if (liquidGlassEnabled) {
+                        stringResource(R.string.navigation_glass_enabled)
+                    } else {
+                        stringResource(R.string.navigation_glass_disabled)
+                    }
+                    LiquidGlassBlockReason.ANDROID_VERSION ->
+                        stringResource(R.string.navigation_glass_block_android)
+                    LiquidGlassBlockReason.HARDWARE_ACCELERATION ->
+                        stringResource(R.string.navigation_glass_block_hardware)
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = AppTheme.shapes.corner16
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.navigation_glass_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                glassCompatibility.deviceDescription,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                glassStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = liquidGlassEnabled && glassCompatibility.isSupported,
+                            onCheckedChange = {
+                                playHaptic()
+                                viewModel.setLiquidGlassEnabled(it)
+                            },
+                            enabled = glassCompatibility.isSupported
+                        )
+                    }
+                }
+            }
+
+            // Nhắc nhở ghi chép mỗi tối (20:30)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = AppTheme.shapes.corner16
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.settings_daily_reminder_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                if (dailyReminderEnabled) {
+                                    stringResource(R.string.settings_daily_reminder_enabled)
+                                } else {
+                                    stringResource(R.string.settings_daily_reminder_disabled)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = dailyReminderEnabled,
+                            onCheckedChange = {
+                                playHaptic()
+                                viewModel.setDailyReminderEnabled(context, it)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // 3. Sao lưu & Khôi phục dữ liệu
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            playHaptic()
+                            onNavigateToBackupRestore()
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = AppTheme.shapes.corner16,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Backup,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_backup_restore_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_backup_restore_description),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeSettingsCard(
+    onPlayHaptic: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentTheme = com.notepay.ui.theme.ThemeManager.currentThemeColor
+
+    val themeOptions = remember {
+        listOf(
+            Triple("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
+            Triple("ios", R.string.theme_ios, Color(0xFF1C1C1E)),
+            Triple("green", R.string.theme_green, Color(0xFF1B7F4F)),
+            Triple("blue", R.string.theme_blue, Color(0xFF1976D2)),
+            Triple("red", R.string.theme_red, Color(0xFFC2185B)),
+            Triple("orange", R.string.theme_orange, Color(0xFFE65100)),
+            Triple("teal", R.string.theme_teal, Color(0xFF00796B)),
+            Triple("gold", R.string.theme_gold, Color(0xFF8A6600)),
+            Triple("brown", R.string.theme_brown, Color(0xFF8D4F38)),
+            Triple("gray", R.string.theme_gray, Color(0xFF566066)),
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = AppTheme.shapes.corner16
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Palette,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column {
+                    Text(
+                        stringResource(R.string.settings_theme_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        stringResource(R.string.settings_theme_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(themeOptions, key = { it.first }) { (key, labelRes, color) ->
+                    val isSelected = currentTheme == key
+                    val isDynamicOption = key == "dynamic"
+                    val isIosOption = key == "ios"
+
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            onPlayHaptic()
+                            com.notepay.ui.theme.ThemeManager.updateThemeColor(context, key)
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(labelRes),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            when {
+                                isDynamicOption -> Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF6750A4)
+                                )
+                                isIosOption -> Icon(
+                                    imageVector = Icons.Rounded.PhoneIphone,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF1C1C1E)
+                                )
+                                else -> Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                )
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+        }
+    }
+}

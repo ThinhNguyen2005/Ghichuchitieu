@@ -8,6 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.notepay.R
 
 /**
  * Hộp thoại xác nhận xóa dùng chung cho mọi danh sách có hành vi destructive.
@@ -28,7 +30,7 @@ import androidx.compose.runtime.Composable
  * }
  * ```
  *
- * @param title tiêu đề, ví dụ "Xóa khoản nợ?"
+ * @param title tiêu đề, ví dụ chuỗi từ `confirm_delete_bill_title`
  * @param itemName tên mục sẽ bị xóa, hiển thị trong message mặc định
  * @param onConfirm callback khi người dùng nhấn nút xác nhận
  * @param onDismiss callback khi người dùng nhấn Hủy hoặc ngoài dialog
@@ -43,9 +45,11 @@ fun ConfirmDeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     message: String? = null,
-    confirmLabel: String = "Xóa",
-    cancelLabel: String = "Hủy",
+    confirmLabel: String? = null,
+    cancelLabel: String? = null,
 ) {
+    val resolvedConfirmLabel = confirmLabel ?: stringResource(R.string.action_delete)
+    val resolvedCancelLabel = cancelLabel ?: stringResource(R.string.action_cancel)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -59,7 +63,7 @@ fun ConfirmDeleteDialog(
         text = {
             Text(
                 text = message
-                    ?: "Bạn có chắc chắn muốn xóa \"$itemName\"? Hành động này không thể hoàn tác.",
+                    ?: stringResource(R.string.dialog_delete_confirm_format, itemName),
             )
         },
         confirmButton = {
@@ -70,7 +74,7 @@ fun ConfirmDeleteDialog(
                 },
             ) {
                 Text(
-                    text = confirmLabel,
+                    text = resolvedConfirmLabel,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge,
                 )
@@ -78,7 +82,7 @@ fun ConfirmDeleteDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(cancelLabel)
+                Text(resolvedCancelLabel)
             }
         },
     )

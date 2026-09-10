@@ -6,7 +6,8 @@ import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
-import com.notepay.data.preferences.NotificationSettingsStore
+import com.notepay.R
+import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,8 +30,8 @@ class DataExporter @Inject constructor(
     private val billSplitDao: BillSplitDao,
     private val subscriptionDao: SubscriptionDao,
     private val categoryRepository: CategoryRepositoryImpl,
-    private val notificationSettingsStore: NotificationSettingsStore,
-    @ApplicationContext private val context: Context,
+    private val budgetSettingsStore: BudgetSettingsStore,
+    @param:ApplicationContext private val context: Context,
 ) {
     suspend fun exportToJson(): String {
         val wallets = walletDao.getAll()
@@ -50,9 +51,9 @@ class DataExporter @Inject constructor(
         }
 
         val settings = try {
-            notificationSettingsStore.settings.first()
+            budgetSettingsStore.settings.first()
         } catch (_: Exception) {
-            com.notepay.data.preferences.NotificationSettings()
+            com.notepay.data.preferences.BudgetSettings()
         }
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
@@ -69,9 +70,6 @@ class DataExporter @Inject constructor(
                 preferences = BackupPreferences(
                     themeColor = themeColor,
                     themeCustomColor = themeCustomColor,
-                    autoCaptureEnabled = settings.autoCaptureEnabled,
-                    enabledPackages = settings.enabledPackages,
-                    customBankApps = settings.customBankApps,
                     categoryHabits = habits,
                 ),
             ),
@@ -82,7 +80,7 @@ class DataExporter @Inject constructor(
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
             BufferedReader(InputStreamReader(stream)).readText()
-        } ?: throw Exception("Không thể đọc file")
+        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
     }
 
     private fun backupToJson(backup: BackupPackage): String {
@@ -181,9 +179,6 @@ class DataExporter @Inject constructor(
         val prefsObj = JSONObject()
         prefsObj.put("themeColor", backup.data.preferences.themeColor)
         prefsObj.put("themeCustomColor", backup.data.preferences.themeCustomColor)
-        prefsObj.put("autoCaptureEnabled", backup.data.preferences.autoCaptureEnabled)
-        prefsObj.put("enabledPackages", JSONArray(backup.data.preferences.enabledPackages.toList()))
-        prefsObj.put("customBankApps", JSONArray(backup.data.preferences.customBankApps.toList()))
         val habitsObj = JSONObject()
         for ((k, v) in backup.data.preferences.categoryHabits) {
             habitsObj.put(k, v)

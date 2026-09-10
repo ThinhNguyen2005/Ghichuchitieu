@@ -17,6 +17,10 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import kotlin.time.Clock
@@ -24,6 +28,8 @@ import io.mockk.mockk
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "vi")
 class EditTransactionViewModelTest {
 
     @get:Rule
@@ -151,6 +157,7 @@ class EditTransactionViewModelTest {
             override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
             override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
             override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+            override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
             override suspend fun upsert(transaction: Transaction): Long {
                 throw IllegalStateException("db failed")
             }
@@ -193,6 +200,7 @@ class EditTransactionViewModelTest {
         val categoryRepository = EditFakeCategoryRepository()
         val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
         return EditTransactionViewModel(
+            context = RuntimeEnvironment.getApplication(),
             savedStateHandle = savedStateHandle,
             transactionRepository = transactionRepository,
             categoryRepository = categoryRepository,
@@ -216,6 +224,7 @@ private class EditFakeTransactionRepository(
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
     override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
     override suspend fun upsert(transaction: Transaction): Long {
         val idx = savedTransactions.indexOfFirst { it.id == transaction.id }
         if (idx != -1) {

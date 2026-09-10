@@ -35,11 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.customCategoryIconOptions
 import com.notepay.ui.theme.AppTheme
 
@@ -60,7 +63,13 @@ fun CategoryGridPicker(
     modifier: Modifier = Modifier,
     onCreateCategory: ((displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) -> Unit)? = null,
 ) {
-    val visible = categories.filter { it.isIncome == isIncome }
+    val allVisible = categories.filter { it.isIncome == isIncome }
+    var query by remember(isIncome) { mutableStateOf("") }
+    val visible = if (allVisible.size > 8) {
+        allVisible.filter { it.displayName.contains(query, ignoreCase = true) }
+    } else {
+        allVisible
+    }
 
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -71,33 +80,47 @@ fun CategoryGridPicker(
     }
     val chunkedRows = items.chunked(3)
 
-    Column(
+    LiquidGlassPanel(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(AppTheme.shapes.corner20)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f), AppTheme.shapes.corner20)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .fillMaxWidth(),
+        shape = AppTheme.shapes.corner20,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+        ),
     ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                "Danh mục",
+                stringResource(R.string.category_section_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "${visible.size} lựa chọn",
+                stringResource(R.string.category_choices_format, visible.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(
-            "Chọn danh mục phù hợp nhất với giao dịch này",
+            stringResource(R.string.category_section_description),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (allVisible.size > 8) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(stringResource(R.string.action_search)) },
+            )
+        }
 
         chunkedRows.forEach { rowItems ->
             Row(
@@ -126,6 +149,7 @@ fun CategoryGridPicker(
                 }
             }
         }
+        }
     }
 
     if (showAddDialog && onCreateCategory != null) {
@@ -150,7 +174,7 @@ private fun AddCategoryChip(onClick: () -> Unit, modifier: Modifier = Modifier) 
     FilterChip(
         selected = false,
         onClick = onClick,
-        label = { Text("Thêm...", maxLines = 1) },
+        label = { Text(stringResource(R.string.category_add_more), maxLines = 1) },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Rounded.Add,
@@ -242,18 +266,18 @@ private fun AddCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tạo danh mục mới") },
+        title = { Text(stringResource(R.string.category_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Tên danh mục") },
+                    label = { Text(stringResource(R.string.category_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Text("Chọn màu sắc", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.category_color_title), style = MaterialTheme.typography.titleSmall)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -277,7 +301,7 @@ private fun AddCategoryDialog(
                     }
                 }
 
-                Text("Chọn biểu tượng", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.category_icon_title), style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(customCategoryIconOptions, key = { it.id }) { option ->
                         val isSelected = selectedIconId == option.id
@@ -299,7 +323,7 @@ private fun AddCategoryDialog(
                         ) {
                             Icon(
                                 imageVector = option.icon,
-                                contentDescription = option.label,
+                                contentDescription = stringResource(option.labelRes),
                                 tint = if (isSelected) Color(selectedColor) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -313,12 +337,12 @@ private fun AddCategoryDialog(
                 onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor, selectedIconId) },
                 enabled = name.isNotBlank(),
             ) {
-                Text("Thêm")
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy")
+                Text(stringResource(R.string.action_cancel))
             }
         },
     )

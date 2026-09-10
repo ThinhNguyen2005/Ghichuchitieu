@@ -24,7 +24,7 @@ import javax.inject.Inject
 class AddTransactionUseCase @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val walletRepo: WalletRepository,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) {
     suspend operator fun invoke(transaction: Transaction): Result<Long> = try {
         Result.success(withContext(dispatcher) {

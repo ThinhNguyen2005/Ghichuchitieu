@@ -119,6 +119,7 @@ class DampedDragAnimation(
     val visibilityThreshold: Float,
     val initialScale: Float,
     val pressedScale: Float,
+    private val reducedMotion: Boolean = false,
     val onDragStarted: DampedDragAnimation.(position: Offset) -> Unit,
     val onDragStopped: DampedDragAnimation.() -> Unit,
     val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -> Unit,
@@ -168,44 +169,65 @@ class DampedDragAnimation(
     fun press() {
         velocityTracker.resetTracking()
         animationScope.launch {
-            launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
-            launch { scaleXAnimation.animateTo(pressedScale, scaleXAnimationSpec) }
-            launch { scaleYAnimation.animateTo(pressedScale, scaleYAnimationSpec) }
+            if (reducedMotion) {
+                pressProgressAnimation.snapTo(0f)
+                scaleXAnimation.snapTo(initialScale)
+                scaleYAnimation.snapTo(initialScale)
+            } else {
+                launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
+                launch { scaleXAnimation.animateTo(pressedScale, scaleXAnimationSpec) }
+                launch { scaleYAnimation.animateTo(pressedScale, scaleYAnimationSpec) }
+            }
         }
     }
 
     fun release() {
         animationScope.launch {
-            withFrameNanos {}
-            if (value != targetValue) {
-                val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
-                snapshotFlow { valueAnimation.value }
-                    .filter { abs(it - valueAnimation.targetValue) < threshold }
-                    .first()
+            if (reducedMotion) {
+                pressProgressAnimation.snapTo(0f)
+                scaleXAnimation.snapTo(initialScale)
+                scaleYAnimation.snapTo(initialScale)
+            } else {
+                withFrameNanos {}
+                if (value != targetValue) {
+                    val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
+                    snapshotFlow { valueAnimation.value }
+                        .filter { abs(it - valueAnimation.targetValue) < threshold }
+                        .first()
+                }
+                launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
+                launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }
+                launch { scaleYAnimation.animateTo(initialScale, scaleYAnimationSpec) }
             }
-            launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
-            launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }
-            launch { scaleYAnimation.animateTo(initialScale, scaleYAnimationSpec) }
         }
     }
 
     fun updateValue(value: Float) {
         val targetValue = value.coerceIn(valueRange)
         animationScope.launch {
-            launch { valueAnimation.animateTo(targetValue, valueAnimationSpec) { updateVelocity() } }
+            valueAnimation.snapTo(targetValue)
+            velocityAnimation.snapTo(0f)
         }
     }
 
     fun animateToValue(value: Float) {
         animationScope.launch {
             mutatorMutex.mutate {
-                press()
                 val targetValue = value.coerceIn(valueRange)
-                launch { valueAnimation.animateTo(targetValue, valueAnimationSpec) }
-                if (velocity != 0f) {
-                    launch { velocityAnimation.animateTo(0f, velocityAnimationSpec) }
+                if (reducedMotion) {
+                    valueAnimation.snapTo(targetValue)
+                    velocityAnimation.snapTo(0f)
+                    pressProgressAnimation.snapTo(0f)
+                    scaleXAnimation.snapTo(initialScale)
+                    scaleYAnimation.snapTo(initialScale)
+                } else {
+                    press()
+                    valueAnimation.animateTo(targetValue, valueAnimationSpec) { updateVelocity() }
+                    if (velocity != 0f) {
+                        velocityAnimation.animateTo(0f, velocityAnimationSpec)
+                    }
+                    release()
                 }
-                release()
             }
         }
     }
@@ -223,6 +245,7 @@ class DampedDragAnimation(
 // 3. Interactive Highlight (using pure Compose cross-platform radial gradient glow)
 class InteractiveHighlight(
     val animationScope: CoroutineScope,
+    private val reducedMotion: Boolean = false,
     val position: (size: Size, offset: Offset) -> Offset = { _, offset -> offset }
 ) {
     private val pressProgressAnimationSpec = spring(0.5f, 300f, 0.001f)
@@ -260,20 +283,35 @@ class InteractiveHighlight(
             onDragStart = { down ->
                 startPosition = down.position
                 animationScope.launch {
-                    launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
-                    launch { positionAnimation.snapTo(startPosition) }
+                    if (reducedMotion) {
+                        pressProgressAnimation.snapTo(0f)
+                        positionAnimation.snapTo(startPosition)
+                    } else {
+                        launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
+                        launch { positionAnimation.snapTo(startPosition) }
+                    }
                 }
             },
             onDragEnd = {
                 animationScope.launch {
-                    launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
-                    launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
+                    if (reducedMotion) {
+                        pressProgressAnimation.snapTo(0f)
+                        positionAnimation.snapTo(startPosition)
+                    } else {
+                        launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
+                        launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
+                    }
                 }
             },
             onDragCancel = {
                 animationScope.launch {
-                    launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
-                    launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
+                    if (reducedMotion) {
+                        pressProgressAnimation.snapTo(0f)
+                        positionAnimation.snapTo(startPosition)
+                    } else {
+                        launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
+                        launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
+                    }
                 }
             }
         ) { change, _ ->

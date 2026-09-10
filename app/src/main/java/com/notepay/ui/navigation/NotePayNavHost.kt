@@ -4,12 +4,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.notepay.ui.component.CradleShape
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,15 +15,17 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.launch
@@ -48,6 +47,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -57,13 +65,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.notepay.R
+import com.notepay.domain.util.OsCompatHelper
+import androidx.compose.ui.platform.LocalView
 import com.notepay.ui.feature.addtransaction.AddTransactionScreen
 import com.notepay.ui.feature.addtransaction.EditTransactionScreen
 import com.notepay.ui.feature.billsplit.BillSplitScreen
 import com.notepay.ui.feature.billsplit.DebtorDetailScreen
 import com.notepay.ui.feature.detail.TransactionDetailScreen
 import com.notepay.ui.feature.home.HomeScreen
-import com.notepay.ui.feature.home.NotificationSettingsScreen
+import com.notepay.ui.feature.home.AppSettingsScreen
 import com.notepay.ui.feature.list.TransactionListScreen
 import com.notepay.ui.feature.stats.StatsScreen
 import com.notepay.ui.feature.subscription.SubscriptionScreen
@@ -75,60 +85,53 @@ import com.notepay.ui.feature.backup.BackupRestoreScreen
 
 // Backdrop Liquid Glass imports
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
-import com.kyant.backdrop.backdrops.rememberBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.backdrop.shadow.InnerShadow
-import com.notepay.ui.component.GlassDropBox
+import com.notepay.ui.component.CreateNewActionCard
+import com.notepay.ui.component.BottomSheetGlass
+import com.notepay.ui.component.FloatingAddButton
+import com.notepay.ui.component.LocalNotePayBackdrop
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import com.notepay.ui.navigation.utils.liquidPopClick
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 import kotlin.math.sign
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.RowScope
 import com.notepay.ui.navigation.utils.DampedDragAnimation
 import com.notepay.ui.navigation.utils.InteractiveHighlight
-import com.notepay.ui.navigation.utils.inspectDragGestures
 
-// Thêm các thư viện cần dùng cho giao diện tùy biến mới
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.res.stringResource
@@ -146,7 +149,7 @@ import androidx.compose.material.icons.outlined.Analytics
 
 private data class BottomTab(
     val route: Route,
-    @androidx.annotation.StringRes val labelRes: Int,
+    @param:androidx.annotation.StringRes val labelRes: Int,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 )
@@ -170,10 +173,22 @@ private fun RowScope.NotePayBottomTabItem(
     tabLabel: String,
     isSourceActiveRow: Boolean,
     onClick: () -> Unit,
-    isInteractive: Boolean = true
+    isInteractive: Boolean = true,
+    reducedMotion: Boolean = false,
 ) {
     val scale = LocalLiquidBottomTabScale.current
-    Column(
+    val selectionProgress by animateFloatAsState(
+        targetValue = if (isSourceActiveRow) 1f else 0f,
+        animationSpec = if (reducedMotion) snap() else tween(NotePayMotion.tabIndicatorDurationMillis),
+        label = "bottom tab selection",
+    )
+    val activeColor by animateColorAsState(
+        targetValue = if (isSourceActiveRow) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = if (reducedMotion) snap() else tween(NotePayMotion.tabIndicatorDurationMillis),
+        label = "bottom tab color",
+    )
+    Box(
         modifier = Modifier
             .clip(CircleShape)
             .then(
@@ -186,29 +201,39 @@ private fun RowScope.NotePayBottomTabItem(
             )
             .fillMaxHeight()
             .weight(1f)
+            .semantics { selected = isSourceActiveRow }
             .graphicsLayer {
                 val s = scale()
                 scaleX = s
                 scaleY = s
             },
-        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = if (isSourceActiveRow) tab.selectedIcon else tab.unselectedIcon,
-            contentDescription = tabLabel,
-            tint = if (isSourceActiveRow) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = tabLabel,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = if (isSourceActiveRow) FontWeight.Bold else FontWeight.Normal
-            ),
-            color = if (isSourceActiveRow) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Column(
+            modifier = Modifier.graphicsLayer {
+                val contentScale = 0.96f + (0.04f * selectionProgress)
+                scaleX = contentScale
+                scaleY = contentScale
+            },
+            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                imageVector = if (isSourceActiveRow) tab.selectedIcon else tab.unselectedIcon,
+                contentDescription = tabLabel,
+                tint = activeColor,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = tabLabel,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = if (isSourceActiveRow) FontWeight.Bold else FontWeight.Normal,
+                ),
+                color = activeColor,
+            )
+        }
     }
 }
 
@@ -216,7 +241,15 @@ private fun RowScope.NotePayBottomTabItem(
 @Composable
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
+    liquidGlassEnabled: Boolean = false,
 ) {
+    val useNavigationGlass = liquidGlassEnabled && OsCompatHelper.liquidGlassCompatibility(
+        isHardwareAccelerated = LocalView.current.isHardwareAccelerated,
+    ).isSupported
+    val reducedMotion = rememberNotePayReducedMotion()
+    val motionDistancePx = with(LocalDensity.current) {
+        NotePayMotion.contentTranslation.roundToPx()
+    }
     val systemBackground = MaterialTheme.colorScheme.background
     val backdrop = rememberLayerBackdrop {
         drawRect(systemBackground)
@@ -228,9 +261,9 @@ fun NotePayNavHost(
         currentRoute == tab.route.path || currentRoute.startsWith("${tab.route.path}?")
     }
     val snackbarHostState = remember { SnackbarHostState() }
-    var showQuickAddSheet by remember { mutableStateOf(false) }
+    var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
 
-    // Resolve string resources một lần để dùng cho cả bottom nav và FAB tooltip.
+    // Resolve string resources một lần dùng cho các bottom nav và FAB tooltip.
     val tabLabels = bottomTabs.map { tab -> stringResource(tab.labelRes) }
     val quickAddTitle = stringResource(R.string.quick_add_title)
     val quickAddExpenseTitle = stringResource(R.string.quick_add_expense_title)
@@ -239,16 +272,18 @@ fun NotePayNavHost(
     val quickAddBillSplitDesc = stringResource(R.string.quick_add_bill_split_desc)
     val quickAddSubscriptionTitle = stringResource(R.string.quick_add_subscription_title)
     val quickAddSubscriptionDesc = stringResource(R.string.quick_add_subscription_desc)
-    val fabContentDesc = stringResource(R.string.nav_add)
+    val fabContentDesc = stringResource(if (showQuickAddSheet) R.string.quick_add_close_menu else R.string.quick_add_open_menu)
 
-    // Chiều cao thanh điều hướng gồm 76dp (Bar) + 28dp (bottom padding) = 104dp.
+    // ChiÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Âu cao thanh Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â€Â¬Ă‚ÂÄ‚â€Ă‚Â¬Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¬Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚Â¹Ă„â€Ă¢â‚¬Â¦Ä‚Â¢Ă¢â€Â¬Ă…â€œiÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Âu hÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â€Â¬Ă‚ÂÄ‚â€Ă‚Â¬Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â°Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¬Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Âºng gÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¬Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚Â¦Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€¦Ă¢â‚¬Å“m 76dp (Bar) + 28dp (bottom padding) = 104dp.
     val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
     var navigationBarOffset by remember { mutableFloatStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(currentRoute) {
         navigationBarOffset = 0f
+        showQuickAddSheet = false
     }
+
 
     val nestedScrollConnection = remember(barHeightPx, isMainTab) {
         object : NestedScrollConnection {
@@ -263,12 +298,18 @@ fun NotePayNavHost(
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 if (isMainTab) {
                     val targetOffset = if (navigationBarOffset > barHeightPx / 2f) barHeightPx else 0f
-                    coroutineScope.launch {
-                        Animatable(navigationBarOffset).animateTo(
-                            targetValue = targetOffset,
-                            animationSpec = tween(durationMillis = 200)
-                        ) {
-                            navigationBarOffset = this.value
+                    if (reducedMotion) {
+                        navigationBarOffset = targetOffset
+                    } else {
+                        coroutineScope.launch {
+                            Animatable(navigationBarOffset).animateTo(
+                                targetValue = targetOffset,
+                                animationSpec = tween(
+                                    durationMillis = NotePayMotion.navigationBarSettleDurationMillis
+                                )
+                            ) {
+                                navigationBarOffset = this.value
+                            }
                         }
                     }
                 }
@@ -302,7 +343,9 @@ fun NotePayNavHost(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-    ) { padding ->        Box(
+    ) { padding ->
+        CompositionLocalProvider(LocalNotePayBackdrop provides backdrop) {
+            Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -310,13 +353,64 @@ fun NotePayNavHost(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .layerBackdrop(backdrop)
+                    .then(if (useNavigationGlass) Modifier.layerBackdrop(backdrop) else Modifier)
             ) {
-                NavHost(
-                navController = navController,
-                startDestination = Route.Home.path,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+                @OptIn(ExperimentalSharedTransitionApi::class)
+                SharedTransitionLayout {
+                    NavHost(
+                        navController = navController,
+                        startDestination = Route.Home.path,
+                        modifier = Modifier.fillMaxSize(),
+                        enterTransition = {
+                            val direction = tabTransitionDirection(
+                                initialState.destination.route,
+                                targetState.destination.route,
+                            )
+                            when {
+                                reducedMotion -> EnterTransition.None
+                                direction == null -> fadeIn(
+                                    tween(NotePayMotion.contentDurationMillis)
+                                )
+                                else -> fadeIn(
+                                    tween(
+                                        durationMillis = NotePayMotion.contentDurationMillis,
+                                        delayMillis = NotePayMotion.contentFadeDelayMillis,
+                                    )
+                                ) + slideInHorizontally(
+                                    animationSpec = tween(NotePayMotion.contentDurationMillis),
+                                    initialOffsetX = { direction * motionDistancePx },
+                                )
+                            }
+                        },
+                        exitTransition = {
+                            val direction = tabTransitionDirection(
+                                initialState.destination.route,
+                                targetState.destination.route,
+                            )
+                            when {
+                                reducedMotion -> ExitTransition.None
+                                direction == null -> fadeOut(
+                                    tween(NotePayMotion.contentFadeOutDurationMillis)
+                                )
+                                else -> fadeOut(
+                                    tween(NotePayMotion.contentFadeOutDurationMillis)
+                                ) + slideOutHorizontally(
+                                    animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
+                                    targetOffsetX = { -direction * motionDistancePx },
+                                )
+                            }
+                        },
+                        popEnterTransition = {
+                            if (reducedMotion) EnterTransition.None else fadeIn(
+                                tween(NotePayMotion.contentDurationMillis)
+                            )
+                        },
+                        popExitTransition = {
+                            if (reducedMotion) ExitTransition.None else fadeOut(
+                                tween(NotePayMotion.contentFadeOutDurationMillis)
+                            )
+                        },
+                    ) {
                 composable(Route.Home.path) {
                     HomeScreen(
                         onSeeAll = {
@@ -331,7 +425,7 @@ fun NotePayNavHost(
                         onAddWallet = { navController.navigate(Route.AddWallet.path) },
                         onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
                         onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
-                        onNavigateToNotificationSettings = { navController.navigate(Route.NotificationSettings.path) },
+                        onNavigateToAppSettings = { navController.navigate(Route.AppSettings.path) },
                         onTransactionClick = { txId ->
                             navController.navigate(Route.TransactionDetail(txId).path)
                         }
@@ -392,7 +486,7 @@ fun NotePayNavHost(
                             navController.navigate(Route.TransactionDetail(txId).path)
                         },
                         onConfigureLocalModel = {
-                            navController.navigate(Route.NotificationSettings.path)
+                            navController.navigate(Route.AppSettings.path)
                         },
                     )
                 }
@@ -504,13 +598,14 @@ fun NotePayNavHost(
                 composable(Route.BackupRestore.path) {
                     BackupRestoreScreen(onBack = { navController.popBackStack() })
                 }
-                composable(Route.NotificationSettings.path) {
-                    NotificationSettingsScreen(
+                composable(Route.AppSettings.path) {
+                    AppSettingsScreen(
                         onBack = { navController.popBackStack() },
                         onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
                     )
                 }
             }
+                }
             }
 
             if (isMainTab) {
@@ -523,13 +618,7 @@ fun NotePayNavHost(
                 val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
                 val selectedIndex = remember(currentRoute) {
-                    when (currentRoute?.split("?")?.firstOrNull()) {
-                        Route.Home.path -> 0
-                        Route.TransactionList.path -> 1
-                        Route.Stats.path -> 2
-                        Route.BillSplit.path -> 3
-                        else -> 0
-                    }
+                    rootTabIndexForRoute(currentRoute) ?: 0
                 }
 
                 val tabsBackdrop = rememberLayerBackdrop()
@@ -537,6 +626,8 @@ fun NotePayNavHost(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .zIndex(2f)
+                        .alpha(if (showQuickAddSheet) 0.92f else 1f)
                         .align(Alignment.BottomCenter)
                         .offset {
                             IntOffset(
@@ -549,6 +640,79 @@ fun NotePayNavHost(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (!useNavigationGlass) {
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            val tabWidthPx = constraints.maxWidth.toFloat() / navTabs.size
+                            val tabWidth = with(density) { tabWidthPx.toDp() }
+                            val indicatorOffset = remember {
+                                Animatable(
+                                    tabIndicatorOffsetPx(
+                                        selectedIndex = selectedIndex,
+                                        tabCount = navTabs.size,
+                                        tabWidthPx = tabWidthPx,
+                                    )
+                                )
+                            }
+
+                            LaunchedEffect(selectedIndex, tabWidthPx, reducedMotion) {
+                                val targetOffset = tabIndicatorOffsetPx(
+                                    selectedIndex = selectedIndex,
+                                    tabCount = navTabs.size,
+                                    tabWidthPx = tabWidthPx,
+                                )
+                                if (reducedMotion) {
+                                    indicatorOffset.snapTo(targetOffset)
+                                } else {
+                                    indicatorOffset.animateTo(
+                                        targetValue = targetOffset,
+                                        animationSpec = tween(NotePayMotion.tabIndicatorDurationMillis),
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(tabWidth)
+                                    .graphicsLayer {
+                                        translationX = indicatorOffset.value
+                                    }
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                        CircleShape,
+                                    ),
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                navTabs.forEachIndexed { index, tab ->
+                                    NotePayBottomTabItem(
+                                        tab = tab,
+                                        tabLabel = tabLabels[bottomTabs.indexOf(tab)],
+                                        isSourceActiveRow = index == selectedIndex,
+                                        reducedMotion = reducedMotion,
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            navController.navigate(tab.route.path) {
+                                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    } else {
                     // Left: Tabs Bar
                     BoxWithConstraints(
                         modifier = Modifier
@@ -572,7 +736,11 @@ fun NotePayNavHost(
                             }
                         }
 
-                        val dampedDragAnimation: DampedDragAnimation = remember(coroutineScope, tabWidth) {
+                        val dampedDragAnimation: DampedDragAnimation = remember(
+                            coroutineScope,
+                            tabWidth,
+                            reducedMotion,
+                        ) {
                             DampedDragAnimation(
                                 animationScope = coroutineScope,
                                 initialValue = selectedIndex.toFloat(),
@@ -580,6 +748,7 @@ fun NotePayNavHost(
                                 visibilityThreshold = 0.001f,
                                 initialScale = 1f,
                                 pressedScale = 78f / 56f,
+                                reducedMotion = reducedMotion,
                                 onDragStarted = {},
                                 onDragStopped = {
                                     val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
@@ -590,10 +759,14 @@ fun NotePayNavHost(
                                         restoreState = true
                                     }
                                     coroutineScope.launch {
-                                        offsetAnimation.animateTo(
-                                            0f,
-                                            spring(1f, 300f, 0.5f)
-                                        )
+                                        if (reducedMotion) {
+                                            offsetAnimation.snapTo(0f)
+                                        } else {
+                                            offsetAnimation.animateTo(
+                                                0f,
+                                                spring(1f, 300f, 0.5f)
+                                            )
+                                        }
                                     }
                                 },
                                 onDrag = { size, dragAmount ->
@@ -614,9 +787,10 @@ fun NotePayNavHost(
                             }
                         }
 
-                        val interactiveHighlight = remember(coroutineScope, tabWidth) {
+                        val interactiveHighlight = remember(coroutineScope, tabWidth, reducedMotion) {
                             InteractiveHighlight(
                                 animationScope = coroutineScope,
+                                reducedMotion = reducedMotion,
                                 position = { size, offset ->
                                     Offset(
                                         if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
@@ -664,6 +838,7 @@ fun NotePayNavHost(
                                     tab = tab,
                                     tabLabel = tabLabels[bottomTabs.indexOf(tab)],
                                     isSourceActiveRow = false,
+                                    reducedMotion = reducedMotion,
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         val targetIndex = navTabs.indexOf(tab)
@@ -680,7 +855,8 @@ fun NotePayNavHost(
                             }
                         }
 
-                        // Row 2: Target active row source (invisible backdrop source)
+                        // Capture labels and the content backdrop only; keep the indicator a sibling
+                        // so tabsBackdrop never captures a consumer of itself.
                         CompositionLocalProvider(
                             LocalLiquidBottomTabScale provides {
                                 androidx.compose.ui.util.lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
@@ -725,7 +901,8 @@ fun NotePayNavHost(
                                         tabLabel = tabLabels[bottomTabs.indexOf(tab)],
                                         isSourceActiveRow = true,
                                         onClick = {},
-                                        isInteractive = false
+                                        isInteractive = false,
+                                        reducedMotion = reducedMotion,
                                     )
                                 }
                             }
@@ -790,228 +967,88 @@ fun NotePayNavHost(
                         )
                     }
 
-                    // Right: Add Button
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .shadow(
-                                elevation = 8.dp,
-                                shape = CircleShape,
-                                clip = false
-                            )
-                            .drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { CircleShape },
-                                effects = {
-                                    vibrancy()
-                                    blur(20.dp.toPx())
-                                    lens(
-                                        refractionHeight = 8.dp.toPx(),
-                                        refractionAmount = 16.dp.toPx()
-                                    )
-                                },
-                                onDrawSurface = {
-                                    // Nền kính mờ tối + tint primary nhẹ nhàng
-                                    drawRect(Color.Black.copy(alpha = 0.3f))
-                                    drawRect(primaryColor.copy(alpha = 0.25f))
-                                }
-                            )
-                            .liquidPopClick {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                showQuickAddSheet = true
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = fabContentDesc,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(32.dp)
-                        )
+
                     }
+
+                    FloatingAddButton(
+                        backdrop = backdrop,
+                        expanded = showQuickAddSheet,
+                        contentDescription = fabContentDesc,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            showQuickAddSheet = !showQuickAddSheet
+                        },
+                    )
                 }
             }
 
-            // Render Glass Drop Box (inline popup sheet)
-        GlassDropBox(
-            backdrop = backdrop,
-            visible = showQuickAddSheet,
-            onDismissRequest = { showQuickAddSheet = false }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            BottomSheetGlass(
+                visible = showQuickAddSheet,
+                onDismissRequest = { showQuickAddSheet = false },
             ) {
                 Text(
                     text = quickAddTitle,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f),
-                            offset = Offset(0f, 2f),
-                            blurRadius = 4f
-                        )
-                    ),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 2.dp),
                 )
-
-                // Option 1: Thêm chi tiêu
-                QuickAddOption(
+                CreateNewActionCard(
+                    visible = true,
+                    index = 0,
                     icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                     title = quickAddExpenseTitle,
                     description = quickAddExpenseDesc,
-                    color = MaterialTheme.colorScheme.primary,
+                    accentColor = MaterialTheme.colorScheme.primary,
                     onClick = {
                         showQuickAddSheet = false
-                        navController.navigate(Route.AddTransaction.path)
-                    }
+                        navController.navigate(Route.AddTransaction.path) {
+                            launchSingleTop = true
+                        }
+                    },
                 )
-
-                // Option 2: Chia hóa đơn
-                QuickAddOption(
+                CreateNewActionCard(
+                    visible = true,
+                    index = 1,
                     icon = Icons.AutoMirrored.Outlined.CallSplit,
                     title = quickAddBillSplitTitle,
                     description = quickAddBillSplitDesc,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = {
                         showQuickAddSheet = false
                         val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
                         if (isAlreadyOnBillSplit) {
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "showCreate",
-                                true
-                            )
+                            navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
                         } else {
                             navController.navigate("bill-split?showCreate=true") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                            try {
-                                navController.getBackStackEntry("bill-split?showCreate={showCreate}")
-                                    .savedStateHandle["showCreate"] = true
-                            } catch (e: Exception) {
-                                // Ignore
-                            }
                         }
-                    }
+                    },
                 )
-
-                // Option 3: Hóa đơn định kỳ
-                QuickAddOption(
+                CreateNewActionCard(
+                    visible = true,
+                    index = 2,
                     icon = Icons.Outlined.Notifications,
                     title = quickAddSubscriptionTitle,
                     description = quickAddSubscriptionDesc,
-                    color = MaterialTheme.colorScheme.secondaryContainer,                    onClick = {
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = {
                         showQuickAddSheet = false
-                        val isAlreadyOnSubscription =
-                            currentRoute?.startsWith("subscription") == true
+                        val isAlreadyOnSubscription = currentRoute?.startsWith("subscription") == true
                         if (isAlreadyOnSubscription) {
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "showCreate",
-                                true
-                            )
+                            navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
                         } else {
                             navController.navigate("subscription?showCreate=true") {
                                 launchSingleTop = true
                             }
-                            try {
-                                navController.getBackStackEntry("subscription?showCreate={showCreate}")
-                                    .savedStateHandle["showCreate"] = true
-                            } catch (e: Exception) {
-                                // Ignore
-                            }
                         }
-                    }
+                    },
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
-        }
         }
     }
 }
-
-@Composable
-private fun QuickAddOption(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    description: String,
-    color: Color,
-    onClick: () -> Unit
-) {
-    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
-    val cardBgColor = if (isLightTheme) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.86f)
-    }
-    val borderStrokeColor = if (isLightTheme) {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f)
-    } else {
-        Color.White.copy(alpha = 0.16f)
-    }
-    val titleColor = MaterialTheme.colorScheme.onSurface
-    val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = RoundedCornerShape(18.dp)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(cardBgColor)
-            .border(1.dp, borderStrokeColor, shape)
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(color.copy(alpha = if (isLightTheme) 0.14f else 0.22f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = titleColor,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = descriptionColor,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
-
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
 }

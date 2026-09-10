@@ -28,10 +28,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.notepay.ui.util.MoneyFormatter
@@ -53,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -72,7 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -83,6 +84,8 @@ import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.BalanceCard
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.SmartInsightsCard
+import com.notepay.ui.component.SwipeableTransactionItem
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
@@ -96,7 +99,7 @@ fun HomeScreen(
     onAddWallet: () -> Unit,
     onEditWallet: (Long) -> Unit,
     onNavigateToReminders: () -> Unit,
-    onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToAppSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -110,12 +113,7 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Resolve string resources trước khi dùng trong non-Composable scopes.
-    val notifPermissionTitle = stringResource(R.string.home_notif_permission_title)
-    val notifPermissionDesc = stringResource(R.string.home_notif_permission_desc)
-    val notifPermissionTip = stringResource(R.string.home_notif_permission_tip)
-    val batteryTitle = stringResource(R.string.home_battery_title)
-    val batteryDesc = stringResource(R.string.home_battery_desc)
-    val batterySetupLabel = stringResource(R.string.action_setup)
+
     val recentLabel = stringResource(R.string.home_recent_transactions)
     val seeAllLabel = stringResource(R.string.action_see_all)
     val emptyTx = stringResource(R.string.home_empty_transactions)
@@ -124,7 +122,7 @@ fun HomeScreen(
     val editWalletLabel = stringResource(R.string.home_edit_wallet)
     val addNewWalletLabel = stringResource(R.string.home_add_new_wallet)
     val reminderCd = stringResource(R.string.home_reminder_cd)
-    val notifSettingsCd = stringResource(R.string.home_notification_settings_cd)
+    val appSettingsCd = stringResource(R.string.home_app_settings_cd)
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
     val createWalletLabel = stringResource(R.string.home_create_wallet)
@@ -142,25 +140,44 @@ fun HomeScreen(
         onResult = {}
     )
 
-    DisposableEffect(lifecycleOwner, context) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isListenerEnabled = isNotificationListenerEnabled(context)
-                isBatteryOptimizationsIgnored = (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
-                    .isIgnoringBatteryOptimizations(context.packageName)
-                com.notepay.service.NotePayNotificationListenerService.heal(context)
+
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            state.activeWallet?.id?.let { walletId ->
+                viewModel.setWalletBackground(walletId, uri)
             }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
     Scaffold(
         topBar = {
             GradientTopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(stringResource(R.string.app_name))
+                        if (state.streakDays > 0) {
+                            Surface(
+                                shape = AppTheme.shapes.corner8,
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(start = 4.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.home_streak_format, state.streakDays),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToReminders) {
                         BadgedBox(
@@ -178,10 +195,10 @@ fun HomeScreen(
                             )
                         }
                     }
-                    IconButton(onClick = onNavigateToNotificationSettings) {
+                    IconButton(onClick = onNavigateToAppSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
-                            contentDescription = notifSettingsCd
+                            contentDescription = appSettingsCd
                         )
                     }
                 }
@@ -237,8 +254,24 @@ fun HomeScreen(
                     balance = state.currentBalance,
                     income = state.monthlyIncome,
                     expense = state.monthlyExpense,
+                    backgroundImageUri = state.walletBackgroundUri,
                     onClick = { showWalletSwitcher = true },
                     onEditWallet = onEditWallet,
+                    onChangeBackground = {
+                        photoPickerLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                )
+            }
+
+            item {
+                SmartInsightsCard(
+                    streakDays = state.streakDays,
+                    isBudgetExceeded = state.isBudgetExceeded,
+                    budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
                 )
             }
 
@@ -256,120 +289,7 @@ fun HomeScreen(
                 }
             }
 
-            if (!isListenerEnabled) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        ),
-                        shape = AppTheme.shapes.corner16,
-                        onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                            try {
-                                val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                val intent = Intent(Settings.ACTION_SETTINGS)
-                                context.startActivity(intent)
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.NotificationsActive,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = notifPermissionTitle,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = notifPermissionDesc,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = notifPermissionTip,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (!isBatteryOptimizationsIgnored) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            ),
-                            shape = AppTheme.shapes.corner16
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.BatteryAlert,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.tertiary
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = batteryTitle,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = batteryDesc,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                TextButton(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = "package:${context.packageName}".toUri()
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            try {
-                                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                                context.startActivity(intent)
-                                            } catch (ex: Exception) {
-                                                val intent = Intent(Settings.ACTION_SETTINGS)
-                                                context.startActivity(intent)
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Text(batterySetupLabel)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+
 
 
 
@@ -387,19 +307,17 @@ fun HomeScreen(
             if (state.recentTransactions.isEmpty()) {
                 item { EmptyStateWithAction(title = emptyTx) }
             } else {
-                item {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.recentTransactions.forEach { tx ->
-                            val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
-                            TransactionItem(
-                                transaction = tx,
-                                walletName = walletName,
-                                onClick = { onTransactionClick(tx.id) },
-                            )
-                        }
-                    }
+                items(
+                    items = state.recentTransactions,
+                    key = { it.id }
+                ) { tx ->
+                    val walletName = state.wallets.find { it.id == tx.walletId }?.name ?: ""
+                    SwipeableTransactionItem(
+                        transaction = tx,
+                        walletName = walletName,
+                        onClick = { onTransactionClick(tx.id) },
+                        onEdit = { onTransactionClick(tx.id) },
+                    )
                 }
             }
             item { Spacer(Modifier.height(160.dp)) }
@@ -415,7 +333,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(state.wallets) { wallet ->
+                    items(state.wallets, key = { it.id }) { wallet ->
                         val isSelected = wallet.id == state.activeWallet?.id
                         val iconVector = WalletUiHelper.getIcon(wallet.iconKey)
                         val tintColor = WalletUiHelper.getColor(wallet.colorKey)
@@ -560,7 +478,7 @@ private fun BudgetProjectionCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = if (spentPercentage >= 0.90f) Icons.Rounded.Warning else Icons.Rounded.TrendingUp,
+                imageVector = if (spentPercentage >= 0.90f) Icons.Rounded.Warning else Icons.AutoMirrored.Rounded.TrendingUp,
                 contentDescription = null,
                 tint = progressColor,
                 modifier = Modifier.size(20.dp)
@@ -574,7 +492,7 @@ private fun BudgetProjectionCard(
 
             Icon(
                 imageVector = Icons.Rounded.Close,
-                contentDescription = "Đóng",
+                contentDescription = stringResource(R.string.action_close),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(18.dp)

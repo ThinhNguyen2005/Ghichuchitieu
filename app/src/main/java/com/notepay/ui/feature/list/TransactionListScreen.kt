@@ -2,6 +2,7 @@ package com.notepay.ui.feature.list
 
 import com.notepay.ui.theme.AppTheme
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.notepay.R
@@ -19,11 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,10 +58,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -76,7 +75,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.ui.unit.Dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -90,15 +89,18 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import com.notepay.domain.model.Category
 import kotlinx.datetime.LocalDate
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.DayDetailDialog
-import com.notepay.ui.component.EmptyStateWithAction
+import com.notepay.ui.component.GradientTopAppBar
+import com.notepay.ui.component.SwipeableTransactionItem
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.TransactionItem
+import com.notepay.ui.component.DayDetailDialog
+import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.coroutines.launch
 
@@ -111,6 +113,8 @@ fun TransactionListScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
+    val undoLabel = stringResource(R.string.feedback_undo)
 
     // Ngày được tap trên bảng lịch -> mặc định là hôm nay
     val now = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
@@ -124,8 +128,8 @@ fun TransactionListScreen(
         val transaction = state.pendingUndoTransaction ?: return@LaunchedEffect
         val result = onFeedback(
             UiFeedback(
-                message = context.getString(R.string.transaction_deleted),
-                actionLabel = context.getString(R.string.feedback_undo),
+                message = transactionDeletedMessage,
+                actionLabel = undoLabel,
                 duration = FeedbackDuration.Short
             )
         )
@@ -198,7 +202,7 @@ fun TransactionListScreen(
                     }
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
-                            imageVector = if (state.isCalendarView) Icons.Rounded.List else Icons.Rounded.CalendarMonth,
+                            imageVector = if (state.isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
                             contentDescription = if (state.isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
                         )
                     }
@@ -275,7 +279,7 @@ private fun TransactionListContent(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(top = topSystemPadding + 8.dp, bottom = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
                     containerColor = if (!androidx.compose.foundation.isSystemInDarkTheme()) {
                         Color.White
@@ -301,7 +305,7 @@ private fun TransactionListContent(
             // Day header
             if (selectedDate != null) {
                 Text(
-                    text = stringResource(R.string.transaction_day_details_format, selectedDate.dayOfMonth, selectedDate.monthNumber),
+                    text = stringResource(R.string.transaction_day_details_format, selectedDate.day, selectedDate.month.number),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 4.dp),
@@ -316,11 +320,12 @@ private fun TransactionListContent(
                 ) {
                     dayTxList.forEach { transaction ->
                         val walletName = state.walletsMap[transaction.walletId] ?: stringResource(R.string.wallet_default)
-                        TransactionItem(
+                        SwipeableTransactionItem(
                             transaction = transaction,
                             walletName = walletName,
                             onClick = { onTransactionClick(transaction.id) },
-                            onLongClick = { onDelete(transaction) },
+                            onDelete = { onDelete(transaction) },
+                            onEdit = { onTransactionClick(transaction.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
@@ -332,7 +337,7 @@ private fun TransactionListContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppTheme.shapes.corner16,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f)
                     )
@@ -383,7 +388,7 @@ private fun TransactionListContent(
         }
 
         Column(
-            modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            modifier = modifier.fillMaxSize()
         ) {
             // Category Filter Row — fixed above pager, bọc trong Box để thêm khoảng cách với TopAppBar
             Box(
@@ -405,7 +410,9 @@ private fun TransactionListContent(
             // 3. HorizontalPager — only the transaction list scrolls horizontally
             androidx.compose.foundation.pager.HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) { page ->
                 val pageCategory = categoriesList[page]
                 val pageTransactions = remember(state.transactions, pageCategory) {
@@ -446,8 +453,11 @@ private fun TransactionListContent(
                         groupedTransactions.forEach { (date, dayTxList) ->
                             @OptIn(ExperimentalFoundationApi::class)
                             stickyHeader(key = "${page}_${date}") {
-                                val totalIncome = dayTxList.filter { it.type == TransactionType.INCOME }.sumOf { it.amount.amountInCents }
-                                val totalExpense = dayTxList.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount.amountInCents }
+                                val (totalIncome, totalExpense) = remember(dayTxList) {
+                                    val income = dayTxList.filter { it.type == TransactionType.INCOME }.sumOf { it.amount.amountInCents }
+                                    val expense = dayTxList.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount.amountInCents }
+                                    income to expense
+                                }
 
                                 Column(
                                     modifier = Modifier
@@ -496,12 +506,14 @@ private fun TransactionListContent(
                             }
 
                             items(dayTxList, key = { it.id }) { transaction ->
-                                val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
-                                TransactionItem(
+                                val walletName = state.walletsMap[transaction.walletId]
+                                    ?: stringResource(R.string.wallet_fallback)
+                                SwipeableTransactionItem(
                                     transaction = transaction,
                                     walletName = walletName,
                                     onClick = { onTransactionClick(transaction.id) },
-                                    onLongClick = { onDelete(transaction) },
+                                    onDelete = { onDelete(transaction) },
+                                    onEdit = { onTransactionClick(transaction.id) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp)
@@ -540,9 +552,17 @@ private fun TransactionMonthOverview(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("Dòng tiền tháng này", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "$transactionCount giao dịch đã ghi nhận",
+                        stringResource(R.string.transaction_cash_flow_this_month),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        pluralStringResource(
+                            R.plurals.transaction_recorded_count,
+                            transactionCount,
+                            transactionCount,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -555,13 +575,13 @@ private fun TransactionMonthOverview(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TransactionAmountSummary(
-                    label = "Thu vào",
+                    label = stringResource(R.string.transaction_income_label),
                     amount = income,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                 )
                 TransactionAmountSummary(
-                    label = "Đã chi",
+                    label = stringResource(R.string.transaction_expense_label),
                     amount = expense,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.weight(1f),
@@ -595,8 +615,8 @@ private fun formatDateHeader(date: LocalDate, context: Context): String {
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val diff = date.toEpochDays() - today.toEpochDays()
     return when (diff) {
-        0L -> context.getString(R.string.date_today_format, date.dayOfMonth, date.monthNumber)
-        -1L -> context.getString(R.string.date_yesterday_format, date.dayOfMonth, date.monthNumber)
+        0L -> context.getString(R.string.date_today_format, date.day, date.month.number)
+        -1L -> context.getString(R.string.date_yesterday_format, date.day, date.month.number)
         else -> {
             val dayOfWeekStr = when (date.dayOfWeek.ordinal + 1) {
                 1 -> context.getString(R.string.day_monday)
@@ -608,7 +628,7 @@ private fun formatDateHeader(date: LocalDate, context: Context): String {
                 7 -> context.getString(R.string.day_sunday)
                 else -> ""
             }
-            context.getString(R.string.date_other_format, dayOfWeekStr, date.dayOfMonth, date.monthNumber)
+            context.getString(R.string.date_other_format, dayOfWeekStr, date.day, date.month.number)
         }
     }
 }
@@ -626,29 +646,27 @@ private fun CategoryFilterRow(
         if (idx == -1) 0 else idx
     }
 
-    ScrollableTabRow(
+    PrimaryScrollableTabRow(
         selectedTabIndex = selectedIndex,
         edgePadding = 16.dp,
         containerColor = Color.Transparent,
         divider = {}, // No bottom line
-        indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
-                Box(
-                    Modifier
-                        .tabIndicatorOffset(tabPositions[selectedIndex])
-                        .fillMaxHeight()
-                        .padding(vertical = 6.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .zIndex(-1f)
-                )
-            }
+        indicator = {
+            Box(
+                Modifier
+                    .tabIndicatorOffset(selectedIndex)
+                    .fillMaxHeight()
+                    .padding(vertical = 6.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .zIndex(-1f)
+            )
         },
         modifier = Modifier.fillMaxWidth()
     ) {
         categoriesList.forEachIndexed { index, category ->
             val isSelected = selectedIndex == index
-            val text = category?.displayName ?: "Tất cả"
+            val text = category?.displayName ?: stringResource(R.string.transaction_list_filter_all)
 
             Tab(
                 selected = isSelected,

@@ -30,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -103,12 +105,12 @@ fun MonthlyCalendarView(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                    contentDescription = "Tháng trước",
+                    contentDescription = stringResource(R.string.stats_previous_month),
                     modifier = Modifier.size(28.dp)
                 )
             }
             Text(
-                text = "Tháng $month / $year",
+                text = stringResource(R.string.calendar_month_year_format, month, year),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -118,14 +120,22 @@ fun MonthlyCalendarView(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                    contentDescription = "Tháng sau",
+                    contentDescription = stringResource(R.string.stats_next_month),
                     modifier = Modifier.size(28.dp)
                 )
             }
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            val daysOfWeek = listOf("Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN")
+            val daysOfWeek = listOf(
+                stringResource(R.string.calendar_weekday_monday),
+                stringResource(R.string.calendar_weekday_tuesday),
+                stringResource(R.string.calendar_weekday_wednesday),
+                stringResource(R.string.calendar_weekday_thursday),
+                stringResource(R.string.calendar_weekday_friday),
+                stringResource(R.string.calendar_weekday_saturday),
+                stringResource(R.string.calendar_weekday_sunday),
+            )
             daysOfWeek.forEachIndexed { index, day ->
                 val textColor = when (index) {
                     5 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)

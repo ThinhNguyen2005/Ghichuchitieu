@@ -20,12 +20,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
@@ -64,18 +64,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.notepay.R
 import com.notepay.domain.model.Category
+import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.FirefliesBackground
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -94,7 +101,6 @@ fun AddSubscriptionBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
     val localView = androidx.compose.ui.platform.LocalView.current
     val playHaptic = {
@@ -111,54 +117,120 @@ fun AddSubscriptionBottomSheet(
     val nextDueDate = remember(state.nextDueEpochMs) {
         Instant.fromEpochMilliseconds(state.nextDueEpochMs).toLocalDateTime(tz).date
     }
-    val nextDueLabel = "${nextDueDate.day}/${nextDueDate.month.ordinal + 1}/${nextDueDate.year}"
+    val nextDueLabel = stringResource(
+        R.string.subscription_date_format,
+        nextDueDate.day,
+        nextDueDate.month.ordinal + 1,
+        nextDueDate.year,
+    )
 
     val selectedCategory = remember(state.category) {
         Category.getAll().firstOrNull { it.id == state.category } ?: Category.OTHER
     }
+    val electricityPreset = stringResource(R.string.subscription_service_electricity)
+    val waterPreset = stringResource(R.string.subscription_service_water)
+    val rentPreset = stringResource(R.string.subscription_service_rent)
+    val popularServicePresets = remember(electricityPreset, waterPreset, rentPreset) {
+        listOf(
+            "Netflix" to Category.ENTERTAINMENT,
+            "Spotify" to Category.ENTERTAINMENT,
+            "YouTube Premium" to Category.ENTERTAINMENT,
+            "iCloud" to Category.INTERNET,
+            "ChatGPT Plus" to Category.INTERNET,
+            electricityPreset to Category.ELECTRICITY,
+            waterPreset to Category.WATER,
+            rentPreset to Category.HOME,
+        )
+    }
+    val yearlyCents = remember(state.amountInput, state.repeatMonths) {
+        state.amountInput.filter(Char::isDigit).toLongOrNull()
+            ?.takeIf { it > 0L && it <= Long.MAX_VALUE / 1_200L }
+            ?.let { amountVnd -> amountVnd * 1_200L / state.repeatMonths.coerceAtLeast(1) }
+    }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f)
-                .imePadding(),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
         ) {
+            FirefliesBackground(Modifier.fillMaxSize())
+            // Column + weight(1f): thanh nút tự lấy chiều cao thật thay vì chừa
+            // bottom = 86.dp cố định (nhỏ hơn chiều cao thật nên nội dung bị đè).
+            // Bỏ padding ngang ở đây để LazyRow chip chạy hết bề ngang, không bị cắt chữ;
+            // padding ngang chuyển xuống từng con.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-                    .padding(bottom = 86.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.Start,
+                    .statusBarsPadding()
+                    .imePadding(),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(vertical = 8.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                 Text(
-                    "Thêm nhắc nhở gia hạn",
+                    stringResource(R.string.subscription_add_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Đóng")
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_close))
+                }
+            }
+
+            Text(
+                text = stringResource(R.string.subscription_popular_services),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(popularServicePresets, key = { it.first }) { (name, category) ->
+                    FilterChip(
+                        selected = state.name == name,
+                        onClick = {
+                            playHaptic()
+                            onNameChanged(name)
+                            onCategoryChanged(category.id)
+                            onRepeatMonthsChanged(1)
+                        },
+                        label = { Text(name) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    )
                 }
             }
 
             // Gợi ý nhanh từ giao dịch gần đây dạng ngang (LazyRow)
             if (recentTransactions.isNotEmpty()) {
                 Text(
-                    text = "Gợi ý từ giao dịch gần đây",
+                    text = stringResource(R.string.subscription_recent_suggestions),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 4.dp),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(recentTransactions.take(5), key = { it.id }) { tx ->
@@ -222,27 +294,56 @@ fun AddSubscriptionBottomSheet(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = onNameChanged,
-                label = { Text("Tên dịch vụ") },
+                label = { Text(stringResource(R.string.subscription_name_label)) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                shape = AppTheme.shapes.corner12,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             )
 
             OutlinedTextField(
                 value = state.amountInput,
                 onValueChange = onAmountChanged,
-                label = { Text("Số tiền (đ)") },
+                label = { Text(stringResource(R.string.subscription_amount_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,
-                suffix = { Text("đ") },
-                modifier = Modifier.fillMaxWidth(),
+                suffix = { Text(stringResource(R.string.currency_vnd_symbol)) },
+                shape = AppTheme.shapes.corner12,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             )
 
+            yearlyCents?.let { amount ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    shape = AppTheme.shapes.corner16,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f),
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.subscription_yearly_cost_format,
+                            MoneyFormatter.format(Money(amount)),
+                        ),
+                        modifier = Modifier.padding(14.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+
             // Danh mục
-            Text("Danh mục", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.subscription_category_label),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
                     .clip(AppTheme.shapes.corner12)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .clickable { showCategorySheet = true }
@@ -268,7 +369,7 @@ fun AddSubscriptionBottomSheet(
 
             // Hợp nhất Ngày đến hạn & Chu kỳ gia hạn vào 1 Card "Lịch thanh toán" duy nhất
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 shape = AppTheme.shapes.corner16,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -279,7 +380,7 @@ fun AddSubscriptionBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Lịch thanh toán & Gia hạn",
+                        text = stringResource(R.string.subscription_schedule_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -288,7 +389,7 @@ fun AddSubscriptionBottomSheet(
                     // 1. Ngày đến hạn tiếp theo (Click toàn bộ vùng để chọn ngày)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Ngày đến hạn tiếp theo",
+                            text = stringResource(R.string.subscription_next_due_label),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -302,6 +403,7 @@ fun AddSubscriptionBottomSheet(
                                 onValueChange = {},
                                 readOnly = true,
                                 enabled = false,
+                                shape = AppTheme.shapes.corner12,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -309,7 +411,7 @@ fun AddSubscriptionBottomSheet(
                                     disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
                                 trailingIcon = {
-                                    Icon(Icons.Rounded.CalendarMonth, contentDescription = "Chọn ngày")
+                                    Icon(Icons.Rounded.CalendarMonth, contentDescription = stringResource(R.string.subscription_choose_date))
                                 },
                             )
                         }
@@ -318,7 +420,7 @@ fun AddSubscriptionBottomSheet(
                     // 2. Chu kỳ lặp lại
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Chu kỳ lặp lại",
+                            text = stringResource(R.string.subscription_repeat_cycle),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -329,10 +431,10 @@ fun AddSubscriptionBottomSheet(
                         ) {
                             items(Subscription.REPEAT_OPTIONS) { months ->
                                 val label = when (months) {
-                                    1 -> "Hàng tháng"
-                                    3 -> "Hàng quý"
-                                    6 -> "6 tháng"
-                                    else -> "Hàng năm"
+                                    1 -> stringResource(R.string.subscription_repeat_monthly)
+                                    3 -> stringResource(R.string.subscription_repeat_quarterly)
+                                    6 -> stringResource(R.string.subscription_repeat_six_months)
+                                    else -> stringResource(R.string.subscription_repeat_yearly)
                                 }
                                 FilterChip(
                                     selected = state.repeatMonths == months,
@@ -345,17 +447,30 @@ fun AddSubscriptionBottomSheet(
                 }
             }
 
-            Text("Nhắc trước", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.subscription_remind_before),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(end = 4.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp),
             ) {
                 items(Subscription.REMIND_OPTIONS) { days ->
                     FilterChip(
                         selected = state.remindDaysBefore == days,
                         onClick = { onRemindDaysChanged(days) },
-                        label = { Text("$days ngày") },
+                        label = {
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.subscription_remind_days,
+                                    days,
+                                    days,
+                                )
+                            )
+                        },
                     )
                 }
             }
@@ -363,18 +478,17 @@ fun AddSubscriptionBottomSheet(
             OutlinedTextField(
                 value = state.note,
                 onValueChange = onNoteChanged,
-                label = { Text("Ghi chú (tùy chọn)") },
+                label = { Text(stringResource(R.string.subscription_note_optional)) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                shape = AppTheme.shapes.corner12,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             )
 
                 Spacer(Modifier.height(8.dp))
             }
 
             GradientBottomActionBar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 LiquidButton(
                     onClick = onConfirm,
@@ -384,10 +498,11 @@ fun AddSubscriptionBottomSheet(
                         .height(52.dp),
                 ) {
                     Text(
-                        text = "Lưu nhắc nhở",
+                        text = stringResource(R.string.subscription_save_reminder),
                         fontWeight = FontWeight.Bold,
                     )
                 }
+            }
             }
         }
     }
@@ -402,10 +517,10 @@ fun AddSubscriptionBottomSheet(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { onNextDueDateChanged(it) }
                     showDatePicker = false
-                }) { Text("Chọn") }
+                }) { Text(stringResource(R.string.subscription_choose_date)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         ) {
             DatePicker(state = pickerState)
@@ -457,7 +572,7 @@ private fun CategoryPickerSheet(
                 Icon(Icons.Rounded.Category, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Chọn danh mục",
+                    stringResource(R.string.subscription_choose_category),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -467,7 +582,7 @@ private fun CategoryPickerSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(AppTheme.shapes.corner10)
                         .background(
                             if (category == current) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else Color.Transparent
@@ -489,7 +604,7 @@ private fun CategoryPickerSheet(
                         color = if (category == current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     )
                     if (category == current) {
-                        Text("Đang chọn", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.subscription_selected), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -519,14 +634,14 @@ private fun RecentTransactionsSheet(
                 Icon(Icons.Rounded.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Giao dịch gần đây",
+                    stringResource(R.string.home_recent_transactions),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Chọn 1 giao dịch để tự động điền tên, số tiền, danh mục.",
+                stringResource(R.string.subscription_prefill_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -543,7 +658,7 @@ private fun RecentTransactionsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(AppTheme.shapes.corner10)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { onPicked(tx) }
                             .padding(12.dp),

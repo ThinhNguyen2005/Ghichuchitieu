@@ -1,43 +1,42 @@
 package com.notepay
 
 import android.os.Bundle
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.data.preferences.AppSettingsDataStore
+import javax.inject.Inject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.notepay.ui.navigation.NotePayNavHost
 import com.notepay.ui.theme.NotePayTheme
+import com.notepay.ui.theme.ThemeManager
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var appSettings: AppSettingsDataStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Cài đặt SplashScreen trước super.onCreate để tương thích Android 12+.
-        // Theme khởi đầu được set là Theme.NotePay.Starting (AndroidManifest.xml).
-        val splashScreen = installSplashScreen()
-        // Có thể giữ splash cho đến khi dữ liệu sẵn sàng:
-        // splashScreen.setKeepOnScreenCondition { ... }
+        installSplashScreen()
+        enableEdgeToEdge()
+
         super.onCreate(savedInstanceState)
-        com.notepay.ui.theme.ThemeManager.initialize(this)
-        enableEdgeToEdge(
-            statusBarStyle = androidx.activity.SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = androidx.activity.SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+
+        ThemeManager.initialize(this)
+
         setContent {
             NotePayTheme {
-                NotePayNavHost()
+                val glassEnabled by appSettings.liquidGlassEnabled
+                    .collectAsStateWithLifecycle(false)
+
+                NotePayNavHost(
+                    liquidGlassEnabled = glassEnabled
+                )
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        com.notepay.service.NotePayNotificationListenerService.heal(this)
-    }
+
 }

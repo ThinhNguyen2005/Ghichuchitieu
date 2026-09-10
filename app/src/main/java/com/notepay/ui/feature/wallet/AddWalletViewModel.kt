@@ -1,14 +1,17 @@
 package com.notepay.ui.feature.wallet
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,6 +25,7 @@ import kotlin.time.Clock
 class AddWalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     savedStateHandle: SavedStateHandle,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val walletId: Long? = savedStateHandle.get<Long>("id")
@@ -141,9 +145,16 @@ class AddWalletViewModel @Inject constructor(
 
                 walletRepository.upsert(wallet)
                 _state.update { it.copy(isSaving = false, error = null) }
-                _feedback.emit(UiFeedback(if (current.isEditMode) "Đã cập nhật ví" else "Đã tạo ví", type = FeedbackType.Success))
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(if (current.isEditMode) R.string.wallet_updated else R.string.wallet_created),
+                        type = FeedbackType.Success,
+                    ),
+                )
             } catch (e: Exception) {
-                val message = if (current.isEditMode) "Không thể cập nhật ví" else "Không thể tạo ví"
+                val message = context.getString(
+                    if (current.isEditMode) R.string.wallet_update_failed else R.string.wallet_create_failed,
+                )
                 _state.update { it.copy(isSaving = false, error = message) }
                 _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }

@@ -1,8 +1,10 @@
 package com.notepay.ui.feature.addtransaction
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.di.IoDispatcher
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
@@ -14,6 +16,7 @@ import com.notepay.ai.LocalTransactionImageScanner
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,7 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import java.util.UUID
 
 import com.notepay.domain.repository.CategoryRepository
@@ -36,6 +39,7 @@ class AddTransactionViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val suggestCategoryUseCase: SuggestCategoryUseCase,
     private val imageScanner: LocalTransactionImageScanner,
+    @param:ApplicationContext private val context: Context,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -86,7 +90,7 @@ class AddTransactionViewModel @Inject constructor(
                 it.isIncome == isIncome && it.displayName.equals(cleanName, ignoreCase = true)
             }
         ) {
-            _feedback.tryEmit(UiFeedback("Danh mục này đã tồn tại", type = FeedbackType.Error))
+            _feedback.tryEmit(UiFeedback(context.getString(R.string.feedback_category_exists), type = FeedbackType.Error))
             return
         }
         viewModelScope.launch(ioDispatcher) {
@@ -141,7 +145,12 @@ class AddTransactionViewModel @Inject constructor(
 
     private fun scanImage(uri: android.net.Uri) {
         if (_state.value.isImageScanning) return
-        _state.update { it.copy(isImageScanning = true, imageScanMessage = "Đang đọc ảnh trên thiết bị…") }
+        _state.update {
+            it.copy(
+                isImageScanning = true,
+                imageScanMessage = context.getString(R.string.image_scan_reading_device),
+            )
+        }
         viewModelScope.launch(ioDispatcher) {
             val result = imageScanner.scan(uri)
             val parsed = result.amountInput?.let(AmountParser::parse)
@@ -248,7 +257,7 @@ class AddTransactionViewModel @Inject constructor(
                 } else {
                     it.copy(
                         isSaving = false,
-                        saveErrorMessage = "Không thể lưu giao dịch",
+                        saveErrorMessage = context.getString(R.string.feedback_transaction_save_failed),
                     )
                 }
             }
@@ -258,11 +267,11 @@ class AddTransactionViewModel @Inject constructor(
                     categoryId = current.category.id,
                     isIncome = current.type == TransactionType.INCOME,
                 )
-                _feedback.emit(UiFeedback("Đã lưu giao dịch", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_saved), type = FeedbackType.Success))
             } else {
                 _feedback.emit(
                     UiFeedback(
-                        message = "Không thể lưu giao dịch",
+                        message = context.getString(R.string.feedback_transaction_save_failed),
                         type = FeedbackType.Error,
                     ),
                 )

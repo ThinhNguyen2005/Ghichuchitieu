@@ -17,35 +17,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.content.edit
 
 object ThemeManager {
     var currentThemeColor by mutableStateOf("green")
-    var customColorHex by mutableStateOf("#1B7F4F")
 
     fun initialize(context: Context) {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         currentThemeColor = prefs.getString("theme_color", "green") ?: "green"
-        customColorHex = prefs.getString("theme_custom_color", "#1B7F4F") ?: "#1B7F4F"
     }
 
     fun updateThemeColor(context: Context, color: String) {
         currentThemeColor = color
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit().putString("theme_color", color).apply()
-    }
-
-    fun updateCustomColor(context: Context, hex: String) {
-        customColorHex = hex
-        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit().putString("theme_custom_color", hex).apply()
+        prefs.edit { putString("theme_color", color) }
     }
 }
 
-fun getLightColorScheme(themeColor: String): ColorScheme {
+fun getLightColorScheme(themeColor: String, context: Context? = null): ColorScheme {
+    if (themeColor == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
+        return dynamicLightColorScheme(context)
+    }
     return when (themeColor) {
+        "ios" -> LightColors.copy(
+            primary = Color(0xFF000000),
+            primaryContainer = Color(0xFFE5E5EA),
+            onPrimaryContainer = Color(0xFF000000),
+            surface = Color(0xFFFFFFFF),
+            background = Color(0xFFF2F2F7),
+            surfaceContainer = Color(0xFFE5E5EA),
+            outlineVariant = Color(0xFFD1D1D6),
+        )
         "blue" -> LightColors.copy(
             primary = Color(0xFF1976D2),
             primaryContainer = Color(0xFFD1E4FF),
@@ -109,18 +112,6 @@ fun getLightColorScheme(themeColor: String): ColorScheme {
             surfaceContainer = Color(0xFFEAECEE),
             outlineVariant = Color(0xFFDDE1E3),
         )
-        "custom" -> {
-            val customColor = try {
-                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
-            } catch (e: Exception) {
-                Color(0xFF1B7F4F)
-            }
-            LightColors.copy(
-                primary = customColor,
-                primaryContainer = customColor.copy(alpha = 0.12f),
-                onPrimaryContainer = customColor,
-            )
-        }
         else -> LightColors.copy(
             primary = Color(0xFF1B7F4F),
             primaryContainer = Color(0xFFB6F2CE),
@@ -133,8 +124,20 @@ fun getLightColorScheme(themeColor: String): ColorScheme {
     }
 }
 
-fun getDarkColorScheme(themeColor: String): ColorScheme {
+fun getDarkColorScheme(themeColor: String, context: Context? = null): ColorScheme {
+    if (themeColor == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
+        return dynamicDarkColorScheme(context)
+    }
     return when (themeColor) {
+        "ios" -> DarkColors.copy(
+            primary = Color(0xFFFFFFFF),
+            primaryContainer = Color(0xFF2C2C2E),
+            onPrimaryContainer = Color(0xFFFFFFFF),
+            surface = Color(0xFF1C1C1E),
+            background = Color(0xFF000000),
+            surfaceContainer = Color(0xFF2C2C2E),
+            outlineVariant = Color(0xFF3A3A3C),
+        )
         "blue" -> DarkColors.copy(
             primary = Color(0xFF90CAF9),
             primaryContainer = Color(0xFF004881),
@@ -198,18 +201,6 @@ fun getDarkColorScheme(themeColor: String): ColorScheme {
             surfaceContainer = Color(0xFF374151),
             outlineVariant = Color(0xFF4B5563),
         )
-        "custom" -> {
-            val customColor = try {
-                Color(android.graphics.Color.parseColor(ThemeManager.customColorHex))
-            } catch (e: Exception) {
-                Color(0xFF9BD6B0)
-            }
-            DarkColors.copy(
-                primary = customColor,
-                primaryContainer = customColor.copy(alpha = 0.2f),
-                onPrimaryContainer = customColor,
-            )
-        }
         else -> DarkColors.copy(
             primary = Color(0xFF9BD6B0),
             primaryContainer = Color(0xFF005233),
@@ -227,65 +218,41 @@ fun NotePayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val appColors = if (darkTheme) DarkAppColors else LightAppColors
+    val context = LocalContext.current
+    val currentTheme = ThemeManager.currentThemeColor
+
+    val materialColorScheme = if (darkTheme) {
+        getDarkColorScheme(currentTheme, context)
+    } else {
+        getLightColorScheme(currentTheme, context)
+    }
+
+    val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
+    val appColors = baseAppColors.copy(
+        primary = materialColorScheme.primary,
+        secondary = materialColorScheme.secondary,
+        background = materialColorScheme.background,
+        surface = materialColorScheme.surface
+    )
+
     val appTypography = DefaultAppTypography
     val appShapes = DefaultAppShapes
     val appDimensions = DefaultAppDimensions
-
-    val materialColorScheme = if (darkTheme) {
-        darkColorScheme(
-            primary = appColors.primary,
-            onPrimary = Color.White,
-            primaryContainer = appColors.secondary,
-            onPrimaryContainer = Color.White,
-            secondary = appColors.secondary,
-            onSecondary = Color.White,
-            background = appColors.background,
-            onBackground = Color.White,
-            surface = appColors.surface,
-            onSurface = Color.White,
-            surfaceVariant = appColors.secondary,
-            onSurfaceVariant = Color.White.copy(alpha = 0.7f),
-            error = appColors.error,
-            onError = Color.White,
-            outline = appColors.separator,
-            outlineVariant = appColors.separator
-        )
-    } else {
-        lightColorScheme(
-            primary = appColors.primary,
-            onPrimary = Color.White,
-            primaryContainer = appColors.secondary,
-            onPrimaryContainer = Color.Black,
-            secondary = appColors.secondary,
-            onSecondary = Color.Black,
-            background = appColors.background,
-            onBackground = Color.Black,
-            surface = appColors.surface,
-            onSurface = Color.Black,
-            surfaceVariant = appColors.secondary,
-            onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
-            error = appColors.error,
-            onError = Color.White,
-            outline = appColors.separator,
-            outlineVariant = appColors.separator
-        )
-    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                ?:return@SideEffect
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 window.isNavigationBarContrastEnforced = false
-                window.isStatusBarContrastEnforced = false
             }
-            
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
         }
     }
 

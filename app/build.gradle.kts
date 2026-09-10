@@ -38,6 +38,22 @@ android {
         }
     }
 
+    // Play has Internet access; Local owns offline notification capture.
+    // Shared UI and business logic stay in src/main.
+    flavorDimensions += "distribution"
+
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+        }
+
+        create("local") {
+            dimension = "distribution"
+            applicationIdSuffix = ".local"
+            versionNameSuffix = "-local"
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -130,6 +146,10 @@ dependencies {
 
     // Backdrop for Liquid Slider/Toggle
     implementation(libs.backdrop)
+
+    // Image loading (VietQR CDN logos + QR images)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

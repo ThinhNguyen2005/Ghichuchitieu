@@ -12,11 +12,21 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "vi")
 class OnDeviceBudgetAdvisorTest {
     private val geminiNano = mockk<GeminiNanoBudgetAdvisor>()
     private val liteRt = mockk<LiteRtBudgetAdvisor>()
-    private val advisor = OnDeviceBudgetAdvisor(geminiNano, liteRt)
+    private val advisor = OnDeviceBudgetAdvisor(
+        geminiNano = geminiNano,
+        liteRt = liteRt,
+        context = RuntimeEnvironment.getApplication(),
+    )
 
     @Test
     fun `availability prefers Gemini Nano over imported model`() = runTest {

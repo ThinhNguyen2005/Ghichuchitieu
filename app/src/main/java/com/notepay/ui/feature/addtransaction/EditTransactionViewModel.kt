@@ -1,9 +1,11 @@
 package com.notepay.ui.feature.addtransaction
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.model.Category
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -13,6 +15,7 @@ import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -24,6 +27,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
 import javax.inject.Inject
@@ -53,6 +57,7 @@ class EditTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val suggestCategoryUseCase: SuggestCategoryUseCase,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val txId: Long = checkNotNull(savedStateHandle["id"])
@@ -72,7 +77,7 @@ class EditTransactionViewModel @Inject constructor(
             val initialCategories = categoryRepository.observeCategories().firstOrNull() ?: emptyList()
 
             if (tx == null) {
-                _state.update { it.copy(isLoading = false, error = "Không tìm thấy giao dịch") }
+                _state.update { it.copy(isLoading = false, error = context.getString(R.string.error_transaction_not_found)) }
                 return@launch
             }
 
@@ -146,7 +151,7 @@ class EditTransactionViewModel @Inject constructor(
                 it.isIncome == isIncome && it.displayName.equals(cleanName, ignoreCase = true)
             }
         ) {
-            _feedback.tryEmit(UiFeedback("Danh mục này đã tồn tại", type = FeedbackType.Error))
+            _feedback.tryEmit(UiFeedback(context.getString(R.string.feedback_category_exists), type = FeedbackType.Error))
             return
         }
         viewModelScope.launch {
@@ -176,7 +181,7 @@ class EditTransactionViewModel @Inject constructor(
         }
         
         if (cents <= 0) {
-            val message = "Số tiền phải lớn hơn 0"
+            val message = context.getString(R.string.error_amount_positive)
             _state.update { it.copy(error = message) }
             _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
             return
@@ -187,10 +192,10 @@ class EditTransactionViewModel @Inject constructor(
             try {
                 // P2-14: nếu user đổi ngày thì cập nhật occurredAt (giữ nguyên giờ cũ).
                 val newDate = current.date
-                val newOccurredAt: kotlinx.datetime.Instant = if (newDate != null) {
+                val newOccurredAt: kotlin.time.Instant = if (newDate != null) {
                     val oldLocal = tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault())
                     LocalDateTime(
-                        date = LocalDate(newDate.year, newDate.monthNumber, newDate.dayOfMonth),
+                        date = LocalDate(newDate.year, newDate.month.number, newDate.day),
                         time = LocalTime(oldLocal.hour, oldLocal.minute, oldLocal.second, oldLocal.nanosecond),
                     ).toInstant(TimeZone.currentSystemDefault())
                 } else {
@@ -209,9 +214,9 @@ class EditTransactionViewModel @Inject constructor(
                     isIncome = updated.type == TransactionType.INCOME,
                 )
                 _state.update { it.copy(isSaving = false, savedSuccessfully = true) }
-                _feedback.emit(UiFeedback("Đã cập nhật giao dịch", type = FeedbackType.Success))
+                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_updated), type = FeedbackType.Success))
             } catch (e: Exception) {
-                val message = "Không thể cập nhật giao dịch"
+                val message = context.getString(R.string.feedback_transaction_update_failed)
                 _state.update { it.copy(isSaving = false, error = message) }
                 _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }

@@ -13,6 +13,7 @@ import com.google.zxing.BinaryBitmap
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
+import com.notepay.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -34,15 +35,16 @@ data class LocalImageScanResult(
  */
 @Singleton
 class LocalTransactionImageScanner @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     fun scan(uri: Uri): LocalImageScanResult {
-        val bitmap = decodeBitmap(uri) ?: return LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
+        val bitmap = decodeBitmap(uri)
+            ?: return LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         val vietQrAmount = bitmap?.let(::extractVietQrAmount)
         if (vietQrAmount != null) {
             return LocalImageScanResult(
                 amountInput = vietQrAmount.toString(),
-                message = "Đã đọc số tiền từ mã VietQR. Hãy kiểm tra trước khi lưu.",
+                message = context.getString(R.string.image_scan_vietqr_success),
                 source = LocalImageScanResult.Source.VIET_QR,
             )
         }
@@ -52,18 +54,36 @@ class LocalTransactionImageScanner @Inject constructor(
             val image = InputImage.fromBitmap(bitmap, 0)
             val text = Tasks.await(recognizer.process(image))
             val reconstructedLines = reconstructHorizontalLines(text)
-            val amount = extractAmount(reconstructedLines)
-            if (amount == null) {
-                LocalImageScanResult(message = "Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.")
-            } else {
-                LocalImageScanResult(
-                    amountInput = amount.toString(),
-                    message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
-                    source = LocalImageScanResult.Source.OCR,
-                )
+            val fullRawText = reconstructedLines.joinToString("\n")
+            val payload = com.notepay.domain.ingestion.RawTransactionPayload(
+                rawText = fullRawText,
+                source = com.notepay.domain.ingestion.TransactionInputSource.OCR_SCREENSHOT
+            )
+            when (val result = com.notepay.domain.ingestion.TransactionAnalyzer.analyze(payload)) {
+                is com.notepay.domain.ingestion.ParsedTransactionResult.Success -> {
+                    val majorUnits = result.amount.amountInCents / 100L
+                    LocalImageScanResult(
+                        amountInput = majorUnits.toString(),
+                        message = context.getString(R.string.image_scan_ocr_success),
+                        source = LocalImageScanResult.Source.OCR,
+                    )
+                }
+                is com.notepay.domain.ingestion.ParsedTransactionResult.Unrecognized -> {
+                    // Fallback to extraction from candidates if raw string wasn't structured
+                    val fallbackAmount = extractAmount(reconstructedLines)
+                    if (fallbackAmount != null) {
+                        LocalImageScanResult(
+                            amountInput = fallbackAmount.toString(),
+                            message = context.getString(R.string.image_scan_ocr_success),
+                            source = LocalImageScanResult.Source.OCR,
+                        )
+                    } else {
+                        LocalImageScanResult(message = context.getString(R.string.image_scan_amount_not_found))
+                    }
+                }
             }
         } catch (_: Throwable) {
-            LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
+            LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         } finally {
             recognizer.close()
         }

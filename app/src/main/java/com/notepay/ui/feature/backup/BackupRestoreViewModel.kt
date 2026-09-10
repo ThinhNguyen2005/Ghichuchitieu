@@ -1,11 +1,13 @@
 package com.notepay.ui.feature.backup
 
 import android.content.Context
+import androidx.core.content.edit
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.data.backup.DataExporter
 import com.notepay.data.backup.DataImporter
+import com.notepay.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +21,7 @@ import javax.inject.Inject
 class BackupRestoreViewModel @Inject constructor(
     private val dataExporter: DataExporter,
     private val dataImporter: DataImporter,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BackupRestoreUiState(
@@ -36,7 +38,7 @@ class BackupRestoreViewModel @Inject constructor(
                 val json = dataExporter.exportToJson()
                 context.contentResolver.openOutputStream(uri)?.use { stream ->
                     stream.bufferedWriter().use { it.write(json) }
-                } ?: throw Exception("Không thể ghi file")
+                } ?: throw Exception(context.getString(R.string.backup_file_write_error))
 
                 saveLastBackupDate()
                 _state.update {
@@ -50,7 +52,7 @@ class BackupRestoreViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         isExporting = false,
-                        errorMessage = "Lỗi sao lưu: ${e.message}",
+                        errorMessage = context.getString(R.string.backup_export_error_format, e.message.orEmpty()),
                     )
                 }
             }
@@ -72,7 +74,7 @@ class BackupRestoreViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         isImporting = false,
-                        errorMessage = "Lỗi khôi phục: ${e.message}",
+                        errorMessage = context.getString(R.string.backup_import_error_format, e.message.orEmpty()),
                     )
                 }
             }
@@ -96,6 +98,6 @@ class BackupRestoreViewModel @Inject constructor(
         val now = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
             .format(java.util.Date())
         context.getSharedPreferences("notepay_backup", Context.MODE_PRIVATE)
-            .edit().putString("last_backup_date", now).apply()
+            .edit { putString("last_backup_date", now) }
     }
 }

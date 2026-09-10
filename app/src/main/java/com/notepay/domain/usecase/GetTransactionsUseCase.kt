@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 class GetTransactionsUseCase @Inject constructor(
     private val transactionRepo: TransactionRepository,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) {
     operator fun invoke(): Flow<List<com.notepay.domain.model.Transaction>> =
         transactionRepo.observeAll().flowOn(dispatcher)

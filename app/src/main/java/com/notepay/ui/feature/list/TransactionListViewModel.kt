@@ -1,21 +1,25 @@
 package com.notepay.ui.feature.list
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Category
+import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.domain.model.Money
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetTransactionsUseCase
-import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.FeedbackDuration
+import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,20 +29,36 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @HiltViewModel
-class TransactionListViewModel @Inject constructor(
+class TransactionListViewModel internal constructor(
     getTransactions: GetTransactionsUseCase,
     private val deleteTransaction: DeleteTransactionUseCase,
     private val addTransaction: AddTransactionUseCase,
     private val walletRepository: WalletRepository,
-    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val getString: (Int) -> String,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        getTransactions: GetTransactionsUseCase,
+        deleteTransaction: DeleteTransactionUseCase,
+        addTransaction: AddTransactionUseCase,
+        walletRepository: WalletRepository,
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ) : this(
+        getTransactions,
+        deleteTransaction,
+        addTransaction,
+        walletRepository,
+        ioDispatcher,
+        context::getString,
+    )
 
     private val filters = MutableStateFlow(TransactionListFilters())
     private val actionState = MutableStateFlow(TransactionListActionState())
@@ -115,7 +135,7 @@ class TransactionListViewModel @Inject constructor(
                 if (result.isSuccess) {
                     it.copy(pendingUndoTransaction = transaction, errorMessage = null)
                 } else {
-                    val message = "Không thể xóa giao dịch"
+                    val message = getString(R.string.feedback_transaction_delete_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
                     it.copy(errorMessage = message)
                 }
@@ -123,8 +143,8 @@ class TransactionListViewModel @Inject constructor(
             if (result.isSuccess) {
                 _feedback.emit(
                     UiFeedback(
-                        message = "Đã xóa giao dịch",
-                        actionLabel = "Hoàn tác",
+                        message = getString(R.string.transaction_deleted),
+                        actionLabel = getString(R.string.feedback_undo),
                         type = FeedbackType.Success,
                         duration = FeedbackDuration.Long,
                         onAction = { undoDelete(transaction) }
@@ -144,10 +164,10 @@ class TransactionListViewModel @Inject constructor(
             val result = addTransaction(transaction.copy(id = 0L))
             actionState.update {
                 if (result.isSuccess) {
-                    _feedback.tryEmit(UiFeedback("Đã khôi phục giao dịch", type = FeedbackType.Success))
+                    _feedback.tryEmit(UiFeedback(getString(R.string.feedback_transaction_restored), type = FeedbackType.Success))
                     it.copy(pendingUndoTransaction = null, errorMessage = null)
                 } else {
-                    val message = "Không thể khôi phục giao dịch"
+                    val message = getString(R.string.feedback_transaction_restore_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
                     it.copy(errorMessage = message)
                 }

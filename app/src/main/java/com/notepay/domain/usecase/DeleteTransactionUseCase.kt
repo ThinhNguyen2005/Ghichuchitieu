@@ -8,7 +8,7 @@ import javax.inject.Inject
 
 class DeleteTransactionUseCase @Inject constructor(
     private val transactionRepo: TransactionRepository,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) {
     suspend operator fun invoke(id: Long): Result<Unit> = runCatching {
         withContext(dispatcher) { transactionRepo.delete(id) }

@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 
 import androidx.compose.foundation.layout.Arrangement
@@ -42,10 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,11 +52,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
@@ -92,17 +92,21 @@ fun EditTransactionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GradientTopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(if (state.isAutoCapture) "Chi tiết giao dịch" else "Chỉnh sửa giao dịch")
+                        Text(
+                            stringResource(
+                                if (state.isAutoCapture) R.string.transaction_details_title else R.string.edit_transaction_title,
+                            ),
+                        )
                         if (state.isAutoCapture) {
                             Icon(
                                 imageVector = Icons.Rounded.AccountBalance,
-                                contentDescription = "Giao dịch tự động từ Ngân hàng",
+                                contentDescription = stringResource(R.string.transaction_auto_capture_cd),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -111,7 +115,7 @@ fun EditTransactionScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -137,7 +141,7 @@ fun EditTransactionScreen(
                     value = state.amountInput,
                     onValueChange = { viewModel.onAmountChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Số tiền") },
+                    label = { Text(stringResource(R.string.transaction_field_amount)) },
                     singleLine = true,
                     readOnly = state.isAutoCapture,
                     enabled = !state.isAutoCapture,
@@ -148,7 +152,7 @@ fun EditTransactionScreen(
                         {
                             Icon(
                                 imageVector = Icons.Rounded.Lock,
-                                contentDescription = "Không thể chỉnh sửa",
+                                contentDescription = stringResource(R.string.transaction_edit_locked),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -197,7 +201,7 @@ fun EditTransactionScreen(
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Text(
-                                text = "💡 Đề xuất danh mục:",
+                                text = stringResource(R.string.transaction_suggested_category),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -217,7 +221,7 @@ fun EditTransactionScreen(
                         value = state.note,
                         onValueChange = { viewModel.onNoteChanged(it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Ghi chú") },
+                        label = { Text(stringResource(R.string.transaction_field_note)) },
                         minLines = 2,
                         readOnly = state.isAutoCapture,
                         enabled = !state.isAutoCapture,
@@ -225,7 +229,7 @@ fun EditTransactionScreen(
                             if (!state.isAutoCapture) {
                                 Text("${state.note.length}/200")
                             } else {
-                                Text("Chỉ cho phép sửa ghi chú đối với giao dịch tự động")
+                                Text(stringResource(R.string.transaction_auto_note_edit_only))
                             }
                         },
                     )
@@ -248,7 +252,7 @@ fun EditTransactionScreen(
                     },
                     label = {
                         Text(
-                            text = "Ngày: ${state.dateLabel}",
+                            text = stringResource(R.string.transaction_date_format, state.dateLabel),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     },
@@ -267,10 +271,10 @@ fun EditTransactionScreen(
                                     viewModel.onDateChanged(picked)
                                 }
                                 showDatePicker = false
-                            }) { Text("Xong") }
+                            }) { Text(stringResource(R.string.action_done)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                            TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) }
                         },
                     ) {
                         DatePicker(state = datePickerState)
@@ -289,9 +293,9 @@ fun EditTransactionScreen(
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("Đang lưu...")
+                        Text(stringResource(R.string.transaction_saving))
                     } else {
-                        Text("Lưu thay đổi")
+                        Text(stringResource(R.string.action_save_changes))
                     }
                 }
             }
@@ -300,31 +304,19 @@ fun EditTransactionScreen(
         }
 
         if (showAllCategories) {
-            ModalBottomSheet(
-                onDismissRequest = { showAllCategories = false },
-                dragHandle = { BottomSheetDefaults.DragHandle() },
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .padding(bottom = 32.dp)
-                ) {
-                    CategoryGridPicker(
-                        categories = state.availableCategories,
-                        selectedCategory = state.category,
-                        isIncome = state.type == TransactionType.INCOME,
-                        onCategoryChanged = {
-                            viewModel.onCategoryChanged(it)
-                            showAllCategories = false
-                        },
-                        onCreateCategory = { name, color, iconId, isIncome ->
-                            viewModel.createCategory(name, color, iconId, isIncome)
-                        }
-                    )
-                }
-            }
+            CategoryPickerSheet(
+                categories = state.availableCategories,
+                selectedCategory = state.category,
+                isIncome = state.type == TransactionType.INCOME,
+                onCategoryChanged = {
+                    viewModel.onCategoryChanged(it)
+                    showAllCategories = false
+                },
+                onDismiss = { showAllCategories = false },
+                onCreateCategory = { name, color, iconId, isIncome ->
+                    viewModel.createCategory(name, color, iconId, isIncome)
+                },
+            )
         }
     }
 }

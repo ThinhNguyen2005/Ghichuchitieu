@@ -2,6 +2,7 @@ package com.notepay.ui.feature.billsplit
 
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 
 data class BillSplitUiState(
@@ -10,6 +11,7 @@ data class BillSplitUiState(
     val recentTransactions: List<Transaction> = emptyList(),
     val wallets: List<Wallet> = emptyList(),
     val activeWallet: Wallet? = null,
+    val banks: List<VietQrBank> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -17,6 +19,5 @@ data class BillSplitUiState(
 data class BillSplitItemState(
     val split: BillSplit,
     val parentTransaction: Transaction?,
-    val qrCodeString: String? = null,
     val wallet: Wallet? = null,
 )

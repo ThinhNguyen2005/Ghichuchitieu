@@ -10,6 +10,7 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LogSeverity
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.notepay.di.IoDispatcher
+import com.notepay.R
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
@@ -27,7 +28,7 @@ class LiteRtBudgetAdvisor @Inject constructor(
     @ApplicationContext context: Context,
     private val modelManager: LocalAiModelManager,
     private val promptAdvisor: GeminiNanoBudgetAdvisor,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val appContext = context.applicationContext
 
@@ -35,7 +36,7 @@ class LiteRtBudgetAdvisor @Inject constructor(
 
     suspend fun generate(input: BudgetAdvisorInput): BudgetAdvisorResult = withContext(ioDispatcher) {
         val modelFile = modelManager.installedModelFile()
-            ?: error("Chưa có mô hình AI cục bộ trên thiết bị.")
+            ?: error(appContext.getString(R.string.ai_no_model_installed))
 
         try {
             withTimeout(INFERENCE_TIMEOUT_MILLIS) {
@@ -56,7 +57,7 @@ class LiteRtBudgetAdvisor @Inject constructor(
                     }
                 }
 
-                error("No LiteRT-LM backend is configured.")
+                error(appContext.getString(R.string.ai_backend_unavailable))
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -91,15 +92,23 @@ class LiteRtBudgetAdvisor @Inject constructor(
                     .contents
                     .filterIsInstance<Content.Text>()
                     .joinToString(separator = "") { it.text }
-                val parsed = AdvisorResponseParser.parseLenient(raw)
-                    ?: error("Mô hình trả về nội dung chưa đúng định dạng an toàn.")
+                val parsed = AdvisorResponseParser.parseLenient(
+                    raw = raw,
+                    fallbackTitle = appContext.getString(R.string.ai_advisor_fallback_title),
+                    fallbackAction = appContext.getString(R.string.ai_advisor_fallback_action),
+                )
+                    ?: error(appContext.getString(R.string.ai_invalid_response))
                 val displayName = modelManager.state.value.displayName
-                    ?: "mô hình LiteRT-LM"
+                    ?: appContext.getString(R.string.ai_litert_default_model_name)
                 return BudgetAdvisorResult(
                     title = parsed.title,
                     content = "${parsed.observation} ${parsed.action}",
                     provider = AdvisorProvider.LOCAL_LITERT_MODEL,
-                    providerMessage = "Phân tích bởi $displayName ngay trên thiết bị ($backendLabel)",
+                    providerMessage = appContext.getString(
+                        R.string.ai_litert_provider_message,
+                        displayName,
+                        backendLabel,
+                    ),
                 )
             }
         }
@@ -115,9 +124,11 @@ class LiteRtBudgetAdvisor @Inject constructor(
         val create: () -> Backend,
     ) {
         companion object {
-            // This Qwen3 LiteRT package is reliable on CPU/XNNPACK. A GPU attempt can
-            // block a request, then fail and fall back to CPU on many Android devices.
-            val DEFAULT_ORDER = listOf(BackendAttempt(label = "CPU") { Backend.CPU() })
+            // Tận dụng GPU Adreno (OpenCL) trước, nếu thiết bị không hỗ trợ thì fallback mượt về CPU (XNNPACK).
+            val DEFAULT_ORDER = listOf(
+                BackendAttempt(label = "GPU") { Backend.GPU() },
+                BackendAttempt(label = "CPU") { Backend.CPU() },
+            )
         }
     }
 }

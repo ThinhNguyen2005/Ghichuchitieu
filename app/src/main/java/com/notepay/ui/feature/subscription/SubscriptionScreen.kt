@@ -76,14 +76,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
@@ -101,11 +104,11 @@ import kotlinx.datetime.toLocalDateTime
  *  - UPCOMING: sắp đến hạn trong khoảng remindDaysBefore
  *  - COMPLETED: đã hoàn thành (isActive = false)
  */
-private enum class ReminderFilter(val label: String, val shortLabel: String) {
-    ALL("Tất cả", "Tất cả"),
-    OVERDUE("Quá hạn", "Quá hạn"),
-    UPCOMING("Sắp đến hạn", "Sắp đến"),
-    COMPLETED("Đã hoàn thành", "Hoàn thành"),
+private enum class ReminderFilter {
+    ALL,
+    OVERDUE,
+    UPCOMING,
+    COMPLETED,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,7 +162,7 @@ fun SubscriptionScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Quay lại"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -177,7 +180,7 @@ fun SubscriptionScreen(
                                 ) {
                                     if (searchQuery.isEmpty()) {
                                         Text(
-                                            "Tìm hóa đơn...",
+                                            stringResource(R.string.subscription_search_placeholder),
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -188,7 +191,7 @@ fun SubscriptionScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         )
                     } else {
-                        Text("Hóa đơn định kỳ")
+                        Text(stringResource(R.string.subscription_title))
                     }
                 },
                 actions = {
@@ -204,7 +207,11 @@ fun SubscriptionScreen(
                     ) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Rounded.Close else Icons.Outlined.Search,
-                            contentDescription = if (isSearchActive) "Đóng" else "Tìm kiếm"
+                            contentDescription = if (isSearchActive) {
+                                stringResource(R.string.action_close)
+                            } else {
+                                stringResource(R.string.action_search)
+                            }
                         )
                     }
                     val isCalendarMode = selectedTab == 0
@@ -220,7 +227,9 @@ fun SubscriptionScreen(
                         ) {
                             Icon(
                                 imageVector = if (isCalendarMode) Icons.AutoMirrored.Outlined.List else Icons.Outlined.CalendarMonth,
-                                contentDescription = if (isCalendarMode) "Xem dạng danh sách" else "Xem dạng lịch"
+                                contentDescription = stringResource(
+                                    if (isCalendarMode) R.string.subscription_view_list else R.string.subscription_view_calendar,
+                                )
                             )
                         }
                     }
@@ -359,7 +368,7 @@ private fun CalendarTab(
         }
         
         Text(
-            text = "Hóa đơn tháng này",
+            text = stringResource(R.string.subscription_month_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 4.dp),
@@ -430,7 +439,7 @@ private fun CalendarTab(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Không có hóa đơn nào trong tháng này",
+                        text = stringResource(R.string.subscription_month_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -470,8 +479,8 @@ private fun ReminderListTab(
         ) {
             EmptyStateWithAction(
                 icon = Icons.Outlined.Notifications,
-                title = "Chưa có hóa đơn định kỳ",
-                description = "Nhấn vào nút + để thêm hóa đơn đầu tiên.",
+                title = stringResource(R.string.subscription_empty_title),
+                description = stringResource(R.string.subscription_empty_description),
             )
         }
         return
@@ -507,10 +516,16 @@ private fun ReminderListTab(
             ) {
                 items(ReminderFilter.entries) { option ->
                     val isSelected = filter == option
+                    val label = when (option) {
+                        ReminderFilter.ALL -> stringResource(R.string.transaction_list_filter_all)
+                        ReminderFilter.OVERDUE -> stringResource(R.string.subscription_filter_overdue)
+                        ReminderFilter.UPCOMING -> stringResource(R.string.subscription_filter_upcoming)
+                        ReminderFilter.COMPLETED -> stringResource(R.string.subscription_filter_completed)
+                    }
                     FilterChip(
                         selected = isSelected,
                         onClick = { filter = option },
-                        label = { Text(option.label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -552,28 +567,28 @@ private fun ReminderListTab(
                 when {
                     query.isNotBlank() -> EmptyStateWithAction(
                         icon = Icons.Outlined.Search,
-                        title = "Không tìm thấy",
-                        description = "Không có hóa đơn nào khớp với \"$query\"",
+                        title = stringResource(R.string.subscription_no_match_title),
+                        description = stringResource(R.string.subscription_no_match_description, query),
                     )
                     filter == ReminderFilter.ALL -> EmptyStateWithAction(
                         icon = Icons.Outlined.Notifications,
-                        title = "Chưa có hóa đơn định kỳ",
-                        description = "Nhấn vào nút + để thêm hóa đơn đầu tiên.",
+                        title = stringResource(R.string.subscription_empty_title),
+                        description = stringResource(R.string.subscription_empty_description),
                     )
                     filter == ReminderFilter.OVERDUE -> EmptyStateWithAction(
                         icon = Icons.Outlined.SentimentSatisfied,
-                        title = "Không có khoản quá hạn",
-                        description = "Tất cả hóa đơn đều còn hạn. Tuyệt vời!",
+                        title = stringResource(R.string.subscription_no_overdue_title),
+                        description = stringResource(R.string.subscription_no_overdue_description),
                     )
                     filter == ReminderFilter.UPCOMING -> EmptyStateWithAction(
                         icon = Icons.Outlined.CalendarMonth,
-                        title = "Chưa có hóa đơn sắp đến hạn",
-                        description = "Các hóa đơn sẽ hiện ở đây khi gần đến ngày hết hạn.",
+                        title = stringResource(R.string.subscription_no_upcoming_title),
+                        description = stringResource(R.string.subscription_no_upcoming_description),
                     )
                     filter == ReminderFilter.COMPLETED -> EmptyStateWithAction(
                         icon = Icons.Outlined.CheckCircle,
-                        title = "Chưa hoàn thành hóa đơn nào",
-                        description = "Khi bạn đánh dấu hoàn thành, chúng sẽ xuất hiện tại đây.",
+                        title = stringResource(R.string.subscription_no_completed_title),
+                        description = stringResource(R.string.subscription_no_completed_description),
                     )
                 }
             }
@@ -600,9 +615,9 @@ private fun ReminderListTab(
 
     pendingDelete?.let { sub ->
         ConfirmDeleteDialog(
-            title = "Xóa nhắc nhở?",
+            title = stringResource(R.string.subscription_delete_title),
             itemName = sub.name,
-            message = "Nhắc nhở \"${sub.name}\" sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+            message = stringResource(R.string.subscription_delete_message, sub.name),
             onConfirm = { onDelete(sub) },
             onDismiss = { pendingDelete = null },
         )
@@ -678,7 +693,7 @@ private fun SubscriptionCard(
                     )
                     if (isCompleted) {
                         Text(
-                            "Đã hoàn thành",
+                            stringResource(R.string.subscription_completed),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                             fontWeight = FontWeight.SemiBold,
@@ -695,10 +710,18 @@ private fun SubscriptionCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = when {
-                                isOverdue -> "Quá hạn ${-daysLeft} ngày"
-                                daysLeft == 0L -> "Hết hạn hôm nay!"
-                                daysLeft == 1L -> "Hết hạn ngày mai"
-                                else -> "Còn $daysLeft ngày"
+                                isOverdue -> pluralStringResource(
+                                    R.plurals.subscription_overdue,
+                                    (-daysLeft).toInt(),
+                                    (-daysLeft).toInt(),
+                                )
+                                daysLeft == 0L -> stringResource(R.string.subscription_due_today)
+                                daysLeft == 1L -> stringResource(R.string.subscription_due_tomorrow)
+                                else -> pluralStringResource(
+                                    R.plurals.subscription_due_days,
+                                    daysLeft.toInt(),
+                                    daysLeft.toInt(),
+                                )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (daysLeft <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -720,7 +743,19 @@ private fun SubscriptionCard(
                     )
                 }
                 Text(
-                    "Chu kỳ ${subscription.repeatMonths} tháng • Nhắc trước ${subscription.remindDaysBefore} ngày",
+                    stringResource(
+                        R.string.subscription_detail_summary_format,
+                        pluralStringResource(
+                            R.plurals.subscription_cycle_months,
+                            subscription.repeatMonths,
+                            subscription.repeatMonths,
+                        ),
+                        pluralStringResource(
+                            R.plurals.subscription_remind_before_days,
+                            subscription.remindDaysBefore,
+                            subscription.remindDaysBefore,
+                        ),
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

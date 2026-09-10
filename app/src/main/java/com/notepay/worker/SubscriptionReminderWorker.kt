@@ -3,7 +3,6 @@ package com.notepay.worker
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -11,6 +10,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.notepay.R
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.ui.util.MoneyFormatter
 import dagger.assisted.Assisted
@@ -68,16 +68,16 @@ class SubscriptionReminderWorker @AssistedInject constructor(
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val title = when {
-            daysLeft <= 0 -> "⏰ $name đã đến hạn hôm nay!"
-            daysLeft == 1L -> "⚠️ $name sắp hết hạn ngày mai"
-            else -> "🔔 $name hết hạn sau $daysLeft ngày"
+            daysLeft <= 0 -> context.getString(R.string.notif_subscription_due_today, name)
+            daysLeft == 1L -> context.getString(R.string.notif_subscription_due_tomorrow, name)
+            else -> context.getString(R.string.notif_subscription_due_days, name, daysLeft)
         }
-        val body = "Gia hạn $amount vào ngày $dueDate"
+        val body = context.getString(R.string.notif_subscription_renew_format, amount, dueDate)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(body)
-            .setSmallIcon(com.notepay.R.drawable.ic_stat_notepay)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
@@ -86,17 +86,15 @@ class SubscriptionReminderWorker @AssistedInject constructor(
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Nhắc nhở gia hạn",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = "Thông báo nhắc nhở gia hạn dịch vụ định kỳ"
-            }
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.notif_channel_subscription_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.notif_channel_subscription_desc)
         }
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
     }
 
     companion object {

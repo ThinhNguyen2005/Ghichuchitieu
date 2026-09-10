@@ -137,7 +137,7 @@ class SubscriptionViewModel @Inject constructor(
                     name = dialog.name.trim(),
                     amount = Money(cents),
                     category = dialog.category,
-                    nextDueDate = kotlinx.datetime.Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
+                    nextDueDate = kotlin.time.Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
                     repeatMonths = dialog.repeatMonths,
                     remindDaysBefore = dialog.remindDaysBefore,
                     note = dialog.note.trim(),

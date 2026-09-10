@@ -25,8 +25,14 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "vi")
 class AddTransactionViewModelTest {
 
     @get:Rule
@@ -184,6 +190,7 @@ class AddTransactionViewModelTest {
 
         // ĐÃ SỬA: Sử dụng cấu trúc gọi hàm an toàn để tự động khớp với định danh ioDispatcher hệ thống
         return AddTransactionViewModel(
+            context = RuntimeEnvironment.getApplication(),
             addTransactionUseCase = useCase,
             walletRepository = walletRepository,
             categoryRepository = categoryRepository,
@@ -231,6 +238,7 @@ private class FakeTransactionRepository(
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions.filter { it.walletId == walletId })
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
     override suspend fun getById(id: Long): Transaction? = savedTransactions.firstOrNull { it.id == id }
+    override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.firstOrNull { it.id == id })
     override suspend fun upsert(transaction: Transaction): Long {
         return upsertResult.getOrThrow().also { savedTransactions += transaction }
     }

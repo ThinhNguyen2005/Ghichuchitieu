@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Check
@@ -30,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.notepay.R
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.util.WalletUiHelper
 
@@ -70,15 +71,15 @@ fun WalletPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Chọn ví",
+                    text = stringResource(R.string.wallet_picker_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                TextButton(onClick = onDismiss) { Text("Đóng") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
             }
             if (wallets.isEmpty()) {
                 Text(
-                    "Chưa có ví nào. Vui lòng tạo ví trước.",
+                    stringResource(R.string.wallet_picker_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp),
@@ -125,7 +126,7 @@ private fun WalletPickerRow(
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(AppTheme.shapes.corner10)
                 .padding(2.dp),
         ) {
             Icon(

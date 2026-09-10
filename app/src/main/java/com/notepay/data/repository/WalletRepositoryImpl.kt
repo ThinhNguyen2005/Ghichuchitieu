@@ -16,7 +16,7 @@ import javax.inject.Singleton
 class WalletRepositoryImpl @Inject constructor(
     private val dao: WalletDao,
     private val mapper: WalletMapper,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) : WalletRepository {
 
     override fun observeAll(): Flow<List<Wallet>> =

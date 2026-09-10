@@ -1,6 +1,8 @@
 package com.notepay.domain.usecase
 
 import android.content.Context
+import androidx.core.content.edit
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.util.StringUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,7 +28,7 @@ data class CategorySuggestion(
  */
 @Singleton
 class SuggestCategoryUseCase @Inject constructor(
-    @ApplicationContext context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val prefs = context.getSharedPreferences("notepay_category_habits", Context.MODE_PRIVATE)
 
@@ -100,30 +102,29 @@ class SuggestCategoryUseCase @Inject constructor(
             it.id == categoryId && it.isIncome == isIncome
         } ?: return
         val typeKey = typeKey(isIncome)
-        val editor = prefs.edit()
-
         val totalKey = "v2_total_$typeKey"
-        editor.putInt(totalKey, prefs.getInt(totalKey, 0) + 1)
+        prefs.edit {
+            putInt(totalKey, prefs.getInt(totalKey, 0) + 1)
 
-        val categoryCountKey = "v2_category_${typeKey}_${category.id}"
-        editor.putInt(categoryCountKey, prefs.getInt(categoryCountKey, 0) + 1)
+            val categoryCountKey = "v2_category_${typeKey}_${category.id}"
+            putInt(categoryCountKey, prefs.getInt(categoryCountKey, 0) + 1)
 
-        val totalWordsKey = "v2_words_${typeKey}_${category.id}"
-        editor.putInt(totalWordsKey, prefs.getInt(totalWordsKey, 0) + tokens.size)
+            val totalWordsKey = "v2_words_${typeKey}_${category.id}"
+            putInt(totalWordsKey, prefs.getInt(totalWordsKey, 0) + tokens.size)
 
-        val vocabularyKey = "v2_vocabulary_$typeKey"
-        val vocabulary = prefs.getStringSet(vocabularyKey, emptySet())?.toMutableSet() ?: mutableSetOf()
-        tokens.forEach { token ->
-            val key = "v2_token_${typeKey}_${token}_${category.id}"
-            editor.putInt(key, prefs.getInt(key, 0) + 1)
-            vocabulary.add(token)
+            val vocabularyKey = "v2_vocabulary_$typeKey"
+            val vocabulary = prefs.getStringSet(vocabularyKey, emptySet())?.toMutableSet() ?: mutableSetOf()
+            tokens.forEach { token ->
+                val key = "v2_token_${typeKey}_${token}_${category.id}"
+                putInt(key, prefs.getInt(key, 0) + 1)
+                vocabulary.add(token)
+            }
+            putStringSet(vocabularyKey, vocabulary)
+
+            val exactKey = exactKey(typeKey, normalized)
+            putString(exactKey, category.id)
+            putInt("${exactKey}_count", prefs.getInt("${exactKey}_count", 0) + 1)
         }
-        editor.putStringSet(vocabularyKey, vocabulary)
-
-        val exactKey = exactKey(typeKey, normalized)
-        editor.putString(exactKey, category.id)
-        editor.putInt("${exactKey}_count", prefs.getInt("${exactKey}_count", 0) + 1)
-        editor.apply()
     }
 
     private fun exactNoteSuggestion(
@@ -140,7 +141,7 @@ class SuggestCategoryUseCase @Inject constructor(
         return CategorySuggestion(
             category = category,
             confidence = if (timesSeen >= 2) 0.98f else 0.93f,
-            reason = "Dựa trên ghi chú tương tự bạn đã lưu trước đây",
+            reason = context.getString(R.string.category_suggestion_reason_history),
         )
     }
 
@@ -164,7 +165,7 @@ class SuggestCategoryUseCase @Inject constructor(
         return CategorySuggestion(
             category = match.first.category,
             confidence = (0.80f + match.second.coerceAtMost(4) * 0.04f).coerceAtMost(0.96f),
-            reason = "Nhận diện cụm từ “$matchedPhrase” trong ghi chú",
+            reason = context.getString(R.string.category_suggestion_reason_phrase, matchedPhrase),
         )
     }
 
@@ -208,7 +209,7 @@ class SuggestCategoryUseCase @Inject constructor(
         return CategorySuggestion(
             category = winner.key,
             confidence = confidence,
-            reason = "Dựa trên thói quen phân loại của bạn với các từ tương tự",
+            reason = context.getString(R.string.category_suggestion_reason_learned),
         )
     }
 
