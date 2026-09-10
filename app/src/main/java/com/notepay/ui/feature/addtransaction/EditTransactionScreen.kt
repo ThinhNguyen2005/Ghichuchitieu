@@ -56,7 +56,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
@@ -98,11 +98,15 @@ fun EditTransactionScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(if (state.isAutoCapture) "Chi tiết giao dịch" else "Chỉnh sửa giao dịch")
+                        Text(
+                            stringResource(
+                                if (state.isAutoCapture) R.string.transaction_details_title else R.string.edit_transaction_title,
+                            ),
+                        )
                         if (state.isAutoCapture) {
                             Icon(
                                 imageVector = Icons.Rounded.AccountBalance,
-                                contentDescription = "Giao dịch tự động từ Ngân hàng",
+                                contentDescription = stringResource(R.string.transaction_auto_capture_cd),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -148,7 +152,7 @@ fun EditTransactionScreen(
                         {
                             Icon(
                                 imageVector = Icons.Rounded.Lock,
-                                contentDescription = "Không thể chỉnh sửa",
+                                contentDescription = stringResource(R.string.transaction_edit_locked),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -197,7 +201,7 @@ fun EditTransactionScreen(
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Text(
-                                text = "💡 Đề xuất danh mục:",
+                                text = stringResource(R.string.transaction_suggested_category),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -225,7 +229,7 @@ fun EditTransactionScreen(
                             if (!state.isAutoCapture) {
                                 Text("${state.note.length}/200")
                             } else {
-                                Text("Chỉ cho phép sửa ghi chú đối với giao dịch tự động")
+                                Text(stringResource(R.string.transaction_auto_note_edit_only))
                             }
                         },
                     )
@@ -248,7 +252,7 @@ fun EditTransactionScreen(
                     },
                     label = {
                         Text(
-                            text = "Ngày: ${state.dateLabel}",
+                            text = stringResource(R.string.transaction_date_format, state.dateLabel),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     },
@@ -289,9 +293,9 @@ fun EditTransactionScreen(
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("Đang lưu...")
+                        Text(stringResource(R.string.transaction_saving))
                     } else {
-                        Text("Lưu thay đổi")
+                        Text(stringResource(R.string.action_save_changes))
                     }
                 }
             }

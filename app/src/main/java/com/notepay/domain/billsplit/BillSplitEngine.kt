@@ -4,7 +4,7 @@ import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Money
 import java.text.Normalizer
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /** Pure Domain Engine for Non-Destructive Bill Split Logic & Memo Matching */
 object BillSplitEngine {

@@ -25,8 +25,14 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "vi")
 class AddTransactionViewModelTest {
 
     @get:Rule
@@ -184,6 +190,7 @@ class AddTransactionViewModelTest {
 
         // ĐÃ SỬA: Sử dụng cấu trúc gọi hàm an toàn để tự động khớp với định danh ioDispatcher hệ thống
         return AddTransactionViewModel(
+            context = RuntimeEnvironment.getApplication(),
             addTransactionUseCase = useCase,
             walletRepository = walletRepository,
             categoryRepository = categoryRepository,

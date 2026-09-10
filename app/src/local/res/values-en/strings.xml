@@ -5,4 +5,11 @@
     <string name="autocapture_save_error">Error: cannot save the transaction.</string>
     <string name="autocapture_subscription_success">Subscription added! 📅</string>
     <string name="autocapture_subscription_error">Error: cannot add the subscription.</string>
+    <string name="notif_transaction_pending_title">Confirm bank transaction</string>
+    <string name="notif_transaction_pending_content">%1$s • %2$s</string>
+    <string name="notif_transaction_pending_big_text">Amount: %1$s\nWallet: %2$s\nNote: %3$s</string>
+    <string name="notif_transaction_confirm_action">Confirm</string>
+    <string name="notif_transaction_ignore_action">Ignore</string>
+    <string name="autocapture_pending_confirmed">Transaction confirmed and saved.</string>
+    <string name="autocapture_pending_ignored">Transaction notification ignored.</string>
 </resources>

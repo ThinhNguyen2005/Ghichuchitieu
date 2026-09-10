@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.stats
 
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
@@ -10,8 +11,8 @@ import kotlin.math.max
 import kotlin.time.Instant
 
 /**
- * Pure-Kotlin engine cho Stats insights. Không có Android dependency.
- * Nhận data thô, trả về data class UI-ready.
+ * Pure calculation engine cho Stats insights. Không giữ Context; text trả về dưới dạng
+ * resource descriptor để composition layer resolve theo locale.
  */
 object StatsInsightsEngine {
 
@@ -37,12 +38,18 @@ object StatsInsightsEngine {
         val dailyAvgStr = MoneyFormatter.format(Money(dailyAverageCents.toLong()))
         val projectedSpendStr = MoneyFormatter.format(Money(projectedSpendCents.toLong()))
 
-        val baseMessage = "Với tốc độ hiện tại ($dailyAvgStr/ngày), cuối tháng dự kiến chi $projectedSpendStr"
+        val baseMessage = StatsUiText.Resource(
+            R.string.stats_insight_forecast_format,
+            listOf(dailyAvgStr, projectedSpendStr),
+        )
 
         val isProjectedToExceed = limit != null && projectedSpendCents > limit.amountInCents
-        val exceedMsg = if (isProjectedToExceed) {
-            " ⚠️ Vượt hạn mức ${MoneyFormatter.format(limit)}!"
-        } else ""
+        val exceedMsg: StatsUiText? = if (isProjectedToExceed) {
+            StatsUiText.Resource(
+                R.string.stats_insight_forecast_exceeded,
+                listOf(MoneyFormatter.format(limit!!)),
+            )
+        } else null
 
         // Trend so với tháng trước
         val trendPercent: Float? = if (previousMonthDailyAvg != null && previousMonthDailyAvg.amountInCents > 0) {
@@ -50,24 +57,32 @@ object StatsInsightsEngine {
             ((dailyAverageCents - prev) / prev * 100).toFloat()
         } else null
 
-        val trendMessage: String? = when {
+        val trendMessage: StatsUiText? = when {
             trendPercent == null -> null
-            trendPercent > 5f -> "📈 Chi tiêu tăng %.0f%% so tháng trước".format(trendPercent)
-            trendPercent < -5f -> "📉 Chi tiêu giảm %.0f%% so tháng trước".format(-trendPercent)
-            else -> "➡️ Chi tiêu ổn định so tháng trước"
+            trendPercent > 5f -> StatsUiText.Resource(
+                R.string.stats_insight_trend_up,
+                listOf("%.0f".format(trendPercent)),
+            )
+            trendPercent < -5f -> StatsUiText.Resource(
+                R.string.stats_insight_trend_down,
+                listOf("%.0f".format(-trendPercent)),
+            )
+            else -> StatsUiText.Resource(R.string.stats_insight_trend_stable)
         }
 
         val prevAvgStr = if (previousMonthDailyAvg != null && previousMonthDailyAvg.amountInCents > 0) {
             MoneyFormatter.format(previousMonthDailyAvg)
         } else null
 
-        val fullMessage = buildString {
-            append(baseMessage)
-            append(exceedMsg)
-            if (prevAvgStr != null) {
-                append("\nTháng trước: $prevAvgStr/ngày")
-            }
-        }
+        val fullMessage = StatsUiText.Composite(
+            buildList {
+                add(baseMessage)
+                if (exceedMsg != null) add(exceedMsg)
+                if (prevAvgStr != null) {
+                    add(StatsUiText.Resource(R.string.stats_insight_forecast_previous, listOf(prevAvgStr)))
+                }
+            },
+        )
 
         return BudgetForecast(
             dailyAverage = Money(dailyAverageCents.toLong()),
@@ -125,13 +140,19 @@ object StatsInsightsEngine {
         val spentTodayLong = spentToday.amountInCents
 
         // Early warning: chi nhanh đầu tháng
-        val earlyWarning: String? = when {
+        val earlyWarning: StatsUiText? = when {
             currentDay <= 3 && spentTodayLong > initialDailyBudget * 2L -> {
-                "⚠️ Đã tiêu ${MoneyFormatter.format(spentToday)} trong 3 ngày đầu — gấp đôi hạn mức ngày. Hãy kiềm chế!"
+                StatsUiText.Resource(
+                    R.string.stats_insight_early_warning_first_days,
+                    listOf(MoneyFormatter.format(spentToday)),
+                )
             }
             currentDay <= 7 && spentTodayLong > initialDailyBudget * 15L / 10 -> {
                 val ratio = spentTodayLong * 100 / initialDailyBudget
-                "⚠️ Tuần đầu chi tiêu đạt $ratio%% hạn mức/ngày. Nên giảm xuống còn ${MoneyFormatter.format(Money(initialDailyBudget * 8 / 10))}/ngày."
+                StatsUiText.Resource(
+                    R.string.stats_insight_early_warning_first_week,
+                    listOf(ratio, MoneyFormatter.format(Money(initialDailyBudget * 8 / 10))),
+                )
             }
             else -> null
         }
@@ -173,8 +194,8 @@ object StatsInsightsEngine {
                 AiAdviceItem(
                     id = "advice_food",
                     type = "warning",
-                    title = "Cảnh báo ăn uống",
-                    content = "Chi tiêu ăn uống chiếm $percentStr tổng chi tiêu. Hãy thử tự nấu ăn để tiết kiệm!",
+                    title = StatsUiText.Resource(R.string.stats_engine_advice_food_title),
+                    content = StatsUiText.Resource(R.string.stats_engine_advice_food_content, listOf(percentStr)),
                     categoryId = Category.FOOD.id,
                     feedback = feedbacks["advice_food"] ?: 0,
                 )
@@ -194,8 +215,11 @@ object StatsInsightsEngine {
                         AiAdviceItem(
                             id = feedbackKey,
                             type = "warning",
-                            title = "Chuẩn bị tiền đóng phí",
-                            content = "Hóa đơn '${sub.name}' (${MoneyFormatter.format(sub.amount)}) sẽ đến hạn sau vài ngày. Số dư ví hiện không đủ!",
+                            title = StatsUiText.Resource(R.string.stats_engine_advice_bill_title),
+                            content = StatsUiText.Resource(
+                                R.string.stats_engine_advice_bill_content,
+                                listOf(sub.name, MoneyFormatter.format(sub.amount)),
+                            ),
                             feedback = feedbacks[feedbackKey] ?: 0,
                         )
                     )
@@ -212,8 +236,11 @@ object StatsInsightsEngine {
                     AiAdviceItem(
                         id = "advice_spike",
                         type = "warning",
-                        title = "Chi tiêu bất thường",
-                        content = "Hôm nay chi ${MoneyFormatter.format(spentToday)} — gấp $spikeRatio%% trung bình ngày (${MoneyFormatter.format(Money(dailyAvg))}). Kiểm tra lại!",
+                        title = StatsUiText.Resource(R.string.stats_engine_advice_spike_title),
+                        content = StatsUiText.Resource(
+                            R.string.stats_engine_advice_spike_content,
+                            listOf(spikeRatio, MoneyFormatter.format(spentToday), MoneyFormatter.format(Money(dailyAvg))),
+                        ),
                         feedback = feedbacks["advice_spike"] ?: 0,
                     )
                 )
@@ -233,8 +260,11 @@ object StatsInsightsEngine {
                     AiAdviceItem(
                         id = "advice_trend",
                         type = "warning",
-                        title = "Chi tiêu tăng nhanh",
-                        content = "Trung bình ngày tháng này cao hơn %.0f%% so tháng trước. Hãy kiểm soát trước khi quá muộn!".format(changePercent),
+                        title = StatsUiText.Resource(R.string.stats_engine_advice_trend_up_title),
+                        content = StatsUiText.Resource(
+                            R.string.stats_engine_advice_trend_up_content,
+                            listOf("%.0f".format(changePercent)),
+                        ),
                         feedback = feedbacks["advice_trend"] ?: 0,
                     )
                 )
@@ -243,8 +273,11 @@ object StatsInsightsEngine {
                     AiAdviceItem(
                         id = "advice_trend",
                         type = "success",
-                        title = "Tiết kiệm tốt",
-                        content = "Chi tiêu trung bình ngày giảm %.0f%% so tháng trước. Hãy tiếp tục duy trì!".format(-changePercent),
+                        title = StatsUiText.Resource(R.string.stats_engine_advice_trend_down_title),
+                        content = StatsUiText.Resource(
+                            R.string.stats_engine_advice_trend_down_content,
+                            listOf("%.0f".format(-changePercent)),
+                        ),
                         feedback = feedbacks["advice_trend"] ?: 0,
                     )
                 )
@@ -262,8 +295,11 @@ object StatsInsightsEngine {
                     AiAdviceItem(
                         id = "advice_saving",
                         type = "success",
-                        title = "Đang tiết kiệm tốt",
-                        content = "Chi tiêu trung bình chỉ ${currentDailyAverage * 100 / initialDailyBudget}% hạn mức/ngày. Tuyệt vời!",
+                        title = StatsUiText.Resource(R.string.stats_engine_advice_saving_title),
+                        content = StatsUiText.Resource(
+                            R.string.stats_engine_advice_saving_content,
+                            listOf(currentDailyAverage * 100 / initialDailyBudget),
+                        ),
                         feedback = feedbacks["advice_saving"] ?: 0,
                     )
                 )

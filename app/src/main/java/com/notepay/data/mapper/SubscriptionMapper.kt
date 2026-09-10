@@ -3,7 +3,7 @@ package com.notepay.data.mapper
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 class SubscriptionMapper @Inject constructor() {

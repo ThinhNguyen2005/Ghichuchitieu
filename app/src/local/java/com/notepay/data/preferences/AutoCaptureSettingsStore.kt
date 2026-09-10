@@ -19,6 +19,9 @@ data class KnownBankApp(
 )
 
 object KnownBankApps {
+    const val VCB_PACKAGE = "com.VCB"
+    const val VIETINBANK_PACKAGE = "com.vietinbank.ipay"
+    const val MBBANK_PACKAGE = "com.mbmobile"
     const val TPBANK_PACKAGE = "com.tpb.mb.gprsandroid"
 
     // Danh sách hiển thị trực quan trên giao diện ứng dụng (Đã chuẩn hóa & Bổ sung)
@@ -48,12 +51,6 @@ object KnownBankApps {
         KnownBankApp("vn.banvietbank.mobilebanking", "Digimi"),
         KnownBankApp("io.lifestyle.plus", "Timo"),
 
-        // 4. Nhóm Ví điện tử & Trung gian thanh toán
-        KnownBankApp("com.mservice.momotransfer", "MoMo"), // [cite: 19]
-        KnownBankApp("vn.com.vng.zalopay", "ZaloPay"), // [cite: 20]
-        KnownBankApp("com.beeasy.toppay", "ShopeePay"), // [cite: 7]
-        KnownBankApp("vnpay.smartacccount", "VNPay"), // [cite: 49, 50]
-        KnownBankApp("com.viettelpay.android", "Viettel Money") // [cite: 1.2.1]
     )
 
     val apps = displayApps
@@ -88,20 +85,72 @@ object KnownBankApps {
 
     val packages = equivalentPackages.values.flatten().toSet()
 
-    /** Formats verified end-to-end and safe to turn into transactions automatically. */
-    val supportedPrimaryPackages: Set<String> = setOf(TPBANK_PACKAGE)
-    val supportedPackages: Set<String> = supportedPrimaryPackages
-        .flatMap { equivalentPackages[it].orEmpty() }
+    /**
+     * Bank apps that are recognised by the local capture surface.
+     *
+     * This is intentionally based on the configured display list, not a claim that
+     * every Vietnamese bank package is known. New/uncertain bank formats can still
+     * be routed to pending confirmation without being auto-confirmed.
+     */
+    val recognizedBankPrimaryPackages: Set<String> = displayApps
+        .map { it.packageName }
         .toSet()
 
-    fun isSupported(packageName: String): Boolean =
-        getPrimaryPackageName(packageName) in supportedPrimaryPackages
+    /** Bank packages whose transaction templates are currently verified for auto-confirm. */
+    val verifiedPrimaryPackages: Set<String> = setOf(
+        VCB_PACKAGE,
+        VIETINBANK_PACKAGE,
+        MBBANK_PACKAGE,
+        TPBANK_PACKAGE,
+    )
+
+    private val walletPrimaryPackages = setOf(
+        "com.mservice.momotransfer",
+        "vn.com.vng.zalopay",
+        "com.beeasy.toppay",
+        "vnpay.smartacccount",
+        "com.viettelpay.android",
+    )
+
+    private val excludedWalletPackages: Set<String> = walletPrimaryPackages
+        .flatMap { equivalentPackages[it].orEmpty() }
+        .plus("com.sacombank.ewallet")
+        .toSet()
+
+    val recognizedBankPackages: Set<String> = recognizedBankPrimaryPackages
+        .flatMap { equivalentPackages[it].orEmpty() }
+        .filterNot(excludedWalletPackages::contains)
+        .toSet()
+
+    val verifiedPackages: Set<String> = verifiedPrimaryPackages
+        .flatMap { equivalentPackages[it].orEmpty() }
+        .filterNot(excludedWalletPackages::contains)
+        .toSet()
+
+    /**
+     * Compatibility aliases for older callers. "Supported" now means recognised
+     * bank source (including pending-only banks), not verified auto-confirm source.
+     */
+    val supportedPrimaryPackages: Set<String> = recognizedBankPrimaryPackages
+    val supportedPackages: Set<String> = recognizedBankPackages
+
+    fun isRecognized(packageName: String): Boolean =
+        packageName !in excludedWalletPackages &&
+            getPrimaryPackageName(packageName) in recognizedBankPrimaryPackages
+
+    fun isVerified(packageName: String): Boolean =
+        packageName !in excludedWalletPackages &&
+            getPrimaryPackageName(packageName) in verifiedPrimaryPackages
+
+    fun isSupported(packageName: String): Boolean = isRecognized(packageName)
 
     fun normalizeSupportedPackages(packageNames: Iterable<String>): Set<String> =
         packageNames
+            .filter(::isRecognized)
             .map(::getPrimaryPackageName)
-            .filter(supportedPrimaryPackages::contains)
+            .filter(recognizedBankPrimaryPackages::contains)
             .flatMap { equivalentPackages[it].orEmpty() }
+            .filterNot(excludedWalletPackages::contains)
             .toSet()
 
     // Chuyển đổi an toàn mọi định danh phụ/sai lệch về Package chính thức
@@ -161,7 +210,8 @@ class AutoCaptureSettingsStore @Inject constructor(
             )
             val primaryPackageName = KnownBankApps.getPrimaryPackageName(packageName)
             val packagesToModify = KnownBankApps.equivalentPackages[primaryPackageName]
-                ?: listOf(primaryPackageName)
+                ?.filter(KnownBankApps::isRecognized)
+                ?: emptyList()
             preferences[Keys.ENABLED_PACKAGES] = if (enabled && KnownBankApps.isSupported(packageName)) {
                 current + packagesToModify
             } else {

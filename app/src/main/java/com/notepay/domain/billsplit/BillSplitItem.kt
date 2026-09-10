@@ -1,7 +1,7 @@
 package com.notepay.domain.billsplit
 
 import com.notepay.domain.money.Money
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /** Debtor Status */
 enum class BillSplitStatus {

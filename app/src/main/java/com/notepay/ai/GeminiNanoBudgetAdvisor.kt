@@ -1,5 +1,6 @@
 package com.notepay.ai
 
+import android.content.Context
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
@@ -8,6 +9,8 @@ import com.google.mlkit.genai.prompt.generateContentRequest
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.R
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.CancellationException
 import java.text.NumberFormat
@@ -16,7 +19,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class GeminiNanoBudgetAdvisor @Inject constructor() {
+class GeminiNanoBudgetAdvisor @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+) {
     private val model by lazy { Generation.getClient() }
 
     /** Safe preflight for zero-config UI. Unsupported devices simply use statistical analysis. */
@@ -37,19 +42,19 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
             when (model.checkStatus()) {
                 FeatureStatus.UNAVAILABLE -> return fallback(
                     input,
-                    "Thiết bị chưa hỗ trợ Gemini Nano qua Android AICore.",
+                    context.getString(R.string.ai_gemini_unavailable),
                 )
                 FeatureStatus.DOWNLOADABLE -> model.download().collect { status ->
                     if (status is DownloadStatus.DownloadFailed) throw status.e
                 }
                 FeatureStatus.DOWNLOADING -> return fallback(
                     input,
-                    "Gemini Nano đang tải về máy; tạm dùng phân tích thống kê trên thiết bị.",
+                    context.getString(R.string.ai_gemini_downloading),
                 )
                 FeatureStatus.AVAILABLE -> Unit
                 else -> return fallback(
                     input,
-                    "Không xác định được trạng thái Gemini Nano; đang dùng phân tích thống kê trên thiết bị.",
+                    context.getString(R.string.ai_gemini_unknown_status),
                 )
             }
 
@@ -62,17 +67,17 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
             }
             val raw = model.generateContent(request).candidates.firstOrNull()?.text.orEmpty()
             val parsed = AdvisorResponseParser.parse(raw)
-                ?: return fallback(input, "Gemini Nano trả về nội dung không đúng định dạng an toàn.")
+                ?: return fallback(input, context.getString(R.string.ai_gemini_invalid_response))
             BudgetAdvisorResult(
                 title = parsed.title,
                 content = "${parsed.observation} ${parsed.action}",
                 provider = AdvisorProvider.GEMINI_NANO,
-                providerMessage = "Phân tích bởi Gemini Nano ngay trên thiết bị",
+                providerMessage = context.getString(R.string.ai_gemini_provider_message),
             )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Throwable) {
-            fallback(input, "Không thể khởi chạy Gemini Nano; đang dùng phân tích thống kê trên máy.")
+            fallback(input, context.getString(R.string.ai_gemini_start_failed))
         }
     }
 
@@ -138,18 +143,22 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
         val probability = p.overBudgetProbability
         val topCategory = input.categories.maxByOrNull { it.amountInCents }
         val (title, riskText) = when {
-            probability == null -> "Cần đặt định mức" to
-                "Dự báo cuối tháng là ${formatVnd(p.predictedMonthTotalInCents)}, nhưng chưa thể đo rủi ro vượt mức vì bạn chưa đặt định mức."
-            probability >= 0.70 -> "Nguy cơ vượt định mức cao" to
-                "Mô hình ước tính ${(probability * 100).toInt()}% khả năng vượt định mức; khoảng trên có thể đạt ${formatVnd(p.upperBoundInCents)}."
-            probability >= 0.35 -> "Chi tiêu cần theo dõi" to
-                "Khả năng vượt định mức hiện khoảng ${(probability * 100).toInt()}%, với dự báo ${formatVnd(p.predictedMonthTotalInCents)}."
-            else -> "Chi tiêu đang trong tầm kiểm soát" to
-                "Khả năng vượt định mức hiện khoảng ${(probability * 100).toInt()}%, nhưng dự báo vẫn có thể thay đổi theo các ngày tới."
+            probability == null -> context.getString(R.string.ai_fallback_no_budget_title) to
+                context.getString(R.string.ai_fallback_no_budget_content, formatVnd(p.predictedMonthTotalInCents))
+            probability >= 0.70 -> context.getString(R.string.ai_fallback_high_risk_title) to
+                context.getString(R.string.ai_fallback_high_risk_content, (probability * 100).toInt(), formatVnd(p.upperBoundInCents))
+            probability >= 0.35 -> context.getString(R.string.ai_fallback_watch_title) to
+                context.getString(R.string.ai_fallback_watch_content, (probability * 100).toInt(), formatVnd(p.predictedMonthTotalInCents))
+            else -> context.getString(R.string.ai_fallback_controlled_title) to
+                context.getString(R.string.ai_fallback_controlled_content, (probability * 100).toInt())
         }
         val action = topCategory?.let {
-            "Trong 7 ngày tới, hãy theo dõi riêng ${it.name.lowercase(Locale.getDefault())}, hiện chiếm ${(it.share * 100).toInt()}% tổng chi."
-        } ?: "Hãy ghi nhận thêm giao dịch trong 7 ngày tới để tăng độ tin cậy của dự báo."
+            context.getString(
+                R.string.ai_fallback_category_action,
+                it.name.lowercase(Locale.getDefault()),
+                (it.share * 100).toInt(),
+            )
+        } ?: context.getString(R.string.ai_fallback_more_data_action)
         return BudgetAdvisorResult(
             title = title,
             content = "$riskText $action",
@@ -159,7 +168,7 @@ class GeminiNanoBudgetAdvisor @Inject constructor() {
     }
 
     private fun formatVnd(cents: Long): String {
-        val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
+        val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"))
         return "${formatter.format(cents / 100)} ₫"
     }
 }

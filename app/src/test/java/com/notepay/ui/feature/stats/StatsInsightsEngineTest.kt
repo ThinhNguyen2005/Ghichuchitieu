@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.stats
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
@@ -164,7 +165,8 @@ class StatsInsightsEngineTest {
             currentMonthExpense = Money(3_000_000_00),
         )
         assertThat(result.earlyWarning).isNotNull()
-        assertThat(result.earlyWarning).contains("⚠")
+        assertThat((result.earlyWarning as StatsUiText.Resource).resId)
+            .isEqualTo(R.string.stats_insight_early_warning_first_days)
     }
 
     @Test
@@ -179,6 +181,8 @@ class StatsInsightsEngineTest {
             currentMonthExpense = Money(2_000_000_00),
         )
         assertThat(result.earlyWarning).isNotNull()
+        assertThat((result.earlyWarning as StatsUiText.Resource).resId)
+            .isEqualTo(R.string.stats_insight_early_warning_first_week)
     }
 
     @Test

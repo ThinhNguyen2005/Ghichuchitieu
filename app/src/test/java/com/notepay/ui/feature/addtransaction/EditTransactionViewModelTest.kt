@@ -17,6 +17,10 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import kotlin.time.Clock
@@ -24,6 +28,8 @@ import io.mockk.mockk
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "vi")
 class EditTransactionViewModelTest {
 
     @get:Rule
@@ -194,6 +200,7 @@ class EditTransactionViewModelTest {
         val categoryRepository = EditFakeCategoryRepository()
         val suggestCategoryUseCase = mockk<SuggestCategoryUseCase>(relaxed = true)
         return EditTransactionViewModel(
+            context = RuntimeEnvironment.getApplication(),
             savedStateHandle = savedStateHandle,
             transactionRepository = transactionRepository,
             categoryRepository = categoryRepository,

@@ -1,6 +1,8 @@
 package com.notepay.ai
 
+import android.content.Context
 import android.util.Log
+import com.notepay.R
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
@@ -9,12 +11,14 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 /** Zero-config router: Gemini Nano -> imported LiteRT-LM model -> deterministic statistics. */
 @Singleton
 class OnDeviceBudgetAdvisor @Inject constructor(
     private val geminiNano: GeminiNanoBudgetAdvisor,
     private val liteRt: LiteRtBudgetAdvisor,
+    @param:ApplicationContext private val context: Context,
 ) {
     suspend fun availability(): AdvisorAvailability = when {
         geminiNano.isGeminiNanoAvailable() -> AdvisorAvailability.GEMINI_NANO
@@ -40,23 +44,21 @@ class OnDeviceBudgetAdvisor @Inject constructor(
             } catch (error: Throwable) {
                 if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM analysis fell back: ${error.javaClass.simpleName}")
                 return (geminiFallback ?: geminiNano.generate(input)).copy(
-                    providerMessage = "Mô hình AI cục bộ chưa chạy được (${safeReason(error)}); " +
-                        "đang dùng phân tích thống kê trên máy.",
+                    providerMessage = context.getString(R.string.ai_litert_fallback, safeReason(error)),
                 )
             }
         }
 
         return (geminiFallback ?: geminiNano.generate(input)).copy(
-            providerMessage = "Thiết bị không có Gemini Nano và chưa cài mô hình LiteRT-LM; " +
-                "đang dùng phân tích thống kê trên máy.",
+            providerMessage = context.getString(R.string.ai_no_on_device_model),
         )
     }
 
     private fun safeReason(error: Throwable): String = when (error) {
-        is OutOfMemoryError -> "không đủ bộ nhớ"
-        is TimeoutCancellationException -> "mất quá lâu để phản hồi"
-        is IllegalArgumentException -> "mô hình không tương thích"
-        else -> "không thể khởi tạo"
+        is OutOfMemoryError -> context.getString(R.string.ai_reason_insufficient_memory)
+        is TimeoutCancellationException -> context.getString(R.string.ai_reason_timeout)
+        is IllegalArgumentException -> context.getString(R.string.ai_reason_incompatible_model)
+        else -> context.getString(R.string.ai_reason_initialization_failed)
     }
 
     private companion object {

@@ -1,7 +1,7 @@
 package com.notepay.ui.component
 
 import android.graphics.BitmapFactory
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,11 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.TrendingDown
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -142,7 +142,7 @@ fun BalanceCard(
                         if (onClick != null) {
                             Icon(
                                 imageVector = Icons.Rounded.ArrowDropDown,
-                                contentDescription = "Đổi ví",
+                                contentDescription = stringResource(R.string.action_change_wallet),
                                 modifier = Modifier.size(24.dp),
                                 tint = primaryTextColor
                             )
@@ -160,7 +160,7 @@ fun BalanceCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.AddPhotoAlternate,
-                                    contentDescription = "Đổi ảnh nền thẻ",
+                                    contentDescription = stringResource(R.string.action_change_card_background),
                                     modifier = Modifier.size(20.dp),
                                     tint = primaryTextColor.copy(alpha = 0.9f)
                                 )
@@ -182,7 +182,7 @@ fun BalanceCard(
 
                 // Middle: Available Balance với Rolling Number Ticker
                 Text(
-                    text = "Số dư khả dụng",
+                    text = stringResource(R.string.balance_available),
                     style = MaterialTheme.typography.labelMedium,
                     color = secondaryTextColor,
                     fontWeight = FontWeight.Medium
@@ -214,7 +214,7 @@ fun BalanceCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = if (hasCustomBg) Color(0xFF81C784) else MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
@@ -251,7 +251,7 @@ fun BalanceCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingDown,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                                 contentDescription = null,
                                 tint = if (hasCustomBg) Color(0xFFE57373) else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp)
@@ -294,13 +294,20 @@ fun BalanceCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isExceeded) "Đã vượt hạn mức chi tiêu" else "Hạn mức chi tiêu tháng",
+                            text = stringResource(
+                                if (isExceeded) R.string.budget_spending_exceeded else R.string.budget_monthly_limit,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isExceeded) progressColor else secondaryTextColor,
                             fontWeight = if (isExceeded) FontWeight.Bold else FontWeight.Normal
                         )
                         Text(
-                            text = "${(progress * 100).toInt()}% (${MoneyFormatter.format(expense)} / ${MoneyFormatter.format(budgetLimit)})",
+                            text = stringResource(
+                                R.string.budget_progress_format,
+                                (progress * 100).toInt(),
+                                MoneyFormatter.format(expense),
+                                MoneyFormatter.format(budgetLimit),
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = secondaryTextColor,
                             fontWeight = FontWeight.Medium
@@ -333,13 +340,13 @@ fun BalanceCard(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Edit,
-                            contentDescription = "Chỉnh sửa ví",
+                            contentDescription = stringResource(R.string.content_description_edit_wallet),
                             tint = secondaryTextColor,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Chỉnh sửa ví",
+                            text = stringResource(R.string.home_edit_wallet),
                             style = MaterialTheme.typography.labelSmall,
                             color = secondaryTextColor
                         )
@@ -361,7 +368,7 @@ private fun rememberLocalImageBitmap(uriString: String?): ImageBitmap? {
     val bitmapState = produceState<ImageBitmap?>(initialValue = null, key1 = uriString) {
         value = withContext(Dispatchers.IO) {
             try {
-                val uri = Uri.parse(uriString)
+                val uri = uriString.toUri()
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()

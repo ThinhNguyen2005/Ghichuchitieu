@@ -149,7 +149,7 @@ import androidx.compose.material.icons.outlined.Analytics
 
 private data class BottomTab(
     val route: Route,
-    @androidx.annotation.StringRes val labelRes: Int,
+    @param:androidx.annotation.StringRes val labelRes: Int,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 )

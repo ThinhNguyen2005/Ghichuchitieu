@@ -2,7 +2,7 @@ package com.notepay.domain.repository
 
 import com.notepay.domain.model.Subscription
 import kotlinx.coroutines.flow.Flow
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 interface SubscriptionRepository {
     fun observeAll(): Flow<List<Subscription>>

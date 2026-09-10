@@ -17,9 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.content.edit
 
 object ThemeManager {
     var currentThemeColor by mutableStateOf("green")
@@ -32,7 +31,7 @@ object ThemeManager {
     fun updateThemeColor(context: Context, color: String) {
         currentThemeColor = color
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit().putString("theme_color", color).apply()
+        prefs.edit { putString("theme_color", color) }
     }
 }
 
@@ -244,16 +243,16 @@ fun NotePayTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                ?:return@SideEffect
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 window.isNavigationBarContrastEnforced = false
-                window.isStatusBarContrastEnforced = false
             }
-            
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
         }
     }
 

@@ -5,11 +5,13 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
+import androidx.core.content.edit
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LogSeverity
+import com.notepay.R
 import com.notepay.di.IoDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -42,7 +44,7 @@ data class LocalModelState(
 @Singleton
 class LocalAiModelManager @Inject constructor(
     @ApplicationContext context: Context,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val appContext = context.applicationContext
     private val preferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -63,7 +65,7 @@ class LocalAiModelManager @Inject constructor(
 
         try {
             require(Build.SUPPORTED_ABIS.any(SUPPORTED_ABIS::contains)) {
-                "Thiết bị cần kiến trúc 64-bit để chạy mô hình AI cục bộ."
+                appContext.getString(R.string.ai_device_64_bit_required)
             }
 
             val metadata = readMetadata(uri)
@@ -71,15 +73,15 @@ class LocalAiModelManager @Inject constructor(
                     metadata.name.endsWith(".bin", ignoreCase = true) ||
                     metadata.name.endsWith(".tflite", ignoreCase = true)
             require(isSupportedExt) {
-                "Hãy chọn tệp mô hình AI có định dạng .litertlm, .bin hoặc .tflite."
+                appContext.getString(R.string.ai_model_extension_required)
             }
             modelDirectory.mkdirs()
             if (metadata.size != null) {
                 require(metadata.size in MIN_MODEL_BYTES..MAX_MODEL_BYTES) {
-                    "Mô hình phải có dung lượng từ 20 MB đến 1,5 GB."
+                    appContext.getString(R.string.ai_model_size_range)
                 }
                 require(modelDirectory.usableSpace >= metadata.size + STORAGE_HEADROOM_BYTES) {
-                    "Không đủ bộ nhớ trống để cài mô hình AI."
+                    appContext.getString(R.string.ai_model_storage_insufficient)
                 }
             }
 
@@ -93,7 +95,7 @@ class LocalAiModelManager @Inject constructor(
             )
 
             val input = appContext.contentResolver.openInputStream(uri)
-                ?: error("Không thể đọc tệp mô hình đã chọn.")
+                ?: error(appContext.getString(R.string.ai_model_read_error))
             var copiedBytes = 0L
             input.use { source ->
                 tempFile.outputStream().buffered().use { destination ->
@@ -103,7 +105,7 @@ class LocalAiModelManager @Inject constructor(
                         if (count < 0) break
                         copiedBytes += count
                         require(copiedBytes <= MAX_MODEL_BYTES) {
-                            "Mô hình vượt quá giới hạn 1,5 GB."
+                            appContext.getString(R.string.ai_model_size_limit)
                         }
                         destination.write(buffer, 0, count)
                         val expectedSize = metadata.size
@@ -117,31 +119,31 @@ class LocalAiModelManager @Inject constructor(
                 }
             }
             require(copiedBytes >= MIN_MODEL_BYTES) {
-                "Tệp quá nhỏ hoặc không phải mô hình LiteRT-LM hợp lệ."
+                appContext.getString(R.string.ai_model_invalid_file)
             }
 
             validateModel(tempFile)
 
             if (modelFile.exists() && !modelFile.renameTo(backupFile)) {
-                error("Không thể thay thế mô hình đang dùng.")
+                error(appContext.getString(R.string.ai_model_replace_failed))
             }
             if (!tempFile.renameTo(modelFile)) {
                 backupFile.renameTo(modelFile)
-                error("Không thể hoàn tất cài đặt mô hình.")
+                error(appContext.getString(R.string.ai_model_install_failed))
             }
             backupFile.delete()
 
-            preferences.edit()
-                .putString(KEY_DISPLAY_NAME, metadata.name)
-                .putLong(KEY_SIZE_BYTES, copiedBytes)
-                .apply()
+            preferences.edit {
+                putString(KEY_DISPLAY_NAME, metadata.name)
+                putLong(KEY_SIZE_BYTES, copiedBytes)
+            }
 
             val readyState = LocalModelState(
                 status = LocalModelInstallStatus.READY,
                 displayName = metadata.name,
                 sizeBytes = copiedBytes,
                 progress = 1f,
-                message = "Mô hình AI đã sẵn sàng trên thiết bị.",
+                message = appContext.getString(R.string.ai_model_ready),
             )
             _state.value = readyState
             Result.success(readyState)
@@ -158,7 +160,7 @@ class LocalAiModelManager @Inject constructor(
             } ?: LocalModelState(status = LocalModelInstallStatus.ERROR)
             _state.value = restoredState.copy(
                 status = LocalModelInstallStatus.ERROR,
-                message = error.message ?: "Không thể cài mô hình AI cục bộ.",
+                message = error.message ?: appContext.getString(R.string.ai_model_install_failed_generic),
             )
             Result.failure(error)
         }
@@ -167,7 +169,7 @@ class LocalAiModelManager @Inject constructor(
     suspend fun removeModel() = withContext(ioDispatcher) {
         modelFile.delete()
         File(modelDirectory, "backup_model.litertlm").delete()
-        preferences.edit().clear().apply()
+        preferences.edit { clear() }
         _state.value = LocalModelState()
     }
 
@@ -200,7 +202,7 @@ class LocalAiModelManager @Inject constructor(
                 }
             }
             if (!initialized) {
-                throw lastError ?: RuntimeException("Không thể khởi tạo mô hình.")
+                throw lastError ?: RuntimeException(appContext.getString(R.string.ai_model_init_failed))
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -208,9 +210,9 @@ class LocalAiModelManager @Inject constructor(
             if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM validation failed", error)
             val detail = error.localizedMessage?.takeIf { it.isNotBlank() }
             val errorMsg = if (detail != null && !detail.startsWith("Mô hình không chạy")) {
-                "Không thể khởi tạo mô hình ($detail). Vui lòng kiểm tra định dạng tệp .litertlm tương thích."
+                appContext.getString(R.string.ai_model_init_incompatible_format, detail)
             } else {
-                "Mô hình không chạy được trên thiết bị này. Hãy chọn một tệp .litertlm tương thích."
+                appContext.getString(R.string.ai_model_not_supported)
             }
             throw IllegalArgumentException(errorMsg, error)
         }
@@ -220,7 +222,8 @@ class LocalAiModelManager @Inject constructor(
         val file = installedModelFile() ?: return LocalModelState()
         return LocalModelState(
             status = LocalModelInstallStatus.READY,
-            displayName = preferences.getString(KEY_DISPLAY_NAME, null) ?: "Mô hình AI cục bộ",
+            displayName = preferences.getString(KEY_DISPLAY_NAME, null)
+                ?: appContext.getString(R.string.ai_model_display_name),
             sizeBytes = file.length(),
             progress = 1f,
         )
@@ -244,7 +247,8 @@ class LocalAiModelManager @Inject constructor(
             }
         }
         return ModelMetadata(
-            name = name ?: uri.lastPathSegment?.substringAfterLast('/') ?: "model.litertlm",
+            name = name ?: uri.lastPathSegment?.substringAfterLast('/')
+                ?: appContext.getString(R.string.ai_model_default_file_name),
             size = size,
         )
     }

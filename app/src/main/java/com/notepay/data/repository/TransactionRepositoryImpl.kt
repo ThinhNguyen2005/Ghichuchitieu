@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +24,7 @@ class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
     private val mapper: TransactionMapper,
     private val categoryRepository: CategoryRepository,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) : TransactionRepository {
 
     override fun observeAll(): Flow<List<Transaction>> =
@@ -70,9 +71,9 @@ class TransactionRepositoryImpl @Inject constructor(
             val zone = TimeZone.currentSystemDefault()
             val firstDate = LocalDate(year, month, 1)
             val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
-            val first = LocalDateTime(firstDate.year, firstDate.monthNumber, firstDate.dayOfMonth, 0, 0)
+            val first = LocalDateTime(firstDate.year, firstDate.month.number, firstDate.day, 0, 0)
                 .toInstant(zone)
-            val lastExclusive = LocalDateTime(nextMonth.year, nextMonth.monthNumber, nextMonth.dayOfMonth, 0, 0)
+            val lastExclusive = LocalDateTime(nextMonth.year, nextMonth.month.number, nextMonth.day, 0, 0)
                 .toInstant(zone)
             return first.toEpochMilliseconds() to (lastExclusive.toEpochMilliseconds() - 1)
         }

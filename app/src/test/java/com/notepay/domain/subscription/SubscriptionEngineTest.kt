@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Subscription
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import org.junit.Test
 
 class SubscriptionEngineTest {

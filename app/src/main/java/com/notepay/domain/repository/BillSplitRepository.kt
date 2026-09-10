@@ -2,7 +2,7 @@ package com.notepay.domain.repository
 
 import com.notepay.domain.model.BillSplit
 import kotlinx.coroutines.flow.Flow
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 interface BillSplitRepository {
     fun observeAll(): Flow<List<BillSplit>>

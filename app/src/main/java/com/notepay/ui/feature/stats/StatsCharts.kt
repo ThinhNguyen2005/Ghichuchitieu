@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.PieChart
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -56,11 +58,15 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
+internal enum class TrendAxisUnit { THOUSANDS, MILLIONS }
+
 internal data class TrendAxisScale(
     val topInCents: Long,
     val labels: List<Float>,
-    val unitLabel: String,
+    val unit: TrendAxisUnit,
 )
+
+internal enum class ForecastDisplayState { HIDDEN, PROJECTION, REACHED, EXCEEDED }
 
 internal object StatsChartCalculations {
     fun average(values: List<Long>): Long = if (values.isEmpty()) 0L else values.sum() / values.size
@@ -74,7 +80,7 @@ internal object StatsChartCalculations {
         // Therefore, 1.000.000 VND = 100.000.000 cents.
         val isMillions = maxValCents >= 100_000_000L
         val unitDivisor = if (isMillions) 100_000_000f else 100_000f // Divisor to get units in Triệu or Nghìn VND
-        val unitLabel = if (isMillions) "Triệu" else "Nghìn"
+        val unit = if (isMillions) TrendAxisUnit.MILLIONS else TrendAxisUnit.THOUSANDS
 
         val valInUnits = maxValCents.toFloat() / unitDivisor
 
@@ -107,7 +113,7 @@ internal object StatsChartCalculations {
         return TrendAxisScale(
             topInCents = topInCents,
             labels = labels,
-            unitLabel = unitLabel,
+            unit = unit,
         )
     }
 
@@ -118,6 +124,32 @@ internal object StatsChartCalculations {
 
     fun shouldShowForecast(metric: StatsMetric, isSelectedMonthCurrent: Boolean, forecast: Money?): Boolean {
         return metric == StatsMetric.CHI_TIEU && isSelectedMonthCurrent && forecast != null && forecast.amountInCents > 0L
+    }
+
+    fun forecastDisplayState(
+        metric: StatsMetric,
+        isSelectedMonthCurrent: Boolean,
+        actualAmountInCents: Long,
+        forecast: Money?,
+    ): ForecastDisplayState {
+        if (!shouldShowForecast(metric, isSelectedMonthCurrent, forecast)) return ForecastDisplayState.HIDDEN
+
+        return when {
+            forecast!!.amountInCents > actualAmountInCents -> ForecastDisplayState.PROJECTION
+            forecast.amountInCents == actualAmountInCents -> ForecastDisplayState.REACHED
+            else -> ForecastDisplayState.EXCEEDED
+        }
+    }
+
+    fun forecastMarkerFraction(
+        state: ForecastDisplayState,
+        forecast: Money?,
+        axisTopInCents: Long,
+    ): Float? {
+        if (state != ForecastDisplayState.REACHED && state != ForecastDisplayState.EXCEEDED) return null
+        val forecastAmountInCents = forecast?.amountInCents ?: return null
+        if (axisTopInCents <= 0L) return null
+        return (forecastAmountInCents.toFloat() / axisTopInCents).coerceIn(0f, 1f)
     }
 }
 
@@ -341,8 +373,17 @@ internal fun TrendChartContent(
     val values = points.map { point ->
         if (metric == StatsMetric.CHI_TIEU) point.expense.amountInCents else point.income.amountInCents
     }
-    val hasForecast = StatsChartCalculations.shouldShowForecast(metric, isSelectedMonthCurrent, forecast)
+    val forecastDisplayState = StatsChartCalculations.forecastDisplayState(
+        metric = metric,
+        isSelectedMonthCurrent = isSelectedMonthCurrent,
+        actualAmountInCents = values.lastOrNull() ?: 0L,
+        forecast = forecast,
+    )
+    val hasForecast = forecastDisplayState != ForecastDisplayState.HIDDEN
     val axisScale = StatsChartCalculations.trendAxisScale(values, if (hasForecast) forecast else null)
+    val unitLabel = stringResource(
+        if (axisScale.unit == TrendAxisUnit.MILLIONS) R.string.stats_unit_millions else R.string.stats_unit_thousands,
+    )
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f)
 
     Column(
@@ -356,7 +397,7 @@ internal fun TrendChartContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "(${axisScale.unitLabel})",
+                text = "($unitLabel)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
@@ -391,7 +432,7 @@ internal fun TrendChartContent(
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 axisScale.labels.forEach { value ->
-                    val labelText = if (axisScale.unitLabel == "Triệu") "%.1f".format(value) else "%.0f".format(value)
+                    val labelText = if (axisScale.unit == TrendAxisUnit.MILLIONS) "%.1f".format(value) else "%.0f".format(value)
                     Text(
                         text = labelText,
                         style = MaterialTheme.typography.labelSmall,
@@ -437,6 +478,15 @@ internal fun TrendChartContent(
                         } else {
                             null
                         }
+                        val forecastMarkerFraction = if (isCurrent) {
+                            StatsChartCalculations.forecastMarkerFraction(
+                                state = forecastDisplayState,
+                                forecast = forecast,
+                                axisTopInCents = axisScale.topInCents,
+                            )
+                        } else {
+                            null
+                        }
 
                         Box(
                             modifier = Modifier
@@ -454,7 +504,7 @@ internal fun TrendChartContent(
                                 contentAlignment = Alignment.BottomCenter,
                             ) {
                                 // Faded projection column (Vùng mờ dự đoán tiêu - chạm đỉnh forecast)
-                                if (forecastFraction != null && forecastFraction > valueFraction) {
+                                if (forecastDisplayState == ForecastDisplayState.PROJECTION && forecastFraction != null) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -471,6 +521,22 @@ internal fun TrendChartContent(
                                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                                         .background(chartColor),
                                 )
+                                if (forecastMarkerFraction != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(forecastMarkerFraction),
+                                        contentAlignment = Alignment.TopCenter,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(.82f)
+                                                .height(3.dp)
+                                                .clip(CircleShape)
+                                                .background(chartColor.copy(alpha = 0.85f)),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -507,14 +573,36 @@ internal fun TrendChartContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(chartColor.copy(alpha = 0.25f)),
-                )
+                when (forecastDisplayState) {
+                    ForecastDisplayState.PROJECTION -> Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(chartColor.copy(alpha = 0.25f)),
+                    )
+                    ForecastDisplayState.REACHED -> Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = chartColor,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    ForecastDisplayState.EXCEEDED -> Icon(
+                        imageVector = Icons.Rounded.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    ForecastDisplayState.HIDDEN -> Unit
+                }
                 Text(
-                    text = stringResource(R.string.stats_forecast_legend),
+                    text = stringResource(
+                        when (forecastDisplayState) {
+                            ForecastDisplayState.PROJECTION -> R.string.stats_forecast_legend
+                            ForecastDisplayState.REACHED -> R.string.stats_forecast_reached
+                            ForecastDisplayState.EXCEEDED -> R.string.stats_forecast_exceeded
+                            ForecastDisplayState.HIDDEN -> R.string.stats_forecast_legend
+                        },
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

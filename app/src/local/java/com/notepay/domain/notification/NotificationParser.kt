@@ -3,12 +3,21 @@ package com.notepay.domain.notification
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
 
+enum class NotificationAmountSource {
+    BANK_POSTED_TRANSACTION,
+    WALLET_PAYMENT,
+    UNKNOWN,
+}
+
 data class ParsedNotification(
     val amount: Money,
     val type: TransactionType,
     val note: String,
     /** Package name của app g\u1eedi th\u00f4ng b\u00e1o (ng\u00e2n h\u00e0ng/v\u00ed). D\u00f9ng \u0111\u1ec3 nh\u1eadn bi\u1ebft ngu\u1ed3n chuy\u1ec3n kho\u1ea3n n\u1ed9i b\u1ed9. */
     val sourcePackage: String = "",
+    val amountSource: NotificationAmountSource = NotificationAmountSource.UNKNOWN,
+    val hasExplicitDirection: Boolean = false,
+    val hasTransactionContext: Boolean = false,
 )
 
 object NotificationParser {
@@ -16,9 +25,9 @@ object NotificationParser {
     /** Số tiền lớn nhất (đơn vị VND) còn nhân được với 100 mà không tràn Long. */
     private const val MAX_MAJOR_UNITS = Long.MAX_VALUE / 100L
 
-    // Regex trích xuất ngân hàng chung: GD +100,000 VND hoặc GD -50,000VND hoặc PS: +100,000VND
+    // Chỉ nhận số tiền sau trường giao dịch. Không nhận số sau SD/Số dư/Phí.
     private val BANK_TRANSACTION_REGEX = Regex(
-        """(?:GD|Giao dịch|PS)\s*:?\s*([+-])\s*([0-9.,\s]+)\s*(?:VND|đ)""",
+        """(?:^|[\n|:])\s*(?:Số\s+tiền\s*(?:GD|giao\s+dịch)|Giao\s+dịch|GD|PS)\s*:?\s*([+-])?\s*([0-9.,\s]+)\s*(?:VND|đ)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -34,7 +43,7 @@ object NotificationParser {
 
     // Regex trích xuất nội dung giao dịch (nằm sau ND: hoặc lời nhắn)
     private val NOTE_REGEX = Regex(
-        """(?:ND|nội dung|lời nhắn|cho|từ)\s*:\s*(.*)""",
+        """(?:ND|nội dung(?:\s+GD)?|lời nhắn|cho|từ)\s*:\s*(.*)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -46,12 +55,21 @@ object NotificationParser {
         // 1. Phân tích thông báo ngân hàng dạng chung (GD +100.000 VND hoặc GD -50.000 đ)
         val bankMatch = BANK_TRANSACTION_REGEX.find(normalizedBody)
         if (bankMatch != null) {
-            val sign = bankMatch.groupValues[1]
+            val sign = bankMatch.groupValues[1].takeIf { it.isNotBlank() }
             val amountStr = bankMatch.groupValues[2]
             val amount = parseAmount(amountStr) ?: return null
-            val type = if (sign == "+") TransactionType.INCOME else TransactionType.EXPENSE
+            val type = sign?.let {
+                if (it == "+") TransactionType.INCOME else TransactionType.EXPENSE
+            } ?: inferType(normalizedBody) ?: return null
             val note = extractNote(normalizedBody) ?: title ?: "Giao dịch ngân hàng"
-            return ParsedNotification(amount, type, note)
+            return ParsedNotification(
+                amount = amount,
+                type = type,
+                note = note,
+                amountSource = NotificationAmountSource.BANK_POSTED_TRANSACTION,
+                hasExplicitDirection = sign != null,
+                hasTransactionContext = hasTransactionContext(title, normalizedBody),
+            )
         }
 
         // 2. Phân tích thông báo Momo chi tiêu / thanh toán
@@ -60,7 +78,14 @@ object NotificationParser {
             val amountStr = momoPayMatch.groupValues[1]
             val amount = parseAmount(amountStr) ?: return null
             val note = extractNote(normalizedBody) ?: "Momo thanh toán"
-            return ParsedNotification(amount, TransactionType.EXPENSE, note)
+            return ParsedNotification(
+                amount = amount,
+                type = TransactionType.EXPENSE,
+                note = note,
+                amountSource = NotificationAmountSource.WALLET_PAYMENT,
+                hasExplicitDirection = true,
+                hasTransactionContext = true,
+            )
         }
 
         // 3. Phân tích thông báo Momo nhận tiền
@@ -69,7 +94,14 @@ object NotificationParser {
             val amountStr = momoReceiveMatch.groupValues[1]
             val amount = parseAmount(amountStr) ?: return null
             val note = extractNote(normalizedBody) ?: "Momo nhận tiền"
-            return ParsedNotification(amount, TransactionType.INCOME, note)
+            return ParsedNotification(
+                amount = amount,
+                type = TransactionType.INCOME,
+                note = note,
+                amountSource = NotificationAmountSource.WALLET_PAYMENT,
+                hasExplicitDirection = true,
+                hasTransactionContext = true,
+            )
         }
 
         return null
@@ -106,6 +138,24 @@ object NotificationParser {
         }
 
         return null
+    }
+
+    private fun inferType(body: String): TransactionType? {
+        val lower = body.lowercase()
+        return when {
+            listOf("nhận", "nhan", "ghi có", "ghi co", "tiền vào", "tien vao").any(lower::contains) ->
+                TransactionType.INCOME
+            listOf("chuyển", "chuyen", "thanh toán", "thanh toan", "ghi nợ", "ghi no", "tiền ra", "tien ra")
+                .any(lower::contains) -> TransactionType.EXPENSE
+            else -> null
+        }
+    }
+
+    private fun hasTransactionContext(title: String?, body: String): Boolean {
+        val source = listOfNotNull(title, body).joinToString(" ")
+        return Regex(
+            """(?i)(TKTT|TK|tài khoản|tai khoan|ngày|ngay|thời gian|thoi gian|nội dung|noi dung|ND|số dư|so du|SD|mã GD|ma GD|SO GD)""",
+        ).containsMatchIn(source)
     }
 }
 

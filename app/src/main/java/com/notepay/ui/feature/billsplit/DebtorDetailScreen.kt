@@ -2,6 +2,7 @@ package com.notepay.ui.feature.billsplit
 
 import com.notepay.ui.theme.AppTheme
 
+import android.content.ClipData
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -24,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -31,7 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.BuildConfig
@@ -49,6 +52,7 @@ import java.util.Locale
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -556,12 +560,20 @@ private fun TransferDetailsCopyCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
     val copyBankMessage = stringResource(R.string.feedback_copy_bank)
     val copyAccountNumberMessage = stringResource(R.string.feedback_copy_account_number)
     val copyAccountNameMessage = stringResource(R.string.feedback_copy_account_name)
     val copyAmountMessage = stringResource(R.string.feedback_copy_amount_format, amountRaw)
     val copyMemoMessage = stringResource(R.string.feedback_copy_memo)
+
+    fun copyToClipboard(text: String, feedbackMessage: String) {
+        coroutineScope.launch {
+            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("NotePay", text)))
+            Toast.makeText(context, feedbackMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -574,28 +586,23 @@ private fun TransferDetailsCopyCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
             CopyableDetailRow(label = stringResource(R.string.transfer_bank), value = bankName.uppercase(Locale.ROOT), onCopy = {
-                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(bankName))
-                Toast.makeText(context, copyBankMessage, Toast.LENGTH_SHORT).show()
+                copyToClipboard(bankName, copyBankMessage)
             })
 
             CopyableDetailRow(label = stringResource(R.string.transfer_account_number), value = accountNumber, onCopy = {
-                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(accountNumber))
-                Toast.makeText(context, copyAccountNumberMessage, Toast.LENGTH_SHORT).show()
+                copyToClipboard(accountNumber, copyAccountNumberMessage)
             })
 
             CopyableDetailRow(label = stringResource(R.string.transfer_account_name), value = accountName.uppercase(Locale.ROOT), onCopy = {
-                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(accountName))
-                Toast.makeText(context, copyAccountNameMessage, Toast.LENGTH_SHORT).show()
+                copyToClipboard(accountName, copyAccountNameMessage)
             })
 
             CopyableDetailRow(label = stringResource(R.string.transfer_amount), value = amountStr, valueColor = MaterialTheme.colorScheme.error, onCopy = {
-                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(amountRaw))
-                Toast.makeText(context, copyAmountMessage, Toast.LENGTH_SHORT).show()
+                copyToClipboard(amountRaw, copyAmountMessage)
             })
 
             CopyableDetailRow(label = stringResource(R.string.transfer_memo), value = memoCode, valueColor = MaterialTheme.colorScheme.primary, onCopy = {
-                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(memoCode))
-                Toast.makeText(context, copyMemoMessage, Toast.LENGTH_SHORT).show()
+                copyToClipboard(memoCode, copyMemoMessage)
             })
         }
     }

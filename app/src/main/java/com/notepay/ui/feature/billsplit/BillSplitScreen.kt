@@ -24,9 +24,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ReceiptLong
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.CallReceived
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
@@ -60,7 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Money
@@ -71,8 +71,9 @@ import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 @Suppress("UNUSED_PARAMETER")
@@ -122,7 +123,7 @@ fun BillSplitScreen(
     val emptyPaid = stringResource(R.string.bill_split_empty_paid)
     val vietqrSavedFormat = stringResource(R.string.bill_split_vietqr_saved)
     val confirmDeleteTitle = stringResource(R.string.confirm_delete_bill_title)
-    val confirmDeleteMessageFormat = stringResource(R.string.confirm_delete_permanent)
+    val confirmDeleteMessageFormat = stringResource(R.string.dialog_delete_confirm_format)
     val linkedBankLabel = stringResource(R.string.bank_linked)
 
     Scaffold(
@@ -137,7 +138,7 @@ fun BillSplitScreen(
                                 modifier = Modifier.size(48.dp),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.ArrowBack,
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                     contentDescription = stringResource(R.string.billsplit_cd_back),
                                 )
                             }
@@ -272,7 +273,7 @@ fun BillSplitScreen(
                         ) {
                             EmptyStateWithAction(
                                 title = emptyTitle,
-                                icon = Icons.Outlined.ReceiptLong,
+                                icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
@@ -281,40 +282,70 @@ fun BillSplitScreen(
                     items(unpaidGroups, key = { it.key }) { (debtorName, splits) ->
                         val totalAmountCents = splits.sumOf { it.split.amount.amountInCents }
                         val amountStr = MoneyFormatter.format(Money(totalAmountCents)).replace("\u00A0", "").replace(" ", "").replace("₫", "đ")
+                        val qrWallet = state.activeWallet
+                        val qrBankBin = qrWallet?.bankBin
+                        val qrAccountNumber = qrWallet?.accountNumber
+                        val hasQr = qrWallet != null && qrBankBin != null && qrAccountNumber != null
+                        val qrMemoCode = if (hasQr) {
+                            "NP " + debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim().uppercase()
+                        } else {
+                            ""
+                        }
+                        val qrUrl = if (hasQr) {
+                            VietQrGenerator.generateImageUrl(
+                                bankBin = qrBankBin!!,
+                                accountNumber = qrAccountNumber!!,
+                                amountCents = totalAmountCents,
+                                memo = qrMemoCode,
+                                accountName = qrWallet?.accountName,
+                            )
+                        } else {
+                            ""
+                        }
+                        val bankName = if (hasQr) {
+                            state.banks.find { it.bin == qrBankBin }?.shortName ?: linkedBankLabel
+                        } else {
+                            ""
+                        }
+                        val shareWithQrMessage = if (hasQr) {
+                            stringResource(
+                                R.string.billsplit_share_with_qr_format,
+                                debtorName,
+                                amountStr,
+                                bankName,
+                                qrAccountNumber.orEmpty(),
+                                qrWallet?.accountName.orEmpty(),
+                                qrMemoCode,
+                                qrUrl,
+                            )
+                        } else {
+                            null
+                        }
+                        val shareWithoutQrMessage = stringResource(
+                            R.string.billsplit_share_without_qr_format,
+                            debtorName,
+                            amountStr,
+                        )
+                        val sharePaymentRequestTitle = stringResource(R.string.billsplit_share_payment_request)
+                        val shareQuickTitle = stringResource(R.string.billsplit_share_quick)
                         DebtorGroupRow(
                             debtorName = debtorName,
                             totalAmountCents = totalAmountCents,
                             splitCount = splits.size,
                             onClick = { onDebtorClick(debtorName) },
                             onShare = {
-                                val qrWallet = state.activeWallet
-                                if (qrWallet?.bankBin != null && qrWallet.accountNumber != null) {
-                                    val memoCode = "NP " + debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim().uppercase()
-                                    val qrUrl = VietQrGenerator.generateImageUrl(
-                                        bankBin = qrWallet.bankBin,
-                                        accountNumber = qrWallet.accountNumber,
-                                        amountCents = totalAmountCents,
-                                        memo = memoCode,
-                                        accountName = qrWallet.accountName,
-                                    )
-                                    val bankName = state.banks.find { it.bin == qrWallet.bankBin }?.shortName
-                                        ?: linkedBankLabel
-                                    val shareMessage = "Chào $debtorName, vui lòng chuyển $amountStr đến $bankName - ${qrWallet.accountNumber} (${qrWallet.accountName.orEmpty()}). Nội dung: $memoCode\nQR: $qrUrl"
-                                    val intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, shareMessage)
-                                        type = "text/plain"
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Chia sẻ yêu cầu thanh toán"))
+                                val shareMessage = shareWithQrMessage ?: shareWithoutQrMessage
+                                val chooserTitle = if (shareWithQrMessage != null) {
+                                    sharePaymentRequestTitle
                                 } else {
-                                    val shareMessage = "Chào $debtorName, bạn có khoản cần thanh toán là $amountStr."
-                                    val intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, shareMessage)
-                                        type = "text/plain"
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Chia sẻ nhanh"))
+                                    shareQuickTitle
                                 }
+                                val intent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, shareMessage)
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(intent, chooserTitle))
                             }
                         )
                     }
@@ -466,7 +497,7 @@ private fun BillSplitOverview(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.CallReceived,
+                    imageVector = Icons.AutoMirrored.Rounded.CallReceived,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -605,7 +636,7 @@ private fun DebtorGroupRow(
         ) {
             Icon(
                 imageVector = Icons.Rounded.Share,
-                contentDescription = "Chia sẻ nhanh",
+                contentDescription = stringResource(R.string.billsplit_share_quick),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp),
             )
@@ -657,7 +688,7 @@ private fun PaidBillSplitRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${split.debtorName} đã thanh toán",
+                    text = stringResource(R.string.billsplit_paid_by_format, split.debtorName),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
@@ -665,7 +696,7 @@ private fun PaidBillSplitRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "$note · ${formatInstantDayMonth(split.paidAt)}",
+                    text = stringResource(R.string.billsplit_paid_note_format, note, formatInstantDayMonth(split.paidAt)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -687,7 +718,7 @@ private fun PaidBillSplitRow(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Delete,
-                        contentDescription = "Xóa khoản đã thu của ${split.debtorName}",
+                        contentDescription = stringResource(R.string.billsplit_delete_paid_format, split.debtorName),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp),
                     )
@@ -701,7 +732,7 @@ private fun formatInstantDayMonth(instant: Instant?): String {
     if (instant == null) return ""
     val tz = TimeZone.currentSystemDefault()
     val localDateTime = instant.toLocalDateTime(tz)
-    val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = localDateTime.monthNumber.toString().padStart(2, '0')
+    val day = localDateTime.day.toString().padStart(2, '0')
+    val month = localDateTime.month.number.toString().padStart(2, '0')
     return "$day/$month"
 }

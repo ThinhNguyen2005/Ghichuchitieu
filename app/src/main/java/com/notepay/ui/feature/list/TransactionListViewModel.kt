@@ -135,7 +135,7 @@ class TransactionListViewModel internal constructor(
                 if (result.isSuccess) {
                     it.copy(pendingUndoTransaction = transaction, errorMessage = null)
                 } else {
-                    val message = "Không thể xóa giao dịch"
+                    val message = getString(R.string.feedback_transaction_delete_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
                     it.copy(errorMessage = message)
                 }
@@ -164,10 +164,10 @@ class TransactionListViewModel internal constructor(
             val result = addTransaction(transaction.copy(id = 0L))
             actionState.update {
                 if (result.isSuccess) {
-                    _feedback.tryEmit(UiFeedback("Đã khôi phục giao dịch", type = FeedbackType.Success))
+                    _feedback.tryEmit(UiFeedback(getString(R.string.feedback_transaction_restored), type = FeedbackType.Success))
                     it.copy(pendingUndoTransaction = null, errorMessage = null)
                 } else {
-                    val message = "Không thể khôi phục giao dịch"
+                    val message = getString(R.string.feedback_transaction_restore_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
                     it.copy(errorMessage = message)
                 }

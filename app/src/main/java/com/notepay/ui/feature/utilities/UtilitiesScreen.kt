@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,7 +48,7 @@ fun UtilitiesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tiện ích") }
+                title = { Text(stringResource(R.string.utilities_title)) }
             )
         },
         modifier = modifier.fillMaxSize()
@@ -61,7 +61,7 @@ fun UtilitiesScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Công cụ phụ trợ",
+                text = stringResource(R.string.utilities_tools_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -69,9 +69,9 @@ fun UtilitiesScreen(
 
             // Card 1: Chia tiền nhóm
             UtilityCard(
-                icon = Icons.Outlined.CallSplit,
+                icon = Icons.AutoMirrored.Outlined.CallSplit,
                 title = stringResource(R.string.bill_split_title),
-                description = "Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.",
+                description = stringResource(R.string.utilities_bill_split_description),
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onNavigateToBillSplit
             )
@@ -80,7 +80,7 @@ fun UtilitiesScreen(
             UtilityCard(
                 icon = Icons.Outlined.NotificationsActive,
                 title = stringResource(R.string.utilities_reminder_title),
-                description = "Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm...), tự động thông báo trước ngày hết hạn.",
+                description = stringResource(R.string.utilities_subscription_description),
                 color = MaterialTheme.colorScheme.secondary,
                 onClick = onNavigateToSubscription
             )

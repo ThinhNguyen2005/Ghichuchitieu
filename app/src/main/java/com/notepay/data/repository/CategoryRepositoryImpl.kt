@@ -1,6 +1,8 @@
 package com.notepay.data.repository
 
+import android.annotation.SuppressLint
 import android.content.Context
+import androidx.core.content.edit
 import com.notepay.domain.model.Category
 import com.notepay.domain.repository.CategoryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -12,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class CategoryRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : CategoryRepository {
 
     private val prefs = context.getSharedPreferences("notepay_custom_categories", Context.MODE_PRIVATE)
@@ -54,16 +56,17 @@ class CategoryRepositoryImpl @Inject constructor(
         val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
         ids.add(category.id)
         
-        prefs.edit()
-            .putStringSet("custom_category_ids", ids)
-            .putString("custom_category_${category.id}_name", category.displayName)
-            .putLong("custom_category_${category.id}_color", category.colorArgb)
-            .putBoolean("custom_category_${category.id}_is_income", category.isIncome)
-            .putString("custom_category_${category.id}_icon", category.iconId)
-            .apply()
+        prefs.edit {
+            putStringSet("custom_category_ids", ids)
+            putString("custom_category_${category.id}_name", category.displayName)
+            putLong("custom_category_${category.id}_color", category.colorArgb)
+            putBoolean("custom_category_${category.id}_is_income", category.isIncome)
+            putString("custom_category_${category.id}_icon", category.iconId)
+        }
             
         loadAndRegister()
     }
+    @SuppressLint("UseKtx") // KTX edit(commit = true) cannot preserve commit()'s Boolean failure check.
     suspend fun replaceCustomCategories(categories: List<Category>) {
         val previousIds = prefs.getStringSet("custom_category_ids", emptySet()).orEmpty()
         val editor = prefs.edit()

@@ -27,8 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -129,11 +129,11 @@ fun VietQrConfigSheet(
                             playHaptic()
                             isPickingBank = false
                         }) {
-                            Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Chọn ngân hàng",
+                            stringResource(R.string.billsplit_choose_bank),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f)
@@ -143,7 +143,7 @@ fun VietQrConfigSheet(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Tìm kiếm ngân hàng…") },
+                        placeholder = { Text(stringResource(R.string.billsplit_search_bank)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Rounded.Search,
@@ -204,7 +204,7 @@ fun VietQrConfigSheet(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "Không tìm thấy ngân hàng",
+                                        stringResource(R.string.billsplit_bank_not_found),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -237,7 +237,7 @@ fun VietQrConfigSheet(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                "Ví: ${wallet.name}",
+                                stringResource(R.string.billsplit_wallet_format, wallet.name),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -270,7 +270,7 @@ fun VietQrConfigSheet(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                "Mã QR nhận tiền sẽ được tạo tự động khi chia hóa đơn. Thông tin tài khoản cần chính xác để hiển thị đúng mã chuyển tiền.",
+                        stringResource(R.string.billsplit_qr_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 16.sp
@@ -279,7 +279,7 @@ fun VietQrConfigSheet(
                     }
 
                     Text(
-                        "Ngân hàng nhận",
+                        stringResource(R.string.billsplit_receiving_bank),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -307,7 +307,7 @@ fun VietQrConfigSheet(
                             Spacer(Modifier.size(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = selectedBank?.shortName ?: "Chọn ngân hàng",
+                                    text = selectedBank?.shortName ?: stringResource(R.string.billsplit_choose_bank_short),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -331,8 +331,8 @@ fun VietQrConfigSheet(
                     OutlinedTextField(
                         value = accountNumber,
                         onValueChange = { accountNumber = it.filter(Char::isDigit) },
-                        label = { Text("Số tài khoản nhận") },
-                        placeholder = { Text("VD: 0123456789") },
+                        label = { Text(stringResource(R.string.billsplit_account_number_label)) },
+                        placeholder = { Text(stringResource(R.string.billsplit_account_number_placeholder)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.CreditCard,
@@ -356,7 +356,7 @@ fun VietQrConfigSheet(
                         value = accountName,
                         onValueChange = { accountName = stripAccents(it) },
                         label = { Text(stringResource(R.string.transfer_account_name)) },
-                        placeholder = { Text("NGUYEN VAN A") },
+                        placeholder = { Text(stringResource(R.string.billsplit_account_name_placeholder)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Person,
@@ -367,7 +367,7 @@ fun VietQrConfigSheet(
                         singleLine = true,
                         supportingText = {
                             Text(
-                                "Nhập tiếng Việt in hoa, không dấu (khớp với tài khoản ngân hàng)",
+                                stringResource(R.string.billsplit_account_name_hint),
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
@@ -400,7 +400,7 @@ fun VietQrConfigSheet(
                     ) {
                         Icon(Icons.Rounded.Check, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
-                        Text("Lưu cấu hình", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.billsplit_save_config), fontWeight = FontWeight.SemiBold)
                     }
 
                     Spacer(Modifier.height(16.dp))

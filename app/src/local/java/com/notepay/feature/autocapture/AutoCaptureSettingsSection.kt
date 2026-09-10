@@ -23,16 +23,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AutoCaptureSettings
 import com.notepay.data.preferences.AutoCaptureSettingsStore
 import com.notepay.data.preferences.KnownBankApps
+import com.notepay.R
 import com.notepay.ui.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -85,16 +87,16 @@ private fun AutoCaptureSettingsSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Tự động ghi từ thông báo",
+                text = stringResource(R.string.autocapture_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
                 text = if (settings.autoCaptureEnabled) {
-                    "Chỉ xử lý thông báo từ ứng dụng đã được kiểm chứng."
+                    stringResource(R.string.autocapture_enabled_description)
                 } else {
-                    "Bật để NotePay có thể tự động ghi nhận giao dịch từ thông báo ngân hàng."
+                    stringResource(R.string.autocapture_disabled_description)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -115,7 +117,7 @@ private fun AutoCaptureSettingsSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Bật tự động ghi",
+                    text = stringResource(R.string.autocapture_enable_label),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -139,11 +141,11 @@ private fun AutoCaptureSettingsSection(
                 },
                 shape = AppTheme.shapes.corner16,
             ) {
-                Text("Cấp quyền đọc thông báo")
+                Text(stringResource(R.string.autocapture_permission_action))
             }
             HorizontalDivider()
             Text(
-                text = "Ứng dụng ngân hàng",
+                text = stringResource(R.string.autocapture_banks_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -168,9 +170,13 @@ private fun AutoCaptureSettingsSection(
                         )
                         Text(
                             text = if (isSupported) {
-                                if (isEnabled) "Đang nhận diện" else "Đã tắt"
+                                if (isEnabled) {
+                                    stringResource(R.string.autocapture_status_detecting)
+                                } else {
+                                    stringResource(R.string.autocapture_status_disabled)
+                                }
                             } else {
-                                "Chưa được hỗ trợ"
+                                stringResource(R.string.autocapture_status_unsupported)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

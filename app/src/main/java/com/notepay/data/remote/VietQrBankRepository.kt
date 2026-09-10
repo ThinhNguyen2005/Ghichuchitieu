@@ -14,7 +14,7 @@ import org.json.JSONObject
  */
 @Singleton
 class VietQrBankRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
 
     @Volatile

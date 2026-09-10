@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import com.notepay.R
+import com.notepay.data.preferences.NotificationCaptureStore
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -32,6 +34,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var subscriptionRepository: com.notepay.domain.repository.SubscriptionRepository
+
+    @Inject
+    lateinit var notificationCaptureStore: NotificationCaptureStore
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -49,6 +54,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             "com.notepay.ACTION_SAVE_TRANSACTION" -> {
+                val pendingId = intent.getStringExtra("pending_id")
+                if (!pendingId.isNullOrBlank()) {
+                    handlePendingDecision(context, notificationManager, notificationId, pendingId, approved = true)
+                    return
+                }
                 val amountCents = intent.getLongExtra("amount_cents", 0L)
                 val typeStr = intent.getStringExtra("type") ?: return
                 val note = intent.getStringExtra("note") ?: ""
@@ -92,6 +102,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             }
             "com.notepay.ACTION_IGNORE_TRANSACTION" -> {
+                val pendingId = intent.getStringExtra("pending_id")
+                if (!pendingId.isNullOrBlank()) {
+                    handlePendingDecision(context, notificationManager, notificationId, pendingId, approved = false)
+                    return
+                }
                 if (notificationId != -1) {
                     notificationManager.cancel(notificationId)
                 }
@@ -134,6 +149,57 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 if (notificationId != -1) {
                     notificationManager.cancel(notificationId)
                 }
+            }
+        }
+    }
+
+    private fun handlePendingDecision(
+        context: Context,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+        pendingId: String,
+        approved: Boolean,
+    ) {
+        val pendingResult = goAsync()
+        receiverScope.launch {
+            try {
+                val pending = notificationCaptureStore.takePending(pendingId)
+                if (pending == null) {
+                    if (notificationId != -1) notificationManager.cancel(notificationId)
+                    return@launch
+                }
+                if (!approved) {
+                    notificationCaptureStore.recordDecision(pending.fingerprint, approved = false)
+                    toast(context, context.getString(R.string.autocapture_pending_ignored))
+                    if (notificationId != -1) notificationManager.cancel(notificationId)
+                    return@launch
+                }
+
+                val category = suggestCategoryUseCase.suggest(
+                    pending.note,
+                    pending.type == TransactionType.INCOME,
+                )
+                val transaction = Transaction(
+                    id = 0L,
+                    amount = Money(pending.amountCents),
+                    type = pending.type,
+                    category = category,
+                    note = pending.note,
+                    occurredAt = Instant.fromEpochMilliseconds(pending.createdAtMillis),
+                    walletId = pending.walletId,
+                    isAutoCapture = true,
+                )
+                val result = runCatching { addTransaction(transaction) }.getOrNull()
+                if (result?.isSuccess == true) {
+                    notificationCaptureStore.recordDecision(pending.fingerprint, approved = true)
+                    toast(context, context.getString(R.string.autocapture_pending_confirmed))
+                    if (notificationId != -1) notificationManager.cancel(notificationId)
+                } else {
+                    notificationCaptureStore.savePending(pending)
+                    toast(context, context.getString(R.string.autocapture_save_error))
+                }
+            } finally {
+                pendingResult.finish()
             }
         }
     }

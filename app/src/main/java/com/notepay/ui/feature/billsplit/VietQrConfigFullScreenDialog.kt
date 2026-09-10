@@ -27,8 +27,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CreditCard
@@ -140,12 +140,12 @@ private fun VietQrDialogHeader(step: VietQrStep, onBack: () -> Unit, onDismiss: 
     Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         if (step == VietQrStep.EnterAccount) {
             IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Rounded.ArrowBack, contentDescription = "Chọn lại ngân hàng")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.billsplit_choose_bank_again))
             }
         } else Spacer(Modifier.width(48.dp))
         StepIndicator(step, Modifier.weight(1f))
         IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Rounded.Close, contentDescription = "Đóng cấu hình VietQR")
+            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.billsplit_close_config))
         }
     }
 }
@@ -157,7 +157,7 @@ private fun StepIndicator(step: VietQrStep, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         StepDot("1", stringResource(R.string.transfer_bank), true, active)
         Box(Modifier.weight(1f).height(2.dp).background(if (step == VietQrStep.EnterAccount) active else inactive))
-        StepDot("2", "Tài khoản", step == VietQrStep.EnterAccount, active)
+        StepDot("2", stringResource(R.string.billsplit_account_step), step == VietQrStep.EnterAccount, active)
     }
 }
 
@@ -188,20 +188,20 @@ private fun BankSelectionStep(banks: List<VietQrBank>, selectedBank: VietQrBank?
         }
     }
     Column(Modifier.fillMaxSize()) {
-        Text("Chọn ngân hàng nhận tiền", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Chọn ngân hàng để tiếp tục cấu hình VietQR.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.billsplit_choose_receiving_bank), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.billsplit_choose_bank_to_continue), Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp),
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-            label = { Text("Tìm tên hoặc mã ngân hàng") },
+            label = { Text(stringResource(R.string.billsplit_search_bank_name_code)) },
             singleLine = true,
             shape = AppTheme.shapes.corner16,
         )
         if (filteredBanks.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Không tìm thấy ngân hàng phù hợp.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.billsplit_bank_not_found_compatible), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else LazyColumn(
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -246,8 +246,8 @@ private fun AccountDetailsStep(
     onSave: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Thông tin nhận tiền", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Ví: $walletName", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.billsplit_receiving_info), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.billsplit_wallet_format, walletName), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(
             modifier = Modifier.fillMaxWidth().clickable(onClick = onChangeBank),
             shape = AppTheme.shapes.corner16,
@@ -257,17 +257,17 @@ private fun AccountDetailsStep(
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BankLogo(bank?.logoUrl, Modifier.size(40.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(bank?.shortName ?: "Chưa chọn ngân hàng", fontWeight = FontWeight.Bold)
+                    Text(bank?.shortName ?: stringResource(R.string.billsplit_no_bank_selected), fontWeight = FontWeight.Bold)
                     Text(bank?.name.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
-                Text("Đổi", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.billsplit_change), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
         OutlinedTextField(
             value = accountNumber,
             onValueChange = onAccountNumberChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Số tài khoản nhận") },
+            label = { Text(stringResource(R.string.billsplit_account_number_label)) },
             leadingIcon = { Icon(Icons.Rounded.CreditCard, contentDescription = null) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
@@ -278,7 +278,7 @@ private fun AccountDetailsStep(
             onValueChange = onAccountNameChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.transfer_account_name)) },
-            supportingText = { Text("Tên được chuẩn hóa thành CHỮ IN HOA không dấu.") },
+            supportingText = { Text(stringResource(R.string.billsplit_account_name_normalized)) },
             leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
             singleLine = true,
             shape = AppTheme.shapes.corner16,
@@ -293,7 +293,7 @@ private fun AccountDetailsStep(
         ) {
             Icon(Icons.Rounded.QrCode2, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Lưu cấu hình VietQR", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.bill_split_vietqr_config_title), fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -13,6 +13,7 @@ import com.google.zxing.BinaryBitmap
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
+import com.notepay.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -34,15 +35,16 @@ data class LocalImageScanResult(
  */
 @Singleton
 class LocalTransactionImageScanner @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     fun scan(uri: Uri): LocalImageScanResult {
-        val bitmap = decodeBitmap(uri) ?: return LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
+        val bitmap = decodeBitmap(uri)
+            ?: return LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         val vietQrAmount = bitmap?.let(::extractVietQrAmount)
         if (vietQrAmount != null) {
             return LocalImageScanResult(
                 amountInput = vietQrAmount.toString(),
-                message = "Đã đọc số tiền từ mã VietQR. Hãy kiểm tra trước khi lưu.",
+                message = context.getString(R.string.image_scan_vietqr_success),
                 source = LocalImageScanResult.Source.VIET_QR,
             )
         }
@@ -62,7 +64,7 @@ class LocalTransactionImageScanner @Inject constructor(
                     val majorUnits = result.amount.amountInCents / 100L
                     LocalImageScanResult(
                         amountInput = majorUnits.toString(),
-                        message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
+                        message = context.getString(R.string.image_scan_ocr_success),
                         source = LocalImageScanResult.Source.OCR,
                     )
                 }
@@ -72,16 +74,16 @@ class LocalTransactionImageScanner @Inject constructor(
                     if (fallbackAmount != null) {
                         LocalImageScanResult(
                             amountInput = fallbackAmount.toString(),
-                            message = "Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.",
+                            message = context.getString(R.string.image_scan_ocr_success),
                             source = LocalImageScanResult.Source.OCR,
                         )
                     } else {
-                        LocalImageScanResult(message = "Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.")
+                        LocalImageScanResult(message = context.getString(R.string.image_scan_amount_not_found))
                     }
                 }
             }
         } catch (_: Throwable) {
-            LocalImageScanResult(message = "Không thể đọc ảnh này. Hãy thử ảnh screenshot rõ hơn.")
+            LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         } finally {
             recognizer.close()
         }

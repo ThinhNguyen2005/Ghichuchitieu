@@ -3,7 +3,7 @@ package com.notepay.domain.subscription
 import com.notepay.domain.model.Subscription
 import kotlin.time.Clock
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus

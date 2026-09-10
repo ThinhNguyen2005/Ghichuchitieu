@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +28,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
@@ -39,8 +41,8 @@ import com.notepay.ui.theme.AppTheme
 
 private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"
 
-private fun formatModelSize(sizeBytes: Long): String {
-    if (sizeBytes <= 0L) return "không rõ dung lượng"
+private fun formatModelSize(sizeBytes: Long, unknownSize: String): String {
+    if (sizeBytes <= 0L) return unknownSize
     val mb = sizeBytes / (1024.0 * 1024.0)
     return if (mb >= 1024.0) {
         "%.1f GB".format(mb / 1024.0)
@@ -80,13 +82,13 @@ private fun LocalAiModelSettingsCard(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "AI cục bộ",
+                        stringResource(R.string.settings_local_ai_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        "Dùng khi Gemini Nano không khả dụng. NotePay chỉ nhập file đã tải, xử lý offline hoàn toàn.",
+                        stringResource(R.string.settings_local_ai_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -122,10 +124,14 @@ private fun LocalAiModelSettingsCard(
                         Text(
                             text = when (localModel.status) {
                                 LocalModelInstallStatus.READY ->
-                                    localModel.displayName ?: "Mô hình AI cục bộ"
-                                LocalModelInstallStatus.IMPORTING -> "Đang cài mô hình"
-                                LocalModelInstallStatus.ERROR -> "Chưa cài được mô hình"
-                                LocalModelInstallStatus.NOT_INSTALLED -> "Chưa có mô hình"
+                                    localModel.displayName
+                                        ?: stringResource(R.string.settings_local_ai_status_model)
+                                LocalModelInstallStatus.IMPORTING ->
+                                    stringResource(R.string.settings_local_ai_status_importing)
+                                LocalModelInstallStatus.ERROR ->
+                                    stringResource(R.string.settings_local_ai_status_error)
+                                LocalModelInstallStatus.NOT_INSTALLED ->
+                                    stringResource(R.string.settings_local_ai_status_not_installed)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
@@ -135,11 +141,17 @@ private fun LocalAiModelSettingsCard(
                         Text(
                             text = when {
                                 localModel.status == LocalModelInstallStatus.READY ->
-                                    "Đã lưu trong bộ nhớ riêng · ${formatModelSize(localModel.sizeBytes)}"
+                                    stringResource(
+                                        R.string.settings_local_ai_saved_format,
+                                        formatModelSize(
+                                            localModel.sizeBytes,
+                                            stringResource(R.string.settings_local_ai_unknown_size),
+                                        ),
+                                    )
                                 localModel.status == LocalModelInstallStatus.IMPORTING ->
-                                    "Đang sao chép vào bộ nhớ riêng của ứng dụng"
+                                    stringResource(R.string.settings_local_ai_copying)
                                 localModel.message != null -> localModel.message.orEmpty()
-                                else -> "Chỉ chọn tệp .litertlm từ danh sách tương thích chính thức."
+                                else -> stringResource(R.string.settings_local_ai_choose_file_hint)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -177,12 +189,12 @@ private fun LocalAiModelSettingsCard(
                     shape = AppTheme.shapes.corner12
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Trang tải")
+                    Text(stringResource(R.string.settings_local_ai_download_page))
                 }
                 Button(
                     onClick = onPickModel,
@@ -196,7 +208,15 @@ private fun LocalAiModelSettingsCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(if (localModel.status == LocalModelInstallStatus.READY) "Đổi model" else "Chọn file")
+                    Text(
+                        stringResource(
+                            if (localModel.status == LocalModelInstallStatus.READY) {
+                                R.string.settings_local_ai_change_model
+                            } else {
+                                R.string.settings_local_ai_choose_file
+                            },
+                        ),
+                    )
                 }
             }
 
@@ -213,7 +233,7 @@ private fun LocalAiModelSettingsCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Xóa mô hình khỏi máy")
+                    Text(stringResource(R.string.settings_local_ai_remove))
                 }
             }
         }
@@ -287,7 +307,7 @@ fun AppSettingsScreen(
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse(DEFAULT_LOCAL_MODEL_PAGE)
+                                DEFAULT_LOCAL_MODEL_PAGE.toUri()
                             )
                         )
                     },
@@ -381,14 +401,17 @@ fun AppSettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Nhắc nhở ghi chép mỗi tối",
+                                stringResource(R.string.settings_daily_reminder_title),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                if (dailyReminderEnabled) "Thông báo lúc 20:30 tối nếu trong ngày chưa ghi chép chi tiêu."
-                                else "Đang tắt thông báo nhắc nhở.",
+                                if (dailyReminderEnabled) {
+                                    stringResource(R.string.settings_daily_reminder_enabled)
+                                } else {
+                                    stringResource(R.string.settings_daily_reminder_disabled)
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -461,16 +484,16 @@ private fun ThemeSettingsCard(
 
     val themeOptions = remember {
         listOf(
-            Triple("dynamic", "Dynamic Color", Color(0xFF6750A4)),
-            Triple("ios", "iOS (Trắng/Đen)", Color(0xFF1C1C1E)),
-            Triple("green", "Xanh lá", Color(0xFF1B7F4F)),
-            Triple("blue", "Xanh dương", Color(0xFF1976D2)),
-            Triple("red", "Đỏ hồng", Color(0xFFC2185B)),
-            Triple("orange", "Cam", Color(0xFFE65100)),
-            Triple("teal", "Xanh ngọc", Color(0xFF00796B)),
-            Triple("gold", "Vàng", Color(0xFF8A6600)),
-            Triple("brown", "Nâu", Color(0xFF8D4F38)),
-            Triple("gray", "Xám", Color(0xFF566066)),
+            Triple("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
+            Triple("ios", R.string.theme_ios, Color(0xFF1C1C1E)),
+            Triple("green", R.string.theme_green, Color(0xFF1B7F4F)),
+            Triple("blue", R.string.theme_blue, Color(0xFF1976D2)),
+            Triple("red", R.string.theme_red, Color(0xFFC2185B)),
+            Triple("orange", R.string.theme_orange, Color(0xFFE65100)),
+            Triple("teal", R.string.theme_teal, Color(0xFF00796B)),
+            Triple("gold", R.string.theme_gold, Color(0xFF8A6600)),
+            Triple("brown", R.string.theme_brown, Color(0xFF8D4F38)),
+            Triple("gray", R.string.theme_gray, Color(0xFF566066)),
         )
     }
 
@@ -497,13 +520,13 @@ private fun ThemeSettingsCard(
                 )
                 Column {
                     Text(
-                        "Màu sắc chủ đề",
+                        stringResource(R.string.settings_theme_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        "Chọn tông màu giao diện bạn muốn sử dụng",
+                        stringResource(R.string.settings_theme_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -515,7 +538,7 @@ private fun ThemeSettingsCard(
                 contentPadding = PaddingValues(vertical = 4.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(themeOptions, key = { it.first }) { (key, label, color) ->
+                items(themeOptions, key = { it.first }) { (key, labelRes, color) ->
                     val isSelected = currentTheme == key
                     val isDynamicOption = key == "dynamic"
                     val isIosOption = key == "ios"
@@ -528,7 +551,7 @@ private fun ThemeSettingsCard(
                         },
                         label = {
                             Text(
-                                text = label,
+                                text = stringResource(labelRes),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )

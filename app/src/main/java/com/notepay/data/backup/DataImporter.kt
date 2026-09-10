@@ -2,12 +2,14 @@ package com.notepay.data.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.content.edit
 import androidx.room.withTransaction
 import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
+import com.notepay.R
 import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.data.local.entity.TransactionEntity
@@ -30,7 +32,7 @@ class DataImporter @Inject constructor(
     private val subscriptionDao: SubscriptionDao,
     private val categoryRepository: CategoryRepositoryImpl,
     private val budgetSettingsStore: BudgetSettingsStore,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -41,11 +43,11 @@ class DataImporter @Inject constructor(
                 val count = stream.read(buffer)
                 if (count < 0) break
                 totalBytes += count
-                require(totalBytes <= MAX_BACKUP_BYTES) { "File sao lưu vượt quá 20 MB." }
+            require(totalBytes <= MAX_BACKUP_BYTES) { context.getString(R.string.backup_size_limit) }
                 output.write(buffer, 0, count)
             }
             output.toString(Charsets.UTF_8.name())
-        } ?: throw Exception("Không thể đọc file")
+        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
     }
 
     /**
@@ -55,7 +57,7 @@ class DataImporter @Inject constructor(
     suspend fun importFromJson(jsonString: String) {
         val root = JSONObject(jsonString)
         val version = root.optInt("version", 0)
-        require(version <= BACKUP_VERSION) { "Phiên bản backup không tương thích: v$version" }
+        require(version <= BACKUP_VERSION) { context.getString(R.string.backup_version_incompatible, version) }
 
         val data = root.getJSONObject("data")
         validateBackupData(data)
@@ -163,8 +165,8 @@ class DataImporter @Inject constructor(
         val transactions = data.getJSONArray("transactions")
         for (index in 0 until wallets.length()) {
             val wallet = wallets.getJSONObject(index)
-            require(wallet.getLong("id") >= 0L) { "Ví trong bản sao lưu không hợp lệ." }
-            require(wallet.getString("name").isNotBlank()) { "Tên ví không được để trống." }
+            require(wallet.getLong("id") >= 0L) { context.getString(R.string.backup_invalid_wallet) }
+            require(wallet.getString("name").isNotBlank()) { context.getString(R.string.backup_empty_wallet_name) }
             wallet.getLong("initialBalanceCents")
             wallet.getString("iconKey")
             wallet.getString("colorKey")
@@ -173,10 +175,10 @@ class DataImporter @Inject constructor(
         }
         for (index in 0 until transactions.length()) {
             val transaction = transactions.getJSONObject(index)
-            require(transaction.getLong("id") >= 0L) { "Giao dịch trong bản sao lưu không hợp lệ." }
-            require(transaction.getLong("amountCents") >= 0L) { "Số tiền giao dịch không hợp lệ." }
-            require(transaction.getString("type").isNotBlank()) { "Loại giao dịch không hợp lệ." }
-            require(transaction.getString("category").isNotBlank()) { "Danh mục giao dịch không hợp lệ." }
+            require(transaction.getLong("id") >= 0L) { context.getString(R.string.backup_invalid_transaction) }
+            require(transaction.getLong("amountCents") >= 0L) { context.getString(R.string.backup_invalid_amount) }
+            require(transaction.getString("type").isNotBlank()) { context.getString(R.string.backup_invalid_type) }
+            require(transaction.getString("category").isNotBlank()) { context.getString(R.string.backup_invalid_category) }
             transaction.getString("note")
             transaction.getLong("occurredAt")
             transaction.getLong("walletId")
@@ -208,29 +210,29 @@ class DataImporter @Inject constructor(
             }
         }
         require(categories.all { it.id.isNotBlank() && it.displayName.isNotBlank() }) {
-            "Danh mục tùy chỉnh trong bản sao lưu không hợp lệ."
+            context.getString(R.string.backup_invalid_custom_categories)
         }
         require(categories.distinctBy { it.id }.size == categories.size) {
-            "Danh mục tùy chỉnh trong bản sao lưu bị trùng mã."
+            context.getString(R.string.backup_duplicate_custom_categories)
         }
         return categories
     }
 
     private suspend fun importPreferences(prefsObj: JSONObject) {
         val settingsPrefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        settingsPrefs.edit()
-            .putString("theme_color", prefsObj.optString("themeColor", "green"))
-            .putString("theme_custom_color", prefsObj.optString("themeCustomColor", "#1B7F4F"))
-            .commit()
+        settingsPrefs.edit(commit = true) {
+            putString("theme_color", prefsObj.optString("themeColor", "green"))
+            putString("theme_custom_color", prefsObj.optString("themeCustomColor", "#1B7F4F"))
+        }
 
         if (prefsObj.has("categoryHabits")) {
             val habitsObj = prefsObj.getJSONObject("categoryHabits")
             val habitsPrefs = context.getSharedPreferences("notepay_category_habits", Context.MODE_PRIVATE)
-            val editor = habitsPrefs.edit()
-            for (key in habitsObj.keys()) {
-                editor.putInt(key, habitsObj.getInt(key))
+            habitsPrefs.edit(commit = true) {
+                for (key in habitsObj.keys()) {
+                    putInt(key, habitsObj.getInt(key))
+                }
             }
-            editor.commit()
         }
     }
 

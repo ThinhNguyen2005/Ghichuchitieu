@@ -6,6 +6,7 @@ import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
+import com.notepay.R
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
@@ -30,7 +31,7 @@ class DataExporter @Inject constructor(
     private val subscriptionDao: SubscriptionDao,
     private val categoryRepository: CategoryRepositoryImpl,
     private val budgetSettingsStore: BudgetSettingsStore,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     suspend fun exportToJson(): String {
         val wallets = walletDao.getAll()
@@ -79,7 +80,7 @@ class DataExporter @Inject constructor(
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
             BufferedReader(InputStreamReader(stream)).readText()
-        } ?: throw Exception("Không thể đọc file")
+        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
     }
 
     private fun backupToJson(backup: BackupPackage): String {

@@ -1,10 +1,12 @@
 package com.notepay.ui.feature.stats
 
 import android.content.Context
+import androidx.core.content.edit
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.repository.TransactionRepository
+import com.notepay.R
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.model.Category
@@ -36,8 +38,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
@@ -50,7 +53,7 @@ class StatsViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val walletRepo: WalletRepository,
     private val subscriptionRepo: SubscriptionRepository,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val budgetAdvisor: OnDeviceBudgetAdvisor,
     private val localModelManager: LocalAiModelManager,
 ) : ViewModel() {
@@ -110,7 +113,7 @@ class StatsViewModel @Inject constructor(
     }
 
     fun sendAdviceFeedback(adviceId: String, score: Int) {
-        advicePrefs.edit().putInt(adviceId, score).apply()
+        advicePrefs.edit { putInt(adviceId, score) }
         _adviceFeedbacks.update { current ->
             current.toMutableMap().apply { this[adviceId] = score }
         }
@@ -142,14 +145,14 @@ class StatsViewModel @Inject constructor(
                 val monday = todayDate.minus(DatePeriod(days = daysToSubtract))
                 val sunday = monday.plus(DatePeriod(days = 6))
                 
-                val start = LocalDateTime(monday.year, monday.monthNumber, monday.dayOfMonth, 0, 0)
+                val start = LocalDateTime(monday.year, monday.month.number, monday.day, 0, 0)
                     .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(sunday.year, sunday.monthNumber, sunday.dayOfMonth, 23, 59, 59, 999000000)
+                val end = LocalDateTime(sunday.year, sunday.month.number, sunday.day, 23, 59, 59, 999000000)
                     .toInstant(zone).toEpochMilliseconds()
                 start to end
             }
             TimeFilterType.QUARTER -> {
-                val currentMonthNum = now.monthNumber
+                val currentMonthNum = now.month.number
                 val startMonth = ((currentMonthNum - 1) / 3) * 3 + 1
                 val endMonth = startMonth + 2
                 val startLocalDate = LocalDate(now.year, startMonth, 1)
@@ -159,18 +162,18 @@ class StatsViewModel @Inject constructor(
                     val nextQuarterFirstDate = LocalDate(now.year, endMonth + 1, 1)
                     nextQuarterFirstDate.minus(DatePeriod(days = 1))
                 }
-                val start = LocalDateTime(startLocalDate.year, startLocalDate.monthNumber, startLocalDate.dayOfMonth, 0, 0)
+                val start = LocalDateTime(startLocalDate.year, startLocalDate.month.number, startLocalDate.day, 0, 0)
                     .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(endLocalDate.year, endLocalDate.monthNumber, endLocalDate.dayOfMonth, 23, 59, 59, 999000000)
+                val end = LocalDateTime(endLocalDate.year, endLocalDate.month.number, endLocalDate.day, 23, 59, 59, 999000000)
                     .toInstant(zone).toEpochMilliseconds()
                 start to end
             }
             TimeFilterType.YEAR -> {
                 val startLocalDate = LocalDate(now.year, 1, 1)
                 val endLocalDate = LocalDate(now.year, 12, 31)
-                val start = LocalDateTime(startLocalDate.year, startLocalDate.monthNumber, startLocalDate.dayOfMonth, 0, 0)
+                val start = LocalDateTime(startLocalDate.year, startLocalDate.month.number, startLocalDate.day, 0, 0)
                     .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(endLocalDate.year, endLocalDate.monthNumber, endLocalDate.dayOfMonth, 23, 59, 59, 999000000)
+                val end = LocalDateTime(endLocalDate.year, endLocalDate.month.number, endLocalDate.day, 23, 59, 59, 999000000)
                     .toInstant(zone).toEpochMilliseconds()
                 start to end
             }
@@ -179,31 +182,38 @@ class StatsViewModel @Inject constructor(
                 if (range != null) {
                     range.first to range.second
                 } else {
-                    getMonthRange(now.year, now.monthNumber)
+                    getMonthRange(now.year, now.month.number)
                 }
             }
         }
 
         // 2. Tạo date range label hiển thị trên UI
         val dateRangeLabel = when (timeFilter) {
-            TimeFilterType.MONTH -> "Tháng %02d/%d".format(monthYear.month, monthYear.year)
+            TimeFilterType.MONTH -> context.getString(R.string.stats_date_month_format, monthYear.month, monthYear.year)
             TimeFilterType.WEEK -> {
                 val instantStart = Instant.fromEpochMilliseconds(startMillis)
                 val instantEnd = Instant.fromEpochMilliseconds(endMillis)
                 val dtStart = instantStart.toLocalDateTime(zone)
                 val dtEnd = instantEnd.toLocalDateTime(zone)
-                "Tuần này (%02d/%02d - %02d/%02d)".format(
-                    dtStart.dayOfMonth, dtStart.monthNumber,
-                    dtEnd.dayOfMonth, dtEnd.monthNumber
+                context.getString(
+                    R.string.stats_date_week_format,
+                    dtStart.day,
+                    dtStart.month.number,
+                    dtEnd.day,
+                    dtEnd.month.number,
                 )
             }
             TimeFilterType.QUARTER -> {
-                val q = (now.monthNumber - 1) / 3 + 1
-                "Quý $q (%d)".format(now.year)
+                val q = (now.month.number - 1) / 3 + 1
+                context.getString(R.string.stats_date_quarter_format, q, now.year)
             }
-            TimeFilterType.YEAR -> "Năm %d".format(now.year)
+            TimeFilterType.YEAR -> context.getString(R.string.stats_date_year_format, now.year)
             TimeFilterType.CUSTOM -> {
-                "%s - %s".format(formatEpochMillis(startMillis), formatEpochMillis(endMillis))
+                context.getString(
+                    R.string.stats_date_range_format,
+                    formatEpochMillis(startMillis),
+                    formatEpochMillis(endMillis),
+                )
             }
         }
 
@@ -261,7 +271,7 @@ class StatsViewModel @Inject constructor(
         val selectedWallet = wallets.find { it.id == selectedWalletId }
 
         // 6. Tính toán hạn mức (Budget Progress)
-        val currentMonthStartEnd = getMonthRange(now.year, now.monthNumber)
+        val currentMonthStartEnd = getMonthRange(now.year, now.month.number)
         val currentMonthTxs = allTransactions.filter {
             val txMillis = it.occurredAt.toEpochMilliseconds()
             txMillis >= currentMonthStartEnd.first && txMillis <= currentMonthStartEnd.second
@@ -286,7 +296,7 @@ class StatsViewModel @Inject constructor(
 
         // 7. Dự báo chi tiêu cuối tháng (Forecast)
         val isViewingCurrentMonth = timeFilter == TimeFilterType.MONTH &&
-                monthYear.year == now.year && monthYear.month == now.monthNumber
+                monthYear.year == now.year && monthYear.month == now.month.number
         
         val prediction = if (isViewingCurrentMonth) {
             val dailyExpenses = allTransactions.asSequence()
@@ -301,7 +311,7 @@ class StatsViewModel @Inject constructor(
             SpendingForecastEngine.forecast(
                 expenses = dailyExpenses,
                 today = now.date,
-                daysInMonth = getDaysInMonth(now.year, now.monthNumber),
+                daysInMonth = getDaysInMonth(now.year, now.month.number),
                 budgetLimitInCents = limit?.amountInCents,
             )
         } else null
@@ -310,12 +320,19 @@ class StatsViewModel @Inject constructor(
             val dailyAvgStr = MoneyFormatter.format(Money(value.dailyRunRateInCents))
             val projectedSpendStr = MoneyFormatter.format(Money(value.predictedMonthTotalInCents))
             val probabilityText = value.overBudgetProbability?.let {
-                " Khả năng vượt định mức khoảng ${(it * 100).toInt()}%."
+                context.getString(R.string.stats_forecast_probability_suffix, (it * 100).toInt())
             }.orEmpty()
             BudgetForecast(
                 dailyAverage = Money(value.dailyRunRateInCents),
                 projectedSpend = Money(value.predictedMonthTotalInCents),
-                forecastMessage = "Nhịp chi gần đây $dailyAvgStr/ngày; dự báo cuối tháng khoảng $projectedSpendStr.$probabilityText",
+                forecastMessage = StatsUiText.Plain(
+                    context.getString(
+                        R.string.stats_forecast_message,
+                        dailyAvgStr,
+                        projectedSpendStr,
+                        probabilityText,
+                    ),
+                ),
                 isProjectedToExceed = limit != null && value.predictedMonthTotalInCents > limit.amountInCents,
                 trendPercent = value.trendVsPreviousMonth?.times(100)?.toFloat(),
                 prediction = value,
@@ -323,12 +340,12 @@ class StatsViewModel @Inject constructor(
         }
 
         // 8. Tính toán Dynamic Daily Budget
-        val daysInMonth = getDaysInMonth(now.year, now.monthNumber)
-        val currentDay = now.dayOfMonth.coerceIn(1, daysInMonth)
+        val daysInMonth = getDaysInMonth(now.year, now.month.number)
+        val currentDay = now.day.coerceIn(1, daysInMonth)
 
-        val todayStart = LocalDateTime(now.year, now.monthNumber, currentDay, 0, 0)
+        val todayStart = LocalDateTime(now.year, now.month.number, currentDay, 0, 0)
             .toInstant(zone).toEpochMilliseconds()
-        val todayEnd = LocalDateTime(now.year, now.monthNumber, currentDay, 23, 59, 59, 999000000)
+        val todayEnd = LocalDateTime(now.year, now.month.number, currentDay, 23, 59, 59, 999000000)
             .toInstant(zone).toEpochMilliseconds()
 
         val spentToday = currentMonthTxs.filter {
@@ -418,8 +435,8 @@ class StatsViewModel @Inject constructor(
                     AiAdviceItem(
                         id = "advice_food",
                         type = "warning",
-                        title = "Cảnh báo ăn uống",
-                        content = "Chi tiêu ăn uống của bạn chiếm $percentStr tổng chi tiêu tháng này. Hãy thử tự nấu ăn tại nhà để tiết kiệm chi phí nhé!",
+                        title = StatsUiText.Plain(context.getString(R.string.stats_advice_food_title)),
+                        content = StatsUiText.Plain(context.getString(R.string.stats_advice_food_content, percentStr)),
                         categoryId = Category.FOOD.id,
                         feedback = feedbacks["advice_food"] ?: 0
                     )
@@ -440,8 +457,14 @@ class StatsViewModel @Inject constructor(
                             AiAdviceItem(
                                 id = feedbackKey,
                                 type = "warning",
-                                title = "Chuẩn bị tiền đóng phí",
-                                content = "Hóa đơn '${sub.name}' (${MoneyFormatter.format(sub.amount)}) sẽ đến hạn sau vài ngày nữa. Số dư ví hiện tại không đủ, bạn hãy bổ sung tiền nhé!",
+                                title = StatsUiText.Plain(context.getString(R.string.stats_advice_bill_title)),
+                                content = StatsUiText.Plain(
+                                    context.getString(
+                                        R.string.stats_advice_bill_content,
+                                        sub.name,
+                                        MoneyFormatter.format(sub.amount),
+                                    ),
+                                ),
                                 feedback = feedbacks[feedbackKey] ?: 0
                             )
                         )
@@ -463,8 +486,8 @@ class StatsViewModel @Inject constructor(
                         AiAdviceItem(
                             id = "advice_saving",
                             type = "success",
-                            title = "Tiêu dùng thông minh",
-                            content = "Thật tuyệt vời! Bạn đang chi tiêu rất tiết kiệm (trung bình chỉ bằng 85% hạn mức ngày an toàn). Hãy tiếp tục duy trì thói quen tốt này nhé!",
+                            title = StatsUiText.Plain(context.getString(R.string.stats_advice_saving_title)),
+                            content = StatsUiText.Plain(context.getString(R.string.stats_advice_saving_content)),
                             feedback = feedbacks["advice_saving"] ?: 0
                         )
                     )
@@ -504,7 +527,7 @@ class StatsViewModel @Inject constructor(
             val monthTransactions = allTransactions.asSequence().filter { transaction ->
                 val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
                 (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
-                    localDateTime.year == trendYear && localDateTime.monthNumber == trendMonth
+                    localDateTime.year == trendYear && localDateTime.month.number == trendMonth
             }
             val trendExpense = monthTransactions
                 .filter { it.type == TransactionType.EXPENSE }
@@ -514,7 +537,7 @@ class StatsViewModel @Inject constructor(
                     val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
                     (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
                         localDateTime.year == trendYear &&
-                        localDateTime.monthNumber == trendMonth &&
+                        localDateTime.month.number == trendMonth &&
                         transaction.type == TransactionType.INCOME
                 }
                 .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
@@ -645,7 +668,7 @@ class StatsViewModel @Inject constructor(
 
     fun onNextMonth() {
         val current = currentMonthYear.value
-        if (current.year == now.year && current.month == now.monthNumber) return
+        if (current.year == now.year && current.month == now.month.number) return
         currentMonthYear.update { current ->
             if (current.month == 12) {
                 MonthYear(current.year + 1, 1)
@@ -658,7 +681,7 @@ class StatsViewModel @Inject constructor(
     /** Select a historical trend bar without navigating away from the statistics screen. */
     fun selectMonth(year: Int, month: Int) {
         val candidate = MonthYear(year, month)
-        val latest = MonthYear(now.year, now.monthNumber)
+        val latest = MonthYear(now.year, now.month.number)
         if (candidate.year > latest.year || (candidate.year == latest.year && candidate.month > latest.month)) return
         currentMonthYear.value = candidate
         _timeFilter.value = TimeFilterType.MONTH
@@ -674,9 +697,9 @@ class StatsViewModel @Inject constructor(
         val zone = TimeZone.currentSystemDefault()
         val firstDate = LocalDate(year, month, 1)
         val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
-        val first = LocalDateTime(firstDate.year, firstDate.monthNumber, firstDate.dayOfMonth, 0, 0)
+        val first = LocalDateTime(firstDate.year, firstDate.month.number, firstDate.day, 0, 0)
             .toInstant(zone)
-        val lastExclusive = LocalDateTime(nextMonth.year, nextMonth.monthNumber, nextMonth.dayOfMonth, 0, 0)
+        val lastExclusive = LocalDateTime(nextMonth.year, nextMonth.month.number, nextMonth.day, 0, 0)
             .toInstant(zone)
         return first.toEpochMilliseconds() to (lastExclusive.toEpochMilliseconds() - 1)
     }
@@ -684,7 +707,7 @@ class StatsViewModel @Inject constructor(
     private fun formatEpochMillis(millis: Long): String {
         val instant = Instant.fromEpochMilliseconds(millis)
         val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        return "%02d/%02d/%d".format(dt.dayOfMonth, dt.monthNumber, dt.year)
+        return "%02d/%02d/%d".format(dt.day, dt.month.number, dt.year)
     }
 
     private fun getDaysInMonth(year: Int, month: Int): Int {

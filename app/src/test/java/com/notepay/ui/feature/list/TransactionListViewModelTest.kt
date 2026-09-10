@@ -172,6 +172,7 @@ class TransactionListViewModelTest {
             when (resId) {
                 R.string.transaction_deleted -> "Đã xóa giao dịch"
                 R.string.feedback_undo -> "Hoàn tác"
+                R.string.feedback_transaction_restored -> "Đã khôi phục giao dịch"
                 else -> error("Unexpected string resource: $resId")
             }
         }

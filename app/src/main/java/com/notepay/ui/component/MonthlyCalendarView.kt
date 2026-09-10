@@ -110,7 +110,7 @@ fun MonthlyCalendarView(
                 )
             }
             Text(
-                text = "Tháng $month / $year",
+                text = stringResource(R.string.calendar_month_year_format, month, year),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -127,7 +127,15 @@ fun MonthlyCalendarView(
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            val daysOfWeek = listOf("Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN")
+            val daysOfWeek = listOf(
+                stringResource(R.string.calendar_weekday_monday),
+                stringResource(R.string.calendar_weekday_tuesday),
+                stringResource(R.string.calendar_weekday_wednesday),
+                stringResource(R.string.calendar_weekday_thursday),
+                stringResource(R.string.calendar_weekday_friday),
+                stringResource(R.string.calendar_weekday_saturday),
+                stringResource(R.string.calendar_weekday_sunday),
+            )
             daysOfWeek.forEachIndexed { index, day ->
                 val textColor = when (index) {
                     5 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)

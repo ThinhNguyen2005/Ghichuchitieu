@@ -1,7 +1,7 @@
 package com.notepay.domain.model
 
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * Gói đăng ký / nhắc nhở gia hạn định kỳ.

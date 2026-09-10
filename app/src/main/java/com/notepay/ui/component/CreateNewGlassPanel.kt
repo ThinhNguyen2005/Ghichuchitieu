@@ -4,9 +4,9 @@ import com.notepay.ui.theme.AppTheme
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,7 +73,7 @@ fun BoxScope.CreateNewGlassPanel(
     }
 
     if (visibility.currentState || visibility.targetState) {
-        val transition = updateTransition(visibility, label = "createNewPanel")
+        val transition = rememberTransition(transitionState = visibility, label = "createNewPanel")
         val panelAlpha by transition.animateFloat(
             transitionSpec = { tween(durationMillis = if (targetState) 150 else 120) },
             label = "panelAlpha",
@@ -149,7 +149,9 @@ fun ColumnScope.CreateNewActionCard(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val transition = updateTransition(visible, label = "createAction$index")
+    val transitionState = remember { MutableTransitionState(visible) }
+    transitionState.targetState = visible
+    val transition = rememberTransition(transitionState = transitionState, label = "createAction$index")
     val alpha by transition.animateFloat(
         transitionSpec = {
             tween(durationMillis = if (targetState) 150 else 100, delayMillis = if (targetState) 35 + index * 35 else 0)
@@ -218,7 +220,9 @@ fun FloatingAddButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val transition = updateTransition(expanded, label = "floatingAdd")
+    val transitionState = remember { MutableTransitionState(expanded) }
+    transitionState.targetState = expanded
+    val transition = rememberTransition(transitionState = transitionState, label = "floatingAdd")
     val iconRotation by transition.animateFloat(
         transitionSpec = { spring(dampingRatio = 0.86f, stiffness = 500f) },
         label = "addIconRotation",

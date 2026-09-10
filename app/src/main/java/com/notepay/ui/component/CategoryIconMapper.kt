@@ -53,7 +53,7 @@ import com.notepay.domain.model.Category
 /** Icon có thể chọn khi tạo danh mục tuỳ chỉnh. ID được lưu cùng danh mục, không phụ thuộc tên. */
 data class CategoryIconOption(
     val id: String,
-    @StringRes val labelRes: Int,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector,
 )
 

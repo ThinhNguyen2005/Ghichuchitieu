@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
 
@@ -72,7 +73,7 @@ fun LiquidToggle(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .offset(x = thumbOffset.value)
+                    .offset { IntOffset(thumbOffset.value.roundToPx(), 0) }
                     .size(24.dp)
                     .clip(CircleShape)
                     .background(thumbSurface.compositeOver(MaterialTheme.colorScheme.surface)),

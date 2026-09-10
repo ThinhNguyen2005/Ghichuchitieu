@@ -383,13 +383,23 @@ class NotePayNotificationListenerServiceTest {
     }
 
     @Test
-    fun `onNotificationPosted ignores unsupported bank even when legacy settings enabled it`() = runTest {
-        service.enabledPackages = setOf("com.VCB")
+    fun `onNotificationPosted ignores unrecognised source even when legacy settings enabled it`() = runTest {
+        service.enabledPackages = setOf("com.unknown.bank")
 
-        service.onNotificationPosted(validTransactionNotification("com.VCB"))
+        service.onNotificationPosted(validTransactionNotification("com.unknown.bank"))
         testScheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { transactionRepository.upsert(any()) }
+    }
+
+    @Test
+    fun `onNotificationPosted routes verified VCB MB and VietinBank packages`() = runTest {
+        listOf("com.VCB", "com.mbmobile", "com.vietinbank.ipay").forEach { packageName ->
+            service.onNotificationPosted(validTransactionNotification(packageName))
+            testScheduler.advanceUntilIdle()
+        }
+
+        coVerify(exactly = 3) { transactionRepository.upsert(any()) }
     }
 
     private fun validTransactionNotification(packageName: String): StatusBarNotification {

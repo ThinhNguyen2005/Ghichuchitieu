@@ -21,9 +21,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,10 +58,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -76,7 +75,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.ui.unit.Dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -90,6 +89,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import com.notepay.domain.model.Category
 import kotlinx.datetime.LocalDate
@@ -113,6 +113,8 @@ fun TransactionListScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
+    val undoLabel = stringResource(R.string.feedback_undo)
 
     // Ngày được tap trên bảng lịch -> mặc định là hôm nay
     val now = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
@@ -126,8 +128,8 @@ fun TransactionListScreen(
         val transaction = state.pendingUndoTransaction ?: return@LaunchedEffect
         val result = onFeedback(
             UiFeedback(
-                message = context.getString(R.string.transaction_deleted),
-                actionLabel = context.getString(R.string.feedback_undo),
+                message = transactionDeletedMessage,
+                actionLabel = undoLabel,
                 duration = FeedbackDuration.Short
             )
         )
@@ -200,7 +202,7 @@ fun TransactionListScreen(
                     }
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
-                            imageVector = if (state.isCalendarView) Icons.Rounded.List else Icons.Rounded.CalendarMonth,
+                            imageVector = if (state.isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
                             contentDescription = if (state.isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
                         )
                     }
@@ -303,7 +305,7 @@ private fun TransactionListContent(
             // Day header
             if (selectedDate != null) {
                 Text(
-                    text = stringResource(R.string.transaction_day_details_format, selectedDate.dayOfMonth, selectedDate.monthNumber),
+                    text = stringResource(R.string.transaction_day_details_format, selectedDate.day, selectedDate.month.number),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 4.dp),
@@ -504,7 +506,8 @@ private fun TransactionListContent(
                             }
 
                             items(dayTxList, key = { it.id }) { transaction ->
-                                val walletName = state.walletsMap[transaction.walletId] ?: "Ví"
+                                val walletName = state.walletsMap[transaction.walletId]
+                                    ?: stringResource(R.string.wallet_fallback)
                                 SwipeableTransactionItem(
                                     transaction = transaction,
                                     walletName = walletName,
@@ -572,13 +575,13 @@ private fun TransactionMonthOverview(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TransactionAmountSummary(
-                    label = "Thu vào",
+                    label = stringResource(R.string.transaction_income_label),
                     amount = income,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                 )
                 TransactionAmountSummary(
-                    label = "Đã chi",
+                    label = stringResource(R.string.transaction_expense_label),
                     amount = expense,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.weight(1f),
@@ -612,8 +615,8 @@ private fun formatDateHeader(date: LocalDate, context: Context): String {
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val diff = date.toEpochDays() - today.toEpochDays()
     return when (diff) {
-        0L -> context.getString(R.string.date_today_format, date.dayOfMonth, date.monthNumber)
-        -1L -> context.getString(R.string.date_yesterday_format, date.dayOfMonth, date.monthNumber)
+        0L -> context.getString(R.string.date_today_format, date.day, date.month.number)
+        -1L -> context.getString(R.string.date_yesterday_format, date.day, date.month.number)
         else -> {
             val dayOfWeekStr = when (date.dayOfWeek.ordinal + 1) {
                 1 -> context.getString(R.string.day_monday)
@@ -625,7 +628,7 @@ private fun formatDateHeader(date: LocalDate, context: Context): String {
                 7 -> context.getString(R.string.day_sunday)
                 else -> ""
             }
-            context.getString(R.string.date_other_format, dayOfWeekStr, date.dayOfMonth, date.monthNumber)
+            context.getString(R.string.date_other_format, dayOfWeekStr, date.day, date.month.number)
         }
     }
 }
@@ -643,23 +646,21 @@ private fun CategoryFilterRow(
         if (idx == -1) 0 else idx
     }
 
-    ScrollableTabRow(
+    PrimaryScrollableTabRow(
         selectedTabIndex = selectedIndex,
         edgePadding = 16.dp,
         containerColor = Color.Transparent,
         divider = {}, // No bottom line
-        indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
-                Box(
-                    Modifier
-                        .tabIndicatorOffset(tabPositions[selectedIndex])
-                        .fillMaxHeight()
-                        .padding(vertical = 6.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .zIndex(-1f)
-                )
-            }
+        indicator = {
+            Box(
+                Modifier
+                    .tabIndicatorOffset(selectedIndex)
+                    .fillMaxHeight()
+                    .padding(vertical = 6.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .zIndex(-1f)
+            )
         },
         modifier = Modifier.fillMaxWidth()
     ) {

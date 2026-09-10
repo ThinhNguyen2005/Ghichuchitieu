@@ -1,4 +1,3 @@
-@file:Suppress("DEPRECATION")
 package com.notepay.ui.feature.addtransaction
 
 import com.notepay.ui.theme.AppTheme
@@ -33,8 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,7 +42,7 @@ import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.*
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
@@ -447,7 +447,7 @@ private fun TransactionTypeSelector(
         // KhĂ¡Â»â€˜i mÄ‚Â u nĂ¡Â»Ân trĂ†Â°Ă¡Â»Â£t di chuyĂ¡Â»Æ’n mĂ†Â°Ă¡Â»Â£t mÄ‚Â 
         Box(
             modifier = Modifier
-                .offset(x = indicatorOffset)
+                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                 .width(tabWidth)
                 .fillMaxHeight()
                 .clip(AppTheme.shapes.circle)

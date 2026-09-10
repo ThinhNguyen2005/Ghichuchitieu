@@ -13,7 +13,7 @@ import org.junit.Test
 class SuggestCategoryUseCaseTest {
 
     private val sharedPrefs = mockk<SharedPreferences>(relaxed = true)
-    private val context = mockk<Context>()
+    private val context = mockk<Context>(relaxed = true)
     private lateinit var useCase: SuggestCategoryUseCase
 
     private val fakePrefsMap = mutableMapOf<String, Any>()

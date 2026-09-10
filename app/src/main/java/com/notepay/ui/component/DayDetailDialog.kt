@@ -43,6 +43,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -95,7 +96,7 @@ fun DayDetailDialog(
             }
             Column {
                 Text(
-                    text = "$weekday, ${date.dayOfMonth}/${date.monthNumber}/${date.year}",
+                    text = "$weekday, ${date.day}/${date.month.number}/${date.year}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )

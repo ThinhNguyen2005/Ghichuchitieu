@@ -20,9 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.CallSplit
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Wallet
@@ -45,7 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
@@ -53,6 +53,7 @@ import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,7 +73,7 @@ fun TransactionDetailScreen(
     Scaffold(
         topBar = {
             GradientTopAppBar(
-                title = { Text("Chi tiết giao dịch", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.transaction_details_title), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
@@ -87,7 +88,7 @@ fun TransactionDetailScreen(
                     CircularProgressIndicator()
                 }
                 state.transaction == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(state.error ?: "Không tìm thấy giao dịch")
+                    Text(state.error ?: stringResource(R.string.error_transaction_not_found))
                 }
                 else -> {
                     val tx = state.transaction!!
@@ -121,13 +122,13 @@ fun TransactionDetailScreen(
                             ) {
                                 ActionRow(
                                     icon = Icons.Rounded.Edit,
-                                    title = "Sửa ghi chú",
+                                    title = stringResource(R.string.detail_edit_note_title),
                                     onClick = { onEdit(tx.id) }
                                 )
                             }
                             
                             Text(
-                                "Giao dịch tự động từ ngân hàng chỉ cho phép sửa ghi chú để đảm bảo tính chính xác của dữ liệu.",
+                                stringResource(R.string.detail_auto_edit_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 8.dp)
@@ -226,7 +227,7 @@ private fun MetaCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "Thông tin chi tiết",
+                stringResource(R.string.detail_info_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -236,14 +237,21 @@ private fun MetaCard(
 
             TransactionMetadataRow(
                 icon = Icons.Rounded.CalendarMonth,
-                label = "Thời điểm",
-                value = "${date.dayOfMonth.toString().padStart(2, '0')}/${date.monthNumber.toString().padStart(2, '0')}/${date.year} · ${date.hour.toString().padStart(2, '0')}:${date.minute.toString().padStart(2, '0')}",
+                label = stringResource(R.string.detail_timestamp),
+                value = stringResource(
+                    R.string.detail_timestamp_format,
+                    date.day,
+                    date.month.number,
+                    date.year,
+                    date.hour,
+                    date.minute,
+                ),
             )
             
             TransactionMetadataRow(
                 icon = Icons.Rounded.Wallet,
                 label = stringResource(R.string.transaction_field_wallet),
-                value = walletName ?: "Ví không còn tồn tại",
+                value = walletName ?: stringResource(R.string.detail_wallet_missing),
             )
 
             Row(
@@ -256,16 +264,18 @@ private fun MetaCard(
                     iconSize = 19.dp
                 )
                 Column {
-                    Text("Danh mục", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.detail_category), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(transaction.category.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
             val methodIcon = if (transaction.isAutoCapture) Icons.Rounded.AccountBalance else Icons.Rounded.Person
-            val methodText = if (transaction.isAutoCapture) "Tự động (từ Ngân hàng)" else "Thủ công (tự thêm)"
+            val methodText = stringResource(
+                if (transaction.isAutoCapture) R.string.detail_method_auto else R.string.detail_method_manual,
+            )
             TransactionMetadataRow(
                 icon = methodIcon,
-                label = "Phương thức ghi",
+                label = stringResource(R.string.detail_method_label),
                 value = methodText,
             )
         }
@@ -330,8 +340,8 @@ private fun ActionsBlock(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             ActionRow(
-                icon = Icons.Rounded.CallSplit,
-                title = "Tạo chia tiền",
+                icon = Icons.AutoMirrored.Rounded.CallSplit,
+                title = stringResource(R.string.detail_create_bill_split),
                 onClick = onCreateBillSplit
             )
             HorizontalDivider(
@@ -340,7 +350,7 @@ private fun ActionsBlock(
             )
             ActionRow(
                 icon = Icons.Rounded.NotificationsActive,
-                title = "Tạo nhắc nhở gia hạn",
+                title = stringResource(R.string.detail_create_subscription),
                 onClick = onCreateSubscription
             )
         }

@@ -3,6 +3,7 @@ package com.notepay.domain.analytics
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlin.math.max
 
@@ -48,7 +49,7 @@ object SpendingForecastEngine {
             .groupBy { it.date }
             .mapValues { (_, rows) -> rows.sumOf { it.amountInCents }.coerceAtLeast(0L) }
 
-        val monthStart = LocalDate(today.year, today.monthNumber, 1)
+        val monthStart = LocalDate(today.year, today.month.number, 1)
         val spentSoFar = normalized
             .filterKeys { it >= monthStart && it <= today }
             .values
@@ -64,17 +65,17 @@ object SpendingForecastEngine {
         val recentDates = historyDates.filter { it >= recentStart }
         val recentValues = recentDates.map { (normalized[it] ?: 0L).toDouble() }
         val ewma = exponentiallyWeightedAverage(recentValues, alpha = 0.25)
-        val monthAverage = spentSoFar.toDouble() / today.dayOfMonth.coerceAtLeast(1)
+        val monthAverage = spentSoFar.toDouble() / today.day.coerceAtLeast(1)
 
         val historyWeight = ((observedDays - 3) / 25.0).coerceIn(0.0, 0.65)
         val runRate = (ewma * historyWeight + monthAverage * (1.0 - historyWeight))
             .coerceAtLeast(0.0)
 
         val weekdayFactors = computeWeekdayFactors(historyDates, normalized, observedDays)
-        val remainingDates = if (today.dayOfMonth >= daysInMonth) {
+        val remainingDates = if (today.day >= daysInMonth) {
             emptyList()
         } else {
-            dateRange(today.plus(DatePeriod(days = 1)), LocalDate(today.year, today.monthNumber, daysInMonth))
+            dateRange(today.plus(DatePeriod(days = 1)), LocalDate(today.year, today.month.number, daysInMonth))
         }
         val baselines = remainingDates.map { date ->
             runRate * (weekdayFactors[date.dayOfWeek.ordinal] ?: 1.0)
@@ -176,7 +177,7 @@ object SpendingForecastEngine {
         currentMonthStart: LocalDate,
     ): Double? {
         val previousMonthEnd = currentMonthStart.minus(DatePeriod(days = 1))
-        val previousMonthStart = LocalDate(previousMonthEnd.year, previousMonthEnd.monthNumber, 1)
+        val previousMonthStart = LocalDate(previousMonthEnd.year, previousMonthEnd.month.number, 1)
         val dates = dateRange(previousMonthStart, previousMonthEnd)
         val hasData = values.keys.any { it in previousMonthStart..previousMonthEnd }
         if (!hasData) return null

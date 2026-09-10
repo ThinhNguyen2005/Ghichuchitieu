@@ -199,16 +199,16 @@ fun BillSplitCreateSheet(
 
     val disabledReason = when {
         selectedTx == null ->
-            "Chọn một giao dịch cần chia."
+            stringResource(R.string.billsplit_select_transaction_hint)
 
         debtors.isEmpty() ->
-            "Thêm ít nhất một người cùng chia."
+            stringResource(R.string.billsplit_add_participant)
 
         !allAmountsValid ->
-            "Nhập số tiền hợp lệ cho từng người."
+            stringResource(R.string.billsplit_amount_invalid)
 
         isOverLimit ->
-            "Tổng số tiền đang vượt hóa đơn gốc."
+            stringResource(R.string.billsplit_status_over_format, MoneyFormatter.format(Money(abs(remainingCents))))
 
         else -> null
     }
@@ -304,9 +304,9 @@ fun BillSplitCreateSheet(
 
                             Text(
                                 text = if (step == BillSplitStep.SELECT_TRANSACTION) {
-                                    "Bước 1/2 — Chọn hóa đơn cần chia."
+                                    stringResource(R.string.billsplit_step_select)
                                 } else {
-                                    "Bước 2/2 — Thêm người và chia số tiền."
+                                    stringResource(R.string.billsplit_step_manage)
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -328,7 +328,7 @@ fun BillSplitCreateSheet(
                     item {
                         BillSplitSectionTitle(
                             step = 1,
-                            title = "Chọn giao dịch",
+                            title = stringResource(R.string.billsplit_choose_transaction),
                             completed = selectedTx != null,
                         )
                     }
@@ -360,13 +360,13 @@ fun BillSplitCreateSheet(
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Text(
-                                        text = "Chưa có giao dịch chi tiêu",
+                                        text = stringResource(R.string.billsplit_no_expense_title),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                     )
 
                                     Text(
-                                        text = "Hãy tạo một giao dịch chi tiêu trước khi sử dụng tính năng chia hóa đơn.",
+                                        text = stringResource(R.string.billsplit_no_expense_desc),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -412,7 +412,7 @@ fun BillSplitCreateSheet(
                     item {
                         BillSplitSectionTitle(
                             step = 2,
-                            title = "Thêm người cùng chia",
+                            title = stringResource(R.string.billsplit_add_participant),
                             completed = debtors.isNotEmpty(),
                         )
                     }
@@ -431,12 +431,12 @@ fun BillSplitCreateSheet(
                             value = newDebtorName,
                             onValueChange = { newDebtorName = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Tên người") },
+                            label = { Text(stringResource(R.string.billsplit_person_name)) },
                             placeholder = {
-                                Text("Ví dụ: Minh, Lan…")
+                                Text(stringResource(R.string.billsplit_person_name_placeholder))
                             },
                             supportingText = {
-                                Text("Nhấn Done để thêm nhanh.")
+                                Text(stringResource(R.string.billsplit_person_name_hint))
                             },
                             leadingIcon = {
                                 Icon(
@@ -455,7 +455,7 @@ fun BillSplitCreateSheet(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Add,
-                                        contentDescription = "Thêm người",
+                                        contentDescription = stringResource(R.string.billsplit_add_person),
                                     )
                                 }
                             },
@@ -479,7 +479,7 @@ fun BillSplitCreateSheet(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 Text(
-                                    text = "Gợi ý gần đây",
+                                    text = stringResource(R.string.billsplit_recent_suggestions),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -522,7 +522,7 @@ fun BillSplitCreateSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Người cùng chia",
+                                    text = stringResource(R.string.billsplit_participants),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -547,7 +547,7 @@ fun BillSplitCreateSheet(
                                 enabled = debtors.isNotEmpty(),
                                 modifier = Modifier.heightIn(min = 48.dp),
                             ) {
-                                Text("Chia đều")
+                                Text(stringResource(R.string.billsplit_split_evenly))
                             }
                         }
                     }
@@ -577,13 +577,13 @@ fun BillSplitCreateSheet(
 
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(
-                                            text = "Chưa có người nào",
+                                            text = stringResource(R.string.billsplit_no_participants),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Medium,
                                         )
 
                                         Text(
-                                            text = "Thêm tên ở phía trên để bắt đầu phân chia.",
+                                            text = stringResource(R.string.billsplit_add_names_hint),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -633,7 +633,7 @@ fun BillSplitCreateSheet(
                     if (step == BillSplitStep.SELECT_TRANSACTION) {
                         if (selectedTx == null) {
                             Text(
-                                text = "Chọn một giao dịch cần chia.",
+                                text = stringResource(R.string.billsplit_select_transaction_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -655,7 +655,7 @@ fun BillSplitCreateSheet(
                                 .height(56.dp),
                         ) {
                             Text(
-                                text = "Tiếp tục",
+                                text = stringResource(R.string.billsplit_continue),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -707,7 +707,7 @@ fun BillSplitCreateSheet(
                             .height(56.dp),
                     ) {
                         Text(
-                            text = "Lưu chia hóa đơn",
+                            text = stringResource(R.string.billsplit_save_invoice_split),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
@@ -748,7 +748,7 @@ private fun BillSplitSectionTitle(
                 if (completed) {
                     Icon(
                         imageVector = Icons.Rounded.Check,
-                        contentDescription = "Đã hoàn thành",
+                        contentDescription = stringResource(R.string.billsplit_completed),
                         modifier = Modifier.size(18.dp),
                     )
                 } else {
@@ -808,9 +808,9 @@ private fun BillSplitProgressCard(
     }
 
     val status = when {
-        isOverLimit -> "Vượt ${MoneyFormatter.format(Money(abs(remainingCents)))}"
-        remainingCents == 0L -> "Đã chia vừa đủ"
-        else -> "Còn thiếu ${MoneyFormatter.format(Money(remainingCents))}"
+        isOverLimit -> stringResource(R.string.billsplit_status_over_format, MoneyFormatter.format(Money(abs(remainingCents))))
+        remainingCents == 0L -> stringResource(R.string.billsplit_status_exact)
+        else -> stringResource(R.string.billsplit_status_remaining_format, MoneyFormatter.format(Money(remainingCents)))
     }
 
     Card(
@@ -830,7 +830,7 @@ private fun BillSplitProgressCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Tiến trình chia tiền",
+                    text = stringResource(R.string.billsplit_progress_title),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -907,9 +907,9 @@ private fun SelectedTransactionCard(
 
                 Text(
                     text = if (expanded) {
-                        "Chạm để đóng danh sách"
+                        stringResource(R.string.billsplit_close_list)
                     } else {
-                        "Chạm để đổi giao dịch"
+                        stringResource(R.string.billsplit_change_transaction)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1001,7 +1001,7 @@ private fun TransactionPickerRow(
             if (selected) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
-                    contentDescription = "Đang chọn",
+                    contentDescription = stringResource(R.string.billsplit_selecting),
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -1072,7 +1072,7 @@ fun SelectedDebtorCard(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Xóa ${entry.name}",
+                        contentDescription = stringResource(R.string.billsplit_delete_person_format, entry.name),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -1088,11 +1088,11 @@ fun SelectedDebtorCard(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Số tiền người này trả") },
+                label = { Text(stringResource(R.string.billsplit_person_amount)) },
                 placeholder = { Text("0") },
                 suffix = { Text("₫") },
                 supportingText = if (amountIsInvalid) {
-                    { Text("Số tiền không hợp lệ.") }
+                    { Text(stringResource(R.string.billsplit_amount_invalid)) }
                 } else {
                     null
                 },
@@ -1158,7 +1158,7 @@ private fun BillSplitSummaryCard(
                 )
 
                 Text(
-                    text = "Tổng kết",
+                    text = stringResource(R.string.billsplit_summary),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -1175,12 +1175,12 @@ private fun BillSplitSummaryCard(
             )
 
             SummaryMoneyRow(
-                label = "Hóa đơn gốc",
+                label = stringResource(R.string.billsplit_original_bill),
                 amount = parentCents,
             )
 
             SummaryMoneyRow(
-                label = "Đã phân chia",
+                label = stringResource(R.string.billsplit_already_split),
                 amount = totalCents,
                 amountColor = accentColor,
             )
@@ -1191,9 +1191,9 @@ private fun BillSplitSummaryCard(
 
             SummaryMoneyRow(
                 label = if (remainingCents < 0L) {
-                    "Đang vượt"
+                    stringResource(R.string.billsplit_over_limit)
                 } else {
-                    "Chưa phân chia"
+                    stringResource(R.string.billsplit_not_split)
                 },
                 amount = abs(remainingCents),
                 amountColor = if (remainingCents < 0L) {

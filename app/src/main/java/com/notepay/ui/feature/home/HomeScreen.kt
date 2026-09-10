@@ -28,10 +28,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.notepay.ui.util.MoneyFormatter
@@ -73,7 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -169,7 +169,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(start = 4.dp)
                             ) {
                                 Text(
-                                    text = "🔥 ${state.streakDays}d",
+                                    text = stringResource(R.string.home_streak_format, state.streakDays),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -478,7 +478,7 @@ private fun BudgetProjectionCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = if (spentPercentage >= 0.90f) Icons.Rounded.Warning else Icons.Rounded.TrendingUp,
+                imageVector = if (spentPercentage >= 0.90f) Icons.Rounded.Warning else Icons.AutoMirrored.Rounded.TrendingUp,
                 contentDescription = null,
                 tint = progressColor,
                 modifier = Modifier.size(20.dp)

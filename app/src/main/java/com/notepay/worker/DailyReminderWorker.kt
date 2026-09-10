@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -72,12 +71,12 @@ class DailyReminderWorker @AssistedInject constructor(
         )
 
         val title = if (streak > 0) {
-            "🔥 Đừng làm đứt chuỗi $streak ngày ghi chép của bạn!"
+            context.getString(R.string.notif_daily_reminder_title_streak, streak)
         } else {
-            "☕ Hôm nay bạn có chi tiêu gì chưa ghi không?"
+            context.getString(R.string.notif_daily_reminder_title_default)
         }
 
-        val content = "Chỉ mất 5 giây để ghi chép và giữ ví tiền của bạn luôn trong tầm kiểm soát."
+        val content = context.getString(R.string.notif_daily_reminder_content)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
@@ -93,17 +92,15 @@ class DailyReminderWorker @AssistedInject constructor(
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Nhắc nhở ghi chép hàng ngày",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = "Thông báo nhắc nhở bạn ghi chép chi tiêu vào buổi tối"
-            }
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.notif_daily_reminder_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.notif_daily_reminder_channel_desc)
         }
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
     }
 
     companion object {

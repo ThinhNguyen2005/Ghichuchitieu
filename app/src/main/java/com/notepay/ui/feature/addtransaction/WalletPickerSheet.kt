@@ -71,7 +71,7 @@ fun WalletPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Chọn ví",
+                    text = stringResource(R.string.wallet_picker_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -79,7 +79,7 @@ fun WalletPickerSheet(
             }
             if (wallets.isEmpty()) {
                 Text(
-                    "Chưa có ví nào. Vui lòng tạo ví trước.",
+                    stringResource(R.string.wallet_picker_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp),

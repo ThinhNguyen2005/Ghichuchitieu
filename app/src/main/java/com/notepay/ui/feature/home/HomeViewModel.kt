@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.ai.LocalAiModelManager
+import com.notepay.R
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettings
 import com.notepay.data.preferences.BudgetSettingsStore
@@ -18,6 +19,7 @@ import com.notepay.domain.util.OsCompatHelper
 import com.notepay.domain.util.StreakTrackerHelper
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 
@@ -41,11 +44,12 @@ class HomeViewModel @Inject constructor(
     private val appSettingsDataStore: AppSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
     private val localAiModelManager: LocalAiModelManager,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     private val currentYear = today.year
-    private val currentMonth = today.monthNumber
+    private val currentMonth = today.month.number
 
     private val _selectedMonth = MutableStateFlow(currentYear to currentMonth)
 
@@ -100,8 +104,8 @@ class HomeViewModel @Inject constructor(
         val projection = if (activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
             val spentCents = activeWalletExpense.amountInCents
             val limitCents = budgetLimit.amountInCents
-            val currentDay = today.dayOfMonth.coerceIn(1, 31)
-            val daysInMonth = getDaysInMonth(today.year, today.monthNumber)
+            val currentDay = today.day.coerceIn(1, 31)
+            val daysInMonth = getDaysInMonth(today.year, today.month.number)
             
             val dailyAverageCents = spentCents.toFloat() / currentDay
             val projectedSpendCents = dailyAverageCents * daysInMonth
@@ -110,7 +114,7 @@ class HomeViewModel @Inject constructor(
             
             val exhaustionDateLabel = if (isProjectedToExceed && dailyAverageCents > 0) {
                 val exhaustionDay = (limitCents / dailyAverageCents).toInt().coerceIn(1, daysInMonth)
-                "%02d/%02d".format(exhaustionDay, today.monthNumber)
+                "%02d/%02d".format(exhaustionDay, today.month.number)
             } else {
                 null
             }
@@ -143,7 +147,7 @@ class HomeViewModel @Inject constructor(
             monthlyIncome = summary.totalIncome,
             monthlyExpense = summary.totalExpense,
             recentTransactions = summary.transactions.take(5),
-            monthLabel = "Tháng ${summary.month}/${summary.year}",
+            monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
             isLoading = false,
             budgetProjection = projection,
             dueRemindersCount = dueCount,

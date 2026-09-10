@@ -5,7 +5,7 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import kotlin.time.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * UI State cho màn hình Thêm giao dịch.

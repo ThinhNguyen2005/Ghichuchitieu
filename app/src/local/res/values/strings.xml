@@ -5,4 +5,11 @@
     <string name="autocapture_save_error">Lỗi: Không thể lưu giao dịch.</string>
     <string name="autocapture_subscription_success">Đã thêm hóa đơn định kỳ thành công! 📅</string>
     <string name="autocapture_subscription_error">Lỗi: Không thể thêm hóa đơn định kỳ.</string>
+    <string name="notif_transaction_pending_title">Xác nhận giao dịch ngân hàng</string>
+    <string name="notif_transaction_pending_content">%1$s • %2$s</string>
+    <string name="notif_transaction_pending_big_text">Số tiền: %1$s\nVí: %2$s\nNội dung: %3$s</string>
+    <string name="notif_transaction_confirm_action">Xác nhận</string>
+    <string name="notif_transaction_ignore_action">Bỏ qua</string>
+    <string name="autocapture_pending_confirmed">Đã xác nhận và lưu giao dịch.</string>
+    <string name="autocapture_pending_ignored">Đã bỏ qua thông báo giao dịch.</string>
 </resources>

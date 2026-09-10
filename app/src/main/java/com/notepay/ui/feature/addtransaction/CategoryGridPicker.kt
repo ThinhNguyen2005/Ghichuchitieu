@@ -95,19 +95,19 @@ fun CategoryGridPicker(
         ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                "Danh mục",
+                stringResource(R.string.category_section_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "${visible.size} lựa chọn",
+                stringResource(R.string.category_choices_format, visible.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(
-            "Chọn danh mục phù hợp nhất với giao dịch này",
+            stringResource(R.string.category_section_description),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -174,7 +174,7 @@ private fun AddCategoryChip(onClick: () -> Unit, modifier: Modifier = Modifier) 
     FilterChip(
         selected = false,
         onClick = onClick,
-        label = { Text("Thêm...", maxLines = 1) },
+        label = { Text(stringResource(R.string.category_add_more), maxLines = 1) },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Rounded.Add,
@@ -266,18 +266,18 @@ private fun AddCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tạo danh mục mới") },
+        title = { Text(stringResource(R.string.category_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Tên danh mục") },
+                    label = { Text(stringResource(R.string.category_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Text("Chọn màu sắc", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.category_color_title), style = MaterialTheme.typography.titleSmall)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -301,7 +301,7 @@ private fun AddCategoryDialog(
                     }
                 }
 
-                Text("Chọn biểu tượng", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.category_icon_title), style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(customCategoryIconOptions, key = { it.id }) { option ->
                         val isSelected = selectedIconId == option.id

@@ -19,7 +19,7 @@ private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesD
 
 @Singleton
 class AppSettingsDataStore @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val dataStore = context.appSettingsDataStore
 

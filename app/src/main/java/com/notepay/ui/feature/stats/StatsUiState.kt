@@ -9,23 +9,29 @@ import com.notepay.domain.analytics.BudgetAdvisorResult
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.ai.LocalModelState
 
-enum class TimeFilterType(val label: String) {
-    MONTH("Tháng"),
-    WEEK("Tuần này"),
-    QUARTER("Quý này"),
-    YEAR("Năm nay"),
-    CUSTOM("Tự chọn")
+sealed interface StatsUiText {
+    data class Resource(val resId: Int, val args: List<Any> = emptyList()) : StatsUiText
+    data class Plain(val value: String) : StatsUiText
+    data class Composite(val parts: List<StatsUiText>) : StatsUiText
+}
+
+enum class TimeFilterType {
+    MONTH,
+    WEEK,
+    QUARTER,
+    YEAR,
+    CUSTOM,
 }
 
 data class BudgetForecast(
     val dailyAverage: Money,
     val projectedSpend: Money,
-    val forecastMessage: String,
+    val forecastMessage: StatsUiText,
     val isProjectedToExceed: Boolean = false,
 
     val previousMonthDailyAverage: Money? = null,
     val trendPercent: Float? = null,
-    val trendMessage: String? = null,
+    val trendMessage: StatsUiText? = null,
     val prediction: SpendingPrediction? = null,
 )
 
@@ -58,14 +64,14 @@ data class DynamicDailyBudgetData(
     val remainingToday: Money,
     val tomorrowBudget: Money,
     val isExceeded: Boolean,
-    val earlyWarning: String? = null
+    val earlyWarning: StatsUiText? = null
 )
 
 data class AiAdviceItem(
     val id: String,
     val type: String, // "warning", "info", "success"
-    val title: String,
-    val content: String,
+    val title: StatsUiText,
+    val content: StatsUiText,
     val categoryId: String? = null,
     val feedback: Int = 0 // 0: none, 1: thumb up, -1: thumb down
 )

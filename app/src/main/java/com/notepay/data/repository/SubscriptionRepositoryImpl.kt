@@ -6,7 +6,7 @@ import com.notepay.domain.model.Subscription
 import com.notepay.domain.repository.SubscriptionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 class SubscriptionRepositoryImpl @Inject constructor(

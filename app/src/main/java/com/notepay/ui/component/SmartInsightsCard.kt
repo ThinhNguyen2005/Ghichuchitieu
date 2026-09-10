@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.notepay.R
 import com.notepay.ui.theme.AppTheme
 
 /**
@@ -48,29 +50,27 @@ fun SmartInsightsCard(
 ) {
     var isVisible by remember { mutableStateOf(true) }
 
-    val (iconColor, title, description) = remember(streakDays, isBudgetExceeded, budgetSpentPercentage) {
-        when {
+    val (iconColor, title, description) = when {
             isBudgetExceeded -> Triple(
                 Color(0xFFE57373),
-                "⚠️ Vượt quá hạn mức tháng",
-                "Bạn đã chi tiêu vượt ngân sách đề ra. Hãy rà soát lại các khoản chi không cần thiết nhé."
+                stringResource(R.string.insight_budget_exceeded_title),
+                stringResource(R.string.insight_budget_exceeded_description)
             )
             budgetSpentPercentage >= 0.8f -> Triple(
                 Color(0xFFFFB74D),
-                "⚠️ Đã dùng ${(budgetSpentPercentage * 100).toInt()}% hạn mức",
-                "Gần chạm ngưỡng chi tiêu dự kiến của tháng này. Hãy cân nhắc trước các khoản mua sắm mới."
+                stringResource(R.string.insight_budget_near_limit_title, (budgetSpentPercentage * 100).toInt()),
+                stringResource(R.string.insight_budget_near_limit_description)
             )
             streakDays >= 3 -> Triple(
                 Color(0xFFFF9800),
-                "🔥 Chuỗi $streakDays ngày ghi chép!",
-                "Thói quen tài chính của bạn đang rất tốt. Tiếp tục duy trì phong độ này nhé!"
+                stringResource(R.string.insight_streak_title, streakDays),
+                stringResource(R.string.insight_streak_description)
             )
             else -> Triple(
                 Color(0xFF64B5F6),
-                "💡 Mẹo tài chính thông minh",
-                "Ghi chép lại ngay sau khi chi tiêu giúp bạn không bao giờ bỏ sót các khoản tiền nhỏ."
+                stringResource(R.string.insight_default_title),
+                stringResource(R.string.insight_default_description)
             )
-        }
     }
 
     AnimatedVisibility(
@@ -133,7 +133,7 @@ fun SmartInsightsCard(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Đóng gợi ý",
+                        contentDescription = stringResource(R.string.content_description_close_suggestion),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )

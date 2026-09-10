@@ -89,7 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.analytics.AdvisorProvider
@@ -108,6 +108,17 @@ import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
 import com.notepay.ui.util.MoneyFormatter
 import java.util.Locale
 import kotlin.math.abs
+
+@Composable
+private fun StatsUiText.resolve(): String = when (this) {
+    is StatsUiText.Plain -> value
+    is StatsUiText.Resource -> stringResource(resId, *args.toTypedArray())
+    is StatsUiText.Composite -> {
+        var resolved = ""
+        for (part in parts) resolved += part.resolve()
+        resolved
+    }
+}
 
 private enum class StatsContentState {
     LOADING,
@@ -223,6 +234,7 @@ fun StatsScreen(
 
 @Composable
 private fun StatsLoadingState() {
+    val loadingContentDescription = stringResource(R.string.stats_loading_cd)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -233,7 +245,7 @@ private fun StatsLoadingState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.semantics {
-                contentDescription = "Đang tổng hợp dữ liệu thống kê"
+                contentDescription = loadingContentDescription
             },
         ) {
             Surface(
@@ -249,12 +261,12 @@ private fun StatsLoadingState() {
                 }
             }
             Text(
-                text = "Đang tổng hợp số liệu",
+                text = stringResource(R.string.stats_loading_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Phân tích giao dịch và xu hướng tài chính của bạn…",
+                text = stringResource(R.string.stats_loading_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -293,12 +305,12 @@ private fun StatsEmptyState(
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Chưa có dữ liệu thống kê",
+                text = stringResource(R.string.stats_empty_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
-                text = "Thêm giao dịch đầu tiên để xem phân bổ, xu hướng và các gợi ý tài chính.",
+                text = stringResource(R.string.stats_empty_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -490,6 +502,11 @@ private fun CategoryBreakdownRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val percentageLabel = stringResource(
+        R.string.stats_category_percentage_cd,
+        String.format(Locale.US, "%.1f", item.percentage * 100f),
+    )
+    val selectedLabel = stringResource(R.string.stats_category_selected_cd)
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -499,14 +516,8 @@ private fun CategoryBreakdownRow(
                     append(", ")
                     append(MoneyFormatter.format(item.amount))
                     append(", ")
-                    append(
-                        String.format(
-                            Locale.US,
-                            "%.1f phần trăm",
-                            item.percentage * 100f,
-                        ),
-                    )
-                    if (isSelected) append(", đang mở")
+                    append(percentageLabel)
+                    if (isSelected) append(", ").append(selectedLabel)
                 }
             }
             .clickable(onClick = onClick),
@@ -612,12 +623,16 @@ private fun BudgetProgressBar(
 
     val statusText = when {
         remainingInCents < 0L ->
-            "Đã vượt ${MoneyFormatter.format(Money(abs(remainingInCents)))}"
+            stringResource(R.string.stats_budget_exceeded_format, MoneyFormatter.format(Money(abs(remainingInCents))))
         safePercentage >= 0.8f ->
-            "Còn ${MoneyFormatter.format(Money(remainingInCents.coerceAtLeast(0L)))}"
+            stringResource(R.string.stats_budget_remaining_format, MoneyFormatter.format(Money(remainingInCents.coerceAtLeast(0L))))
         else ->
-            "Đang trong hạn mức"
+            stringResource(R.string.stats_budget_in_limit)
     }
+    val budgetUsedContentDescription = stringResource(
+        R.string.stats_budget_used_cd,
+        (safePercentage * 100).toInt(),
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -697,7 +712,7 @@ private fun BudgetProgressBar(
                     .height(9.dp)
                     .clip(CircleShape)
                     .semantics {
-                        contentDescription = "Đã dùng ${(safePercentage * 100).toInt()} phần trăm hạn mức"
+                        contentDescription = budgetUsedContentDescription
                     },
                 color = statusColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -709,12 +724,12 @@ private fun BudgetProgressBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Đã chi ${MoneyFormatter.format(spent)}",
+                    text = stringResource(R.string.stats_spent_format, MoneyFormatter.format(spent)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "Hạn mức ${MoneyFormatter.format(limit)}",
+                    text = stringResource(R.string.stats_limit_format, MoneyFormatter.format(limit)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -736,9 +751,9 @@ private fun SpendingPredictionCard(
     }
 
     val confidenceLabel = when (prediction.confidence) {
-        ForecastConfidence.LOW -> "Thấp"
-        ForecastConfidence.MEDIUM -> "Trung bình"
-        ForecastConfidence.HIGH -> "Cao"
+        ForecastConfidence.LOW -> stringResource(R.string.stats_confidence_low)
+        ForecastConfidence.MEDIUM -> stringResource(R.string.stats_confidence_medium)
+        ForecastConfidence.HIGH -> stringResource(R.string.stats_confidence_high)
     }
 
     // Pair tinted risk surfaces with matching on-* colors for readable text.
@@ -791,7 +806,7 @@ private fun SpendingPredictionCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Dự báo cuối tháng",
+                        text = stringResource(R.string.stats_forecast_end_month),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -806,7 +821,7 @@ private fun SpendingPredictionCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = "Xử lý trên thiết bị",
+                            text = stringResource(R.string.stats_processed_on_device),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -818,7 +833,7 @@ private fun SpendingPredictionCard(
                     color = riskContainerColor,
                 ) {
                     Text(
-                        text = "Tin cậy $confidenceLabel",
+                        text = stringResource(R.string.stats_confidence_format, confidenceLabel),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = riskOnContainerColor,
@@ -837,11 +852,11 @@ private fun SpendingPredictionCard(
             )
 
             Text(
-                text = "Khoảng dự kiến: ${
-                    MoneyFormatter.format(Money(prediction.lowerBoundInCents))
-                } – ${
-                    MoneyFormatter.format(Money(prediction.upperBoundInCents))
-                }",
+                text = stringResource(
+                    R.string.stats_expected_range_format,
+                    MoneyFormatter.format(Money(prediction.lowerBoundInCents)),
+                    MoneyFormatter.format(Money(prediction.upperBoundInCents)),
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -852,8 +867,8 @@ private fun SpendingPredictionCard(
 
             Text(
                 text = probability?.let {
-                    "Khả năng vượt hạn mức ${(it * 100).toInt()}% · Dựa trên ${prediction.observedDays} ngày dữ liệu"
-                } ?: "Đặt hạn mức để xem xác suất vượt chi · Dựa trên ${prediction.observedDays} ngày dữ liệu",
+                    stringResource(R.string.stats_probability_format, (it * 100).toInt(), prediction.observedDays)
+                } ?: stringResource(R.string.stats_probability_no_limit_format, prediction.observedDays),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
@@ -889,8 +904,8 @@ private fun AiInsightsCarousel(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SectionHeading(
-            title = "Phân tích thông minh",
-            description = "$itemCount gợi ý · Vuốt ngang để xem thêm",
+            title = stringResource(R.string.stats_section_advice),
+            description = stringResource(R.string.stats_advice_count_format, itemCount),
         )
 
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -965,13 +980,16 @@ private fun LocalAdvisorCard(
     val result = advisor.result
     val idleDescription = when (advisor.availability) {
         AdvisorAvailability.GEMINI_NANO ->
-            "Gemini Nano diễn giải số liệu tổng hợp ngay trên thiết bị."
+            stringResource(R.string.stats_advisor_gemini_description)
         AdvisorAvailability.LOCAL_MODEL ->
-            "Mô hình ${advisor.localModel.displayName ?: "AI cục bộ"} đã sẵn sàng; dữ liệu không rời khỏi máy."
+            stringResource(
+                R.string.stats_advisor_local_ready_format,
+                advisor.localModel.displayName ?: stringResource(R.string.ai_model_display_name),
+            )
         AdvisorAvailability.STATISTICAL_ONLY ->
-            "Gemini Nano không khả dụng. Bạn có thể thêm Gemma 3 1B hoặc mô hình .litertlm phù hợp với máy."
+            stringResource(R.string.stats_advisor_statistical_description)
         AdvisorAvailability.CHECKING ->
-            "Đang kiểm tra khả năng phân tích AI cục bộ trên thiết bị."
+            stringResource(R.string.stats_advisor_checking_description)
     }
 
     InsightCard(
@@ -1010,7 +1028,7 @@ private fun LocalAdvisorCard(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = "Đang cài mô hình AI trên thiết bị…",
+                    text = stringResource(R.string.stats_model_installing),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1042,7 +1060,7 @@ private fun LocalAdvisorCard(
                             strokeWidth = 3.dp,
                         )
                         Text(
-                            text = "Đang phân tích dữ liệu…",
+                            text = stringResource(R.string.stats_analyzing),
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
@@ -1135,9 +1153,9 @@ private fun LocalAdvisorCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = when (result?.provider) {
-                                AdvisorProvider.GEMINI_NANO -> "Gemini Nano"
-                                AdvisorProvider.LOCAL_LITERT_MODEL -> "AI cục bộ · LiteRT-LM"
-                                AdvisorProvider.STATISTICAL_FALLBACK, null -> "Thống kê cục bộ"
+                                AdvisorProvider.GEMINI_NANO -> stringResource(R.string.stats_provider_gemini)
+                                AdvisorProvider.LOCAL_LITERT_MODEL -> stringResource(R.string.stats_provider_local)
+                                AdvisorProvider.STATISTICAL_FALLBACK, null -> stringResource(R.string.stats_provider_statistics)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -1158,7 +1176,7 @@ private fun LocalAdvisorCard(
                         IconButton(onClick = onSelectModel) {
                             Icon(
                                 Icons.Rounded.FolderOpen,
-                                contentDescription = "Mở cài đặt AI cục bộ",
+                                contentDescription = stringResource(R.string.stats_cd_open_local_ai_settings),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -1173,7 +1191,7 @@ private fun LocalAdvisorCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Làm mới")
+                        Text(stringResource(R.string.stats_refresh))
                     }
                 }
             }
@@ -1215,15 +1233,15 @@ private fun DynamicDailyBudgetCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Ngân sách hôm nay",
+                    text = stringResource(R.string.stats_daily_budget_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = if (budget.isExceeded) {
-                        "Đã vượt hạn mức"
+                        stringResource(R.string.stats_daily_budget_exceeded)
                     } else {
-                        "Tự điều chỉnh theo ngân sách tháng"
+                        stringResource(R.string.stats_daily_budget_auto)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = accentColor,
@@ -1237,16 +1255,16 @@ private fun DynamicDailyBudgetCard(
         ) {
             Text(
                 text = if (budget.isExceeded) {
-                    "Đã chi ${MoneyFormatter.format(budget.spentToday)}"
+                    stringResource(R.string.stats_daily_spent_format, MoneyFormatter.format(budget.spentToday))
                 } else {
-                    "Còn ${MoneyFormatter.format(budget.remainingToday)}"
+                    stringResource(R.string.stats_daily_remaining_format, MoneyFormatter.format(budget.remainingToday))
                 },
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = accentColor,
             )
             Text(
-                text = "Hạn mức hôm nay ${MoneyFormatter.format(budget.dailyBudget)}",
+                text = stringResource(R.string.stats_daily_limit_format, MoneyFormatter.format(budget.dailyBudget)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1279,9 +1297,9 @@ private fun DynamicDailyBudgetCard(
             )
             Text(
                 text = if (budget.isExceeded) {
-                    "Hạn mức ngày mai sẽ điều chỉnh còn ${MoneyFormatter.format(budget.tomorrowBudget)}."
+                    stringResource(R.string.stats_tomorrow_adjust_format, MoneyFormatter.format(budget.tomorrowBudget))
                 } else {
-                    "Bạn đang giữ nhịp chi tiêu phù hợp với ngân sách tháng."
+                    stringResource(R.string.stats_budget_on_track)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1323,7 +1341,7 @@ private fun AiAdviceCard(
                 modifier = Modifier.size(22.dp),
             )
             Text(
-                text = advice.title,
+                text = advice.title.resolve(),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
@@ -1333,7 +1351,7 @@ private fun AiAdviceCard(
         }
 
         Text(
-            text = cleanAiMarkdown(advice.content),
+            text = cleanAiMarkdown(advice.content.resolve()),
             style = MaterialTheme.typography.bodySmall,
             maxLines = 5,
             overflow = TextOverflow.Ellipsis,
@@ -1346,9 +1364,9 @@ private fun AiAdviceCard(
         ) {
             Text(
                 text = if (advice.feedback == 1 || advice.feedback == -1) {
-                    "Cảm ơn phản hồi"
+                    stringResource(R.string.stats_feedback_thanks)
                 } else {
-                    "Gợi ý này hữu ích?"
+                    stringResource(R.string.stats_feedback_question)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1361,7 +1379,7 @@ private fun AiAdviceCard(
             ) {
                 Icon(
                     Icons.Rounded.ThumbUp,
-                    contentDescription = "Hữu ích",
+                    contentDescription = stringResource(R.string.stats_feedback_helpful),
                     tint = if (advice.feedback == 1) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -1376,7 +1394,7 @@ private fun AiAdviceCard(
             ) {
                 Icon(
                     Icons.Rounded.ThumbDown,
-                    contentDescription = "Không hữu ích",
+                    contentDescription = stringResource(R.string.stats_feedback_not_helpful),
                     tint = if (advice.feedback == -1) {
                         MaterialTheme.colorScheme.error
                     } else {
@@ -1411,12 +1429,12 @@ private fun SubscriptionProposalCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Khoản chi định kỳ",
+                    text = stringResource(R.string.stats_subscription_expense),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Được phát hiện từ lịch sử giao dịch",
+                    text = stringResource(R.string.stats_subscription_detected_history),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1435,7 +1453,7 @@ private fun SubscriptionProposalCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${MoneyFormatter.format(sub.amount)} mỗi tháng",
+                text = stringResource(R.string.stats_subscription_monthly_format, MoneyFormatter.format(sub.amount)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1456,7 +1474,7 @@ private fun SubscriptionProposalCard(
             )
             Spacer(Modifier.width(7.dp))
             Text(
-                text = "Thêm vào hóa đơn",
+                text = stringResource(R.string.stats_add_to_subscriptions),
                 fontWeight = FontWeight.Bold,
             )
         }

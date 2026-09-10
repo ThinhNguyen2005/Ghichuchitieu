@@ -1,13 +1,16 @@
 package com.notepay.ui.feature.detail
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.model.Transaction
+import com.notepay.R
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -29,6 +32,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
     savedStateHandle: SavedStateHandle,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val transactionId: Long =
@@ -39,7 +43,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     init {
         if (transactionId <= 0L) {
-            _state.update { it.copy(isLoading = false, error = "Không tìm thấy giao dịch") }
+            _state.update { it.copy(isLoading = false, error = context.getString(R.string.error_transaction_not_found)) }
         } else {
             observeTransaction()
         }
@@ -56,12 +60,17 @@ class TransactionDetailViewModel @Inject constructor(
                             transaction = tx,
                             walletName = walletName,
                             isLoading = false,
-                            error = if (tx == null) "Không tìm thấy giao dịch" else null,
+                            error = if (tx == null) context.getString(R.string.error_transaction_not_found) else null,
                         )
                     }
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message ?: "Lỗi tải giao dịch") }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: context.getString(R.string.error_transaction_load_failed),
+                    )
+                }
             }
         }
     }

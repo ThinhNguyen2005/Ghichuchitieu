@@ -1,7 +1,7 @@
 package com.notepay.domain.wallet
 
 import com.notepay.domain.money.Money
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /** Wallet Balance Snapshot & Reconciliation Audit */
 data class WalletBalanceSnapshot(

@@ -39,6 +39,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -56,7 +57,7 @@ fun TransactionItem(
 
     val systemTz = TimeZone.currentSystemDefault()
     val localDateTime = transaction.occurredAt.toLocalDateTime(systemTz)
-    val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+    val timeStr = String.format(Locale.ROOT, "%02d:%02d", localDateTime.hour, localDateTime.minute)
 
     val subtitleParts = listOfNotNull(
         timeStr,

@@ -1,7 +1,9 @@
 package com.notepay.ui.feature.wallet
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
@@ -15,6 +17,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 
@@ -25,10 +29,18 @@ class AddWalletViewModelTest {
     val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private val fakeWalletRepository = FakeWalletRepository()
+    private val context = mockk<Context>(relaxed = true)
+
+    init {
+        every { context.getString(R.string.wallet_updated) } returns "Đã cập nhật ví"
+        every { context.getString(R.string.wallet_created) } returns "Đã tạo ví"
+        every { context.getString(R.string.wallet_update_failed) } returns "Không thể cập nhật ví"
+        every { context.getString(R.string.wallet_create_failed) } returns "Không thể tạo ví"
+    }
 
     @Test
     fun `initial state has default values`() {
-        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
         val state = viewModel.state.value
 
         assertThat(state.name).isEmpty()
@@ -44,7 +56,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `input changes update UI state`() {
-        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
 
         viewModel.onNameChanged("Ví chi tiêu")
         viewModel.onInitialBalanceChanged("500000")
@@ -65,7 +77,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `save with budget limit inserts correct wallet`() = runTest {
-        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -97,7 +109,7 @@ class AddWalletViewModelTest {
 
     @Test
     fun `save without budget limit inserts wallet with null budgetLimit`() = runTest {
-        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle())
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -126,7 +138,7 @@ class AddWalletViewModelTest {
     @Test
     fun `save failure updates error state`() = runTest {
         val repositoryWithFailure = FakeWalletRepository(throwOnSave = true)
-        val viewModel = AddWalletViewModel(repositoryWithFailure, SavedStateHandle())
+        val viewModel = AddWalletViewModel(repositoryWithFailure, SavedStateHandle(), context)
         val feedbacks = mutableListOf<UiFeedback>()
         val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.feedback.collect { feedbacks.add(it) }
@@ -158,7 +170,7 @@ class AddWalletViewModelTest {
         fakeWalletRepository.savedWallets.add(wallet)
 
         val savedStateHandle = SavedStateHandle(mapOf("id" to 42L))
-        val viewModel = AddWalletViewModel(fakeWalletRepository, savedStateHandle)
+        val viewModel = AddWalletViewModel(fakeWalletRepository, savedStateHandle, context)
         testScheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
