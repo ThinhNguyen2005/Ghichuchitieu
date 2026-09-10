@@ -1,0 +1,216 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish signed APKs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x gradlew
+
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tag must use stable semantic-version format such as v1.1.0."
+            exit 1
+          fi
+
+          version_name="${RELEASE_TAG#v}"
+          IFS='.' read -r major minor patch <<< "$version_name"
+          if (( ${#major} > 4 )); then
+            echo "Release major version is too large for Android versionCode."
+            exit 1
+          fi
+          major_number=$((10#$major))
+          minor_number=$((10#$minor))
+          patch_number=$((10#$patch))
+          if (( minor_number >= 1000 || patch_number >= 1000 )); then
+            echo "Release minor and patch versions must be less than 1000."
+            exit 1
+          fi
+          version_code=$((major_number * 1000000 + minor_number * 1000 + patch_number))
+          if (( version_code < 1 || version_code > 2100000000 )); then
+            echo "Derived Android versionCode is outside the supported range."
+            exit 1
+          fi
+
+          {
+            printf 'NOTEPAY_VERSION_NAME=%s\n' "$version_name"
+            printf 'NOTEPAY_VERSION_CODE=%s\n' "$version_code"
+            printf 'RELEASE_VERSION_NAME=%s\n' "$version_name"
+            printf 'RELEASE_VERSION_CODE=%s\n' "$version_code"
+          } >> "$GITHUB_ENV"
+          echo "Release version $version_name resolved to Android versionCode $version_code."
+
+      - name: Validate signing secrets
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_NOTEPAY_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_NOTEPAY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEYSTORE_NOTEPAY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_NOTEPAY_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "$KEYSTORE_BASE64" ]] || missing+=(KEYSTORE_NOTEPAY_BASE64)
+          [[ -n "$KEYSTORE_PASSWORD" ]] || missing+=(KEYSTORE_NOTEPAY_PASSWORD)
+          [[ -n "$KEY_ALIAS" ]] || missing+=(KEYSTORE_NOTEPAY_ALIAS)
+          [[ -n "$KEY_PASSWORD" ]] || missing+=(KEYSTORE_NOTEPAY_KEY_PASSWORD)
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing required GitHub secret(s): %s\n' "${missing[*]}"
+            exit 1
+          fi
+
+      - name: Prepare release signing files
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_NOTEPAY_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_NOTEPAY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEYSTORE_NOTEPAY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_NOTEPAY_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+          test -s app/release.keystore
+          {
+            printf 'storeFile=release.keystore\n'
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > app/signing.properties
+
+      - name: Run flavor unit tests
+        run: ./gradlew :app:testLocalDebugUnitTest :app:testPlayDebugUnitTest --stacktrace
+
+      - name: Assemble signed release APKs
+        run: ./gradlew :app:assembleLocalRelease :app:assemblePlayRelease --stacktrace
+
+      - name: Verify APK metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          android_home="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$android_home" || ! -d "$android_home" ]]; then
+            echo "Android SDK location is unavailable; refusing to publish unverified APK metadata."
+            exit 1
+          fi
+          aapt_path="$(find "$android_home/build-tools" -type f -name aapt -print 2>/dev/null | sort -V | tail -n 1)"
+          if [[ -z "$aapt_path" ]]; then
+            echo "aapt was not found; refusing to publish unverified APK metadata."
+            exit 1
+          fi
+
+          play_apk="app/build/outputs/apk/play/release/app-play-release.apk"
+          local_apk="app/build/outputs/apk/local/release/app-local-release.apk"
+          expected_play="versionCode='${RELEASE_VERSION_CODE}' versionName='${RELEASE_VERSION_NAME}'"
+          expected_local="versionCode='${RELEASE_VERSION_CODE}' versionName='${RELEASE_VERSION_NAME}-local'"
+
+          play_badging="$($aapt_path dump badging "$play_apk")"
+          local_badging="$($aapt_path dump badging "$local_apk")"
+          if ! printf '%s\n' "$play_badging" | grep -Fq "$expected_play"; then
+            echo "Play APK metadata does not match the release tag."
+            exit 1
+          fi
+          if ! printf '%s\n' "$local_badging" | grep -Fq "$expected_local"; then
+            echo "Local APK metadata does not match the release tag."
+            exit 1
+          fi
+          echo "Play APK metadata verified: versionName=$RELEASE_VERSION_NAME versionCode=$RELEASE_VERSION_CODE."
+          echo "Local APK metadata verified: versionName=$RELEASE_VERSION_NAME-local versionCode=$RELEASE_VERSION_CODE."
+
+      - name: Verify APK signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_paths=(
+            app/build/outputs/apk/local/release/app-local-release.apk
+            app/build/outputs/apk/play/release/app-play-release.apk
+          )
+          for apk in "${apk_paths[@]}"; do
+            test -s "$apk"
+          done
+
+          android_home="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$android_home" || ! -d "$android_home" ]]; then
+            echo "Android SDK location is unavailable; refusing to publish unverified APKs."
+            exit 1
+          fi
+          apksigner_path="$(find "$android_home/build-tools" -type f -name apksigner -print 2>/dev/null | sort -V | tail -n 1)"
+          if [[ -z "$apksigner_path" ]]; then
+            echo "apksigner was not found; refusing to publish unverified APKs."
+            exit 1
+          fi
+          for apk in "${apk_paths[@]}"; do
+            "$apksigner_path" verify --verbose "$apk"
+          done
+
+      - name: Prepare release assets
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/play/release/app-play-release.apk "dist/NotePay-play-${RELEASE_TAG}.apk"
+          cp app/build/outputs/apk/local/release/app-local-release.apk "dist/NotePay-local-${RELEASE_TAG}.apk"
+          (
+            cd dist
+            sha256sum "NotePay-play-${RELEASE_TAG}.apk" "NotePay-local-${RELEASE_TAG}.apk" > SHA256SUMS.txt
+          )
+
+      - name: Create immutable GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub Release $RELEASE_TAG already exists; refusing to overwrite an immutable release."
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "NotePay $RELEASE_TAG" \
+            --verify-tag \
+            --generate-notes \
+            "dist/NotePay-play-${RELEASE_TAG}.apk" \
+            "dist/NotePay-local-${RELEASE_TAG}.apk" \
+            dist/SHA256SUMS.txt
+
+      - name: Remove release signing material
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f app/signing.properties app/release.keystore

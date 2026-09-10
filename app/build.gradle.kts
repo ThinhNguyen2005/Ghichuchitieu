@@ -13,6 +13,25 @@ val signingProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+// Release automation supplies these environment variables from the version tag.
+// They remain unset locally, so local builds keep the existing 1.0/1 defaults.
+val resolvedVersionName = providers.environmentVariable("NOTEPAY_VERSION_NAME")
+    .orElse("1.0")
+    .get()
+    .also { require(it.isNotBlank()) { "NOTEPAY_VERSION_NAME must not be blank" } }
+val resolvedVersionCode = providers.environmentVariable("NOTEPAY_VERSION_CODE")
+    .map { value ->
+        value.toIntOrNull()
+            ?: error("NOTEPAY_VERSION_CODE must be a positive integer")
+    }
+    .orElse(1)
+    .get()
+    .also {
+        require(it in 1..2_100_000_000) {
+            "NOTEPAY_VERSION_CODE must be between 1 and 2,100,000,000"
+        }
+    }
+
 android {
     namespace = "com.notepay"
     compileSdk = 37
@@ -21,8 +40,8 @@ android {
         applicationId = "com.notepay"
         // ML Kit Prompt API (Gemini Nano) yêu cầu Android 8.0 / API 26.
         minSdk = 26
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
