@@ -1,7 +1,7 @@
 package com.notepay.ui.feature.stats
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 import com.notepay.domain.TestData
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
@@ -19,12 +19,14 @@ import com.notepay.domain.analytics.AdvisorAvailability
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -144,23 +146,71 @@ class StatsViewModelTest {
         collectJob.cancel()
     }
 
-    private fun createViewModel(
-        repo: TransactionRepository,
-        walletRepo: WalletRepository = FakeWalletRepository()
-    ): StatsViewModel {
-        val fakeContext = mockk<Context>(relaxed = true)
-        val fakeSubRepo = FakeSubscriptionRepository()
+    @Test
+    fun `local advice failure returns to retryable state`() = runTest {
         val advisor = mockk<OnDeviceBudgetAdvisor>(relaxed = true)
         val modelManager = mockk<LocalAiModelManager>(relaxed = true)
         coEvery { advisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
+        coEvery { advisor.generate(any()) } throws IllegalStateException("unexpected failure")
         every { modelManager.state } returns MutableStateFlow(LocalModelState())
+
+        val viewModel = createViewModel(
+            repo = FakeTransactionRepository(listOf(tIncome, tFood)),
+            advisor = advisor,
+            modelManager = modelManager,
+        )
+        val collectJob = launch(UnconfinedTestDispatcher()) { viewModel.state.collect {} }
+
+        viewModel.generateLocalAdvice()
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.localAdvisor.status)
+            .isEqualTo(LocalAdvisorStatus.NOT_REQUESTED)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `local advice cancellation returns to retryable state`() = runTest {
+        val advisor = mockk<OnDeviceBudgetAdvisor>(relaxed = true)
+        val modelManager = mockk<LocalAiModelManager>(relaxed = true)
+        coEvery { advisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
+        coEvery { advisor.generate(any()) } throws CancellationException("cancelled")
+        every { modelManager.state } returns MutableStateFlow(LocalModelState())
+
+        val viewModel = createViewModel(
+            repo = FakeTransactionRepository(listOf(tIncome, tFood)),
+            advisor = advisor,
+            modelManager = modelManager,
+        )
+        val collectJob = launch(UnconfinedTestDispatcher()) { viewModel.state.collect {} }
+
+        viewModel.generateLocalAdvice()
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.localAdvisor.status)
+            .isEqualTo(LocalAdvisorStatus.NOT_REQUESTED)
+        collectJob.cancel()
+    }
+
+    private fun createViewModel(
+        repo: TransactionRepository,
+        walletRepo: WalletRepository = FakeWalletRepository(),
+        advisor: OnDeviceBudgetAdvisor? = null,
+        modelManager: LocalAiModelManager? = null,
+    ): StatsViewModel {
+        val fakeContext = mockk<Context>(relaxed = true)
+        val fakeSubRepo = FakeSubscriptionRepository()
+        val resolvedAdvisor = advisor ?: mockk<OnDeviceBudgetAdvisor>(relaxed = true)
+        val resolvedModelManager = modelManager ?: mockk<LocalAiModelManager>(relaxed = true)
+        coEvery { resolvedAdvisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
+        every { resolvedModelManager.state } returns MutableStateFlow(LocalModelState())
         return StatsViewModel(
             repo,
             walletRepo,
             fakeSubRepo,
             fakeContext,
-            advisor,
-            modelManager,
+            resolvedAdvisor,
+            resolvedModelManager,
         )
     }
 }

@@ -75,7 +75,4 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun clearError() {
-        _state.update { it.copy(error = null) }
-    }
 }

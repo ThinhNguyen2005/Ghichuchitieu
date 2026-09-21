@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.model.TransactionType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -99,14 +100,15 @@ class NotificationCaptureStore @Inject constructor(
         private val LEARNING_KEY = stringSetPreferencesKey("bank_notification_learning")
         private const val SEPARATOR = "|"
 
-        fun sanitizeNote(note: String): String = note
+        fun sanitizeNote(note: String): String = TransactionNotePolicy.truncate(
+            note
             .replace(
                 Regex("(?i)\\b(?:tktt|tk|tài khoản|tai khoan)\\s*[:#|]?\\s*[a-z0-9*x-]{4,}"),
                 "tài khoản: [đã ẩn]",
             )
             .replace(Regex("(?i)\\b[a-z*x]{2,}\\d{4,}\\b"), "[đã ẩn]")
             .replace(Regex("\\b\\d{6,}\\b"), "[đã ẩn]")
-            .take(200)
+        )
 
         private fun encodePending(value: PendingBankNotification): String = listOf(
             value.id,

@@ -46,12 +46,10 @@ import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.formatter.PresentationDateFormatter
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
 import java.util.Locale
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -336,9 +334,9 @@ fun DebtorDetailScreen(
                                     }
                                 }
                             }
-                            val muonDate = formatInstant(item.split.createdAt)
+                            val muonDate = PresentationDateFormatter.formatDate(item.split.createdAt)
                             val dateSubtext = if (isPaid) {
-                                val tradate = formatInstant(item.split.paidAt)
+                                val tradate = PresentationDateFormatter.formatDate(item.split.paidAt)
                                 stringResource(R.string.debt_dates_paid_format, muonDate, tradate)
                             } else {
                                 stringResource(R.string.debt_dates_pending_format, muonDate)
@@ -534,19 +532,6 @@ private fun VietQrTemplateCard(
             )
         }
     }
-}
-
-private fun formatInstant(instant: kotlin.time.Instant?): String {
-    if (instant == null) return ""
-    val tz = TimeZone.currentSystemDefault()
-    val localDateTime = instant.toLocalDateTime(tz)
-    return String.format(
-        Locale.US,
-        "%02d/%02d/%d",
-        localDateTime.day,
-        localDateTime.month.number,
-        localDateTime.year
-    )
 }
 
 @Composable

@@ -13,7 +13,6 @@ data class TransactionListUiState(
     val query: String = "",
     val selectedCategory: Category? = null,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
     val pendingUndoTransaction: Transaction? = null,
     val isCalendarView: Boolean = false,
     val calendarYear: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year,

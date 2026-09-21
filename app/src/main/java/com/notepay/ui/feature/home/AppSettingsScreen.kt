@@ -35,8 +35,8 @@ import com.notepay.R
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
 import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.ai.LocalModelState
-import com.notepay.domain.util.OsCompatHelper
-import com.notepay.domain.util.LiquidGlassBlockReason
+import com.notepay.platform.OsCompatHelper
+import com.notepay.platform.LiquidGlassBlockReason
 import com.notepay.ui.theme.AppTheme
 
 private const val DEFAULT_LOCAL_MODEL_PAGE = "https://github.com/google-ai-edge/LiteRT-LM#supported-models-and-performance"

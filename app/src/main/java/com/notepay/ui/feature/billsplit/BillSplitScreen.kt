@@ -68,13 +68,10 @@ import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.formatter.PresentationDateFormatter
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
-import kotlin.time.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 
 @Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -696,7 +693,11 @@ private fun PaidBillSplitRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = stringResource(R.string.billsplit_paid_note_format, note, formatInstantDayMonth(split.paidAt)),
+                    text = stringResource(
+                        R.string.billsplit_paid_note_format,
+                        note,
+                        PresentationDateFormatter.formatDayMonth(split.paidAt),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -726,13 +727,4 @@ private fun PaidBillSplitRow(
             }
         }
     }
-}
-
-private fun formatInstantDayMonth(instant: Instant?): String {
-    if (instant == null) return ""
-    val tz = TimeZone.currentSystemDefault()
-    val localDateTime = instant.toLocalDateTime(tz)
-    val day = localDateTime.day.toString().padStart(2, '0')
-    val month = localDateTime.month.number.toString().padStart(2, '0')
-    return "$day/$month"
 }

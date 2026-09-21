@@ -144,7 +144,7 @@ class AddWalletViewModel @Inject constructor(
                 )
 
                 walletRepository.upsert(wallet)
-                _state.update { it.copy(isSaving = false, error = null) }
+                _state.update { it.copy(isSaving = false) }
                 _feedback.emit(
                     UiFeedback(
                         context.getString(if (current.isEditMode) R.string.wallet_updated else R.string.wallet_created),
@@ -155,7 +155,7 @@ class AddWalletViewModel @Inject constructor(
                 val message = context.getString(
                     if (current.isEditMode) R.string.wallet_update_failed else R.string.wallet_create_failed,
                 )
-                _state.update { it.copy(isSaving = false, error = message) }
+                _state.update { it.copy(isSaving = false) }
                 _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
             }
         }

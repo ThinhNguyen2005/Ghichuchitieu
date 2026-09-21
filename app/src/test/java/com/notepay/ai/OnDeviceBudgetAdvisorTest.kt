@@ -82,6 +82,33 @@ class OnDeviceBudgetAdvisorTest {
         assertThat(result.providerMessage).contains("th\u1ED1ng k\u00EA")
     }
 
+    @Test
+    fun `generate treats LiteRT timeout as recoverable statistical fallback`() = runTest {
+        coEvery { geminiNano.isGeminiNanoAvailable() } returns false
+        coEvery { liteRt.isModelReady() } returns true
+        coEvery { liteRt.generate(input) } throws LiteRtInferenceTimeoutException()
+        coEvery { geminiNano.generate(input) } returns statisticalResult
+
+        val result = advisor.generate(input)
+
+        assertThat(result.provider).isEqualTo(AdvisorProvider.STATISTICAL_FALLBACK)
+        assertThat(result.providerMessage).contains("mất quá lâu")
+    }
+
+    @Test
+    fun `generate preserves genuine caller cancellation`() = runTest {
+        coEvery { geminiNano.isGeminiNanoAvailable() } returns false
+        coEvery { liteRt.isModelReady() } returns true
+        coEvery { liteRt.generate(input) } throws kotlinx.coroutines.CancellationException("cancelled")
+
+        val thrown = kotlin.test.assertFailsWith<kotlinx.coroutines.CancellationException> {
+            advisor.generate(input)
+        }
+
+        assertThat(thrown.message).isEqualTo("cancelled")
+        coVerify(exactly = 0) { geminiNano.generate(input) }
+    }
+
     private companion object {
         val input = BudgetAdvisorInput(
             prediction = SpendingPrediction(

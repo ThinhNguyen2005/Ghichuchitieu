@@ -65,10 +65,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.notepay.R
-import com.notepay.domain.util.OsCompatHelper
+import com.notepay.platform.OsCompatHelper
 import androidx.compose.ui.platform.LocalView
-import com.notepay.ui.feature.addtransaction.AddTransactionScreen
-import com.notepay.ui.feature.addtransaction.EditTransactionScreen
+import com.notepay.ui.feature.transaction.add.AddTransactionScreen
+import com.notepay.ui.feature.transaction.edit.EditTransactionScreen
 import com.notepay.ui.feature.billsplit.BillSplitScreen
 import com.notepay.ui.feature.billsplit.DebtorDetailScreen
 import com.notepay.ui.feature.detail.TransactionDetailScreen
@@ -329,7 +329,9 @@ fun NotePayNavHost(
                 FeedbackDuration.Indefinite -> SnackbarDuration.Indefinite
             },
         )
-        return result == SnackbarResult.ActionPerformed
+        val actionPerformed = result == SnackbarResult.ActionPerformed
+        if (actionPerformed) feedback.onAction?.invoke()
+        return actionPerformed
     }
 
     Scaffold(

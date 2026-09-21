@@ -2,6 +2,7 @@ package com.notepay.domain.notification
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Money
+import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import org.junit.Test
 
@@ -89,6 +90,19 @@ class NotificationParserTest {
         assertThat(result!!.amount).isEqualTo(Money(100_000_00)) // 100,000 đ
         assertThat(result.type).isEqualTo(TransactionType.INCOME)
         assertThat(result.note).isEqualTo("Tra tien com")
+    }
+
+    @Test
+    fun parseMomoMerchantNoteUsesTransactionNotePolicy() {
+        val merchant = "A".repeat(Transaction.MAX_NOTE_LENGTH + 20)
+        val result = NotificationParser.parse(
+            "Momo",
+            "Momo: Bạn đã thanh toán 45,000đ cho $merchant.",
+        )
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.note).hasLength(Transaction.MAX_NOTE_LENGTH)
+        assertThat(result.note).endsWith("...")
     }
 
     @Test

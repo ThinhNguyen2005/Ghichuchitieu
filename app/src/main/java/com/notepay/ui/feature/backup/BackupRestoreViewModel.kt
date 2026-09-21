@@ -8,11 +8,16 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.backup.DataExporter
 import com.notepay.data.backup.DataImporter
 import com.notepay.R
+import com.notepay.ui.feedback.FeedbackType
+import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,9 +34,12 @@ class BackupRestoreViewModel @Inject constructor(
     ))
     val state = _state.asStateFlow()
 
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
+
     fun exportToFile(uri: Uri) {
         if (_state.value.isExporting) return
-        _state.update { it.copy(isExporting = true, exportSuccess = false, errorMessage = null) }
+        _state.update { it.copy(isExporting = true) }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -44,49 +52,56 @@ class BackupRestoreViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         isExporting = false,
-                        exportSuccess = true,
                         lastBackupDate = loadLastBackupDate(),
                     )
                 }
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.backup_export_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isExporting = false,
-                        errorMessage = context.getString(R.string.backup_export_error_format, e.message.orEmpty()),
-                    )
-                }
+                _state.update { it.copy(isExporting = false) }
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.backup_export_error_format, e.message.orEmpty()),
+                        type = FeedbackType.Error,
+                    ),
+                )
             }
         }
     }
 
     fun importFromFile(uri: Uri) {
         if (_state.value.isImporting) return
-        _state.update { it.copy(isImporting = true, importSuccess = false, errorMessage = null) }
+        _state.update { it.copy(isImporting = true) }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val json = dataImporter.readFromFile(uri)
                 dataImporter.importFromJson(json)
-                _state.update {
-                    it.copy(isImporting = false, importSuccess = true)
-                }
+                _state.update { it.copy(isImporting = false) }
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.backup_restore_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isImporting = false,
-                        errorMessage = context.getString(R.string.backup_import_error_format, e.message.orEmpty()),
-                    )
-                }
+                _state.update { it.copy(isImporting = false) }
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.backup_import_error_format, e.message.orEmpty()),
+                        type = FeedbackType.Error,
+                    ),
+                )
             }
         }
-    }
-
-    fun clearError() {
-        _state.update { it.copy(errorMessage = null) }
-    }
-
-    fun clearSuccess() {
-        _state.update { it.copy(exportSuccess = false, importSuccess = false) }
     }
 
     private fun loadLastBackupDate(): String? {

@@ -15,7 +15,7 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
-import com.notepay.domain.util.OsCompatHelper
+import com.notepay.platform.OsCompatHelper
 import com.notepay.domain.util.StreakTrackerHelper
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel

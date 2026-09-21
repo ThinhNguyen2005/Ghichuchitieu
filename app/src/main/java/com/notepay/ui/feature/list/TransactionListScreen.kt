@@ -4,9 +4,7 @@ import com.notepay.ui.theme.AppTheme
 
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalContext
 import com.notepay.R
-import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.feedback.FeedbackDuration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +84,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.formatter.TransactionDateHeaderFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -111,11 +109,7 @@ fun TransactionListScreen(
     onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
-    val undoLabel = stringResource(R.string.feedback_undo)
-
     // Ngày được tap trên bảng lịch -> mặc định là hôm nay
     val now = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
     var selectedDay by remember { mutableStateOf<LocalDate?>(now.date) }
@@ -124,31 +118,10 @@ fun TransactionListScreen(
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf(state.query) }
 
-    LaunchedEffect(state.pendingUndoTransaction) {
-        val transaction = state.pendingUndoTransaction ?: return@LaunchedEffect
-        val result = onFeedback(
-            UiFeedback(
-                message = transactionDeletedMessage,
-                actionLabel = undoLabel,
-                duration = FeedbackDuration.Short
-            )
-        )
-        if (result) {
-            viewModel.undoDelete()
-        } else {
-            viewModel.clearUndo()
+    LaunchedEffect(viewModel) {
+        viewModel.feedback.collect { feedback ->
+            onFeedback(feedback)
         }
-    }
-
-    LaunchedEffect(state.errorMessage) {
-        val message = state.errorMessage ?: return@LaunchedEffect
-        onFeedback(
-            UiFeedback(
-                message = message,
-                duration = FeedbackDuration.Short
-            )
-        )
-        viewModel.clearError()
     }
 
     Scaffold(
@@ -213,6 +186,7 @@ fun TransactionListScreen(
         val layoutDirection = LocalLayoutDirection.current
         TransactionListContent(
             state = state,
+            today = now.date,
             onQueryChanged = viewModel::onQueryChanged,
             onCategorySelected = viewModel::onCategorySelected,
             onDelete = { pendingDeleteTransaction = it },
@@ -248,6 +222,7 @@ fun TransactionListScreen(
 @Composable
 private fun TransactionListContent(
     state: TransactionListUiState,
+    today: LocalDate,
     onQueryChanged: (String) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     onDelete: (Transaction) -> Unit,
@@ -260,6 +235,19 @@ private fun TransactionListContent(
     topSystemPadding: Dp,
     bottomSystemPadding: Dp,
 ) {
+    val todayFormat = stringResource(R.string.date_today_format)
+    val yesterdayFormat = stringResource(R.string.date_yesterday_format)
+    val otherDateFormat = stringResource(R.string.date_other_format)
+    val dayOfWeekLabels = listOf(
+        stringResource(R.string.day_monday),
+        stringResource(R.string.day_tuesday),
+        stringResource(R.string.day_wednesday),
+        stringResource(R.string.day_thursday),
+        stringResource(R.string.day_friday),
+        stringResource(R.string.day_saturday),
+        stringResource(R.string.day_sunday),
+    )
+
     if (state.isCalendarView) {
         val dateTxMap = remember(state.transactions) {
             state.transactions.groupBy { tx ->
@@ -474,7 +462,14 @@ private fun TransactionListContent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = formatDateHeader(date, LocalContext.current),
+                                            text = TransactionDateHeaderFormatter.format(
+                                                target = date,
+                                                today = today,
+                                                todayFormat = todayFormat,
+                                                yesterdayFormat = yesterdayFormat,
+                                                otherFormat = otherDateFormat,
+                                                dayOfWeek = dayOfWeekLabels[date.dayOfWeek.ordinal],
+                                            ),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -608,28 +603,6 @@ private fun TransactionAmountSummary(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-private fun formatDateHeader(date: LocalDate, context: Context): String {
-    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val diff = date.toEpochDays() - today.toEpochDays()
-    return when (diff) {
-        0L -> context.getString(R.string.date_today_format, date.day, date.month.number)
-        -1L -> context.getString(R.string.date_yesterday_format, date.day, date.month.number)
-        else -> {
-            val dayOfWeekStr = when (date.dayOfWeek.ordinal + 1) {
-                1 -> context.getString(R.string.day_monday)
-                2 -> context.getString(R.string.day_tuesday)
-                3 -> context.getString(R.string.day_wednesday)
-                4 -> context.getString(R.string.day_thursday)
-                5 -> context.getString(R.string.day_friday)
-                6 -> context.getString(R.string.day_saturday)
-                7 -> context.getString(R.string.day_sunday)
-                else -> ""
-            }
-            context.getString(R.string.date_other_format, dayOfWeekStr, date.day, date.month.number)
-        }
     }
 }
 

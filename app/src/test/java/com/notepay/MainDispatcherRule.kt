@@ -1,4 +1,4 @@
-﻿package com.notepay.ui.feature.addtransaction
+package com.notepay
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

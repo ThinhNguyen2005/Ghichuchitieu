@@ -7,7 +7,7 @@ import com.notepay.data.mapper.TransactionMapper
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.data.repository.TransactionRepositoryImpl
 import com.notepay.domain.model.Category
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.notepay.R
+import com.notepay.ui.feedback.UiFeedback
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,8 +66,6 @@ fun BackupRestoreScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
-    val exportSuccessMessage = stringResource(R.string.backup_export_success)
-    val restoreSuccessMessage = stringResource(R.string.backup_restore_success)
 
     // Export launcher
     val exportLauncher = rememberLauncherForActivityResult(
@@ -85,23 +84,9 @@ fun BackupRestoreScreen(
         }
     }
 
-    // Snackbar for success/error
-    LaunchedEffect(state.exportSuccess) {
-        if (state.exportSuccess) {
-            snackbarHostState.showSnackbar(exportSuccessMessage)
-            viewModel.clearSuccess()
-        }
-    }
-    LaunchedEffect(state.importSuccess) {
-        if (state.importSuccess) {
-            snackbarHostState.showSnackbar(restoreSuccessMessage)
-            viewModel.clearSuccess()
-        }
-    }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
+    LaunchedEffect(viewModel) {
+        viewModel.feedback.collect { feedback: UiFeedback ->
+            snackbarHostState.showSnackbar(feedback.message)
         }
     }
 

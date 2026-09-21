@@ -7,7 +7,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +50,6 @@ class AddWalletViewModelTest {
         assertThat(state.iconKey).isEqualTo("cash")
         assertThat(state.colorKey).isEqualTo("primary")
         assertThat(state.isSaving).isFalse()
-        assertThat(state.error).isNull()
         assertThat(state.canSave).isFalse()
     }
 
@@ -136,7 +135,7 @@ class AddWalletViewModelTest {
     }
 
     @Test
-    fun `save failure updates error state`() = runTest {
+    fun `save failure emits error feedback`() = runTest {
         val repositoryWithFailure = FakeWalletRepository(throwOnSave = true)
         val viewModel = AddWalletViewModel(repositoryWithFailure, SavedStateHandle(), context)
         val feedbacks = mutableListOf<UiFeedback>()
@@ -152,7 +151,6 @@ class AddWalletViewModelTest {
         assertThat(feedbacks.first { it.type == FeedbackType.Error }.message).isEqualTo("Không thể tạo ví")
         val state = viewModel.state.value
         assertThat(state.isSaving).isFalse()
-        assertThat(state.error).isEqualTo("Không thể tạo ví")
 
         collectJob.cancel()
     }

@@ -69,9 +69,7 @@ class LocalAiModelManager @Inject constructor(
             }
 
             val metadata = readMetadata(uri)
-            val isSupportedExt = metadata.name.endsWith(".litertlm", ignoreCase = true) ||
-                    metadata.name.endsWith(".bin", ignoreCase = true) ||
-                    metadata.name.endsWith(".tflite", ignoreCase = true)
+            val isSupportedExt = isSupportedLiteRtLmModelName(metadata.name)
             require(isSupportedExt) {
                 appContext.getString(R.string.ai_model_extension_required)
             }
@@ -190,13 +188,15 @@ class LocalAiModelManager @Inject constructor(
                     ).use { engine ->
                         engine.initialize()
                         engine.createConversation().use { conversation ->
-                            runCatching {
+                            runModelValidationProbe {
                                 conversation.sendMessage("Hello")
                             }
                         }
                     }
                     initialized = true
                     break
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (t: Throwable) {
                     lastError = t
                 }
@@ -264,7 +264,6 @@ class LocalAiModelManager @Inject constructor(
         const val KEY_SIZE_BYTES = "size_bytes"
         const val MODEL_DIRECTORY = "ai_models"
         const val MODEL_FILE_NAME = "budget-advisor.litertlm"
-        const val MODEL_EXTENSION = ".litertlm"
         const val COPY_BUFFER_BYTES = 1024 * 1024
         const val MIN_MODEL_BYTES = 20L * 1024L * 1024L
         const val MAX_MODEL_BYTES = 1_500L * 1024L * 1024L
@@ -273,4 +272,13 @@ class LocalAiModelManager @Inject constructor(
         const val TAG = "LocalAiModelManager"
         val SUPPORTED_ABIS = setOf("arm64-v8a", "x86_64")
     }
+}
+
+private const val LITERTLM_EXTENSION = ".litertlm"
+
+internal fun isSupportedLiteRtLmModelName(name: String): Boolean =
+    name.endsWith(LITERTLM_EXTENSION, ignoreCase = true)
+
+internal suspend fun runModelValidationProbe(probe: suspend () -> Unit) {
+    probe()
 }

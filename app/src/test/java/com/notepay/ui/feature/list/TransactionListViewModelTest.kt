@@ -9,7 +9,7 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetTransactionsUseCase
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import kotlinx.coroutines.ExperimentalCoroutinesApi

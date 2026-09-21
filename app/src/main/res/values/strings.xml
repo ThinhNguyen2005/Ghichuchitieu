@@ -416,7 +416,7 @@
     <string name="image_scan_ocr_success">Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.</string>
     <string name="image_scan_amount_not_found">Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.</string>
     <string name="ai_device_64_bit_required">Thiết bị cần kiến trúc 64-bit để chạy mô hình AI cục bộ.</string>
-    <string name="ai_model_extension_required">Hãy chọn tệp mô hình AI có định dạng .litertlm, .bin hoặc .tflite.</string>
+    <string name="ai_model_extension_required">Hãy chọn tệp mô hình AI có định dạng .litertlm.</string>
     <string name="ai_model_size_range">Mô hình phải có dung lượng từ 20 MB đến 1,5 GB.</string>
     <string name="ai_model_storage_insufficient">Không đủ bộ nhớ trống để cài mô hình AI.</string>
     <string name="ai_model_read_error">Không thể đọc tệp mô hình đã chọn.</string>

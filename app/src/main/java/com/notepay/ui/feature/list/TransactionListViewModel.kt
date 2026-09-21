@@ -82,7 +82,6 @@ class TransactionListViewModel internal constructor(
             query = filters.query,
             selectedCategory = filters.category,
             isLoading = false,
-            errorMessage = action.errorMessage,
             pendingUndoTransaction = action.pendingUndoTransaction,
             isCalendarView = filters.isCalendarView,
             calendarYear = filters.calendarYear,
@@ -133,11 +132,11 @@ class TransactionListViewModel internal constructor(
             val result = deleteTransaction(transaction.id)
             actionState.update {
                 if (result.isSuccess) {
-                    it.copy(pendingUndoTransaction = transaction, errorMessage = null)
+                    it.copy(pendingUndoTransaction = transaction)
                 } else {
                     val message = getString(R.string.feedback_transaction_delete_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
-                    it.copy(errorMessage = message)
+                    it
                 }
             }
             if (result.isSuccess) {
@@ -165,23 +164,16 @@ class TransactionListViewModel internal constructor(
             actionState.update {
                 if (result.isSuccess) {
                     _feedback.tryEmit(UiFeedback(getString(R.string.feedback_transaction_restored), type = FeedbackType.Success))
-                    it.copy(pendingUndoTransaction = null, errorMessage = null)
+                    it.copy(pendingUndoTransaction = null)
                 } else {
                     val message = getString(R.string.feedback_transaction_restore_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
-                    it.copy(errorMessage = message)
+                    it
                 }
             }
         }
     }
 
-    fun clearUndo() {
-        actionState.update { it.copy(pendingUndoTransaction = null) }
-    }
-
-    fun clearError() {
-        actionState.update { it.copy(errorMessage = null) }
-    }
 }
 
 private data class TransactionListFilters(
@@ -193,7 +185,6 @@ private data class TransactionListFilters(
 )
 
 private data class TransactionListActionState(
-    val errorMessage: String? = null,
     val pendingUndoTransaction: Transaction? = null,
 )
 

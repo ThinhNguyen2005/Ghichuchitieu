@@ -1,23 +1,26 @@
 package com.notepay.domain.usecase
 
-import android.content.Context
-import androidx.core.content.edit
-import com.notepay.R
 import com.notepay.domain.model.Category
+import com.notepay.domain.repository.CategoryLearningStore
 import com.notepay.util.StringUtils
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.MessageDigest
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.exp
 
-/** A category proposal together with a user-facing explanation of its evidence. */
+/** A category proposal together with structured evidence for presentation mapping. */
 data class CategorySuggestion(
     val category: Category,
     val confidence: Float,
-    val reason: String,
+    val reason: CategorySuggestionReason,
 )
+
+sealed interface CategorySuggestionReason {
+    data object History : CategorySuggestionReason
+    data class Phrase(val phrase: String) : CategorySuggestionReason
+    data object Learned : CategorySuggestionReason
+}
 
 /**
  * On-device category classifier.
@@ -28,10 +31,8 @@ data class CategorySuggestion(
  */
 @Singleton
 class SuggestCategoryUseCase @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val learningStore: CategoryLearningStore,
 ) {
-    private val prefs = context.getSharedPreferences("notepay_category_habits", Context.MODE_PRIVATE)
-
     private data class Rule(val category: Category, val phrases: Set<String>)
 
     private val expenseRules = listOf(
@@ -103,27 +104,27 @@ class SuggestCategoryUseCase @Inject constructor(
         } ?: return
         val typeKey = typeKey(isIncome)
         val totalKey = "v2_total_$typeKey"
-        prefs.edit {
-            putInt(totalKey, prefs.getInt(totalKey, 0) + 1)
+        learningStore.edit {
+            putInt(totalKey, learningStore.getInt(totalKey) + 1)
 
             val categoryCountKey = "v2_category_${typeKey}_${category.id}"
-            putInt(categoryCountKey, prefs.getInt(categoryCountKey, 0) + 1)
+            putInt(categoryCountKey, learningStore.getInt(categoryCountKey) + 1)
 
             val totalWordsKey = "v2_words_${typeKey}_${category.id}"
-            putInt(totalWordsKey, prefs.getInt(totalWordsKey, 0) + tokens.size)
+            putInt(totalWordsKey, learningStore.getInt(totalWordsKey) + tokens.size)
 
             val vocabularyKey = "v2_vocabulary_$typeKey"
-            val vocabulary = prefs.getStringSet(vocabularyKey, emptySet())?.toMutableSet() ?: mutableSetOf()
+            val vocabulary = learningStore.getStringSet(vocabularyKey).toMutableSet()
             tokens.forEach { token ->
                 val key = "v2_token_${typeKey}_${token}_${category.id}"
-                putInt(key, prefs.getInt(key, 0) + 1)
+                putInt(key, learningStore.getInt(key) + 1)
                 vocabulary.add(token)
             }
             putStringSet(vocabularyKey, vocabulary)
 
             val exactKey = exactKey(typeKey, normalized)
             putString(exactKey, category.id)
-            putInt("${exactKey}_count", prefs.getInt("${exactKey}_count", 0) + 1)
+            putInt("${exactKey}_count", learningStore.getInt("${exactKey}_count") + 1)
         }
     }
 
@@ -133,15 +134,15 @@ class SuggestCategoryUseCase @Inject constructor(
         available: List<Category>,
     ): CategorySuggestion? {
         val key = exactKey(typeKey, normalized)
-        val categoryId = prefs.getString(key, null) ?: return null
-        val timesSeen = prefs.getInt("${key}_count", 0)
+        val categoryId = learningStore.getString(key) ?: return null
+        val timesSeen = learningStore.getInt("${key}_count")
         val category = available.firstOrNull { it.id == categoryId } ?: return null
         if (timesSeen < 1) return null
 
         return CategorySuggestion(
             category = category,
             confidence = if (timesSeen >= 2) 0.98f else 0.93f,
-            reason = context.getString(R.string.category_suggestion_reason_history),
+            reason = CategorySuggestionReason.History,
         )
     }
 
@@ -165,7 +166,7 @@ class SuggestCategoryUseCase @Inject constructor(
         return CategorySuggestion(
             category = match.first.category,
             confidence = (0.80f + match.second.coerceAtMost(4) * 0.04f).coerceAtMost(0.96f),
-            reason = context.getString(R.string.category_suggestion_reason_phrase, matchedPhrase),
+            reason = CategorySuggestionReason.Phrase(matchedPhrase),
         )
     }
 
@@ -174,22 +175,22 @@ class SuggestCategoryUseCase @Inject constructor(
         typeKey: String,
         available: List<Category>,
     ): CategorySuggestion? {
-        val totalLearned = prefs.getInt("v2_total_$typeKey", 0)
+        val totalLearned = learningStore.getInt("v2_total_$typeKey")
         if (totalLearned < 3) return null
 
         val tokens = tokenize(normalized)
-        val vocabularySize = prefs.getStringSet("v2_vocabulary_$typeKey", emptySet())?.size?.coerceAtLeast(1) ?: 1
+        val vocabularySize = learningStore.getStringSet("v2_vocabulary_$typeKey").size.coerceAtLeast(1)
         val seenTokenCount = tokens.count { token ->
-            available.any { category -> prefs.getInt("v2_token_${typeKey}_${token}_${category.id}", 0) > 0 }
+            available.any { category -> learningStore.getInt("v2_token_${typeKey}_${token}_${category.id}") > 0 }
         }
         if (seenTokenCount == 0) return null
 
         val logScores = available.associateWith { category ->
-            val categoryCount = prefs.getInt("v2_category_${typeKey}_${category.id}", 0)
+            val categoryCount = learningStore.getInt("v2_category_${typeKey}_${category.id}")
             var score = kotlin.math.ln((categoryCount + 1.0) / (totalLearned + available.size))
-            val totalWords = prefs.getInt("v2_words_${typeKey}_${category.id}", 0)
+            val totalWords = learningStore.getInt("v2_words_${typeKey}_${category.id}")
             tokens.forEach { token ->
-                val tokenCount = prefs.getInt("v2_token_${typeKey}_${token}_${category.id}", 0)
+                val tokenCount = learningStore.getInt("v2_token_${typeKey}_${token}_${category.id}")
                 score += kotlin.math.ln((tokenCount + 1.0) / (totalWords + vocabularySize))
             }
             score
@@ -201,7 +202,7 @@ class SuggestCategoryUseCase @Inject constructor(
         val normalizer = ranked.sumOf { exp(it.value - maximum) }
         val confidence = (exp(winner.value - maximum) / normalizer).toFloat()
         val margin = winner.value - (runnerUp?.value ?: Double.NEGATIVE_INFINITY)
-        val samplesForWinner = prefs.getInt("v2_category_${typeKey}_${winner.key.id}", 0)
+        val samplesForWinner = learningStore.getInt("v2_category_${typeKey}_${winner.key.id}")
 
         // Avoid a confident-looking guess based only on category frequency.
         if (confidence < 0.62f || margin < 0.22 || samplesForWinner < 2) return null
@@ -209,7 +210,7 @@ class SuggestCategoryUseCase @Inject constructor(
         return CategorySuggestion(
             category = winner.key,
             confidence = confidence,
-            reason = context.getString(R.string.category_suggestion_reason_learned),
+            reason = CategorySuggestionReason.Learned,
         )
     }
 

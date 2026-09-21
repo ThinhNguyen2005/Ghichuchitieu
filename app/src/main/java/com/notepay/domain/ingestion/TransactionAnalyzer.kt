@@ -2,6 +2,7 @@ package com.notepay.domain.ingestion
 
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.money.CurrencyParserEngine
 import com.notepay.domain.money.MoneyParseResult
 
@@ -162,7 +163,7 @@ object TransactionAnalyzer {
         val match = NOTE_REGEX.find(body)
         if (match != null) {
             val note = match.groupValues[1].trim()
-            return if (note.length > 200) note.substring(0, 197) + "..." else note
+            return TransactionNotePolicy.truncate(note)
         }
 
         val forMatch = Regex("""cho\s+([^.]+)(?:\.|\z)""", RegexOption.IGNORE_CASE).find(body)

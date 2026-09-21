@@ -430,7 +430,7 @@
     <string name="image_scan_ocr_success">Filled the amount from the image. Check it before saving.</string>
     <string name="image_scan_amount_not_found">Could not find a clear amount in the image. Choose a sharper image.</string>
     <string name="ai_device_64_bit_required">A 64-bit device architecture is required for the local AI model.</string>
-    <string name="ai_model_extension_required">Choose an AI model file with a .litertlm, .bin, or .tflite extension.</string>
+    <string name="ai_model_extension_required">Choose an AI model file with a .litertlm extension.</string>
     <string name="ai_model_size_range">The model must be between 20 MB and 1.5 GB.</string>
     <string name="ai_model_storage_insufficient">There is not enough free storage to install the AI model.</string>
     <string name="ai_model_read_error">Could not read the selected model file.</string>

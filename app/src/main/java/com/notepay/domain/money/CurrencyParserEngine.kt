@@ -10,8 +10,6 @@ sealed interface MoneyParseResult {
 
 /** Unified Currency & Input Parsing Engine */
 object CurrencyParserEngine {
-    private const val MAX_MAJOR_UNITS = Long.MAX_VALUE / 100L
-
     /**
      * Standardizes parsing raw string input into a valid Money object.
      * Handles:
@@ -71,7 +69,7 @@ object CurrencyParserEngine {
             ?: return MoneyParseResult.InvalidInput(input, "Định dạng số không hợp lệ")
 
         val majorUnits = (parsedDouble * multiplier).toLong()
-        if (majorUnits <= 0 || majorUnits > MAX_MAJOR_UNITS) {
+        if (majorUnits <= 0 || majorUnits > Money.MAX_MAJOR_UNITS) {
             return MoneyParseResult.InvalidInput(input, "Số tiền quá lớn hoặc không hợp lệ")
         }
 

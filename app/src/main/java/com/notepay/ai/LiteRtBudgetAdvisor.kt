@@ -17,6 +17,9 @@ import com.notepay.domain.analytics.BudgetAdvisorResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
@@ -41,24 +44,38 @@ class LiteRtBudgetAdvisor @Inject constructor(
         try {
             withTimeout(INFERENCE_TIMEOUT_MILLIS) {
                 Engine.setNativeMinLogSeverity(LogSeverity.ERROR)
-                for (backend in BackendAttempt.DEFAULT_ORDER) {
-                    try {
-                        return@withTimeout generateWithBackend(
-                            input = input,
-                            modelPath = modelFile.absolutePath,
-                            backend = backend.create(),
-                            backendLabel = backend.label,
-                        )
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (t: Throwable) {
-                        if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM ${backend.label} failed: ${t.javaClass.simpleName}")
-                        throw t
-                    }
-                }
-
-                error(appContext.getString(R.string.ai_backend_unavailable))
+                val attempts = BackendAttempt.DEFAULT_ORDER
+                return@withTimeout runBackendAttempts(
+                    labels = attempts.map { it.label },
+                    operation = { backendLabel ->
+                        val backend = attempts.first { it.label == backendLabel }
+                        try {
+                            generateWithBackend(
+                                input = input,
+                                modelPath = modelFile.absolutePath,
+                                backend = backend.create(),
+                                backendLabel = backend.label,
+                            )
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (error: Throwable) {
+                            if (com.notepay.BuildConfig.DEBUG) {
+                                Log.e(
+                                    TAG,
+                                    "LiteRT-LM ${backend.label} failed: ${error.javaClass.simpleName}",
+                                )
+                            }
+                            throw error
+                        }
+                    },
+                    noBackend = {
+                        IllegalStateException(appContext.getString(R.string.ai_backend_unavailable))
+                    },
+                )
             }
+        } catch (timeout: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw LiteRtInferenceTimeoutException(timeout)
         } catch (cancelled: CancellationException) {
             throw cancelled
         }
@@ -131,4 +148,26 @@ class LiteRtBudgetAdvisor @Inject constructor(
             )
         }
     }
+}
+
+internal class LiteRtInferenceTimeoutException(
+    cause: TimeoutCancellationException? = null,
+) : RuntimeException(cause)
+
+internal suspend fun <T> runBackendAttempts(
+    labels: List<String>,
+    operation: suspend (String) -> T,
+    noBackend: () -> Throwable,
+): T {
+    var lastError: Throwable? = null
+    for (label in labels) {
+        try {
+            return operation(label)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            lastError = error
+        }
+    }
+    throw lastError ?: noBackend()
 }

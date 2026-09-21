@@ -356,15 +356,6 @@ fun AddWalletScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (state.error != null) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             LiquidButton(
                 onClick = { viewModel.save() },
                 enabled = state.canSave,

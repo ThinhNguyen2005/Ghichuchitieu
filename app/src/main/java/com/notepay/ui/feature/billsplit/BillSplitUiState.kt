@@ -13,7 +13,6 @@ data class BillSplitUiState(
     val activeWallet: Wallet? = null,
     val banks: List<VietQrBank> = emptyList(),
     val isLoading: Boolean = true,
-    val error: String? = null
 )
 
 data class BillSplitItemState(

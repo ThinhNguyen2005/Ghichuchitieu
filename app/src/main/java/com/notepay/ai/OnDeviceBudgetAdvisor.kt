@@ -8,7 +8,6 @@ import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.TimeoutCancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,6 +38,13 @@ class OnDeviceBudgetAdvisor @Inject constructor(
         if (liteRt.isModelReady()) {
             try {
                 return liteRt.generate(input)
+            } catch (timeout: LiteRtInferenceTimeoutException) {
+                if (com.notepay.BuildConfig.DEBUG) {
+                    Log.e(TAG, "LiteRT-LM analysis timed out", timeout)
+                }
+                return (geminiFallback ?: geminiNano.generate(input)).copy(
+                    providerMessage = context.getString(R.string.ai_litert_fallback, safeReason(timeout)),
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -56,7 +62,7 @@ class OnDeviceBudgetAdvisor @Inject constructor(
 
     private fun safeReason(error: Throwable): String = when (error) {
         is OutOfMemoryError -> context.getString(R.string.ai_reason_insufficient_memory)
-        is TimeoutCancellationException -> context.getString(R.string.ai_reason_timeout)
+        is LiteRtInferenceTimeoutException -> context.getString(R.string.ai_reason_timeout)
         is IllegalArgumentException -> context.getString(R.string.ai_reason_incompatible_model)
         else -> context.getString(R.string.ai_reason_initialization_failed)
     }
