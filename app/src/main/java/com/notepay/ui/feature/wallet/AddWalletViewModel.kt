@@ -8,6 +8,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -69,7 +70,7 @@ class AddWalletViewModel @Inject constructor(
     }
 
     fun onInitialBalanceChanged(input: String) {
-        val clean = input.filter(Char::isDigit)
+        val clean = input.filter(Char::isDigit).take(AmountParser.MAX_DIGITS)
         _state.update { it.copy(initialBalanceInput = clean) }
     }
 
@@ -78,7 +79,7 @@ class AddWalletViewModel @Inject constructor(
     }
 
     fun onBudgetLimitChanged(input: String) {
-        val clean = input.filter(Char::isDigit)
+        val clean = input.filter(Char::isDigit).take(AmountParser.MAX_DIGITS)
         _state.update { it.copy(budgetLimitInput = clean) }
     }
 

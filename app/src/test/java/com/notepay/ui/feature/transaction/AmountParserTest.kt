@@ -31,18 +31,18 @@ class AmountParserTest {
     }
 
     @Test
-    fun `parse accepts maximum representable major unit`() {
-        val result = AmountParser.parse(com.notepay.domain.model.Money.MAX_MAJOR_UNITS.toString())
+    fun `parse accepts maximum allowed major unit (999 billion)`() {
+        val result = AmountParser.parse(AmountParser.MAX_AMOUNT_MAJOR_UNITS.toString())
 
         assertThat(result.amount).isEqualTo(
-            com.notepay.domain.model.Money.fromMajorUnit(com.notepay.domain.model.Money.MAX_MAJOR_UNITS),
+            com.notepay.domain.model.Money.fromMajorUnit(AmountParser.MAX_AMOUNT_MAJOR_UNITS),
         )
         assertThat(result.error).isNull()
     }
 
     @Test
-    fun `parse rejects major unit above shared money bound`() {
-        val result = AmountParser.parse((com.notepay.domain.model.Money.MAX_MAJOR_UNITS + 1L).toString())
+    fun `parse rejects major unit above 999 billion bound`() {
+        val result = AmountParser.parse((AmountParser.MAX_AMOUNT_MAJOR_UNITS + 1L).toString())
 
         assertThat(result.amount).isNull()
         assertThat(result.error).isEqualTo(AmountParseError.INVALID)
@@ -54,5 +54,16 @@ class AmountParserTest {
 
         assertThat(result.amount).isNull()
         assertThat(result.error).isEqualTo(AmountParseError.INVALID)
+        assertThat(result.input.length).isEqualTo(AmountParser.MAX_DIGITS)
+    }
+
+    @Test
+    fun `parse spammed zeros and large digits clamps input safely`() {
+        val spammed = "1" + "0".repeat(50)
+        val result = AmountParser.parse(spammed)
+
+        assertThat(result.amount).isNull()
+        assertThat(result.error).isEqualTo(AmountParseError.INVALID)
+        assertThat(result.input.length).isEqualTo(AmountParser.MAX_DIGITS)
     }
 }

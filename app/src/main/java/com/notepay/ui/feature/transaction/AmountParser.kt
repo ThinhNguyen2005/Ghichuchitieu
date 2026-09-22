@@ -14,17 +14,30 @@ data class AmountParseResult(
 )
 
 object AmountParser {
+    /**
+     * Giới hạn tối đa 12 chữ số: 999.999.999.999 ₫ (999 tỷ đồng).
+     * Bao quát toàn bộ giao dịch chi tiêu lẫn mua sắm tài sản lớn (bất động sản, ô tô).
+     */
+    const val MAX_DIGITS = 12
+    const val MAX_AMOUNT_MAJOR_UNITS: Long = 999_999_999_999L
+
     fun parse(text: String): AmountParseResult {
-        val digits = text.filter(Char::isDigit).trimStart('0')
-        if (digits.isBlank()) {
+        val rawDigits = text.filter(Char::isDigit).trimStart('0')
+        if (rawDigits.isBlank()) {
             return AmountParseResult(input = "", amount = null, error = AmountParseError.EMPTY)
         }
 
-        val majorUnits = digits.toLongOrNull()
-            ?: return AmountParseResult(input = digits, amount = null, error = AmountParseError.INVALID)
+        val clampedInput = rawDigits.take(MAX_DIGITS)
 
-        if (majorUnits <= 0L || majorUnits > Money.MAX_MAJOR_UNITS) {
-            return AmountParseResult(input = digits, amount = null, error = AmountParseError.INVALID)
+        if (rawDigits.length > MAX_DIGITS) {
+            return AmountParseResult(input = clampedInput, amount = null, error = AmountParseError.INVALID)
+        }
+
+        val majorUnits = rawDigits.toLongOrNull()
+            ?: return AmountParseResult(input = clampedInput, amount = null, error = AmountParseError.INVALID)
+
+        if (majorUnits <= 0L || majorUnits > MAX_AMOUNT_MAJOR_UNITS) {
+            return AmountParseResult(input = clampedInput, amount = null, error = AmountParseError.INVALID)
         }
 
         return AmountParseResult(

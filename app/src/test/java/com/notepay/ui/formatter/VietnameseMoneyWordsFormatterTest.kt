@@ -23,11 +23,21 @@ class VietnameseMoneyWordsFormatterTest {
             1_001L to "Một nghìn không trăm lẻ một",
             1_000_000L to "Một triệu",
             1_000_000_000L to "Một tỷ",
+            10_000_000_000L to "Mười tỷ",
+            100_000_000_000L to "Một trăm tỷ",
+            999_999_999_999L to "Chín trăm chín mươi chín tỷ chín trăm chín mươi chín triệu chín trăm chín mươi chín nghìn chín trăm chín mươi chín",
         )
 
         cases.forEach { (amount, expected) ->
             assertThat(VietnameseMoneyWordsFormatter.format(amount, zeroWord = "Không"))
                 .isEqualTo(expected)
         }
+    }
+
+    @Test
+    fun `formats extreme long values coerced to maximum allowed bound safely`() {
+        val result = VietnameseMoneyWordsFormatter.format(Long.MAX_VALUE, zeroWord = "Không")
+        assertThat(result).isNotEmpty()
+        assertThat(result).startsWith("Chín trăm chín mươi chín tỷ")
     }
 }

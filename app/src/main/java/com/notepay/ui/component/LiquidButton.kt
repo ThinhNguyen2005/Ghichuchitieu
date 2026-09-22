@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +30,7 @@ fun LiquidButton(
     enabled: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
+    contentColor: Color = Color.Unspecified,
     backdrop: Backdrop? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -36,15 +40,24 @@ fun LiquidButton(
         tint.isSpecified -> tint.copy(alpha = 1f)
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
-    Row(
-        modifier = modifier
-            .clip(AppTheme.shapes.capsule)
-            .background(surface)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .height(52.dp)
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
+
+    val resolvedContentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+        contentColor.isSpecified -> contentColor
+        else -> contentColorFor(surface)
+    }
+
+    CompositionLocalProvider(LocalContentColor provides resolvedContentColor) {
+        Row(
+            modifier = modifier
+                .clip(AppTheme.shapes.capsule)
+                .background(surface)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .height(52.dp)
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
 }

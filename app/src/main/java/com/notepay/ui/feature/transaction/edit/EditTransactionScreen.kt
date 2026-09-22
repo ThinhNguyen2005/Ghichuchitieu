@@ -64,6 +64,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feature.transaction.components.CategoryPickerSheet
 import com.notepay.ui.feature.transaction.components.CategoryQuickSelectionRow
 import kotlinx.datetime.LocalDate
@@ -141,7 +142,12 @@ fun EditTransactionScreen(
                 val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
                 OutlinedTextField(
                     value = state.amountInput,
-                    onValueChange = { viewModel.onAmountChanged(it) },
+                    onValueChange = { input ->
+                        val clean = input.filter(Char::isDigit)
+                        if (clean.length <= AmountParser.MAX_DIGITS) {
+                            viewModel.onAmountChanged(clean)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.transaction_field_amount)) },
                     singleLine = true,
@@ -290,14 +296,15 @@ fun EditTransactionScreen(
                 LiquidButton(
                     onClick = { viewModel.save() },
                     enabled = !state.isSaving,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) {
                     if (state.isSaving) {
-                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.transaction_saving))
+                        Text(stringResource(R.string.transaction_saving), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        Text(stringResource(R.string.action_save_changes))
+                        Text(stringResource(R.string.action_save_changes), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             }

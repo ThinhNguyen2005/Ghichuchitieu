@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.list
+package com.notepay.ui.feature.transaction.list
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.R

@@ -1,8 +1,9 @@
-package com.notepay.ui.feature.transaction.add
+﻿package com.notepay.ui.feature.transaction.add
 
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
+import com.notepay.ui.feature.transaction.components.CalcKey
 import android.net.Uri
 import kotlin.time.Instant
 
@@ -40,6 +41,12 @@ sealed interface AddTransactionEvent {
 
     /** User nhấn nút Hủy / Back */
     data object Cancel : AddTransactionEvent
+
+    /** User nhấn một phím trên bàn phím tự chế 4x5 */
+    data class CalcKeyPressed(val key: CalcKey) : AddTransactionEvent
+
+    /** User nhấn giữ phím ⌫ → xóa trắng số tiền */
+    data object BackspaceLong : AddTransactionEvent
 
     /** User thêm danh mục tùy biến mới */
     data class CreateCategory(

@@ -18,11 +18,11 @@ import com.notepay.ui.feature.transaction.CategorySuggestionUiMapper
 import com.notepay.ui.feature.transaction.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -66,8 +66,8 @@ class EditTransactionViewModel @Inject constructor(
     private val _state = MutableStateFlow(EditTransactionUiState())
     val state = _state.asStateFlow()
 
-    private val _feedback = MutableSharedFlow<UiFeedback>(replay = 1, extraBufferCapacity = 1)
-    val feedback = _feedback.asSharedFlow()
+    private val _feedback = Channel<UiFeedback>(Channel.BUFFERED)
+    val feedback = _feedback.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -78,7 +78,7 @@ class EditTransactionViewModel @Inject constructor(
 
             if (tx == null) {
                 _state.update { it.copy(isLoading = false) }
-                _feedback.tryEmit(
+                _feedback.trySend(
                     UiFeedback(
                         context.getString(R.string.error_transaction_not_found),
                         type = FeedbackType.Error,
@@ -121,7 +121,8 @@ class EditTransactionViewModel @Inject constructor(
 
     fun onAmountChanged(input: String) {
         if (_state.value.isAutoCapture) return
-        val parsed = AmountParser.parse(input)
+        val clean = input.filter(Char::isDigit).take(AmountParser.MAX_DIGITS)
+        val parsed = AmountParser.parse(clean)
         _state.update { it.copy(amountInput = parsed.input) }
     }
 
@@ -157,7 +158,7 @@ class EditTransactionViewModel @Inject constructor(
                 it.isIncome == isIncome && it.displayName.equals(cleanName, ignoreCase = true)
             }
         ) {
-            _feedback.tryEmit(UiFeedback(context.getString(R.string.feedback_category_exists), type = FeedbackType.Error))
+            _feedback.trySend(UiFeedback(context.getString(R.string.feedback_category_exists), type = FeedbackType.Error))
             return
         }
         viewModelScope.launch {
@@ -188,7 +189,7 @@ class EditTransactionViewModel @Inject constructor(
         
         if (cents <= 0) {
             val message = context.getString(R.string.error_amount_positive)
-            _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
+            _feedback.trySend(UiFeedback(message, type = FeedbackType.Error))
             return
         }
 
@@ -219,11 +220,11 @@ class EditTransactionViewModel @Inject constructor(
                     isIncome = updated.type == TransactionType.INCOME,
                 )
                 _state.update { it.copy(isSaving = false) }
-                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_updated), type = FeedbackType.Success))
+                _feedback.send(UiFeedback(context.getString(R.string.feedback_transaction_updated), type = FeedbackType.Success))
             } catch (e: Exception) {
                 val message = context.getString(R.string.feedback_transaction_update_failed)
                 _state.update { it.copy(isSaving = false) }
-                _feedback.emit(UiFeedback(message, type = FeedbackType.Error))
+                _feedback.send(UiFeedback(message, type = FeedbackType.Error))
             }
         }
     }

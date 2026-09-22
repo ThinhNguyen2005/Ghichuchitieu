@@ -484,16 +484,8 @@ private fun ThemeSettingsCard(
 
     val themeOptions = remember {
         listOf(
-            Triple("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
             Triple("ios", R.string.theme_ios, Color(0xFF1C1C1E)),
-            Triple("green", R.string.theme_green, Color(0xFF1B7F4F)),
-            Triple("blue", R.string.theme_blue, Color(0xFF1976D2)),
-            Triple("red", R.string.theme_red, Color(0xFFC2185B)),
-            Triple("orange", R.string.theme_orange, Color(0xFFE65100)),
-            Triple("teal", R.string.theme_teal, Color(0xFF00796B)),
-            Triple("gold", R.string.theme_gold, Color(0xFF8A6600)),
-            Triple("brown", R.string.theme_brown, Color(0xFF8D4F38)),
-            Triple("gray", R.string.theme_gray, Color(0xFF566066)),
+            Triple("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
         )
     }
 

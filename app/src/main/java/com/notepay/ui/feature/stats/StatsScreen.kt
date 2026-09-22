@@ -1089,13 +1089,13 @@ private fun LocalAdvisorCard(
                             Icons.Rounded.Lightbulb,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
                             text = stringResource(R.string.stats_action_analyze),
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -1110,13 +1110,13 @@ private fun LocalAdvisorCard(
                                 Icons.Rounded.Settings,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.secondary,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                             )
                             Spacer(Modifier.width(5.dp))
                             Text(
                                 text = stringResource(R.string.stats_action_ai_settings),
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = MaterialTheme.colorScheme.onSecondary,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

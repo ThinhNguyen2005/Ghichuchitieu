@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,17 +25,35 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.feature.transaction.AmountParser
+import com.notepay.ui.formatter.VietnameseMoneyWordsFormatter
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.sp
 
 /**
- * Hiển thị số tiền lớn, căn giữa kèm ký hiệu tiền tệ ₫ màu Primary nổi bật
+ * Hiển thị số tiền / biểu thức đã được format sẵn từ CalculatorEngine.
+ * KHÔNG format lại — tránh bug double-format (vd "5.000" → "5.0.00").
+ * Hiển thị thêm dòng đọc số bằng chữ tiếng Việt phía dưới.
  */
 @Composable
 fun TransactionAmountDisplay(
     amountInput: String,
     modifier: Modifier = Modifier
 ) {
+    // Parse số thuần từ chuỗi đã format (vd "5.054.542" → 5054542L)
+    val rawNumber = remember(amountInput) {
+        amountInput.replace(".", "").toLongOrNull() ?: 0L
+    }
+    val zeroWords = stringResource(R.string.number_words_zero)
+    val currencySuffix = stringResource(R.string.number_words_currency_suffix)
+    val amountInWords = remember(rawNumber, zeroWords, currencySuffix) {
+        if (rawNumber > 0L) {
+            runCatching {
+                VietnameseMoneyWordsFormatter.format(rawNumber, zeroWords) + " " + currencySuffix
+            }.getOrDefault("")
+        } else ""
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.fillMaxWidth()
@@ -51,15 +70,9 @@ fun TransactionAmountDisplay(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            val formattedAmount = remember(amountInput) {
-                if (amountInput.isEmpty() || amountInput == "0") "0" else {
-                    val amountLong = amountInput.toLongOrNull() ?: 0L
-                    val formatter = java.text.DecimalFormat("#,###")
-                    formatter.format(amountLong).replace(",", ".")
-                }
-            }
+            // amountInput đã được format bởi CalculatorEngine.displayExpression → hiển thị thẳng
             Text(
-                text = formattedAmount,
+                text = amountInput.ifBlank { "0" },
                 style = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface
@@ -77,6 +90,18 @@ fun TransactionAmountDisplay(
                 modifier = Modifier.padding(start = 6.dp)
             )
         }
+        // Dòng đọc số bằng chữ (chỉ hiển khi có số thuần)
+        if (amountInWords.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = amountInWords,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Normal,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -92,10 +117,12 @@ fun CategoryQuickSelectionRow(
     onSeeAllClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val visibleCategories = remember(categories, isIncome) {
+    val allVisible = remember(categories, isIncome) {
         categories.filter { it == Category.OTHER || it.isIncome == isIncome }
-            .take(4) // Hiển thị 4 danh mục phổ biến nhất
+            .take(8) // 2 hàng × 4 danh mục
     }
+    val row1 = allVisible.take(4)
+    val row2 = allVisible.drop(4)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -123,48 +150,68 @@ fun CategoryQuickSelectionRow(
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            visibleCategories.forEach { category ->
-                val isSelected = category == selectedCategory
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1.1f) // Hơi chữ nhật nhẹ cho cân đối
-                        .clip(AppTheme.shapes.corner16)
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                        )
-                        .border(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            shape = AppTheme.shapes.corner16
-                        )
-                        .clickable { onCategoryChanged(category) }
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
+        // Hàng 1
+        CategoryRow(row1, selectedCategory, onCategoryChanged)
+
+        if (row2.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            // Hàng 2
+            CategoryRow(row2, selectedCategory, onCategoryChanged)
+        }
+    }
+}
+
+@Composable
+private fun CategoryRow(
+    categories: List<Category>,
+    selectedCategory: Category?,
+    onCategoryChanged: (Category) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        categories.forEach { category ->
+            val isSelected = category == selectedCategory
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1.1f)
+                    .clip(AppTheme.shapes.corner16)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    )
+                    .border(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        shape = AppTheme.shapes.corner16
+                    )
+                    .clickable { onCategoryChanged(category) }
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CategoryAvatar(category = category, size = 32.dp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = category.displayName,
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    CategoryAvatar(category = category, size = 32.dp)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
+        }
+        // Placeholder để giữ cân bằng nếu hàng cuối < 4 items
+        repeat(4 - categories.size) {
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -350,7 +397,7 @@ fun NumericKeypad(
  * Hàm xử lý chuỗi nhập tiền tệ thuần khiết, dễ kiểm thử
  */
 fun handleKeyInput(currentValue: String, key: KeypadKey): String {
-    return when (key) {
+    val nextValue = when (key) {
         is KeypadKey.Number -> {
             if (currentValue == "0") key.value.toString() else currentValue + key.value
         }
@@ -359,6 +406,51 @@ fun handleKeyInput(currentValue: String, key: KeypadKey): String {
         }
         KeypadKey.Backspace -> {
             if (currentValue.isNotEmpty()) currentValue.dropLast(1) else ""
+        }
+    }
+    return if (nextValue.length > AmountParser.MAX_DIGITS) currentValue else nextValue
+}
+
+/**
+ * Chip hiển thị tóm tắt ghi chú hiện tại — bấm vào để mở NoteQuickEntrySheet.
+ * Chỉ hiển thị khi note không rỗng.
+ */
+@Composable
+fun NotePreviewChip(
+    note: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.corner12)
+            .clickable(onClick = onClick),
+        shape = AppTheme.shapes.corner12,
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.EditNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = note,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

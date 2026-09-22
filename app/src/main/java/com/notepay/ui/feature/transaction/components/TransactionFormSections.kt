@@ -51,6 +51,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.formatter.VietnameseMoneyWordsFormatter
 import com.notepay.ui.theme.AppTheme
 
@@ -140,7 +141,7 @@ fun TransactionAmountSection(
         BasicTextField(
             value = amountInput,
             onValueChange = { newValue ->
-                if (newValue.all(Char::isDigit) && newValue.length <= Money.MAX_MAJOR_UNITS.toString().length) {
+                if (newValue.all(Char::isDigit) && newValue.length <= AmountParser.MAX_DIGITS) {
                     onAmountChanged(newValue)
                 }
             },
@@ -160,7 +161,9 @@ fun TransactionAmountSection(
             val amountLong = remember(amountInput) { amountInput.toLongOrNull() ?: 0L }
             val amountInWords = remember(amountLong, currencySuffix, zeroWords) {
                 if (amountLong > 0L) {
-                    VietnameseMoneyWordsFormatter.format(amountLong, zeroWords) + " " + currencySuffix
+                    runCatching {
+                        VietnameseMoneyWordsFormatter.format(amountLong, zeroWords) + " " + currencySuffix
+                    }.getOrDefault("")
                 } else {
                     ""
                 }

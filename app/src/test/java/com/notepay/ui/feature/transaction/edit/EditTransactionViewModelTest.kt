@@ -119,21 +119,31 @@ class EditTransactionViewModelTest {
     }
 
     @Test
-    fun `init error when transaction not found`() = runTest {
+    fun `init error when transaction not found is buffered until a collector arrives`() = runTest {
         val transactionRepository = EditFakeTransactionRepository(emptyList())
         val viewModel = createViewModel(99L, transactionRepository)
-        val feedbacks = mutableListOf<UiFeedback>()
-        val feedbackJob = launch(UnconfinedTestDispatcher(testScheduler)) {
-            viewModel.feedback.collect { feedbacks.add(it) }
-        }
         testScheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
         assertThat(state.isLoading).isFalse()
-        assertThat(feedbacks).contains(
+
+        val feedbacks = mutableListOf<UiFeedback>()
+        val feedbackJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+        testScheduler.runCurrent()
+        assertThat(feedbacks).containsExactly(
             UiFeedback("Không tìm thấy giao dịch", type = FeedbackType.Error),
         )
         feedbackJob.cancel()
+
+        val replayedFeedbacks = mutableListOf<UiFeedback>()
+        val replayJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { replayedFeedbacks.add(it) }
+        }
+        testScheduler.runCurrent()
+        assertThat(replayedFeedbacks).isEmpty()
+        replayJob.cancel()
     }
 
     @Test
@@ -154,6 +164,35 @@ class EditTransactionViewModelTest {
         assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
         assertThat(feedbacks.first { it.type == FeedbackType.Success }.message).isEqualTo("Đã cập nhật giao dịch")
         job.cancel()
+
+        val replayedFeedbacks = mutableListOf<UiFeedback>()
+        val replayJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { replayedFeedbacks.add(it) }
+        }
+        assertThat(replayedFeedbacks).isEmpty()
+        replayJob.cancel()
+    }
+
+    @Test
+    fun `save success buffers feedback until a late collector arrives`() = runTest {
+        val transactionRepository = EditFakeTransactionRepository(listOf(sampleTx))
+        val viewModel = createViewModel(15L, transactionRepository)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.onAmountChanged("60000")
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
+
+        val feedbacks = mutableListOf<UiFeedback>()
+        val feedbackJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+        testScheduler.runCurrent()
+
+        assertThat(feedbacks).containsExactly(
+            UiFeedback("Đã cập nhật giao dịch", type = FeedbackType.Success),
+        )
+        feedbackJob.cancel()
     }
 
     @Test
@@ -197,6 +236,54 @@ class EditTransactionViewModelTest {
         assertThat(feedbacks.any { it.type == FeedbackType.Error }).isTrue()
         assertThat(feedbacks.first { it.type == FeedbackType.Error }.message).isEqualTo("Không thể cập nhật giao dịch")
         job.cancel()
+
+        val replayedFeedbacks = mutableListOf<UiFeedback>()
+        val replayJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { replayedFeedbacks.add(it) }
+        }
+        assertThat(replayedFeedbacks).isEmpty()
+        replayJob.cancel()
+    }
+
+    @Test
+    fun `save error buffers feedback until a late collector arrives`() = runTest {
+        val transactionRepository = failingTransactionRepository()
+        val viewModel = createViewModel(15L, transactionRepository)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.onAmountChanged("60000")
+        viewModel.save()
+        testScheduler.advanceUntilIdle()
+
+        val feedbacks = mutableListOf<UiFeedback>()
+        val feedbackJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
+        testScheduler.runCurrent()
+
+        assertThat(feedbacks).containsExactly(
+            UiFeedback("Không thể cập nhật giao dịch", type = FeedbackType.Error),
+        )
+        feedbackJob.cancel()
+    }
+
+    private fun failingTransactionRepository(): TransactionRepository = object : TransactionRepository {
+        val savedTransactions = mutableListOf(sampleTx)
+        override fun observeAll(): Flow<List<Transaction>> = flowOf(savedTransactions)
+        override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(savedTransactions)
+        override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(savedTransactions)
+        override suspend fun getById(id: Long): Transaction? = savedTransactions.find { it.id == id }
+        override fun observeById(id: Long): Flow<Transaction?> = flowOf(savedTransactions.find { it.id == id })
+        override suspend fun upsert(transaction: Transaction): Long = error("db failed")
+        override suspend fun delete(id: Long) = Unit
+        override suspend fun findRecentSimilar(
+            noteKeyword: String,
+            fromMillis: Long,
+            toMillis: Long,
+        ): List<Transaction> = savedTransactions.filter { tx ->
+            tx.note.contains(noteKeyword, ignoreCase = true) &&
+                tx.occurredAt.toEpochMilliseconds() in fromMillis..toMillis
+        }
     }
 
     private fun createViewModel(

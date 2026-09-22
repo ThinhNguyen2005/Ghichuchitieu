@@ -1,7 +1,8 @@
 package com.notepay.ui.theme
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,14 @@ val DefaultAppShapes = AppShapes(
     corner24 = RoundedCornerShape(24.dp),
     capsule = RoundedCornerShape(50),
     circle = CircleShape
+)
+
+val NotePayShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(24.dp),
 )
 
 val LocalAppShapes = staticCompositionLocalOf { DefaultAppShapes }

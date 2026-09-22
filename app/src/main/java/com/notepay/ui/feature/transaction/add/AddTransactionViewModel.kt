@@ -16,6 +16,11 @@ import com.notepay.ai.LocalTransactionImageScanner
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feature.transaction.CategorySuggestionUiMapper
+import com.notepay.ui.feature.transaction.AmountParseError
+import com.notepay.ui.feature.transaction.AmountParser
+import com.notepay.ui.feature.transaction.calculator.CalculatorEngine
+import com.notepay.ui.feature.transaction.calculator.CalculatorState
+import com.notepay.ui.feature.transaction.components.CalcKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -31,8 +36,6 @@ import kotlin.time.Instant
 import java.util.UUID
 
 import com.notepay.domain.repository.CategoryRepository
-import com.notepay.ui.feature.transaction.AmountParseError
-import com.notepay.ui.feature.transaction.AmountParser
 
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
@@ -58,23 +61,76 @@ class AddTransactionViewModel @Inject constructor(
 
     fun onEvent(event: AddTransactionEvent) {
         when (event) {
-            is AddTransactionEvent.AmountChanged -> updateAmount(event.text)
-            is AddTransactionEvent.TypeChanged -> updateType(event.type)
+            is AddTransactionEvent.AmountChanged   -> updateAmount(event.text)
+            is AddTransactionEvent.TypeChanged     -> updateType(event.type)
             is AddTransactionEvent.CategoryChanged -> updateCategory(event.category)
-            is AddTransactionEvent.NoteChanged -> updateNote(event.note)
-            is AddTransactionEvent.DateChanged -> updateDate(event.instant)
-            is AddTransactionEvent.WalletChanged -> updateWallet(event.walletId)
-            is AddTransactionEvent.ImageSelected -> scanImage(event.uri)
-            is AddTransactionEvent.CreateCategory -> createCategory(
+            is AddTransactionEvent.NoteChanged     -> updateNote(event.note)
+            is AddTransactionEvent.DateChanged     -> updateDate(event.instant)
+            is AddTransactionEvent.WalletChanged   -> updateWallet(event.walletId)
+            is AddTransactionEvent.ImageSelected   -> scanImage(event.uri)
+            is AddTransactionEvent.CalcKeyPressed  -> handleCalcKey(event.key)
+            is AddTransactionEvent.CreateCategory  -> createCategory(
                 displayName = event.displayName,
                 colorArgb = event.colorArgb,
                 iconId = event.iconId,
                 isIncome = event.isIncome,
             )
-            AddTransactionEvent.Save -> save()
-            AddTransactionEvent.Cancel -> Unit
+            AddTransactionEvent.BackspaceLong -> clearCalc()
+            AddTransactionEvent.Save          -> save()
+            AddTransactionEvent.Cancel        -> Unit
         }
     }
+
+    // ── Calculator keypad ──────────────────────────────────────────────────────
+
+    private fun handleCalcKey(key: CalcKey) {
+        val current = _state.value.calcState
+        val next = when (key) {
+            is CalcKey.Digit    -> CalculatorEngine.appendDigit(current, key.value)
+            is CalcKey.Operator -> CalculatorEngine.applyOperator(current, key.symbol)
+            CalcKey.Equals      -> CalculatorEngine.equals(current)
+            CalcKey.ThreeZeros  -> CalculatorEngine.appendThreeZeros(current)
+            CalcKey.Backspace   -> CalculatorEngine.backspace(current)
+            // Date / Note / Save keys are handled in the Screen layer
+            CalcKey.Date, CalcKey.Note, CalcKey.Save -> current
+        }
+        commitCalcState(next)
+
+        // Date/Note/Save: bubble up via separate events so Screen can react
+        when (key) {
+            CalcKey.Save -> save()
+            else -> Unit
+        }
+    }
+
+    private fun clearCalc() {
+        commitCalcState(CalculatorEngine.clear())
+    }
+
+    /**
+     * After every keypad press, compute the resolved amount in cents
+     * and push it into the main state.
+     */
+    private fun commitCalcState(calc: CalculatorState) {
+        val majorUnits = CalculatorEngine.currentValue(calc) ?: 0L
+        val amountInCents = majorUnits * 100L
+        val money = if (amountInCents > 0) Money(amountInCents) else null
+        val errors = _state.value.errors
+            .minus(FieldError.AMOUNT_EMPTY)
+            .minus(FieldError.AMOUNT_INVALID)
+            .let { if (amountInCents <= 0 && _state.value.errors.contains(FieldError.AMOUNT_EMPTY)) it + FieldError.AMOUNT_EMPTY else it }
+
+        _state.update {
+            it.copy(
+                calcState = calc,
+                amountInput = calc.currentOperand,
+                amount = money,
+                errors = errors,
+            )
+        }
+    }
+
+    // ── Other handlers (unchanged) ─────────────────────────────────────────────
 
     private fun observeCategories() {
         viewModelScope.launch(ioDispatcher) {
@@ -161,12 +217,18 @@ class AddTransactionViewModel @Inject constructor(
                         .minus(FieldError.AMOUNT_INVALID)
                         .let { errors -> parseResult.error?.asFieldError()?.let(errors::plus) ?: errors }
                 } ?: current.errors
+                // Also update calcState when OCR fills in an amount
+                val scannedLong = parsed?.amount?.amountInCents?.div(100L) ?: 0L
+                val newCalcState = if (scannedLong > 0)
+                    CalculatorState(currentOperand = scannedLong.toString())
+                else current.calcState
                 current.copy(
                     amountInput = parsed?.input ?: current.amountInput,
                     amount = parsed?.amount ?: current.amount,
                     errors = updatedErrors,
                     isImageScanning = false,
                     imageScanMessage = result.message,
+                    calcState = newCalcState,
                 )
             }
         }
@@ -189,18 +251,19 @@ class AddTransactionViewModel @Inject constructor(
         _state.update {
             it.copy(
                 category = category,
-                isCategoryExplicitlySelected = true
+                isCategoryExplicitlySelected = true,
             )
         }
     }
 
     private fun updateNote(note: String) {
+        val cleanNote = note.take(Transaction.MAX_NOTE_LENGTH)
         val errors = _state.value.errors
             .minus(FieldError.NOTE_TOO_LONG)
             .let { if (note.length > Transaction.MAX_NOTE_LENGTH) it + FieldError.NOTE_TOO_LONG else it }
 
         val isIncome = _state.value.type == TransactionType.INCOME
-        val suggestion = suggestCategoryUseCase.suggestDetailed(note, isIncome)
+        val suggestion = suggestCategoryUseCase.suggestDetailed(cleanNote, isIncome)
         val finalCategory = if (!_state.value.isCategoryExplicitlySelected) {
             suggestion?.category ?: if (isIncome) Category.DEFAULT_INCOME else Category.DEFAULT_EXPENSE
         } else {
@@ -209,11 +272,11 @@ class AddTransactionViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                note = note,
+                note = cleanNote,
                 category = finalCategory,
                 suggestedCategory = suggestion?.category,
                 suggestionReason = suggestion?.reason?.let { CategorySuggestionUiMapper.toText(context, it) },
-                errors = errors
+                errors = errors,
             )
         }
     }
@@ -251,11 +314,8 @@ class AddTransactionViewModel @Inject constructor(
             )
             val result = addTransactionUseCase(transaction)
             _state.update {
-                if (result.isSuccess) {
-                    it.copy(isSaving = false)
-                } else {
-                    it.copy(isSaving = false)
-                }
+                if (result.isSuccess) it.copy(isSaving = false)
+                else it.copy(isSaving = false)
             }
             if (result.isSuccess) {
                 suggestCategoryUseCase.learn(
@@ -280,10 +340,9 @@ class AddTransactionViewModel @Inject constructor(
         if (state.walletId == null) add(FieldError.WALLET_MISSING)
         if (state.note.length > Transaction.MAX_NOTE_LENGTH) add(FieldError.NOTE_TOO_LONG)
     }
-
 }
 
 private fun AmountParseError.asFieldError(): FieldError = when (this) {
-    AmountParseError.EMPTY -> FieldError.AMOUNT_EMPTY
+    AmountParseError.EMPTY   -> FieldError.AMOUNT_EMPTY
     AmountParseError.INVALID -> FieldError.AMOUNT_INVALID
 }

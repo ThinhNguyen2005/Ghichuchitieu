@@ -1,9 +1,10 @@
 package com.notepay.domain.usecase
 
 import com.notepay.domain.model.Category
+import com.notepay.domain.repository.CategoryLearningEntry
 import com.notepay.domain.repository.CategoryLearningStore
+import com.notepay.domain.repository.CategoryLearningType
 import com.notepay.util.StringUtils
-import java.security.MessageDigest
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -77,13 +78,13 @@ class SuggestCategoryUseCase @Inject constructor(
         val normalized = normalize(note)
         if (normalized.isBlank()) return null
 
-        val typeKey = typeKey(isIncome)
+        val type = learningType(isIncome)
         val available = Category.getAll().filter { it.isIncome == isIncome }
         if (available.isEmpty()) return null
 
-        exactNoteSuggestion(normalized, typeKey, available)?.let { return it }
+        exactNoteSuggestion(normalized, type, available)?.let { return it }
         ruleSuggestion(normalized, available, isIncome)?.let { return it }
-        return learnedSuggestion(normalized, typeKey, available)
+        return learnedSuggestion(normalized, type, available)
     }
 
     /**
@@ -102,41 +103,24 @@ class SuggestCategoryUseCase @Inject constructor(
         val category = Category.getAll().firstOrNull {
             it.id == categoryId && it.isIncome == isIncome
         } ?: return
-        val typeKey = typeKey(isIncome)
-        val totalKey = "v2_total_$typeKey"
-        learningStore.edit {
-            putInt(totalKey, learningStore.getInt(totalKey) + 1)
-
-            val categoryCountKey = "v2_category_${typeKey}_${category.id}"
-            putInt(categoryCountKey, learningStore.getInt(categoryCountKey) + 1)
-
-            val totalWordsKey = "v2_words_${typeKey}_${category.id}"
-            putInt(totalWordsKey, learningStore.getInt(totalWordsKey) + tokens.size)
-
-            val vocabularyKey = "v2_vocabulary_$typeKey"
-            val vocabulary = learningStore.getStringSet(vocabularyKey).toMutableSet()
-            tokens.forEach { token ->
-                val key = "v2_token_${typeKey}_${token}_${category.id}"
-                putInt(key, learningStore.getInt(key) + 1)
-                vocabulary.add(token)
-            }
-            putStringSet(vocabularyKey, vocabulary)
-
-            val exactKey = exactKey(typeKey, normalized)
-            putString(exactKey, category.id)
-            putInt("${exactKey}_count", learningStore.getInt("${exactKey}_count") + 1)
-        }
+        learningStore.learn(
+            CategoryLearningEntry(
+                type = learningType(isIncome),
+                categoryId = category.id,
+                normalizedNote = normalized,
+                tokens = tokens,
+            ),
+        )
     }
 
     private fun exactNoteSuggestion(
         normalized: String,
-        typeKey: String,
+        type: CategoryLearningType,
         available: List<Category>,
     ): CategorySuggestion? {
-        val key = exactKey(typeKey, normalized)
-        val categoryId = learningStore.getString(key) ?: return null
-        val timesSeen = learningStore.getInt("${key}_count")
-        val category = available.firstOrNull { it.id == categoryId } ?: return null
+        val match = learningStore.findExact(type, normalized) ?: return null
+        val category = available.firstOrNull { it.id == match.categoryId } ?: return null
+        val timesSeen = match.timesSeen
         if (timesSeen < 1) return null
 
         return CategorySuggestion(
@@ -172,25 +156,30 @@ class SuggestCategoryUseCase @Inject constructor(
 
     private fun learnedSuggestion(
         normalized: String,
-        typeKey: String,
+        type: CategoryLearningType,
         available: List<Category>,
     ): CategorySuggestion? {
-        val totalLearned = learningStore.getInt("v2_total_$typeKey")
+        val tokens = tokenize(normalized)
+        val snapshot = learningStore.read(
+            type = type,
+            categoryIds = available.mapTo(linkedSetOf()) { it.id },
+            tokens = tokens.toSet(),
+        )
+        val totalLearned = snapshot.totalSamples
         if (totalLearned < 3) return null
 
-        val tokens = tokenize(normalized)
-        val vocabularySize = learningStore.getStringSet("v2_vocabulary_$typeKey").size.coerceAtLeast(1)
+        val vocabularySize = snapshot.vocabularySize.coerceAtLeast(1)
         val seenTokenCount = tokens.count { token ->
-            available.any { category -> learningStore.getInt("v2_token_${typeKey}_${token}_${category.id}") > 0 }
+            available.any { category -> snapshot.tokenSamples(category.id, token) > 0 }
         }
         if (seenTokenCount == 0) return null
 
         val logScores = available.associateWith { category ->
-            val categoryCount = learningStore.getInt("v2_category_${typeKey}_${category.id}")
+            val categoryCount = snapshot.categorySamples(category.id)
             var score = kotlin.math.ln((categoryCount + 1.0) / (totalLearned + available.size))
-            val totalWords = learningStore.getInt("v2_words_${typeKey}_${category.id}")
+            val totalWords = snapshot.categoryWords(category.id)
             tokens.forEach { token ->
-                val tokenCount = learningStore.getInt("v2_token_${typeKey}_${token}_${category.id}")
+                val tokenCount = snapshot.tokenSamples(category.id, token)
                 score += kotlin.math.ln((tokenCount + 1.0) / (totalWords + vocabularySize))
             }
             score
@@ -202,7 +191,7 @@ class SuggestCategoryUseCase @Inject constructor(
         val normalizer = ranked.sumOf { exp(it.value - maximum) }
         val confidence = (exp(winner.value - maximum) / normalizer).toFloat()
         val margin = winner.value - (runnerUp?.value ?: Double.NEGATIVE_INFINITY)
-        val samplesForWinner = learningStore.getInt("v2_category_${typeKey}_${winner.key.id}")
+        val samplesForWinner = snapshot.categorySamples(winner.key.id)
 
         // Avoid a confident-looking guess based only on category frequency.
         if (confidence < 0.62f || margin < 0.22 || samplesForWinner < 2) return null
@@ -225,15 +214,8 @@ class SuggestCategoryUseCase @Inject constructor(
         return if (!beforeIsWord && !afterIsWord) normalizedPhrase.split(' ').size else 0
     }
 
-    private fun typeKey(isIncome: Boolean) = if (isIncome) "income" else "expense"
-
-    private fun exactKey(typeKey: String, normalized: String) =
-        "v2_exact_${typeKey}_${sha256(normalized.replace(Regex("\\d+"), "#"))}"
-
-    private fun sha256(value: String): String = MessageDigest
-        .getInstance("SHA-256")
-        .digest(value.toByteArray())
-        .joinToString("") { "%02x".format(it) }
+    private fun learningType(isIncome: Boolean) =
+        if (isIncome) CategoryLearningType.INCOME else CategoryLearningType.EXPENSE
 
     private fun normalize(text: String): String = StringUtils
         .removeVietnameseAccents(text)

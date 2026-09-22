@@ -1,10 +1,9 @@
-package com.notepay.ui.feature.detail
+package com.notepay.ui.feature.transaction.detail
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.domain.model.Transaction
 import com.notepay.R
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
@@ -16,16 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class TransactionDetailUiState(
-    val transaction: Transaction? = null,
-    val walletName: String? = null,
-    val isLoading: Boolean = true,
-    val error: String? = null,
-) {
-    val isAutoCapture: Boolean
-        get() = transaction?.isAutoCapture == true
-}
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
@@ -74,5 +63,4 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-
 }

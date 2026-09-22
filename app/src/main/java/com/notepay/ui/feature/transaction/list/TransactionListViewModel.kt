@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.list
+package com.notepay.ui.feature.transaction.list
 
 import android.content.Context
 import androidx.lifecycle.ViewModel

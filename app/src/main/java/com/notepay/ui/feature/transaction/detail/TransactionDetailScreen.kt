@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.detail
+package com.notepay.ui.feature.transaction.detail
 
 import com.notepay.ui.theme.AppTheme
 
