@@ -110,7 +110,7 @@ fun HomeScreen(
     val emptyTx = stringResource(R.string.home_empty_transactions)
     val chooseWallet = stringResource(R.string.home_choose_wallet)
     val closeLabel = stringResource(R.string.action_close)
-    val editWalletLabel = stringResource(R.string.home_edit_wallet)
+    val editWalletLabel = stringResource(R.string.action_edit_wallet)
     val addNewWalletLabel = stringResource(R.string.home_add_new_wallet)
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)

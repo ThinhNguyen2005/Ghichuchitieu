@@ -611,7 +611,7 @@ private fun CopyableDetailRow(
             Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
-            Icon(imageVector = Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.cd_copy), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
+            Icon(imageVector = Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.content_description_copy), tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
         }
     }
 }

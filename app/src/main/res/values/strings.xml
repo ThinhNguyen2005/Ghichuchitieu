@@ -7,7 +7,6 @@
     <!-- Bottom navigation labels -->
     <string name="nav_home">Trang chủ</string>
     <string name="nav_transactions">Giao dịch</string>
-    <string name="nav_add">Thêm</string>
     <string name="quick_add_open_menu">Mở menu tạo mới</string>
     <string name="quick_add_close_menu">Đóng menu tạo mới</string>
     <string name="nav_stats">Thống kê</string>
@@ -27,6 +26,8 @@
     <string name="action_setup">Thiết lập</string>
     <string name="action_see_all">Xem tất cả</string>
     <string name="action_back">Quay lại</string>
+    <string name="action_edit_wallet">Chỉnh sửa ví</string>
+    <string name="action_saving">Đang lưu…</string>
 
     <!-- Quick add bottom sheet -->
     <string name="quick_add_title">Tạo mới</string>
@@ -41,16 +42,12 @@
     <string name="home_empty_wallet_title">Chưa có ví nào</string>
     <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
     <string name="home_create_wallet">Tạo ví</string>
-    <string name="home_save_wallet_changes">Lưu thay đổi</string>
     <string name="home_battery_title">Tối ưu pin</string>
     <string name="home_battery_desc">Giúp ứng dụng hoạt động ổn định</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
-    <string name="home_edit_wallet">Chỉnh sửa ví</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
-    <string name="home_reminder_cd">Nhắc nhở gia hạn</string>
-    <string name="home_app_settings_cd">Cài đặt ứng dụng</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
@@ -98,8 +95,6 @@
     <string name="stats_filter_quarter">Quý</string>
     <string name="stats_filter_year">Năm</string>
     <string name="stats_filter_custom">Tùy chọn</string>
-    <string name="stats_kpi_income">Thu nhập</string>
-    <string name="stats_kpi_expense">Chi tiêu</string>
     <string name="stats_kpi_net">Ròng</string>
     <string name="stats_section_categories">Theo danh mục</string>
     <string name="stats_section_budget">Ngân sách</string>
@@ -109,7 +104,6 @@
     <!-- Bill split screen -->
     <string name="bill_split_title">Quản lý Chia tiền</string>
     <string name="bill_split_tab_unpaid">Chờ thanh toán</string>
-    <string name="bill_split_tab_paid">Đã thanh toán</string>
     <string name="bill_split_empty">Chưa có khoản chia tiền nào\nBấm nút (+) ở bên dưới để tạo phiếu chia tiền nhóm mới.</string>
     <string name="bill_split_empty_unpaid">Tất cả nợ đã được thanh toán\nKhông còn khoản nợ nhóm nào đang chờ xử lý.</string>
     <string name="bill_split_empty_paid">Chưa có lịch sử thanh toán\nCác khoản chia tiền đã hoàn tất sẽ hiển thị tại đây.</string>
@@ -140,7 +134,6 @@
     <string name="utilities_reminder_title">Nhắc nhở gia hạn</string>
 
     <!-- AddWallet screen -->
-    <string name="add_wallet_title">Thêm ví</string>
     <string name="edit_wallet_title">Sửa ví</string>
     <string name="wallet_field_name">Tên ví</string>
     <string name="wallet_field_initial_balance">Số dư ban đầu</string>
@@ -304,7 +297,6 @@
     <string name="feedback_copy_account_name">Đã sao chép Tên chủ tài khoản</string>
     <string name="feedback_copy_amount_format">Đã sao chép Số tiền: %1$s</string>
     <string name="feedback_copy_memo">Đã sao chép Cú pháp chuyển khoản</string>
-    <string name="cd_copy">Sao chép</string>
     <string name="error_generate_qr">Không thể sinh mã QR</string>
     <string name="action_share_vietqr">Chia sẻ mã QR thanh toán</string>
     <string name="error_share_vietqr">Lỗi khi khởi tạo và chia sẻ hình ảnh VietQR</string>
@@ -485,17 +477,11 @@
     <string name="transaction_suggested_category">💡 Đề xuất danh mục:</string>
     <string name="transaction_auto_note_edit_only">Chỉ cho phép sửa ghi chú đối với giao dịch tự động</string>
     <string name="transaction_date_format">Ngày: %1$s</string>
-    <string name="transaction_saving">Đang lưu…</string>
     <string name="action_save_changes">Lưu thay đổi</string>
     <string name="dialog_delete_confirm_format">Bạn có chắc chắn muốn xóa "%1$s"? Hành động này không thể hoàn tác.</string>
     <string name="content_description_close_suggestion">Đóng gợi ý</string>
     <string name="content_description_backspace">Xóa ký tự cuối</string>
-    <string name="content_description_open_wallet_picker">Chọn ví</string>
-    <string name="content_description_edit_wallet">Chỉnh sửa ví</string>
-    <string name="content_description_scan_transaction">Quét ảnh giao dịch hoặc VietQR</string>
     <string name="content_description_open_calendar">Mở lịch</string>
-    <string name="content_description_delete">Xóa</string>
-    <string name="content_description_edit">Chỉnh sửa</string>
     <string name="content_description_more_options">Tùy chọn khác</string>
     <string name="content_description_copy">Sao chép</string>
     <string name="content_description_share">Chia sẻ</string>
@@ -593,7 +579,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_wallet_format">Ví: %1$s</string>
     <string name="billsplit_qr_description">Mã QR nhận tiền sẽ được tạo tự động khi chia hóa đơn. Thông tin tài khoản cần chính xác để hiển thị đúng mã chuyển tiền.</string>
     <string name="billsplit_receiving_bank">Ngân hàng nhận</string>
-    <string name="billsplit_choose_bank_short">Chọn ngân hàng</string>
     <string name="billsplit_account_number_label">Số tài khoản nhận</string>
     <string name="billsplit_account_number_placeholder">VD: 0123456789</string>
     <string name="billsplit_account_name_placeholder">NGUYEN VAN A</string>
@@ -778,7 +763,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_color_title">Màu sắc nhận diện</string>
     <string name="wallet_vietqr_later_title">Cấu hình VietQR sau</string>
     <string name="wallet_vietqr_later_description">Sau khi tạo ví, vào Chia tiền → icon QR trên thanh trên cùng để cấu hình ngân hàng + STK + tên chủ TK nhanh chóng.</string>
-    <string name="wallet_saving">Đang lưu…</string>
     <string name="detail_info_title">Thông tin chi tiết</string>
     <string name="detail_timestamp">Thời điểm</string>
     <string name="detail_wallet_missing">Ví không còn tồn tại</string>
@@ -792,19 +776,15 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="detail_create_subscription">Tạo nhắc nhở gia hạn</string>
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
     <!-- Assets screen -->
-    <string name="assets_title">Tài sản</string>
     <string name="assets_total_balance">Tổng tài sản ròng</string>
     <string name="assets_wallets_header">Danh sách ví</string>
     <string name="assets_wallet_balance">Số dư</string>
     <string name="assets_view_transactions">Xem giao dịch</string>
     <string name="assets_view_ledger">Xem sổ cái</string>
-    <string name="assets_add_wallet">Thêm ví mới</string>
     <string name="assets_add_wallet_btn">Thêm ví</string>
     <string name="assets_transfer_btn">Chuyển tiền</string>
-    <string name="assets_no_wallets">Chưa có ví nào</string>
     <string name="wallets_count_label">tài khoản</string>
     <string name="transactions_count_label">giao dịch</string>
-    <string name="wallet_badge_default">Ví chính</string>
     <string name="wallet_badge_active">Ví chính</string>
     <string name="set_as_active_wallet">Đặt làm ví chính</string>
     <string name="assets_transfer_dialog_title">Chuyển tiền giữa các ví</string>
@@ -928,9 +908,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_insight_trend_stable">➡️ Chi tiêu ổn định so tháng trước</string>
     <string name="stats_insight_early_warning_first_days">⚠️ Đã tiêu %1$s trong 3 ngày đầu — gấp đôi hạn mức ngày. Hãy kiềm chế!</string>
     <string name="stats_insight_early_warning_first_week">⚠️ Tuần đầu chi tiêu đạt %1$d%% hạn mức/ngày. Nên giảm xuống còn %2$s/ngày.</string>
-    <string name="stats_engine_advice_food_title">Cảnh báo ăn uống</string>
     <string name="stats_engine_advice_food_content">Chi tiêu ăn uống chiếm %1$s tổng chi tiêu. Hãy thử tự nấu ăn để tiết kiệm!</string>
-    <string name="stats_engine_advice_bill_title">Chuẩn bị tiền đóng phí</string>
     <string name="stats_engine_advice_bill_content">Hóa đơn \'%1$s\' (%2$s) sẽ đến hạn sau vài ngày. Số dư ví hiện không đủ!</string>
     <string name="stats_engine_advice_spike_title">Chi tiêu bất thường</string>
     <string name="stats_engine_advice_spike_content">Hôm nay chi %1$s — gấp %2$d%% trung bình ngày (%3$s). Kiểm tra lại!</string>

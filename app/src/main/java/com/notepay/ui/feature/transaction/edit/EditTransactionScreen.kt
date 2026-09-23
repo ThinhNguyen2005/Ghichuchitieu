@@ -302,7 +302,7 @@ fun EditTransactionScreen(
                     if (state.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.transaction_saving), color = MaterialTheme.colorScheme.onPrimary)
+                        Text(stringResource(R.string.action_saving), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
                         Text(stringResource(R.string.action_save_changes), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }

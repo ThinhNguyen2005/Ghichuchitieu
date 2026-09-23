@@ -256,7 +256,7 @@ fun BalanceCard(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Edit,
-                                        contentDescription = stringResource(R.string.content_description_edit_wallet),
+                                        contentDescription = stringResource(R.string.action_edit_wallet),
                                         modifier = Modifier.size(16.dp),
                                         tint = primaryTextColor.copy(alpha = 0.9f)
                                     )
