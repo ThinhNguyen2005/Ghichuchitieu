@@ -521,6 +521,13 @@
     <string name="category_section_title">Category</string>
     <string name="category_choices_format">%1$d choices</string>
     <string name="category_section_description">Choose the best category for this transaction</string>
+    <string name="category_search_placeholder">Search categories…</string>
+    <string name="category_group_all">All</string>
+    <string name="category_group_food_transport">Food &amp; Transport</string>
+    <string name="category_group_home_bills">Home &amp; Bills</string>
+    <string name="category_group_lifestyle">Lifestyle &amp; Shopping</string>
+    <string name="category_group_family_health">Family &amp; Health</string>
+    <string name="category_group_finance">Finance &amp; Investment</string>
     <string name="category_add_more">Add…</string>
     <string name="category_dialog_title">Create new category</string>
     <string name="category_name_label">Category name</string>

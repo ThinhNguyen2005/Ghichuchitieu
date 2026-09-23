@@ -508,6 +508,13 @@
     <string name="category_section_title">Danh mục</string>
     <string name="category_choices_format">%1$d lựa chọn</string>
     <string name="category_section_description">Chọn danh mục phù hợp nhất với giao dịch này</string>
+    <string name="category_search_placeholder">Tìm kiếm danh mục…</string>
+    <string name="category_group_all">Tất cả</string>
+    <string name="category_group_food_transport">Ăn uống &amp; Đi lại</string>
+    <string name="category_group_home_bills">Nhà cửa &amp; Hóa đơn</string>
+    <string name="category_group_lifestyle">Đời sống &amp; Mua sắm</string>
+    <string name="category_group_family_health">Gia đình &amp; Sức khỏe</string>
+    <string name="category_group_finance">Tài chính &amp; Đầu tư</string>
     <string name="category_add_more">Thêm…</string>
     <string name="category_dialog_title">Tạo danh mục mới</string>
     <string name="category_name_label">Tên danh mục</string>
