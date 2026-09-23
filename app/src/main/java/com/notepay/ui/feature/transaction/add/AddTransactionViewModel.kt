@@ -222,9 +222,16 @@ class AddTransactionViewModel @Inject constructor(
                 val newCalcState = if (scannedLong > 0)
                     CalculatorState(currentOperand = scannedLong.toString())
                 else current.calcState
+                val resolvedNote = if (current.note.isBlank() && !result.note.isNullOrBlank()) result.note else current.note
+                val resolvedSuggestion = if (!current.isCategoryExplicitlySelected && resolvedNote.isNotBlank()) {
+                    suggestCategoryUseCase.suggestDetailed(resolvedNote, current.type == TransactionType.INCOME)
+                } else null
                 current.copy(
                     amountInput = parsed?.input ?: current.amountInput,
                     amount = parsed?.amount ?: current.amount,
+                    note = resolvedNote,
+                    category = resolvedSuggestion?.category ?: current.category,
+                    suggestedCategory = resolvedSuggestion?.category ?: current.suggestedCategory,
                     errors = updatedErrors,
                     isImageScanning = false,
                     imageScanMessage = result.message,
