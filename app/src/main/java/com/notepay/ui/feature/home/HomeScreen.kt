@@ -1,8 +1,6 @@
 package com.notepay.ui.feature.home
 
 import android.content.Context
-import android.content.Intent
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,11 +33,9 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.notepay.ui.util.MoneyFormatter
-import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -57,7 +53,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,14 +65,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.FileUtils
 import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
@@ -86,11 +79,9 @@ import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.SmartInsightsCard
 import com.notepay.ui.component.SwipeableTransactionItem
-import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
 import com.notepay.ui.util.WalletUiHelper
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +138,17 @@ fun HomeScreen(
     ) { uri ->
         if (uri != null) {
             state.activeWallet?.id?.let { walletId ->
-                viewModel.setWalletBackground(walletId, uri)
+                // 1. Copy ảnh từ URI tạm sang file nội bộ vĩnh viễn
+                val savedPath = com.notepay.ui.util.ImageStorageHelper.saveImageToInternalStorage(
+                    context = context,
+                    sourceUri = uri,
+                    walletId = walletId
+                )
+
+                // 2. Lưu đường dẫn file tĩnh này vào Database qua ViewModel
+                if (savedPath != null) {
+                    viewModel.setWalletBackground(walletId, savedPath)
+                }
             }
         }
     }

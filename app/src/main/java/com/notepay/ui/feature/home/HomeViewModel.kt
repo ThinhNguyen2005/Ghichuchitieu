@@ -1,10 +1,12 @@
 package com.notepay.ui.feature.home
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.ai.LocalAiModelManager
+import com.notepay.ai.CloudGeminiAdvisor
+import com.notepay.ai.GeminiNanoBudgetAdvisor
+import com.notepay.ai.LegacyAiModelCleaner
+import com.notepay.data.preferences.AiSettingsDataStore
 import com.notepay.R
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettings
@@ -26,6 +28,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -42,10 +46,19 @@ class HomeViewModel @Inject constructor(
     private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val budgetSettingsStore: BudgetSettingsStore,
     private val appSettingsDataStore: AppSettingsDataStore,
+    private val aiSettingsDataStore: AiSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
-    private val localAiModelManager: LocalAiModelManager,
+    private val geminiNanoAdvisor: GeminiNanoBudgetAdvisor,
+    private val cloudGeminiAdvisor: CloudGeminiAdvisor,
+    private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            legacyModelCleaner.cleanLegacyModels()
+        }
+    }
 
     private val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     private val currentYear = today.year
@@ -67,38 +80,39 @@ class HomeViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = combine(
-        _selectedMonth.flatMapLatest { (year, month) -> getMonthlySummary(year, month) },
+        _selectedMonth,
         walletRepo.observeActive(),
-        walletRepo.observeAll(),
-        subscriptionRepository.observeAll(),
-        transactionRepo.observeAll(),
-    ) { summary, activeWallet, wallets, subscriptions, allTransactions ->
-        val balance = activeWallet?.let { observeWalletBalance(it.id).first() }
-        
-        // Tính số lời nhắc sắp đến hạn
-        val now = Clock.System.now()
-        val dueCount = subscriptions.count { sub ->
-            sub.isActive && (sub.nextDueDate - now).inWholeDays <= sub.remindDaysBefore.toLong()
-        }
-
-        // Tính chuỗi ngày ghi chép liên tiếp (Streak 🔥)
-        val streak = StreakTrackerHelper.calculateStreak(
-            transactionInstants = allTransactions.map { it.createdAt },
-            today = today.date
-        )
-
-        // Đọc ảnh nền của ví active
-        val bgUri = activeWallet?.id?.let {
-            appSettingsDataStore.observeWalletBackground(it).first()
-        }
-
-        val activeWalletExpense = if (activeWallet != null) {
-            summary.transactions
-                .filter { it.walletId == activeWallet.id && it.type == com.notepay.domain.model.TransactionType.EXPENSE }
-                .fold(Money.ZERO) { acc, t -> acc + t.amount }
+    ) { monthPair, activeWallet ->
+        monthPair to activeWallet
+    }.flatMapLatest { (monthPair, activeWallet) ->
+        val (year, month) = monthPair
+        val bgFlow = if (activeWallet != null) {
+            appSettingsDataStore.observeWalletBackground(activeWallet.id)
         } else {
-            Money.ZERO
+            flowOf(null)
         }
+        combine(
+            getMonthlySummary(year, month, activeWallet?.id),
+            walletRepo.observeAll(),
+            subscriptionRepository.observeAll(),
+            transactionRepo.observeAll(),
+            bgFlow,
+        ) { summary, wallets, subscriptions, allTransactions, bgUri ->
+            val balance = activeWallet?.let { observeWalletBalance(it.id).first() }
+            
+            // Tính số lời nhắc sắp đến hạn
+            val now = Clock.System.now()
+            val dueCount = subscriptions.count { sub ->
+                sub.isActive && (sub.nextDueDate - now).inWholeDays <= sub.remindDaysBefore.toLong()
+            }
+
+            // Tính chuỗi ngày ghi chép liên tiếp (Streak 🔥)
+            val streak = StreakTrackerHelper.calculateStreak(
+                transactionInstants = allTransactions.map { it.createdAt },
+                today = today.date
+            )
+
+            val activeWalletExpense = summary.totalExpense
         
         val budgetLimit = activeWallet?.budgetLimit
         val projection = if (activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
@@ -140,20 +154,21 @@ class HomeViewModel @Inject constructor(
             null
         }
 
-        HomeUiState(
-            activeWallet = activeWallet,
-            wallets = wallets,
-            currentBalance = balance ?: Money.ZERO,
-            monthlyIncome = summary.totalIncome,
-            monthlyExpense = summary.totalExpense,
-            recentTransactions = summary.transactions.take(5),
-            monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
-            isLoading = false,
-            budgetProjection = projection,
-            dueRemindersCount = dueCount,
-            walletBackgroundUri = bgUri,
-            streakDays = streak,
-        )
+            HomeUiState(
+                activeWallet = activeWallet,
+                wallets = wallets,
+                currentBalance = balance ?: Money.ZERO,
+                monthlyIncome = summary.totalIncome,
+                monthlyExpense = summary.totalExpense,
+                recentTransactions = summary.transactions.take(5),
+                monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
+                isLoading = false,
+                budgetProjection = projection,
+                dueRemindersCount = dueCount,
+                walletBackgroundUri = bgUri,
+                streakDays = streak,
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -166,9 +181,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setWalletBackground(walletId: Long, uri: Uri?) {
+    fun setWalletBackground(walletId: Long, uri: String?) {
         viewModelScope.launch {
-            appSettingsDataStore.setWalletBackground(walletId, uri?.toString())
+            appSettingsDataStore.setWalletBackground(walletId, uri)
         }
     }
 
@@ -178,10 +193,30 @@ class HomeViewModel @Inject constructor(
         initialValue = BudgetSettings(),
     )
 
-    val localModel = localAiModelManager.state.stateIn(
+    val geminiApiKey = aiSettingsDataStore.geminiApiKey.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = localAiModelManager.state.value,
+        initialValue = null,
+    )
+
+    val cloudAiEnabled = aiSettingsDataStore.cloudAiEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
+    val smartReceiptAiEnabled = aiSettingsDataStore.smartReceiptAiEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
+    val isGeminiNanoAvailable = flow {
+        emit(geminiNanoAdvisor.isGeminiNanoAvailable())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = false,
     )
 
     val liquidGlassEnabled = appSettingsDataStore.liquidGlassEnabled.stateIn(
@@ -213,21 +248,35 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    @Suppress("unused")
     fun setMonthlyBudget(amountCents: Long) {
         viewModelScope.launch {
             budgetSettingsStore.setMonthlyBudget(amountCents)
         }
     }
 
-    fun importLocalAiModel(uri: Uri) {
+    fun setGeminiApiKey(key: String?) {
         viewModelScope.launch {
-            localAiModelManager.importModel(uri)
+            aiSettingsDataStore.setGeminiApiKey(key)
         }
     }
 
-    fun removeLocalAiModel() {
+    fun setCloudAiEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            localAiModelManager.removeModel()
+            aiSettingsDataStore.setCloudAiEnabled(enabled)
+        }
+    }
+
+    fun setSmartReceiptAiEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            aiSettingsDataStore.setSmartReceiptAiEnabled(enabled)
+        }
+    }
+
+    fun testGeminiApiKey(key: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            val result = cloudGeminiAdvisor.testConnection(key)
+            onResult(result)
         }
     }
 }
