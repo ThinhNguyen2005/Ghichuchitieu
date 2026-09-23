@@ -165,6 +165,8 @@
     <string name="feedback_delete_success">Deleted</string>
     <string name="feedback_undo">Undo</string>
     <string name="feedback_bill_split_created">Bill split created</string>
+    <string name="bill_split_create_btn">Create new bill</string>
+    <string name="subscription_add_btn">Add new reminder</string>
     <string name="feedback_bill_split_create_failed">Couldn\'t create bill split</string>
     <string name="feedback_bill_split_marked_paid">Marked as paid</string>
     <string name="feedback_bill_split_mark_failed">Couldn\'t mark as paid</string>

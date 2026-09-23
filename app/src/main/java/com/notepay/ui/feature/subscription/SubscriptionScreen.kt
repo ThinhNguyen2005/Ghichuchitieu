@@ -237,6 +237,21 @@ fun SubscriptionScreen(
                 }
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    showAddSheet = true
+                    viewModel.showAddDialog()
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.subscription_add_btn)
+                )
+            }
+        },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
         val bottomPadding = padding.calculateBottomPadding() + 108.dp

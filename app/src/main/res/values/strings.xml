@@ -161,6 +161,8 @@
     <string name="feedback_delete_success">Đã xóa</string>
     <string name="feedback_undo">Hoàn tác</string>
     <string name="feedback_bill_split_created">Đã tạo khoản chia tiền</string>
+    <string name="bill_split_create_btn">Tạo hóa đơn mới</string>
+    <string name="subscription_add_btn">Thêm nhắc nhở mới</string>
     <string name="feedback_bill_split_create_failed">Không thể tạo khoản chia tiền</string>
     <string name="feedback_bill_split_marked_paid">Đã ghi nhận thanh toán</string>
     <string name="feedback_bill_split_mark_failed">Không thể ghi nhận thanh toán</string>

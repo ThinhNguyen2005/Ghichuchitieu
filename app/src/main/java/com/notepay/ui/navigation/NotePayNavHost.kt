@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -84,15 +83,13 @@ fun NotePayNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val isMainTab = isMainTabRoute(currentRoute)
     val snackbarHostState = remember { SnackbarHostState() }
-    var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
-
     val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
     val navigationBarOffsetState = remember { mutableFloatStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
 
+
     LaunchedEffect(currentRoute, pagerState.currentPage) {
         navigationBarOffsetState.floatValue = 0f
-        showQuickAddSheet = false
     }
 
     val nestedScrollConnection = remember(barHeightPx, isMainTab) {
@@ -262,7 +259,7 @@ fun NotePayNavHost(
                         currentRoute = currentRoute,
                         selectedTabIndex = pagerState.targetPage,
                         navigationBarOffsetProvider = { navigationBarOffsetState.floatValue },
-                        showQuickAddSheet = showQuickAddSheet,
+                        showQuickAddSheet = false,
                         useNavigationGlass = useNavigationGlass,
                         reducedMotion = reducedMotion,
                         backdrop = backdrop,
@@ -285,45 +282,13 @@ fun NotePayNavHost(
                             }
                         },
                         onToggleQuickAdd = {
-                            showQuickAddSheet = !showQuickAddSheet
+                            navController.navigate(Route.AddTransaction.path) {
+                                launchSingleTop = true
+                            }
                         },
                     )
                 }
 
-                QuickAddSheet(
-                    visible = showQuickAddSheet,
-                    onDismissRequest = { showQuickAddSheet = false },
-                    onAddExpense = {
-                        showQuickAddSheet = false
-                        navController.navigate(Route.AddTransaction.path) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onAddBillSplit = {
-                        showQuickAddSheet = false
-                        val isAlreadyOnBillSplit = currentRoute?.startsWith("bill-split") == true
-                        if (isAlreadyOnBillSplit) {
-                            navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                        } else {
-                            navController.navigate("bill-split?showCreate=true") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    },
-                    onAddSubscription = {
-                        showQuickAddSheet = false
-                        val isAlreadyOnSubscription = currentRoute?.startsWith("subscription") == true
-                        if (isAlreadyOnSubscription) {
-                            navController.currentBackStackEntry?.savedStateHandle?.set("showCreate", true)
-                        } else {
-                            navController.navigate("subscription?showCreate=true") {
-                                launchSingleTop = true
-                            }
-                        }
-                    },
-                )
             }
         }
     }

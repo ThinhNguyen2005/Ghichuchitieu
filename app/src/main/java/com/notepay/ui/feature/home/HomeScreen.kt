@@ -112,8 +112,6 @@ fun HomeScreen(
     val closeLabel = stringResource(R.string.action_close)
     val editWalletLabel = stringResource(R.string.home_edit_wallet)
     val addNewWalletLabel = stringResource(R.string.home_add_new_wallet)
-    val reminderCd = stringResource(R.string.home_reminder_cd)
-    val appSettingsCd = stringResource(R.string.home_app_settings_cd)
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
     val createWalletLabel = stringResource(R.string.home_create_wallet)
@@ -179,30 +177,8 @@ fun HomeScreen(
                         }
                     }
                 },
-                actions = {
-                    IconButton(onClick = onNavigateToReminders) {
-                        BadgedBox(
-                            badge = {
-                                if (state.dueRemindersCount > 0) {
-                                    Badge {
-                                        Text(state.dueRemindersCount.toString())
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (state.dueRemindersCount > 0) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
-                                contentDescription = reminderCd
-                            )
-                        }
-                    }
-                    IconButton(onClick = onNavigateToAppSettings) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = appSettingsCd
-                        )
-                    }
-                }
+                actions = {}
+
             )
         },
     ) { padding ->
