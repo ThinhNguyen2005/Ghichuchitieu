@@ -19,25 +19,32 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.notepay.data.preferences.AiSettingsDataStore
+import kotlinx.coroutines.flow.first
+
 /** Result is intentionally limited to a draft amount; the original image is never persisted. */
 data class LocalImageScanResult(
     val amountInput: String? = null,
+    val note: String? = null,
     val message: String,
     val source: Source? = null,
 ) {
-    enum class Source { VIET_QR, OCR }
+    enum class Source { VIET_QR, OCR, CLOUD_AI }
 }
 
 /**
  * Reads a user-selected screenshot entirely on-device.
  * VietQR's EMV amount (tag 54) is preferred; otherwise ML Kit OCR selects a conservative amount
  * candidate and never uses account numbers or balances as a draft amount.
+ * When regex heuristics fail, optionally enhances extraction via Cloud Gemini if configured.
  */
 @Singleton
 class LocalTransactionImageScanner @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val cloudAdvisor: CloudGeminiAdvisor,
+    private val aiSettings: AiSettingsDataStore,
 ) {
-    fun scan(uri: Uri): LocalImageScanResult {
+    suspend fun scan(uri: Uri): LocalImageScanResult {
         val bitmap = decodeBitmap(uri)
             ?: return LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         val vietQrAmount = bitmap?.let(::extractVietQrAmount)
@@ -64,21 +71,41 @@ class LocalTransactionImageScanner @Inject constructor(
                     val majorUnits = result.amount.amountInCents / 100L
                     LocalImageScanResult(
                         amountInput = majorUnits.toString(),
+                        note = result.note.takeIf { it.isNotBlank() },
                         message = context.getString(R.string.image_scan_ocr_success),
                         source = LocalImageScanResult.Source.OCR,
                     )
                 }
                 is com.notepay.domain.ingestion.ParsedTransactionResult.Unrecognized -> {
-                    // Fallback to extraction from candidates if raw string wasn't structured
-                    val fallbackAmount = extractAmount(reconstructedLines)
-                    if (fallbackAmount != null) {
+                    // Try smart AI extraction if enabled and configured
+                    val aiExtraction = if (aiSettings.smartReceiptAiEnabled.first() && cloudAdvisor.isConfigured()) {
+                        cloudAdvisor.extractReceiptInfo(fullRawText)
+                    } else null
+
+                    if (aiExtraction?.amountInCents != null) {
+                        val majorUnits = aiExtraction.amountInCents / 100L
+                        val noteText = listOfNotNull(aiExtraction.merchant, aiExtraction.note)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" - ")
+                            .takeIf { it.isNotBlank() }
                         LocalImageScanResult(
-                            amountInput = fallbackAmount.toString(),
-                            message = context.getString(R.string.image_scan_ocr_success),
-                            source = LocalImageScanResult.Source.OCR,
+                            amountInput = majorUnits.toString(),
+                            note = noteText,
+                            message = context.getString(R.string.image_scan_ai_success),
+                            source = LocalImageScanResult.Source.CLOUD_AI,
                         )
                     } else {
-                        LocalImageScanResult(message = context.getString(R.string.image_scan_amount_not_found))
+                        // Fallback to extraction from candidates if raw string wasn't structured
+                        val fallbackAmount = extractAmount(reconstructedLines)
+                        if (fallbackAmount != null) {
+                            LocalImageScanResult(
+                                amountInput = fallbackAmount.toString(),
+                                message = context.getString(R.string.image_scan_ocr_success),
+                                source = LocalImageScanResult.Source.OCR,
+                            )
+                        } else {
+                            LocalImageScanResult(message = context.getString(R.string.image_scan_amount_not_found))
+                        }
                     }
                 }
             }

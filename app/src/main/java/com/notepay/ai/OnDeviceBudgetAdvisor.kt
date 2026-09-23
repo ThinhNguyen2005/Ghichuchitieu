@@ -7,26 +7,33 @@ import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.BudgetAdvisorResult
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
-import dagger.hilt.android.qualifiers.ApplicationContext
 
-/** Zero-config router: Gemini Nano -> imported LiteRT-LM model -> deterministic statistics. */
+/**
+ * 3-Tier Zero-config router:
+ * Tier 1: Gemini Nano on-device (via Android AICore / mlkit-genai-prompt).
+ * Tier 2: Cloud Gemini 2.0 Flash (optional Bring-Your-Own-Key via Google AI SDK).
+ * Tier 3: Statistical deterministic analysis (100% offline, 0MB, instant math).
+ */
 @Singleton
 class OnDeviceBudgetAdvisor @Inject constructor(
     private val geminiNano: GeminiNanoBudgetAdvisor,
-    private val liteRt: LiteRtBudgetAdvisor,
+    private val cloudAdvisor: CloudGeminiAdvisor,
     @param:ApplicationContext private val context: Context,
 ) {
     suspend fun availability(): AdvisorAvailability = when {
         geminiNano.isGeminiNanoAvailable() -> AdvisorAvailability.GEMINI_NANO
-        liteRt.isModelReady() -> AdvisorAvailability.LOCAL_MODEL
+        cloudAdvisor.isConfigured() -> AdvisorAvailability.CLOUD_GEMINI
         else -> AdvisorAvailability.STATISTICAL_ONLY
     }
 
     suspend fun generate(input: BudgetAdvisorInput): BudgetAdvisorResult {
         var geminiFallback: BudgetAdvisorResult? = null
+
+        // 1. Tier 1: Gemini Nano On-Device
         if (geminiNano.isGeminiNanoAvailable()) {
             val geminiResult = geminiNano.generate(input)
             if (geminiResult.provider == AdvisorProvider.GEMINI_NANO) {
@@ -35,36 +42,26 @@ class OnDeviceBudgetAdvisor @Inject constructor(
             geminiFallback = geminiResult
         }
 
-        if (liteRt.isModelReady()) {
+        // 2. Tier 2: Cloud Gemini (if API Key configured)
+        if (cloudAdvisor.isConfigured()) {
             try {
-                return liteRt.generate(input)
-            } catch (timeout: LiteRtInferenceTimeoutException) {
-                if (com.notepay.BuildConfig.DEBUG) {
-                    Log.e(TAG, "LiteRT-LM analysis timed out", timeout)
-                }
-                return (geminiFallback ?: geminiNano.generate(input)).copy(
-                    providerMessage = context.getString(R.string.ai_litert_fallback, safeReason(timeout)),
-                )
+                return cloudAdvisor.generate(input)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                if (com.notepay.BuildConfig.DEBUG) Log.e(TAG, "LiteRT-LM analysis fell back: ${error.javaClass.simpleName}")
+                if (com.notepay.BuildConfig.DEBUG) {
+                    Log.e(TAG, "Cloud Gemini analysis fell back: ${error.message}", error)
+                }
                 return (geminiFallback ?: geminiNano.generate(input)).copy(
-                    providerMessage = context.getString(R.string.ai_litert_fallback, safeReason(error)),
+                    providerMessage = context.getString(R.string.ai_cloud_fallback, error.message ?: context.getString(R.string.ai_cloud_network_error)),
                 )
             }
         }
 
+        // 3. Tier 3: Local deterministic statistical fallback
         return (geminiFallback ?: geminiNano.generate(input)).copy(
-            providerMessage = context.getString(R.string.ai_no_on_device_model),
+            providerMessage = context.getString(R.string.ai_statistical_provider_message),
         )
-    }
-
-    private fun safeReason(error: Throwable): String = when (error) {
-        is OutOfMemoryError -> context.getString(R.string.ai_reason_insufficient_memory)
-        is LiteRtInferenceTimeoutException -> context.getString(R.string.ai_reason_timeout)
-        is IllegalArgumentException -> context.getString(R.string.ai_reason_incompatible_model)
-        else -> context.getString(R.string.ai_reason_initialization_failed)
     }
 
     private companion object {

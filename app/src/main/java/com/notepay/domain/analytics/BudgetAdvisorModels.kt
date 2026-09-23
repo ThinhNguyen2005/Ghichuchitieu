@@ -15,14 +15,14 @@ data class BudgetAdvisorInput(
 
 enum class AdvisorProvider {
     GEMINI_NANO,
-    LOCAL_LITERT_MODEL,
+    CLOUD_GEMINI,
     STATISTICAL_FALLBACK,
 }
 
 enum class AdvisorAvailability {
     CHECKING,
     GEMINI_NANO,
-    LOCAL_MODEL,
+    CLOUD_GEMINI,
     STATISTICAL_ONLY,
 }
 
