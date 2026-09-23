@@ -14,6 +14,9 @@ interface TransactionRepository {
     /** Observe giao dịch trong 1 tháng cụ thể (1-indexed). */
     fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>>
 
+    /** Observe giao dịch theo ví + tháng (wallet isolation). */
+    fun observeByWalletAndMonth(walletId: Long, year: Int, month: Int): Flow<List<Transaction>>
+
     /** Observe tổng hợp theo ví, real-time. */
     fun observeByWallet(walletId: Long): Flow<List<Transaction>>
 

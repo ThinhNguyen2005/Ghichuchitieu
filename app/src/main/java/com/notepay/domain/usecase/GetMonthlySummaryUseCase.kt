@@ -30,8 +30,13 @@ class GetMonthlySummaryUseCase @Inject constructor(
         val transactionCount: Int get() = transactions.size
     }
 
-    operator fun invoke(year: Int, month: Int): Flow<Summary> =
-        transactionRepo.observeByMonth(year, month).map { txs ->
+    operator fun invoke(year: Int, month: Int, walletId: Long? = null): Flow<Summary> {
+        val source = if (walletId != null) {
+            transactionRepo.observeByWalletAndMonth(walletId, year, month)
+        } else {
+            transactionRepo.observeByMonth(year, month)
+        }
+        return source.map { txs ->
             val income = txs.asSequence()
                 .filter { it.type == TransactionType.INCOME }
                 .fold(Money.ZERO) { acc, t -> acc + t.amount }
@@ -61,4 +66,5 @@ class GetMonthlySummaryUseCase @Inject constructor(
                 transactions = txs,
             )
         }
+    }
 }

@@ -39,6 +39,13 @@ class TransactionRepositoryImpl @Inject constructor(
         }.flowOn(dispatcher)
     }
 
+    override fun observeByWalletAndMonth(walletId: Long, year: Int, month: Int): Flow<List<Transaction>> {
+        val (start, end) = monthRange(year, month)
+        return combine(dao.observeByWalletAndRange(walletId, start, end), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
+    }
+
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> =
         combine(dao.observeByWallet(walletId), categoryRepository.observeCategories()) { list, _ ->
             list.map(mapper::toDomain)
