@@ -49,109 +49,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.domain.analytics.ForecastDisplayState
+import com.notepay.domain.analytics.StatsChartCalculator
+import com.notepay.domain.analytics.TrendAxisScale
+import com.notepay.domain.analytics.TrendAxisUnit
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.math.PI
 import kotlin.math.atan2
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
-
-internal enum class TrendAxisUnit { THOUSANDS, MILLIONS }
-
-internal data class TrendAxisScale(
-    val topInCents: Long,
-    val labels: List<Float>,
-    val unit: TrendAxisUnit,
-)
-
-internal enum class ForecastDisplayState { HIDDEN, PROJECTION, REACHED, EXCEEDED }
-
-internal object StatsChartCalculations {
-    fun average(values: List<Long>): Long = if (values.isEmpty()) 0L else values.sum() / values.size
-
-    fun trendAxisScale(actualValues: List<Long>, forecast: Money?): TrendAxisScale {
-        val maxValCents = max(
-            1L,
-            max(actualValues.maxOrNull() ?: 0L, forecast?.amountInCents ?: 0L),
-        )
-        // Note: Money.amountInCents is stored in cents (1 VND = 100 cents).
-        // Therefore, 1.000.000 VND = 100.000.000 cents.
-        val isMillions = maxValCents >= 100_000_000L
-        val unitDivisor = if (isMillions) 100_000_000f else 100_000f // Divisor to get units in Triệu or Nghìn VND
-        val unit = if (isMillions) TrendAxisUnit.MILLIONS else TrendAxisUnit.THOUSANDS
-
-        val valInUnits = maxValCents.toFloat() / unitDivisor
-
-        val (step, intervals) = when {
-            valInUnits <= 1f -> 0.2f to 5
-            valInUnits <= 2.5f -> 0.5f to 5
-            valInUnits <= 5f -> 1f to 5
-            valInUnits <= 10f -> 2f to 5
-            valInUnits <= 20f -> 5f to 4
-            valInUnits <= 50f -> 10f to 5
-            valInUnits <= 60f -> 10f to 6
-            valInUnits <= 100f -> 20f to 5
-            valInUnits <= 200f -> 50f to 4
-            valInUnits <= 500f -> 100f to 5
-            valInUnits <= 1000f -> 200f to 5
-            else -> {
-                val rawStep = valInUnits / 4f
-                val exp = kotlin.math.floor(kotlin.math.log10(rawStep.toDouble())).toFloat()
-                val base = Math.pow(10.0, exp.toDouble()).toFloat()
-                val stepVal = Math.ceil((rawStep / base).toDouble()).toFloat() * base
-                val count = Math.ceil((valInUnits / stepVal).toDouble()).toInt().coerceIn(3, 6)
-                stepVal to count
-            }
-        }
-
-        val topInUnits = step * intervals
-        val topInCents = (topInUnits * unitDivisor).toLong().coerceAtLeast(maxValCents)
-        val labels = (intervals downTo 0).map { it * step }
-
-        return TrendAxisScale(
-            topInCents = topInCents,
-            labels = labels,
-            unit = unit,
-        )
-    }
-
-    fun percentageChange(current: Long, previous: Long): Float? = when {
-        previous == 0L -> null
-        else -> ((current - previous).toDouble() / previous * 100).toFloat()
-    }
-
-    fun shouldShowForecast(metric: StatsMetric, isSelectedMonthCurrent: Boolean, forecast: Money?): Boolean {
-        return metric == StatsMetric.CHI_TIEU && isSelectedMonthCurrent && forecast != null && forecast.amountInCents > 0L
-    }
-
-    fun forecastDisplayState(
-        metric: StatsMetric,
-        isSelectedMonthCurrent: Boolean,
-        actualAmountInCents: Long,
-        forecast: Money?,
-    ): ForecastDisplayState {
-        if (!shouldShowForecast(metric, isSelectedMonthCurrent, forecast)) return ForecastDisplayState.HIDDEN
-
-        return when {
-            forecast!!.amountInCents > actualAmountInCents -> ForecastDisplayState.PROJECTION
-            forecast.amountInCents == actualAmountInCents -> ForecastDisplayState.REACHED
-            else -> ForecastDisplayState.EXCEEDED
-        }
-    }
-
-    fun forecastMarkerFraction(
-        state: ForecastDisplayState,
-        forecast: Money?,
-        axisTopInCents: Long,
-    ): Float? {
-        if (state != ForecastDisplayState.REACHED && state != ForecastDisplayState.EXCEEDED) return null
-        val forecastAmountInCents = forecast?.amountInCents ?: return null
-        if (axisTopInCents <= 0L) return null
-        return (forecastAmountInCents.toFloat() / axisTopInCents).coerceIn(0f, 1f)
-    }
-}
 
 @Composable
 internal fun AllocationChartContent(
@@ -373,14 +281,14 @@ internal fun TrendChartContent(
     val values = points.map { point ->
         if (metric == StatsMetric.CHI_TIEU) point.expense.amountInCents else point.income.amountInCents
     }
-    val forecastDisplayState = StatsChartCalculations.forecastDisplayState(
-        metric = metric,
+    val forecastDisplayState = StatsChartCalculator.forecastDisplayState(
+        isExpense = metric == StatsMetric.CHI_TIEU,
         isSelectedMonthCurrent = isSelectedMonthCurrent,
         actualAmountInCents = values.lastOrNull() ?: 0L,
         forecast = forecast,
     )
     val hasForecast = forecastDisplayState != ForecastDisplayState.HIDDEN
-    val axisScale = StatsChartCalculations.trendAxisScale(values, if (hasForecast) forecast else null)
+    val axisScale = StatsChartCalculator.trendAxisScale(values, if (hasForecast) forecast else null)
     val unitLabel = stringResource(
         if (axisScale.unit == TrendAxisUnit.MILLIONS) R.string.stats_unit_millions else R.string.stats_unit_thousands,
     )
@@ -479,7 +387,7 @@ internal fun TrendChartContent(
                             null
                         }
                         val forecastMarkerFraction = if (isCurrent) {
-                            StatsChartCalculations.forecastMarkerFraction(
+                            StatsChartCalculator.forecastMarkerFraction(
                                 state = forecastDisplayState,
                                 forecast = forecast,
                                 axisTopInCents = axisScale.topInCents,

@@ -7,7 +7,7 @@ import com.notepay.data.mapper.TransactionMapper
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.data.repository.TransactionRepositoryImpl
 import com.notepay.domain.model.Category
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,6 +139,8 @@ class TransactionRepositoryImplTest {
         }
         override fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = flow
         override fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>> = flow
+        override fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> =
+            flow.map { entities -> entities.filter { it.walletId == walletId && it.occurredAt in startMillis..endMillis } }
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
         override fun observeById(id: Long): Flow<TransactionEntity?> =
             flow.map { entities -> entities.find { it.id == id } }

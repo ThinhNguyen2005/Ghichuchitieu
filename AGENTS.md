@@ -1,56 +1,61 @@
-# Shared agent instructions
+# Repository Guidelines
 
-All agents working in this repository, including Codex and Gemini, use the
-`.agents/` directory as the shared source of truth.
+## Project Structure & Module Organization
 
-`.agents/` is a local workspace and is deliberately not committed. It is
-excluded through `.git/info/exclude` rather than `.gitignore`, because
-`.gitignore` would stop Antigravity and Gemini from indexing the rules, skills
-and workflows inside it. On a fresh clone the directory will be missing;
-recreate it with:
+This is a single-module Android app (`app`) written in Kotlin with Jetpack Compose and Material 3. Production code lives in `app/src/main/java/com/notepay/`:
 
-```
-npx @vudovn/ag-kit init
-```
+- `domain/`: models, repository contracts, analytics, and use cases.
+- `data/`: Room database, DAOs, repository implementations, and local services.
+- `ui/`: Compose screens, reusable components, navigation, theme, and UI utilities.
+- `ai/`: local forecasting, parsing, and on-device assistant integrations.
 
-If `.agents/` is absent, skip the four steps below and follow this file plus
-`CLAUDE.md` directly.
+Resources are in `app/src/main/res/`; Room schema exports are versioned in `app/schemas/`. Unit tests belong in `app/src/test/`; device tests belong in `app/src/androidTest/`. Keep feature specs and plans under `specs/`.
 
-At the start of a task:
+## Build, Test, and Development Commands
 
-1. Read `.agents/rules/core-protocol.md`.
-2. Read `.agents/memory/MEMORY.md` and task-relevant memory files.
-3. Read `.agents/rules/request-routing.md`, then load only the matching role
-   and skill material.
-4. Review relevant `.agents/*/handoff.md` files before duplicating previous
-   investigation.
+Run commands from the repository root on Windows:
 
-When work needs to be handed to another agent, create a concise dedicated
-handoff at `.agents/<task>/handoff.md`. Do not overwrite existing briefings,
-progress files, or handoffs belonging to another workstream.
+- `./gradlew.bat :app:assembleDebug` — compile the debug APK.
+- `./gradlew.bat :app:testDebugUnitTest` — run local JUnit tests.
+- `./gradlew.bat :app:connectedDebugAndroidTest` — run instrumentation tests on an emulator/device.
+- `./gradlew.bat :app:bundleRelease` — produce a release bundle; configure `app/signing.properties` locally when signing is needed.
 
-# Build
+Use `--no-daemon` when diagnosing clean CI-like builds. Do not commit APKs, keystores, `local.properties`, or generated `build/` output.
 
-./gradlew.bat :app:assembleDebug
+## Coding Style & Naming Conventions
 
-# Unit test
+Use Kotlin with four-space indentation and idiomatic, immutable-first code. Prefer `StateFlow` in ViewModels and stateless Compose components that receive state plus callbacks. Name screens `*Screen`, ViewModels `*ViewModel`, UI states `*UiState`, and use cases as verbs (for example, `SuggestCategoryUseCase`). Keep composables small; put reusable visuals in `ui/component/` and business rules outside the UI layer.
 
-./gradlew.bat :app:testDebugUnitTest
+Avoid redundant nested `Scaffold` calls. The root navigation host (`NotePayNavHost`) already manages a root `Scaffold` (handling system insets, snackbar host, and the floating navigation bar offset). Main tab screens (`HomeScreen`, `StatsScreen`, `AssetsScreen`, `UtilitiesScreen`) should not nest their own `Scaffold` wrappers; use `Box` or `Column` with standard insets and padding instead to avoid duplicate insets, layout measurement overhead, and nested scroll conflicts.
 
-# Device test
+No formatter or linter is configured; match nearby code and let the Kotlin compiler enforce correctness. Add dependencies through `gradle/libs.versions.toml`, not inline versions.
 
-./gradlew.bat :app:connectedDebugAndroidTest
+## Mandatory Android Engineering Standards (@android-pro)
 
-# Quy tắc sửa code
+Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose, ViewModel, Room hay Coroutine nào, bắt buộc phải công bố và áp dụng bộ quy chuẩn kỹ thuật tại `.agents/skills/android-pro/SKILL.md`:
+- `📚 Using skill: @android-pro...`
+- **Các nguyên tắc bắt buộc:**
+  1. **Hiệu năng Compose:** Tuyệt đối không cấp phát đối tượng trong Draw/Canvas scope; hoãn đọc State biến thiên (anim/scroll) xuống Draw phase bằng `Modifier.graphicsLayer { ... }` hoặc `drawBehind`. Đảm bảo độ ổn định kiểu dữ liệu (@Immutable/@Stable).
+  2. **Coroutines & Flow:** Không chạy tác vụ I/O trên Main thread (`Dispatchers.IO`); không nuốt `CancellationException` khi catch; dùng `collectAsStateWithLifecycle()` trên giao diện Compose.
+  3. **Null-Safety & State:** Cấm dùng toán tử cưỡng chế `!!`; đóng gói chặt chẽ `private val _uiState = MutableStateFlow(...)` và phát ra `asStateFlow()`.
+  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline).
+  5. **Bảo mật & Cấu hình:** Không hardcode secret/token; đặt `android:exported="false"` cho components nội bộ; mã hóa dữ liệu nhạy cảm qua KeyStore.
 
-- Đọc file liên quan trước khi sửa.
-- Chỉ sửa trong phạm vi nhiệm vụ.
-- Không thêm dependency khi chưa được yêu cầu.
-- Không thay Room schema ngoài nhiệm vụ migration.
-- Không thay UI khi task chỉ liên quan logic.
-- Mọi logic parse mới phải có unit test.
-- Không bỏ qua lỗi build có sẵn; phải báo rõ lỗi nào có trước thay đổi.
-- Giữ nguyên UI/UX và kiến trúc đã có, trừ khi yêu cầu nói rõ là thiết kế lại.
-- Sau khi sửa Android/Kotlin, chạy build hoặc test liên quan và báo kết quả thật.
+## Localization & Text Guidelines (Zero Hardcoded Strings Policy)
 
-User instructions take precedence over this file.
+Tuyệt đối **KHÔNG BAO GIỜ viết text cứng (hardcoded strings)** vào code UI Compose hay ViewModel. Toàn bộ chuỗi hiển thị, nhãn nút, tiêu đề, mô tả, thông báo lỗi, contentDescription bắt buộc phải được trích xuất vào tài nguyên đa ngôn ngữ:
+- `app/src/main/res/values/strings.xml` (Tiếng Việt)
+- `app/src/main/res/values-en/strings.xml` (English)
+Trong Compose, luôn sử dụng `stringResource(R.string.your_key)` hoặc `pluralStringResource(...)`. Bất kỳ khi nào tạo hoặc sửa đổi UI, bắt buộc phải đồng bộ song song cả 2 file tài nguyên trên, không được để sót bất kỳ chuỗi cứng nào trong code.
+
+## Testing Guidelines
+
+Use JUnit for unit tests and AndroidX test tooling for instrumentation tests. Name tests `ThingTest` and methods for behavior, e.g. `suggest_returnsFood_forRestaurantNote`. Add focused tests for money calculations, date ranges, Room migrations, and parsing/forecast edge cases. Run the relevant test target before opening a PR.
+
+## Commit & Pull Request Guidelines
+
+Follow the existing Conventional Commit style: `feat:`, `fix:`, `refactor:`, or `test:` with a concise imperative summary. Keep commits scoped. PRs should explain user-visible changes, list verification commands, link related specs/issues, and include screenshots or recordings for Compose UI changes.
+
+## Security & Local Data
+
+Financial data is local-first. Never log transaction contents, secrets, OCR images, or notification text. Keep credentials only in ignored local configuration files and preserve Room schema exports when migrations change.

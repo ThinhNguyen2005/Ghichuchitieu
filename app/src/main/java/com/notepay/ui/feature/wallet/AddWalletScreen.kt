@@ -84,7 +84,7 @@ fun AddWalletScreen(
                 title = {
                     Text(
                         if (state.isEditMode) {
-                            stringResource(R.string.home_edit_wallet)
+                            stringResource(R.string.action_edit_wallet)
                         } else {
                             stringResource(R.string.home_add_new_wallet)
                         }
@@ -356,15 +356,6 @@ fun AddWalletScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (state.error != null) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             LiquidButton(
                 onClick = { viewModel.save() },
                 enabled = state.canSave,
@@ -378,11 +369,11 @@ fun AddWalletScreen(
                         strokeWidth = 2.dp,
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.wallet_saving), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.action_saving), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 } else {
                     Text(
                         if (state.isEditMode) {
-                            stringResource(R.string.home_save_wallet_changes)
+                            stringResource(R.string.action_save_changes)
                         } else {
                             stringResource(R.string.home_create_wallet)
                         },

@@ -14,17 +14,21 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.ai.LocalAiModelManager
 import com.notepay.ai.OnDeviceBudgetAdvisor
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.BudgetAdvisorInput
+import com.notepay.domain.analytics.CategoryExpenseShare
 import com.notepay.domain.analytics.DailyExpense
+import com.notepay.domain.analytics.StatsAdviceInput
+import com.notepay.domain.analytics.StatsInsightsCalculator
+import com.notepay.domain.analytics.StatsSummaryCalculator
 import com.notepay.domain.analytics.SpendingForecastEngine
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.ui.formatter.PresentationDateFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +49,6 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import javax.inject.Inject
-import kotlin.math.max
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -55,7 +58,6 @@ class StatsViewModel @Inject constructor(
     private val subscriptionRepo: SubscriptionRepository,
     @param:ApplicationContext private val context: Context,
     private val budgetAdvisor: OnDeviceBudgetAdvisor,
-    private val localModelManager: LocalAiModelManager,
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -102,11 +104,6 @@ class StatsViewModel @Inject constructor(
     @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
 
     init {
-        viewModelScope.launch {
-            localModelManager.state.collect { modelState ->
-                _localAdvisor.update { current -> current.copy(localModel = modelState) }
-            }
-        }
         viewModelScope.launch {
             refreshAdvisorAvailability()
         }
@@ -226,46 +223,23 @@ class StatsViewModel @Inject constructor(
         }
 
         // 4. Tính toán thu nhập, chi tiêu, breakdown
-        val income = filteredTxs.asSequence()
-            .filter { it.type == TransactionType.INCOME }
-            .fold(Money.ZERO) { acc, t -> acc + t.amount }
-        val expense = filteredTxs.asSequence()
-            .filter { it.type == TransactionType.EXPENSE }
-            .fold(Money.ZERO) { acc, t -> acc + t.amount }
-
-        val totalExpenseCents = expense.amountInCents
-        val breakdown = filteredTxs.asSequence()
-            .filter { it.type == TransactionType.EXPENSE }
-            .groupBy { it.category }
-            .mapValues { (_, list) ->
-                list.fold(Money.ZERO) { acc, t -> acc + t.amount }
-            }
-            .map { (cat, amount) ->
-                val pct = if (totalExpenseCents > 0) {
-                    amount.amountInCents.toFloat() / totalExpenseCents
-                } else {
-                    0f
-                }
-                CategoryBreakdownItem(cat, amount, pct)
-            }
-            .sortedByDescending { it.amount.amountInCents }
-
-        val totalIncomeCents = income.amountInCents
-        val incomeBreakdown = filteredTxs.asSequence()
-            .filter { it.type == TransactionType.INCOME }
-            .groupBy { it.category }
-            .mapValues { (_, list) ->
-                list.fold(Money.ZERO) { acc, t -> acc + t.amount }
-            }
-            .map { (cat, amount) ->
-                val pct = if (totalIncomeCents > 0) {
-                    amount.amountInCents.toFloat() / totalIncomeCents
-                } else {
-                    0f
-                }
-                CategoryBreakdownItem(cat, amount, pct)
-            }
-            .sortedByDescending { it.amount.amountInCents }
+        val summary = StatsSummaryCalculator.summarize(filteredTxs)
+        val income = Money(summary.totalIncomeInCents)
+        val expense = Money(summary.totalExpenseInCents)
+        val breakdown = summary.expenseBreakdown.map { item ->
+            CategoryBreakdownItem(
+                category = item.category,
+                amount = Money(item.amountInCents),
+                percentage = item.share,
+            )
+        }
+        val incomeBreakdown = summary.incomeBreakdown.map { item ->
+            CategoryBreakdownItem(
+                category = item.category,
+                amount = Money(item.amountInCents),
+                percentage = item.share,
+            )
+        }
 
         // 5. Xác định ví được chọn
         val selectedWallet = wallets.find { it.id == selectedWalletId }
@@ -317,26 +291,10 @@ class StatsViewModel @Inject constructor(
         } else null
 
         val forecast = prediction?.let { value ->
-            val dailyAvgStr = MoneyFormatter.format(Money(value.dailyRunRateInCents))
-            val projectedSpendStr = MoneyFormatter.format(Money(value.predictedMonthTotalInCents))
             val probabilityText = value.overBudgetProbability?.let {
                 context.getString(R.string.stats_forecast_probability_suffix, (it * 100).toInt())
             }.orEmpty()
-            BudgetForecast(
-                dailyAverage = Money(value.dailyRunRateInCents),
-                projectedSpend = Money(value.predictedMonthTotalInCents),
-                forecastMessage = StatsUiText.Plain(
-                    context.getString(
-                        R.string.stats_forecast_message,
-                        dailyAvgStr,
-                        projectedSpendStr,
-                        probabilityText,
-                    ),
-                ),
-                isProjectedToExceed = limit != null && value.predictedMonthTotalInCents > limit.amountInCents,
-                trendPercent = value.trendVsPreviousMonth?.times(100)?.toFloat(),
-                prediction = value,
-            )
+            StatsInsightsUiMapper.mapPrediction(value, limit?.amountInCents, probabilityText)
         }
 
         // 8. Tính toán Dynamic Daily Budget
@@ -355,26 +313,19 @@ class StatsViewModel @Inject constructor(
         }.fold(Money.ZERO) { acc, t -> acc + t.amount }
 
         val remainingDays = daysInMonth - currentDay + 1
-        val spentExceptToday = Money(max(0L, walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents))
+        val spentExceptToday = (walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents).coerceAtLeast(0L)
         
         val dynamicDailyBudget = if (limit != null && limit.amountInCents > 0 && isViewingCurrentMonth) {
-            val remainingBudget = max(0L, limit.amountInCents - spentExceptToday.amountInCents)
-            val dailyBudgetVal = remainingBudget / remainingDays
-            val remainingToday = max(0L, dailyBudgetVal - spentToday.amountInCents)
-            
-            val tomorrowBudget = if (remainingDays > 1) {
-                val remainingForTomorrow = max(0L, limit.amountInCents - walletExpenseInCurrentMonth.amountInCents)
-                remainingForTomorrow / (remainingDays - 1)
-            } else {
-                0L
-            }
-            
-            DynamicDailyBudgetData(
-                dailyBudget = Money(dailyBudgetVal),
-                spentToday = spentToday,
-                remainingToday = Money(remainingToday),
-                tomorrowBudget = Money(tomorrowBudget),
-                isExceeded = spentToday.amountInCents > dailyBudgetVal
+            StatsInsightsUiMapper.mapDynamicDailyBudget(
+                StatsInsightsCalculator.computeDynamicDailyBudget(
+                    limitInCents = limit.amountInCents,
+                    spentExceptTodayInCents = spentExceptToday,
+                    spentTodayInCents = spentToday.amountInCents,
+                    remainingDays = remainingDays,
+                    daysInMonth = daysInMonth,
+                    currentDay = currentDay,
+                    currentMonthExpenseInCents = walletExpenseInCurrentMonth.amountInCents,
+                ),
             )
         } else {
             null
@@ -425,74 +376,34 @@ class StatsViewModel @Inject constructor(
         }
 
         // 10. Rule Engine Lời khuyên tài chính thông minh
-        val aiAdvices = mutableListOf<AiAdviceItem>()
-        if (isViewingCurrentMonth) {
-            // Quy tắc A: FOOD > 35%
-            val foodBreakdown = breakdown.find { it.category == Category.FOOD }
-            if (foodBreakdown != null && foodBreakdown.percentage > 0.35f && (feedbacks["advice_food"] ?: 0) == 0) {
-                val percentStr = "%.1f%%".format(foodBreakdown.percentage * 100)
-                aiAdvices.add(
-                    AiAdviceItem(
-                        id = "advice_food",
-                        type = "warning",
-                        title = StatsUiText.Plain(context.getString(R.string.stats_advice_food_title)),
-                        content = StatsUiText.Plain(context.getString(R.string.stats_advice_food_content, percentStr)),
-                        categoryId = Category.FOOD.id,
-                        feedback = feedbacks["advice_food"] ?: 0
-                    )
-                )
-            }
-
-            // Quy tắc B: Phí sắp đến hạn & Số dư ví không đủ
-            val nowInstant = Clock.System.now()
-            val upcomingSubs = subscriptions.filter { sub ->
-                sub.isActive && (sub.nextDueDate - nowInstant).inWholeDays in 0..3
-            }
-            if (upcomingSubs.isNotEmpty()) {
-                val balanceVal = income.amountInCents - expense.amountInCents
-                for (sub in upcomingSubs) {
-                    val feedbackKey = "advice_bill_balance_${sub.id}"
-                    if (balanceVal < sub.amount.amountInCents && (feedbacks[feedbackKey] ?: 0) == 0) {
-                        aiAdvices.add(
-                            AiAdviceItem(
-                                id = feedbackKey,
-                                type = "warning",
-                                title = StatsUiText.Plain(context.getString(R.string.stats_advice_bill_title)),
-                                content = StatsUiText.Plain(
-                                    context.getString(
-                                        R.string.stats_advice_bill_content,
-                                        sub.name,
-                                        MoneyFormatter.format(sub.amount),
-                                    ),
-                                ),
-                                feedback = feedbacks[feedbackKey] ?: 0
+        val aiAdvices = if (isViewingCurrentMonth) {
+            StatsInsightsUiMapper.mapAdviceSignals(
+                StatsInsightsCalculator.computeAdvices(
+                    StatsAdviceInput(
+                        categoryShares = breakdown.map {
+                            CategoryExpenseShare(
+                                categoryId = it.category.id,
+                                amountInCents = it.amount.amountInCents,
+                                share = it.percentage,
                             )
-                        )
-                    }
-                }
-            }
-
-            // Quy tắc C: Tiêu dùng tiết kiệm (Daily average < 85% safe daily limit ban đầu)
-            if (limit != null && limit.amountInCents > 0 && remainingDays >= 5 && (feedbacks["advice_saving"] ?: 0) == 0) {
-                val initialDailyBudget = limit.amountInCents / daysInMonth
-                val currentDailyAverage = if (currentDay > 1) {
-                    (walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents) / (currentDay - 1)
-                } else {
-                    spentToday.amountInCents
-                }
-                
-                if (currentDailyAverage < initialDailyBudget * 0.85f && currentDailyAverage > 0) {
-                    aiAdvices.add(
-                        AiAdviceItem(
-                            id = "advice_saving",
-                            type = "success",
-                            title = StatsUiText.Plain(context.getString(R.string.stats_advice_saving_title)),
-                            content = StatsUiText.Plain(context.getString(R.string.stats_advice_saving_content)),
-                            feedback = feedbacks["advice_saving"] ?: 0
-                        )
-                    )
-                }
-            }
+                        },
+                        expenseInCents = expense.amountInCents,
+                        incomeInCents = income.amountInCents,
+                        subscriptions = subscriptions,
+                        currentMonthExpenseInCents = walletExpenseInCurrentMonth.amountInCents,
+                        spentTodayInCents = spentToday.amountInCents,
+                        currentDay = currentDay,
+                        daysInMonth = daysInMonth,
+                        remainingDays = remainingDays,
+                        limitInCents = limit?.amountInCents,
+                        previousMonthDailyAverageInCents = null,
+                        feedbacks = feedbacks,
+                        now = Clock.System.now(),
+                    ),
+                ),
+            )
+        } else {
+            emptyList()
         }
 
         val advisorInput = prediction?.let { value ->
@@ -514,7 +425,6 @@ class StatsViewModel @Inject constructor(
             _localAdvisor.update { current ->
                 LocalAdvisorUiState(
                     availability = current.availability,
-                    localModel = current.localModel,
                 )
             }
         }
@@ -594,45 +504,47 @@ class StatsViewModel @Inject constructor(
             result = null,
         )
         viewModelScope.launch {
-            val result = budgetAdvisor.generate(input)
-            if (latestAdvisorInput == input) {
-                _localAdvisor.value = LocalAdvisorUiState(
-                    status = LocalAdvisorStatus.READY,
-                    result = result,
-                    availability = when (result.provider) {
-                        com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
-                            AdvisorAvailability.GEMINI_NANO
-                        com.notepay.domain.analytics.AdvisorProvider.LOCAL_LITERT_MODEL ->
-                            AdvisorAvailability.LOCAL_MODEL
-                        com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
-                            _localAdvisor.value.availability
-                    },
-                    localModel = localModelManager.state.value,
+            try {
+                val result = budgetAdvisor.generate(input)
+                if (latestAdvisorInput == input) {
+                    _localAdvisor.value = LocalAdvisorUiState(
+                        status = LocalAdvisorStatus.READY,
+                        result = result,
+                        availability = when (result.provider) {
+                            com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
+                                AdvisorAvailability.GEMINI_NANO
+                            com.notepay.domain.analytics.AdvisorProvider.CLOUD_GEMINI ->
+                                AdvisorAvailability.CLOUD_GEMINI
+                            com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
+                                _localAdvisor.value.availability
+                        },
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                resetLocalAdviceAfterFailure(input)
+                throw cancelled
+            } catch (_: Throwable) {
+                resetLocalAdviceAfterFailure(input)
+            }
+        }
+    }
+
+    private fun resetLocalAdviceAfterFailure(input: BudgetAdvisorInput) {
+        if (latestAdvisorInput == input) {
+            _localAdvisor.update { current ->
+                current.copy(
+                    status = LocalAdvisorStatus.NOT_REQUESTED,
+                    result = null,
                 )
             }
         }
     }
 
-    fun importLocalModel(uri: Uri) {
-        viewModelScope.launch {
-            localModelManager.importModel(uri)
-            refreshAdvisorAvailability()
-        }
-    }
-
-    fun removeLocalModel() {
-        viewModelScope.launch {
-            localModelManager.removeModel()
-            refreshAdvisorAvailability()
-        }
-    }
-
-    private suspend fun refreshAdvisorAvailability() {
+    suspend fun refreshAdvisorAvailability() {
         val availability = budgetAdvisor.availability()
         _localAdvisor.update { current ->
             current.copy(
                 availability = availability,
-                localModel = localModelManager.state.value,
             )
         }
     }
@@ -640,7 +552,6 @@ class StatsViewModel @Inject constructor(
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
     }
-
     fun selectWallet(walletId: Long?) {
         _selectedWalletId.value = walletId
     }
@@ -705,9 +616,7 @@ class StatsViewModel @Inject constructor(
     }
 
     private fun formatEpochMillis(millis: Long): String {
-        val instant = Instant.fromEpochMilliseconds(millis)
-        val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        return "%02d/%02d/%d".format(dt.day, dt.month.number, dt.year)
+        return PresentationDateFormatter.formatDate(Instant.fromEpochMilliseconds(millis))
     }
 
     private fun getDaysInMonth(year: Int, month: Int): Int {

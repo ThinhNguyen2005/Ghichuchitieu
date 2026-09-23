@@ -11,6 +11,10 @@ class GetTransactionsUseCase @Inject constructor(
     private val transactionRepo: TransactionRepository,
     @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) {
-    operator fun invoke(): Flow<List<com.notepay.domain.model.Transaction>> =
-        transactionRepo.observeAll().flowOn(dispatcher)
+    operator fun invoke(walletId: Long? = null): Flow<List<com.notepay.domain.model.Transaction>> =
+        (if (walletId == null) {
+            transactionRepo.observeAll()
+        } else {
+            transactionRepo.observeByWallet(walletId)
+        }).flowOn(dispatcher)
 }

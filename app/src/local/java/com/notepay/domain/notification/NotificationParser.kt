@@ -2,6 +2,7 @@ package com.notepay.domain.notification
 
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.TransactionNotePolicy
 
 enum class NotificationAmountSource {
     BANK_POSTED_TRANSACTION,
@@ -21,9 +22,6 @@ data class ParsedNotification(
 )
 
 object NotificationParser {
-
-    /** Số tiền lớn nhất (đơn vị VND) còn nhân được với 100 mà không tràn Long. */
-    private const val MAX_MAJOR_UNITS = Long.MAX_VALUE / 100L
 
     // Chỉ nhận số tiền sau trường giao dịch. Không nhận số sau SD/Số dư/Phí.
     private val BANK_TRANSACTION_REGEX = Regex(
@@ -113,7 +111,7 @@ object NotificationParser {
         val majorUnits = cleanText.toLongOrNull() ?: return null
         // Chặn trên trước khi nhân 100, nếu không phép nhân sẽ wrap sang số âm. Dùng cùng
         // ngưỡng với đường nhập tay ở AmountParser để hai đường vào không lệch validation.
-        if (majorUnits <= 0 || majorUnits > MAX_MAJOR_UNITS) return null
+        if (majorUnits <= 0 || majorUnits > Money.MAX_MAJOR_UNITS) return null
         return Money(majorUnits * 100) // Đổi sang cents
     }
 
@@ -122,19 +120,18 @@ object NotificationParser {
         val match = NOTE_REGEX.find(body)
         if (match != null) {
             val note = match.groupValues[1].trim()
-            // Cắt bớt nếu nội dung quá dài (Transaction.MAX_NOTE_LENGTH = 200)
-            return if (note.length > 200) note.substring(0, 197) + "..." else note
+            return TransactionNotePolicy.truncate(note)
         }
         
         // Nếu không có ND: cụ thể, tìm xem Momo thanh toán "cho [Cửa hàng]"
         val forMatch = Regex("""cho\s+([^.]+)(?:\.|\z)""", RegexOption.IGNORE_CASE).find(body)
         if (forMatch != null) {
-            return "Thanh toán cho " + forMatch.groupValues[1].trim()
+            return TransactionNotePolicy.truncate("Thanh toán cho " + forMatch.groupValues[1].trim())
         }
 
         val fromMatch = Regex("""từ\s+([^.]+)(?:\.|\z)""", RegexOption.IGNORE_CASE).find(body)
         if (fromMatch != null) {
-            return "Nhận tiền từ " + fromMatch.groupValues[1].trim()
+            return TransactionNotePolicy.truncate("Nhận tiền từ " + fromMatch.groupValues[1].trim())
         }
 
         return null

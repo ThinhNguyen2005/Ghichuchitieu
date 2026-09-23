@@ -42,4 +42,21 @@ object MoneyFormatter {
 
         return "$sign$formatted"
     }
+
+    /** Compact Vietnamese units used by the month calendar (for example, 6500 ₫ → 6k). */
+    fun formatCompactVietnamese(money: Money): String {
+        val dong = money.amountInCents / 100L
+        return when {
+            dong < 1_000L -> dong.toString()
+            dong < 1_000_000L -> "${dong / 1_000L}k"
+            else -> {
+                val millions = dong / 1_000_000.0
+                if (millions % 1.0 == 0.0) {
+                    "${millions.toInt()}Tr"
+                } else {
+                    String.format(Locale.US, "%.1fTr", millions)
+                }
+            }
+        }
+    }
 }

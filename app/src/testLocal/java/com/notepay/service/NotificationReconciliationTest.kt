@@ -33,7 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Robolectric
 
 import org.junit.Rule
-import com.notepay.ui.feature.addtransaction.MainDispatcherRule
+import com.notepay.MainDispatcherRule
 
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.preferences.KnownBankApps

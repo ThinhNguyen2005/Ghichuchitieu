@@ -61,6 +61,7 @@ value class Money(val amountInCents: Long) : Comparable<Money> {
 
     companion object {
         val ZERO = Money(0L)
+        const val MAX_MAJOR_UNITS: Long = Long.MAX_VALUE / 100L
 
         fun fromMajorUnit(major: Double): Money {
             require(major.isFinite()) { "Amount must be finite, got $major" }

@@ -1,79 +1,28 @@
 package com.notepay.domain.usecase
 
-import android.content.Context
-import android.content.SharedPreferences
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Category
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.slot
+import com.notepay.domain.repository.CategoryLearningStore
+import com.notepay.domain.repository.CategoryLearningEntry
+import com.notepay.domain.repository.CategoryLearningMatch
+import com.notepay.domain.repository.CategoryLearningSnapshot
+import com.notepay.domain.repository.CategoryLearningType
 import org.junit.Before
 import org.junit.Test
 
 class SuggestCategoryUseCaseTest {
 
-    private val sharedPrefs = mockk<SharedPreferences>(relaxed = true)
-    private val context = mockk<Context>(relaxed = true)
+    private val learningStore = InMemoryCategoryLearningStore()
     private lateinit var useCase: SuggestCategoryUseCase
-
-    private val fakePrefsMap = mutableMapOf<String, Any>()
 
     @Before
     fun setUp() {
-        fakePrefsMap.clear()
-        every { context.getSharedPreferences("notepay_category_habits", Context.MODE_PRIVATE) } returns sharedPrefs
-
-        // Mock shared preferences all and getInt
-        every { sharedPrefs.all } answers { fakePrefsMap }
-        
-        val keySlot = slot<String>()
-        every { sharedPrefs.getInt(capture(keySlot), any()) } answers {
-            fakePrefsMap[keySlot.captured] as? Int ?: 0
-        }
-
-        val getStringKey = slot<String>()
-        every { sharedPrefs.getString(capture(getStringKey), any()) } answers {
-            fakePrefsMap[getStringKey.captured] as? String
-        }
-
-        val getStringSetKey = slot<String>()
-        every { sharedPrefs.getStringSet(capture(getStringSetKey), any()) } answers {
-            fakePrefsMap[getStringSetKey.captured] as? Set<String> ?: emptySet()
-        }
-
-        // Mock editor
-        val editor = mockk<SharedPreferences.Editor>(relaxed = true)
-        every { sharedPrefs.edit() } returns editor
-        
-        val putKey = slot<String>()
-        val putValue = slot<Int>()
-        every { editor.putInt(capture(putKey), capture(putValue)) } answers {
-            fakePrefsMap[putKey.captured] = putValue.captured
-            editor
-        }
-
-        val putStringKey = slot<String>()
-        val putStringVal = slot<String>()
-        every { editor.putString(capture(putStringKey), capture(putStringVal)) } answers {
-            fakePrefsMap[putStringKey.captured] = putStringVal.captured
-            editor
-        }
-
-        val putStringSetKey = slot<String>()
-        val putStringSetVal = slot<Set<String>>()
-        every { editor.putStringSet(capture(putStringSetKey), capture(putStringSetVal)) } answers {
-            fakePrefsMap[putStringSetKey.captured] = putStringSetVal.captured
-            editor
-        }
-
-        every { editor.apply() } returns Unit
-
-        useCase = SuggestCategoryUseCase(context)
+        learningStore.clear()
+        useCase = SuggestCategoryUseCase(learningStore)
     }
 
     @Test
     fun `suggest returns correct category from static rules`() {
-        // Expense cases
         assertThat(useCase.suggest("đi xe grab", isIncome = false)).isEqualTo(Category.TRANSPORT)
         assertThat(useCase.suggest("Ăn cơm tấm", isIncome = false)).isEqualTo(Category.FOOD)
         assertThat(useCase.suggest("Mua hàng shopee", isIncome = false)).isEqualTo(Category.SHOPPING)
@@ -81,34 +30,118 @@ class SuggestCategoryUseCaseTest {
         assertThat(useCase.suggest("Đi xem phim ở CGV", isIncome = false)).isEqualTo(Category.ENTERTAINMENT)
         assertThat(useCase.suggest("Mua thuốc cảm cúm", isIncome = false)).isEqualTo(Category.HEALTH)
         assertThat(useCase.suggest("Mua sách học tiếng Anh", isIncome = false)).isEqualTo(Category.EDUCATION)
-
-        // Income cases
         assertThat(useCase.suggest("Nhận lương tháng 6", isIncome = true)).isEqualTo(Category.SALARY)
         assertThat(useCase.suggest("Nhận quà tặng", isIncome = true)).isEqualTo(Category.GIFT)
     }
 
     @Test
     fun `learn updates habits and suggest returns learned category`() {
-        // Initial suggestion should fallback to static rule or default (OTHER/FOOD/etc.)
         assertThat(useCase.suggest("nạp tiền vtc", isIncome = false)).isEqualTo(Category.DEFAULT_EXPENSE)
 
-        // Learn the habit
         useCase.learn("nạp tiền vtc", Category.ENTERTAINMENT.id)
 
-        // Now suggestion should return ENTERTAINMENT
         assertThat(useCase.suggest("nạp tiền vtc", isIncome = false)).isEqualTo(Category.ENTERTAINMENT)
     }
 
     @Test
     fun `learn stores token frequency correctly`() {
-        // Learn once
         useCase.learn("mua cafe", Category.FOOD.id)
-        
-        // Learn twice
         useCase.learn("mua cafe", Category.FOOD.id)
 
-        // We expect "mua" and "cafe" to have a count of 2 for FOOD
-        assertThat(fakePrefsMap["v2_token_expense_mua_${Category.FOOD.id}"]).isEqualTo(2)
-        assertThat(fakePrefsMap["v2_token_expense_cafe_${Category.FOOD.id}"]).isEqualTo(2)
+        val snapshot = learningStore.read(
+            type = CategoryLearningType.EXPENSE,
+            categoryIds = setOf(Category.FOOD.id),
+            tokens = setOf("mua", "cafe"),
+        )
+        assertThat(snapshot.tokenSamples(Category.FOOD.id, "mua")).isEqualTo(2)
+        assertThat(snapshot.tokenSamples(Category.FOOD.id, "cafe")).isEqualTo(2)
+    }
+
+    @Test
+    fun `learned suggestion queries only the categories and tokens being scored`() {
+        learningStore.seed(
+            CategoryLearningType.EXPENSE,
+            CategoryLearningSnapshot(
+                totalSamples = 3,
+                vocabularySize = 1000,
+                categorySampleCounts = mapOf(Category.FOOD.id to 3),
+                categoryWordCounts = mapOf(Category.FOOD.id to 6),
+                tokenSampleCounts = mapOf(
+                    Category.FOOD.id to mapOf("rare" to 3, "merchant" to 3),
+                ),
+            ),
+        )
+
+        useCase.suggestDetailed("rare merchant", isIncome = false)
+
+        val request = learningStore.readRequests.single()
+        assertThat(request.categoryIds).containsExactlyElementsIn(
+            Category.getAll().filterNot { it.isIncome }.map { it.id },
+        )
+        assertThat(request.tokens).containsExactly("rare", "merchant")
+    }
+
+    private class InMemoryCategoryLearningStore : CategoryLearningStore {
+        private val snapshots = mutableMapOf<CategoryLearningType, CategoryLearningSnapshot>()
+        private val exactMatches = mutableMapOf<Pair<CategoryLearningType, String>, CategoryLearningMatch>()
+        val readRequests = mutableListOf<ReadRequest>()
+
+        override fun read(
+            type: CategoryLearningType,
+            categoryIds: Set<String>,
+            tokens: Set<String>,
+        ): CategoryLearningSnapshot {
+            readRequests += ReadRequest(type, categoryIds, tokens)
+            return snapshots[type] ?: CategoryLearningSnapshot()
+        }
+
+        override fun findExact(type: CategoryLearningType, normalizedNote: String): CategoryLearningMatch? =
+            exactMatches[type to normalizedNote]
+
+        override fun learn(entry: CategoryLearningEntry) {
+            val current = snapshots[entry.type] ?: CategoryLearningSnapshot()
+            val categoryCounts = current.categorySampleCounts.toMutableMap()
+            categoryCounts[entry.categoryId] = categoryCounts.getOrDefault(entry.categoryId, 0) + 1
+            val wordCounts = current.categoryWordCounts.toMutableMap()
+            wordCounts[entry.categoryId] = wordCounts.getOrDefault(entry.categoryId, 0) + entry.tokens.size
+            val tokenCounts = current.tokenSampleCounts.mapValues { it.value.toMutableMap() }.toMutableMap()
+            val categoryTokens = tokenCounts.getOrPut(entry.categoryId) { mutableMapOf() }
+            val vocabulary = current.tokenSampleCounts.values
+                .flatMap { it.keys }
+                .toMutableSet()
+            entry.tokens.forEach { token ->
+                categoryTokens[token] = categoryTokens.getOrDefault(token, 0) + 1
+                vocabulary += token
+            }
+            snapshots[entry.type] = current.copy(
+                totalSamples = current.totalSamples + 1,
+                vocabularySize = vocabulary.size,
+                categorySampleCounts = categoryCounts,
+                categoryWordCounts = wordCounts,
+                tokenSampleCounts = tokenCounts,
+            )
+            val exactKey = entry.type to entry.normalizedNote
+            val previous = exactMatches[exactKey]
+            exactMatches[exactKey] = CategoryLearningMatch(
+                categoryId = entry.categoryId,
+                timesSeen = (previous?.timesSeen ?: 0) + 1,
+            )
+        }
+
+        fun clear() {
+            snapshots.clear()
+            exactMatches.clear()
+            readRequests.clear()
+        }
+
+        fun seed(type: CategoryLearningType, snapshot: CategoryLearningSnapshot) {
+            snapshots[type] = snapshot
+        }
+
+        data class ReadRequest(
+            val type: CategoryLearningType,
+            val categoryIds: Set<String>,
+            val tokens: Set<String>,
+        )
     }
 }

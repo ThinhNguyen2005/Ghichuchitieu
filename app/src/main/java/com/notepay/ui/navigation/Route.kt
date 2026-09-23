@@ -9,6 +9,7 @@ sealed interface Route {
     data object Stats : Route { override val path = "stats" }
     data object BillSplit : Route { override val path = "bill-split" }
     data object Subscription : Route { override val path = "subscription" }
+    data object Assets : Route { override val path = "assets" }
     data object AddWallet : Route { override val path = "add-wallet" }
     data class EditWallet(val id: Long) : Route {
         override val path = "edit-wallet/$id"

@@ -19,7 +19,6 @@ data class AddWalletUiState(
     val accountNumber: String = "",
     val accountName: String = "",
     val isSaving: Boolean = false,
-    val error: String? = null,
     val isEditMode: Boolean = false,
 ) {
     val canSave: Boolean get() = name.isNotBlank() && !isSaving

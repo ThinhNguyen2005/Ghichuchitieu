@@ -39,6 +39,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.ui.util.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -283,7 +284,7 @@ private fun CalendarCell(
             ) {
                 if (!day.totalIncome.isZero()) {
                     Text(
-                        text = "+${formatCompactMoney(day.totalIncome)}",
+                        text = "+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)}",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -292,29 +293,13 @@ private fun CalendarCell(
                 }
                 if (!day.totalExpense.isZero()) {
                     Text(
-                        text = "-${formatCompactMoney(day.totalExpense)}",
+                        text = "-${MoneyFormatter.formatCompactVietnamese(day.totalExpense)}",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,
                         maxLines = 1
                     )
                 }
-            }
-        }
-    }
-}
-
-private fun formatCompactMoney(money: Money): String {
-    val dong = money.amountInCents / 100
-    return when {
-        dong < 1000L -> dong.toString()
-        dong < 1000000L -> "${dong / 1000}k"
-        else -> {
-            val millions = dong / 1000000.0
-            if (millions % 1.0 == 0.0) {
-                "${millions.toInt()}Tr"
-            } else {
-                String.format(java.util.Locale.US, "%.1fTr", millions)
             }
         }
     }

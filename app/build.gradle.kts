@@ -8,6 +8,7 @@ plugins {
 }
 
 
+
 val signingProps = Properties().apply {
     val f = rootProject.file("app/signing.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -99,12 +100,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-            freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
-        }
-    }
 
     buildFeatures {
         compose = true
@@ -126,17 +121,23 @@ android {
         }
     }
 
-    // Hỗ trợ tạo Android App Bundle (.aab) cho Play Store.
+    @Suppress("UnstableApiUsage")
     bundle {
-        language {
-            enableSplit = true
+        abi {
+            enableSplit = true // Giúp người dùng chỉ tải đúng chip máy họ, giảm hàng chục MB
         }
         density {
-            enableSplit = true
+            enableSplit = true // Tối ưu ảnh theo độ phân giải màn hình
         }
-        abi {
-            enableSplit = false
+        language {
+            enableSplit = false // Đảm bảo đổi ngôn ngữ trong app không bị lỗi thiếu chữ
         }
+    }
+}
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
     }
 }
 
@@ -172,6 +173,7 @@ dependencies {
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.crashlytics.buildtools)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -191,8 +193,8 @@ dependencies {
 
     // Gemini Nano qua Android AICore: inference local, không gửi dữ liệu tài chính lên cloud.
     implementation(libs.mlkit.genai.prompt)
-    // User-supplied .litertlm model fallback for devices without Android AICore.
-    implementation(libs.litert.lm.android)
+    // Cloud AI fallback using official Google Generative AI Client (~300KB)
+    implementation(libs.google.ai.client)
     // OCR Latin bundled in the APK: runs fully offline for Vietnamese bank screenshots.
     implementation(libs.mlkit.text.recognition)
 
@@ -218,6 +220,5 @@ dependencies {
     // Instrumented
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

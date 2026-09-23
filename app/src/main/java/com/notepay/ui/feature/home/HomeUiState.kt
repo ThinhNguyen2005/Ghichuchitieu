@@ -23,7 +23,6 @@ data class HomeUiState(
     val recentTransactions: List<Transaction> = emptyList(),
     val monthLabel: String = "",
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
     val budgetProjection: BudgetProjection? = null,
     val dueRemindersCount: Int = 0,
     val walletBackgroundUri: String? = null,

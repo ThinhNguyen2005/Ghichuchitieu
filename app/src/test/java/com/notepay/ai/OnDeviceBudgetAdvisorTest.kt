@@ -10,6 +10,7 @@ import com.notepay.domain.analytics.SpendingPrediction
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,65 +22,83 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], qualifiers = "vi")
 class OnDeviceBudgetAdvisorTest {
     private val geminiNano = mockk<GeminiNanoBudgetAdvisor>()
-    private val liteRt = mockk<LiteRtBudgetAdvisor>()
+    private val cloudAdvisor = mockk<CloudGeminiAdvisor>()
     private val advisor = OnDeviceBudgetAdvisor(
         geminiNano = geminiNano,
-        liteRt = liteRt,
+        cloudAdvisor = cloudAdvisor,
         context = RuntimeEnvironment.getApplication(),
     )
 
     @Test
-    fun `availability prefers Gemini Nano over imported model`() = runTest {
+    fun `availability prefers Gemini Nano over Cloud AI`() = runTest {
         coEvery { geminiNano.isGeminiNanoAvailable() } returns true
 
         assertThat(advisor.availability()).isEqualTo(AdvisorAvailability.GEMINI_NANO)
-        coVerify(exactly = 0) { liteRt.isModelReady() }
+        coVerify(exactly = 0) { cloudAdvisor.isConfigured() }
     }
 
     @Test
-    fun `generate uses imported local model when Gemini Nano is unavailable`() = runTest {
+    fun `availability uses Cloud AI when Gemini Nano is unavailable and Cloud is configured`() = runTest {
         coEvery { geminiNano.isGeminiNanoAvailable() } returns false
-        coEvery { liteRt.isModelReady() } returns true
-        coEvery { liteRt.generate(input) } returns localResult
+        coEvery { cloudAdvisor.isConfigured() } returns true
 
-        assertThat(advisor.generate(input)).isEqualTo(localResult)
+        assertThat(advisor.availability()).isEqualTo(AdvisorAvailability.CLOUD_GEMINI)
+    }
+
+    @Test
+    fun `availability falls back to STATISTICAL_ONLY when neither is available`() = runTest {
+        coEvery { geminiNano.isGeminiNanoAvailable() } returns false
+        coEvery { cloudAdvisor.isConfigured() } returns false
+
+        assertThat(advisor.availability()).isEqualTo(AdvisorAvailability.STATISTICAL_ONLY)
+    }
+
+    @Test
+    fun `generate uses Cloud Gemini when Gemini Nano is unavailable`() = runTest {
+        coEvery { geminiNano.isGeminiNanoAvailable() } returns false
+        coEvery { cloudAdvisor.isConfigured() } returns true
+        coEvery { cloudAdvisor.generate(input) } returns cloudResult
+
+        assertThat(advisor.generate(input)).isEqualTo(cloudResult)
         coVerify(exactly = 0) { geminiNano.generate(any()) }
     }
 
     @Test
-    fun `generate keeps statistical analysis when no AI model is available`() = runTest {
+    fun `generate keeps statistical analysis when no AI model or key is available`() = runTest {
         coEvery { geminiNano.isGeminiNanoAvailable() } returns false
-        coEvery { liteRt.isModelReady() } returns false
+        coEvery { cloudAdvisor.isConfigured() } returns false
         coEvery { geminiNano.generate(input) } returns statisticalResult
 
         val result = advisor.generate(input)
 
         assertThat(result.provider).isEqualTo(AdvisorProvider.STATISTICAL_FALLBACK)
-        assertThat(result.providerMessage).contains("LiteRT-LM")
     }
 
     @Test
-    fun `generate does not retry Gemini after it already returned fallback`() = runTest {
-        coEvery { geminiNano.isGeminiNanoAvailable() } returns true
-        coEvery { geminiNano.generate(input) } returns statisticalResult
-        coEvery { liteRt.isModelReady() } returns false
-
-        assertThat(advisor.generate(input).provider)
-            .isEqualTo(AdvisorProvider.STATISTICAL_FALLBACK)
-        coVerify(exactly = 1) { geminiNano.generate(input) }
-    }
-
-    @Test
-    fun `generate falls back safely when imported model cannot start`() = runTest {
+    fun `generate falls back safely when Cloud AI network fails`() = runTest {
         coEvery { geminiNano.isGeminiNanoAvailable() } returns false
-        coEvery { liteRt.isModelReady() } returns true
-        coEvery { liteRt.generate(input) } throws OutOfMemoryError()
+        coEvery { cloudAdvisor.isConfigured() } returns true
+        coEvery { cloudAdvisor.generate(input) } throws java.io.IOException("Network unavailable")
         coEvery { geminiNano.generate(input) } returns statisticalResult
 
         val result = advisor.generate(input)
 
         assertThat(result.provider).isEqualTo(AdvisorProvider.STATISTICAL_FALLBACK)
-        assertThat(result.providerMessage).contains("th\u1ED1ng k\u00EA")
+        assertThat(result.providerMessage).contains("Network unavailable")
+    }
+
+    @Test
+    fun `generate preserves genuine caller cancellation`() = runTest {
+        coEvery { geminiNano.isGeminiNanoAvailable() } returns false
+        coEvery { cloudAdvisor.isConfigured() } returns true
+        coEvery { cloudAdvisor.generate(input) } throws CancellationException("cancelled")
+
+        val thrown = kotlin.test.assertFailsWith<CancellationException> {
+            advisor.generate(input)
+        }
+
+        assertThat(thrown.message).isEqualTo("cancelled")
+        coVerify(exactly = 0) { geminiNano.generate(input) }
     }
 
     private companion object {
@@ -100,10 +119,10 @@ class OnDeviceBudgetAdvisorTest {
             categories = emptyList(),
         )
 
-        val localResult = BudgetAdvisorResult(
-            title = "Local AI",
-            content = "Local model result",
-            provider = AdvisorProvider.LOCAL_LITERT_MODEL,
+        val cloudResult = BudgetAdvisorResult(
+            title = "Cloud AI",
+            content = "Cloud model result",
+            provider = AdvisorProvider.CLOUD_GEMINI,
         )
 
         val statisticalResult = BudgetAdvisorResult(

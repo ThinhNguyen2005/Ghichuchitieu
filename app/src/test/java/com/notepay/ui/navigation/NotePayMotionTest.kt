@@ -7,14 +7,15 @@ import org.junit.Test
 class NotePayMotionTest {
     @Test
     fun rootTabIndexIgnoresQueryArguments() {
-        assertEquals(2, rootTabIndexForRoute("stats?showCreate=false"))
+        assertEquals(1, rootTabIndexForRoute("stats?showCreate=false"))
+        assertEquals(2, rootTabIndexForRoute("assets?tab=0"))
         assertNull(rootTabIndexForRoute("transaction-detail/42"))
     }
 
     @Test
     fun tabTransitionDirectionFollowsTabOrder() {
         assertEquals(1, tabTransitionDirection(Route.Home.path, Route.Stats.path))
-        assertEquals(-1, tabTransitionDirection(Route.BillSplit.path, Route.TransactionList.path))
+        assertEquals(-1, tabTransitionDirection(Route.Utilities.path, Route.Stats.path))
         assertNull(tabTransitionDirection(Route.Home.path, Route.Home.path))
         assertNull(tabTransitionDirection(Route.Home.path, Route.TransactionDetail(42).path))
     }

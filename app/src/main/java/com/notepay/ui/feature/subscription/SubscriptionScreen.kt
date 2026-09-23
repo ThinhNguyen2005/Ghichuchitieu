@@ -89,6 +89,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.ui.component.ConfirmDeleteDialog
+import com.notepay.ui.component.DayDetailDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.util.MoneyFormatter
@@ -235,6 +236,21 @@ fun SubscriptionScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    showAddSheet = true
+                    viewModel.showAddDialog()
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.subscription_add_btn)
+                )
+            }
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current

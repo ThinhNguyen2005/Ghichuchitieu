@@ -232,7 +232,7 @@ fun VietQrConfigSheet(
                         Spacer(Modifier.size(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                stringResource(R.string.bill_split_vietqr_config_title),
+                                stringResource(R.string.bill_split_vietqr_cd),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -307,7 +307,7 @@ fun VietQrConfigSheet(
                             Spacer(Modifier.size(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = selectedBank?.shortName ?: stringResource(R.string.billsplit_choose_bank_short),
+                                    text = selectedBank?.shortName ?: stringResource(R.string.billsplit_choose_bank),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Bold,
                                 )

@@ -7,10 +7,12 @@
     <!-- Bottom navigation labels -->
     <string name="nav_home">Trang chủ</string>
     <string name="nav_transactions">Giao dịch</string>
-    <string name="nav_add">Thêm</string>
     <string name="quick_add_open_menu">Mở menu tạo mới</string>
     <string name="quick_add_close_menu">Đóng menu tạo mới</string>
     <string name="nav_stats">Thống kê</string>
+    <string name="nav_report">Báo cáo</string>
+    <string name="nav_assets">Tài sản</string>
+    <string name="nav_more">Thêm</string>
     <string name="nav_bill_split">Chia tiền</string>
 
     <!-- Common actions -->
@@ -24,6 +26,8 @@
     <string name="action_setup">Thiết lập</string>
     <string name="action_see_all">Xem tất cả</string>
     <string name="action_back">Quay lại</string>
+    <string name="action_edit_wallet">Chỉnh sửa ví</string>
+    <string name="action_saving">Đang lưu…</string>
 
     <!-- Quick add bottom sheet -->
     <string name="quick_add_title">Tạo mới</string>
@@ -38,16 +42,12 @@
     <string name="home_empty_wallet_title">Chưa có ví nào</string>
     <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
     <string name="home_create_wallet">Tạo ví</string>
-    <string name="home_save_wallet_changes">Lưu thay đổi</string>
     <string name="home_battery_title">Tối ưu pin</string>
     <string name="home_battery_desc">Giúp ứng dụng hoạt động ổn định</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
-    <string name="home_edit_wallet">Chỉnh sửa ví</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
-    <string name="home_reminder_cd">Nhắc nhở gia hạn</string>
-    <string name="home_app_settings_cd">Cài đặt ứng dụng</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
@@ -71,7 +71,7 @@
     <string name="transaction_validation_wallet">Hãy chọn ví thanh toán.</string>
     <string name="transaction_validation_amount_wallet">Hãy nhập số tiền và chọn ví thanh toán.</string>
     <string name="transaction_validation_form">Hãy điền đầy đủ thông tin bắt buộc trước khi lưu.</string>
-    <string name="transaction_save_button">Lưu giao dịch</string>
+    <string name="transaction_save_button">Lưu</string>
     <string name="transaction_suggestion_label">💡 Gợi ý:</string>
     <string name="transaction_suggestion_applied_label">Đã tự động chọn:</string>
 
@@ -95,8 +95,6 @@
     <string name="stats_filter_quarter">Quý</string>
     <string name="stats_filter_year">Năm</string>
     <string name="stats_filter_custom">Tùy chọn</string>
-    <string name="stats_kpi_income">Thu nhập</string>
-    <string name="stats_kpi_expense">Chi tiêu</string>
     <string name="stats_kpi_net">Ròng</string>
     <string name="stats_section_categories">Theo danh mục</string>
     <string name="stats_section_budget">Ngân sách</string>
@@ -106,7 +104,6 @@
     <!-- Bill split screen -->
     <string name="bill_split_title">Quản lý Chia tiền</string>
     <string name="bill_split_tab_unpaid">Chờ thanh toán</string>
-    <string name="bill_split_tab_paid">Đã thanh toán</string>
     <string name="bill_split_empty">Chưa có khoản chia tiền nào\nBấm nút (+) ở bên dưới để tạo phiếu chia tiền nhóm mới.</string>
     <string name="bill_split_empty_unpaid">Tất cả nợ đã được thanh toán\nKhông còn khoản nợ nhóm nào đang chờ xử lý.</string>
     <string name="bill_split_empty_paid">Chưa có lịch sử thanh toán\nCác khoản chia tiền đã hoàn tất sẽ hiển thị tại đây.</string>
@@ -137,7 +134,6 @@
     <string name="utilities_reminder_title">Nhắc nhở gia hạn</string>
 
     <!-- AddWallet screen -->
-    <string name="add_wallet_title">Thêm ví</string>
     <string name="edit_wallet_title">Sửa ví</string>
     <string name="wallet_field_name">Tên ví</string>
     <string name="wallet_field_initial_balance">Số dư ban đầu</string>
@@ -158,6 +154,8 @@
     <string name="feedback_delete_success">Đã xóa</string>
     <string name="feedback_undo">Hoàn tác</string>
     <string name="feedback_bill_split_created">Đã tạo khoản chia tiền</string>
+    <string name="bill_split_create_btn">Tạo hóa đơn mới</string>
+    <string name="subscription_add_btn">Thêm nhắc nhở mới</string>
     <string name="feedback_bill_split_create_failed">Không thể tạo khoản chia tiền</string>
     <string name="feedback_bill_split_marked_paid">Đã ghi nhận thanh toán</string>
     <string name="feedback_bill_split_mark_failed">Không thể ghi nhận thanh toán</string>
@@ -299,7 +297,6 @@
     <string name="feedback_copy_account_name">Đã sao chép Tên chủ tài khoản</string>
     <string name="feedback_copy_amount_format">Đã sao chép Số tiền: %1$s</string>
     <string name="feedback_copy_memo">Đã sao chép Cú pháp chuyển khoản</string>
-    <string name="cd_copy">Sao chép</string>
     <string name="error_generate_qr">Không thể sinh mã QR</string>
     <string name="action_share_vietqr">Chia sẻ mã QR thanh toán</string>
     <string name="error_share_vietqr">Lỗi khi khởi tạo và chia sẻ hình ảnh VietQR</string>
@@ -415,35 +412,20 @@
     <string name="image_scan_vietqr_success">Đã đọc số tiền từ mã VietQR. Hãy kiểm tra trước khi lưu.</string>
     <string name="image_scan_ocr_success">Đã điền số tiền từ ảnh. Hãy kiểm tra trước khi lưu.</string>
     <string name="image_scan_amount_not_found">Không tìm thấy số tiền rõ ràng trong ảnh. Hãy chọn ảnh nét hơn.</string>
-    <string name="ai_device_64_bit_required">Thiết bị cần kiến trúc 64-bit để chạy mô hình AI cục bộ.</string>
-    <string name="ai_model_extension_required">Hãy chọn tệp mô hình AI có định dạng .litertlm, .bin hoặc .tflite.</string>
-    <string name="ai_model_size_range">Mô hình phải có dung lượng từ 20 MB đến 1,5 GB.</string>
-    <string name="ai_model_storage_insufficient">Không đủ bộ nhớ trống để cài mô hình AI.</string>
-    <string name="ai_model_read_error">Không thể đọc tệp mô hình đã chọn.</string>
-    <string name="ai_model_size_limit">Mô hình vượt quá giới hạn 1,5 GB.</string>
-    <string name="ai_model_invalid_file">Tệp quá nhỏ hoặc không phải mô hình LiteRT-LM hợp lệ.</string>
-    <string name="ai_model_replace_failed">Không thể thay thế mô hình đang dùng.</string>
-    <string name="ai_model_install_failed">Không thể hoàn tất cài đặt mô hình.</string>
-    <string name="ai_model_ready">Mô hình AI đã sẵn sàng trên thiết bị.</string>
-    <string name="ai_model_install_failed_generic">Không thể cài mô hình AI cục bộ.</string>
-    <string name="ai_model_init_failed">Không thể khởi tạo mô hình.</string>
-    <string name="ai_model_init_incompatible_format">Không thể khởi tạo mô hình (%1$s). Vui lòng kiểm tra định dạng tệp .litertlm tương thích.</string>
-    <string name="ai_model_not_supported">Mô hình không chạy được trên thiết bị này. Hãy chọn một tệp .litertlm tương thích.</string>
-    <string name="ai_model_display_name">Mô hình AI cục bộ</string>
-    <string name="ai_model_default_file_name">model.litertlm</string>
-    <string name="ai_no_model_installed">Chưa có mô hình AI cục bộ trên thiết bị.</string>
-    <string name="ai_backend_unavailable">Không có LiteRT-LM backend nào được cấu hình.</string>
-    <string name="ai_invalid_response">Mô hình trả về nội dung chưa đúng định dạng an toàn.</string>
-    <string name="ai_litert_default_model_name">mô hình LiteRT-LM</string>
-    <string name="ai_litert_provider_message">Phân tích bởi %1$s ngay trên thiết bị (%2$s)</string>
+    <string name="image_scan_ai_success">Đã trích xuất thông tin giao dịch bằng AI. Hãy kiểm tra trước khi lưu.</string>
+    <string name="ai_cloud_empty_response">Mô hình trả về phản hồi rỗng.</string>
+    <string name="ai_cloud_api_key_missing">Chưa cấu hình Google Gemini API Key trong Cài đặt.</string>
+    <string name="ai_cloud_invalid_response">Không thể phân tích định dạng phản hồi từ Cloud AI.</string>
+    <string name="ai_cloud_provider_message">Phân tích bởi %1$s qua API cá nhân</string>
+    <string name="ai_cloud_fallback">Cloud AI gặp lỗi (%1$s); đang dùng phân tích thống kê trên máy.</string>
+    <string name="ai_cloud_network_error">Lỗi kết nối mạng</string>
+    <string name="ai_statistical_provider_message">Phân tích thống kê toán học ngay trên thiết bị</string>
     <string name="ai_gemini_unavailable">Thiết bị chưa hỗ trợ Gemini Nano qua Android AICore.</string>
     <string name="ai_gemini_downloading">Gemini Nano đang tải về máy; tạm dùng phân tích thống kê trên thiết bị.</string>
     <string name="ai_gemini_unknown_status">Không xác định được trạng thái Gemini Nano; đang dùng phân tích thống kê trên thiết bị.</string>
     <string name="ai_gemini_invalid_response">Gemini Nano trả về nội dung không đúng định dạng an toàn.</string>
     <string name="ai_gemini_provider_message">Phân tích bởi Gemini Nano ngay trên thiết bị</string>
     <string name="ai_gemini_start_failed">Không thể khởi chạy Gemini Nano; đang dùng phân tích thống kê trên máy.</string>
-    <string name="ai_litert_fallback">Mô hình AI cục bộ chưa chạy được (%1$s); đang dùng phân tích thống kê trên máy.</string>
-    <string name="ai_no_on_device_model">Thiết bị không có Gemini Nano và chưa cài mô hình LiteRT-LM; đang dùng phân tích thống kê trên máy.</string>
     <string name="ai_fallback_no_budget_title">Cần đặt định mức</string>
     <string name="ai_fallback_no_budget_content">Dự báo cuối tháng là %1$s, nhưng chưa thể đo rủi ro vượt mức vì bạn chưa đặt định mức.</string>
     <string name="ai_fallback_high_risk_title">Nguy cơ vượt định mức cao</string>
@@ -495,17 +477,11 @@
     <string name="transaction_suggested_category">💡 Đề xuất danh mục:</string>
     <string name="transaction_auto_note_edit_only">Chỉ cho phép sửa ghi chú đối với giao dịch tự động</string>
     <string name="transaction_date_format">Ngày: %1$s</string>
-    <string name="transaction_saving">Đang lưu…</string>
     <string name="action_save_changes">Lưu thay đổi</string>
     <string name="dialog_delete_confirm_format">Bạn có chắc chắn muốn xóa "%1$s"? Hành động này không thể hoàn tác.</string>
     <string name="content_description_close_suggestion">Đóng gợi ý</string>
     <string name="content_description_backspace">Xóa ký tự cuối</string>
-    <string name="content_description_open_wallet_picker">Chọn ví</string>
-    <string name="content_description_edit_wallet">Chỉnh sửa ví</string>
-    <string name="content_description_scan_transaction">Quét ảnh giao dịch hoặc VietQR</string>
     <string name="content_description_open_calendar">Mở lịch</string>
-    <string name="content_description_delete">Xóa</string>
-    <string name="content_description_edit">Chỉnh sửa</string>
     <string name="content_description_more_options">Tùy chọn khác</string>
     <string name="content_description_copy">Sao chép</string>
     <string name="content_description_share">Chia sẻ</string>
@@ -513,9 +489,18 @@
     <string name="content_description_remove_photo">Xóa ảnh</string>
     <string name="content_description_show_password">Hiện mật khẩu</string>
     <string name="content_description_hide_password">Ẩn mật khẩu</string>
+    <string name="content_description_paste">Dán từ bộ nhớ tạm</string>
+    <string name="content_description_clear_text">Xóa nội dung</string>
     <string name="category_section_title">Danh mục</string>
     <string name="category_choices_format">%1$d lựa chọn</string>
     <string name="category_section_description">Chọn danh mục phù hợp nhất với giao dịch này</string>
+    <string name="category_search_placeholder">Tìm kiếm danh mục…</string>
+    <string name="category_group_all">Tất cả</string>
+    <string name="category_group_food_transport">Ăn uống &amp; Đi lại</string>
+    <string name="category_group_home_bills">Nhà cửa &amp; Hóa đơn</string>
+    <string name="category_group_lifestyle">Đời sống &amp; Mua sắm</string>
+    <string name="category_group_family_health">Gia đình &amp; Sức khỏe</string>
+    <string name="category_group_finance">Tài chính &amp; Đầu tư</string>
     <string name="category_add_more">Thêm…</string>
     <string name="category_dialog_title">Tạo danh mục mới</string>
     <string name="category_name_label">Tên danh mục</string>
@@ -594,7 +579,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_wallet_format">Ví: %1$s</string>
     <string name="billsplit_qr_description">Mã QR nhận tiền sẽ được tạo tự động khi chia hóa đơn. Thông tin tài khoản cần chính xác để hiển thị đúng mã chuyển tiền.</string>
     <string name="billsplit_receiving_bank">Ngân hàng nhận</string>
-    <string name="billsplit_choose_bank_short">Chọn ngân hàng</string>
     <string name="billsplit_account_number_label">Số tài khoản nhận</string>
     <string name="billsplit_account_number_placeholder">VD: 0123456789</string>
     <string name="billsplit_account_name_placeholder">NGUYEN VAN A</string>
@@ -727,15 +711,14 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_probability_format">Khả năng vượt hạn mức %1$d%% · Dựa trên %2$d ngày dữ liệu</string>
     <string name="stats_probability_no_limit_format">Đặt hạn mức để xem xác suất vượt chi · Dựa trên %1$d ngày dữ liệu</string>
     <string name="stats_advisor_gemini_description">Gemini Nano diễn giải số liệu tổng hợp ngay trên thiết bị.</string>
-    <string name="stats_advisor_local_ready_format">Mô hình %1$s đã sẵn sàng; dữ liệu không rời khỏi máy.</string>
-    <string name="stats_advisor_statistical_description">Gemini Nano không khả dụng. Bạn có thể thêm Gemma 3 1B hoặc mô hình .litertlm phù hợp với máy.</string>
-    <string name="stats_advisor_checking_description">Đang kiểm tra khả năng phân tích AI cục bộ trên thiết bị.</string>
-    <string name="stats_model_installing">Đang cài mô hình AI trên thiết bị…</string>
+    <string name="stats_advisor_cloud_ready_format">Cloud Gemini (%1$s) sẵn sàng qua API Key cá nhân.</string>
+    <string name="stats_advisor_statistical_description">Gemini Nano không khả dụng. Bạn có thể thêm Gemini API Key trong Cài đặt hoặc dùng Thống kê cục bộ.</string>
+    <string name="stats_advisor_checking_description">Đang kiểm tra khả năng phân tích AI trên thiết bị.</string>
     <string name="stats_analyzing">Đang phân tích dữ liệu…</string>
     <string name="stats_provider_gemini">Gemini Nano</string>
-    <string name="stats_provider_local">AI cục bộ · LiteRT-LM</string>
+    <string name="stats_provider_cloud">Cloud Gemini Flash</string>
     <string name="stats_provider_statistics">Thống kê cục bộ</string>
-    <string name="stats_cd_open_local_ai_settings">Mở cài đặt AI cục bộ</string>
+    <string name="stats_cd_open_ai_settings">Mở cài đặt AI</string>
     <string name="stats_refresh">Làm mới</string>
     <string name="stats_daily_budget_title">Ngân sách hôm nay</string>
     <string name="stats_daily_budget_exceeded">Đã vượt hạn mức</string>
@@ -780,7 +763,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_color_title">Màu sắc nhận diện</string>
     <string name="wallet_vietqr_later_title">Cấu hình VietQR sau</string>
     <string name="wallet_vietqr_later_description">Sau khi tạo ví, vào Chia tiền → icon QR trên thanh trên cùng để cấu hình ngân hàng + STK + tên chủ TK nhanh chóng.</string>
-    <string name="wallet_saving">Đang lưu…</string>
     <string name="detail_info_title">Thông tin chi tiết</string>
     <string name="detail_timestamp">Thời điểm</string>
     <string name="detail_wallet_missing">Ví không còn tồn tại</string>
@@ -793,6 +775,59 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="detail_create_bill_split">Tạo chia tiền</string>
     <string name="detail_create_subscription">Tạo nhắc nhở gia hạn</string>
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
+    <!-- Assets screen -->
+    <string name="assets_total_balance">Tổng tài sản ròng</string>
+    <string name="assets_wallets_header">Danh sách ví</string>
+    <string name="assets_wallet_balance">Số dư</string>
+    <string name="assets_view_transactions">Xem giao dịch</string>
+    <string name="assets_view_ledger">Xem sổ cái</string>
+    <string name="assets_add_wallet_btn">Thêm ví</string>
+    <string name="assets_transfer_btn">Chuyển tiền</string>
+    <string name="wallets_count_label">tài khoản</string>
+    <string name="transactions_count_label">giao dịch</string>
+    <string name="wallet_badge_active">Ví chính</string>
+    <string name="set_as_active_wallet">Đặt làm ví chính</string>
+    <string name="assets_transfer_dialog_title">Chuyển tiền giữa các ví</string>
+    <string name="assets_transfer_from_wallet">Từ ví:</string>
+    <string name="assets_transfer_to_wallet">Đến ví:</string>
+    <string name="assets_transfer_amount">Số tiền chuyển:</string>
+    <string name="assets_transfer_note">Ghi chú (tùy chọn):</string>
+    <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền...</string>
+    <string name="assets_transfer_confirm_btn">Xác nhận chuyển</string>
+    <string name="assets_trend_chart_title">Xu hướng tài sản</string>
+    <string name="assets_chart_range_7d">7 ngày</string>
+    <string name="assets_chart_range_30d">30 ngày</string>
+    <string name="assets_chart_range_6m">6 tháng</string>
+    <string name="assets_chart_range_1y">1 năm</string>
+    <string name="assets_trend_no_data">Chưa đủ dữ liệu biến động</string>
+    <string name="assets_scrubber_at_date">Vào %1$s</string>
+    <string name="assets_allocation_title">Phân bổ tài sản</string>
+    <string name="assets_allocation_no_balance">Chưa có số dư để phân bổ</string>
+    <string name="assets_monthly_flow_format">Tháng này: +%1$s · -%2$s</string>
+    <string name="tx_empty_title">Không tìm thấy giao dịch nào</string>
+    <string name="tx_empty_subtitle">Hãy thử thay đổi tiêu chí lọc hoặc khoảng thời gian</string>
+    <string name="tx_select_wallet_sheet_title">Chọn tài khoản / ví</string>
+
+    <!-- Transaction screen filters and summary -->
+    <string name="transactions_header_title">GIAO DỊCH</string>
+    <string name="filter_all_accounts">Tất cả tài khoản</string>
+    <string name="filter_time_period">Khoảng thời gian</string>
+    <string name="filter_advanced">Bộ lọc</string>
+    <string name="filter_clear_all">Xóa tất cả</string>
+    <string name="filter_apply">Áp dụng</string>
+    <string name="filter_type_all">Tất cả</string>
+    <string name="filter_type_expense">Chi tiêu</string>
+    <string name="filter_type_income">Thu nhập</string>
+    <string name="filter_type_transfer">Chuyển khoản</string>
+    <string name="filter_classification">Phân loại</string>
+    <string name="filter_category_expense">Danh mục Chi tiêu</string>
+    <string name="filter_category_income">Danh mục Thu nhập</string>
+    <string name="filter_search_hint">Tìm ghi chú, danh mục, số tiền...</string>
+    <string name="summary_income_header">THU NHẬP</string>
+    <string name="summary_expense_header">CHI TIÊU</string>
+    <string name="summary_export_file">Xuất file</string>
+    <string name="summary_sub_format">%1$d giao dịch · ròng %2$s</string>
+
     <string name="utilities_title">Tiện ích</string>
     <string name="utilities_tools_title">Công cụ phụ trợ</string>
     <string name="utilities_bill_split_description">Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.</string>
@@ -801,34 +836,34 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_fallback">Ví</string>
     <string name="transaction_income_label">Thu vào</string>
     <string name="transaction_expense_label">Đã chi</string>
-    <string name="settings_local_ai_title">AI cục bộ</string>
-    <string name="settings_local_ai_description">Dùng khi Gemini Nano không khả dụng. NotePay chỉ nhập file đã tải, xử lý offline hoàn toàn.</string>
-    <string name="settings_local_ai_unknown_size">không rõ dung lượng</string>
-    <string name="settings_local_ai_status_model">Mô hình AI cục bộ</string>
-    <string name="settings_local_ai_status_importing">Đang cài mô hình</string>
-    <string name="settings_local_ai_status_error">Chưa cài được mô hình</string>
-    <string name="settings_local_ai_status_not_installed">Chưa có mô hình</string>
-    <string name="settings_local_ai_saved_format">Đã lưu trong bộ nhớ riêng · %1$s</string>
-    <string name="settings_local_ai_copying">Đang sao chép vào bộ nhớ riêng của ứng dụng</string>
-    <string name="settings_local_ai_choose_file_hint">Chỉ chọn tệp .litertlm từ danh sách tương thích chính thức.</string>
-    <string name="settings_local_ai_download_page">Trang tải</string>
-    <string name="settings_local_ai_change_model">Đổi model</string>
-    <string name="settings_local_ai_choose_file">Chọn file</string>
-    <string name="settings_local_ai_remove">Xóa mô hình khỏi máy</string>
+    <string name="settings_ai_engine_title">Trí tuệ nhân tạo (AI Engine)</string>
+    <string name="settings_ai_engine_subtitle">Phân cấp thông minh: Gemini Nano -&gt; Cloud Gemini -&gt; Thống kê</string>
+    <string name="settings_ai_engine_subtitle_local">100% Ngoại tuyến: Gemini Nano on-device &amp; Cố vấn Thống kê nội bộ</string>
+    <string name="settings_ai_local_offline_title">Phiên bản Local (100% Ngoại tuyến)</string>
+    <string name="settings_ai_local_offline_desc">Bản cài đặt này đã loại bỏ hoàn toàn quyền Internet cấp hệ điều hành (Manifest level) để đảm bảo dữ liệu tài chính không bao giờ rời khỏi thiết bị. Mọi phân tích chi tiêu và quét hóa đơn hoạt động 100% cục bộ trên máy.</string>
+    <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Đã sẵn sàng (100% Offline)</string>
+    <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Không hỗ trợ trên thiết bị này</string>
+    <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
+    <string name="settings_ai_api_key_placeholder">Dán API Key (AIzaSy...)</string>
+    <string name="settings_ai_api_key_get_free">Lấy API Key miễn phí từ Google AI Studio</string>
+    <string name="settings_ai_api_key_save">Lưu Key</string>
+    <string name="settings_ai_api_key_saved">Đã lưu API Key</string>
+    <string name="settings_ai_api_key_clear">Xóa Key</string>
+    <string name="settings_ai_api_key_test">Kiểm tra kết nối</string>
+    <string name="settings_ai_api_key_testing">Đang kiểm tra kết nối...</string>
+    <string name="settings_ai_api_key_test_success">Kết nối thành công! Gemini phản hồi: %1$s</string>
+    <string name="settings_ai_api_key_test_failed">Kết nối thất bại: %1$s</string>
+    <string name="settings_ai_cloud_toggle_title">Bật Cloud Gemini AI</string>
+    <string name="settings_ai_cloud_toggle_desc">Gọi model Gemini 3.6 Flash khi Gemini Nano không khả dụng</string>
+    <string name="settings_ai_receipt_toggle_title">Trích xuất hóa đơn nâng cao</string>
+    <string name="settings_ai_receipt_toggle_desc">Bổ trợ AI bóc tách chi tiết biên lai khi Regex không nhận diện đủ</string>
+    <string name="settings_ai_privacy_notice">Cam kết quyền riêng tư: Dữ liệu chỉ gửi trực tiếp từ máy của bạn đến Google AI qua API Key cá nhân; NotePay không có server trung gian và không lưu trữ dữ liệu này.</string>
     <string name="settings_daily_reminder_title">Nhắc nhở ghi chép mỗi tối</string>
     <string name="settings_daily_reminder_enabled">Thông báo lúc 20:30 tối nếu trong ngày chưa ghi chép chi tiêu.</string>
     <string name="settings_daily_reminder_disabled">Đang tắt thông báo nhắc nhở.</string>
     <string name="settings_theme_title">Màu sắc chủ đề</string>
     <string name="settings_theme_description">Chọn tông màu giao diện bạn muốn sử dụng</string>
     <string name="theme_ios">iOS (Trắng/Đen)</string>
-    <string name="theme_green">Xanh lá</string>
-    <string name="theme_blue">Xanh dương</string>
-    <string name="theme_red">Đỏ hồng</string>
-    <string name="theme_orange">Cam</string>
-    <string name="theme_teal">Xanh ngọc</string>
-    <string name="theme_gold">Vàng</string>
-    <string name="theme_brown">Nâu</string>
-    <string name="theme_gray">Xám</string>
     <string name="autocapture_title">Tự động ghi từ thông báo</string>
     <string name="autocapture_enabled_description">Chỉ xử lý thông báo từ ứng dụng đã được kiểm chứng.</string>
     <string name="autocapture_disabled_description">Bật để NotePay có thể tự động ghi nhận giao dịch từ thông báo ngân hàng.</string>
@@ -873,9 +908,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_insight_trend_stable">➡️ Chi tiêu ổn định so tháng trước</string>
     <string name="stats_insight_early_warning_first_days">⚠️ Đã tiêu %1$s trong 3 ngày đầu — gấp đôi hạn mức ngày. Hãy kiềm chế!</string>
     <string name="stats_insight_early_warning_first_week">⚠️ Tuần đầu chi tiêu đạt %1$d%% hạn mức/ngày. Nên giảm xuống còn %2$s/ngày.</string>
-    <string name="stats_engine_advice_food_title">Cảnh báo ăn uống</string>
     <string name="stats_engine_advice_food_content">Chi tiêu ăn uống chiếm %1$s tổng chi tiêu. Hãy thử tự nấu ăn để tiết kiệm!</string>
-    <string name="stats_engine_advice_bill_title">Chuẩn bị tiền đóng phí</string>
     <string name="stats_engine_advice_bill_content">Hóa đơn \'%1$s\' (%2$s) sẽ đến hạn sau vài ngày. Số dư ví hiện không đủ!</string>
     <string name="stats_engine_advice_spike_title">Chi tiêu bất thường</string>
     <string name="stats_engine_advice_spike_content">Hôm nay chi %1$s — gấp %2$d%% trung bình ngày (%3$s). Kiểm tra lại!</string>
@@ -885,4 +918,27 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_engine_advice_trend_down_content">Chi tiêu trung bình ngày giảm %1$s%% so tháng trước. Hãy tiếp tục duy trì!</string>
     <string name="stats_engine_advice_saving_title">Đang tiết kiệm tốt</string>
     <string name="stats_engine_advice_saving_content">Chi tiêu trung bình chỉ %1$d%% hạn mức/ngày. Tuyệt vời!</string>
+
+    <!-- Utilities screen -->
+    <string name="utilities_mascot_title">Chọn mèo của bạn 🐱</string>
+    <string name="utilities_mascot_subtitle">Người bạn đồng hành tài chính thông minh</string>
+    <string name="utilities_section_ledger">CÀI ĐẶT SỔ</string>
+    <string name="utilities_bill_split_subtitle">Chia tiền nhóm, tạo VietQR thu tiền</string>
+    <string name="utilities_subscriptions_subtitle">Hóa đơn định kỳ, nhắc nợ, tự trừ tiền</string>
+    <string name="utilities_wallet_manage_title">Quản lý ví &amp; tài sản</string>
+    <string name="utilities_wallet_manage_subtitle">Sổ cái riêng biệt từng ví, chuyển tiền</string>
+    <string name="utilities_currency_title">Đơn vị tiền tệ chính</string>
+    <string name="utilities_currency_subtitle">VND (₫)</string>
+    <string name="utilities_categories_title">Danh mục thu / chi</string>
+    <string name="utilities_categories_subtitle">Tùy biến danh mục ghi chép</string>
+    <string name="utilities_export_backup_title">Xuất dữ liệu &amp; Sao lưu</string>
+    <string name="utilities_export_backup_subtitle">Xuất CSV, JSON, sao lưu toàn bộ sổ</string>
+    <string name="utilities_section_app">CÀI ĐẶT ỨNG DỤNG</string>
+    <string name="utilities_appearance_language_title">Giao diện &amp; Ngôn ngữ</string>
+    <string name="utilities_appearance_language_subtitle">Chủ đề Sáng/Tối, tiếng Việt, tiếng Anh</string>
+    <string name="utilities_ai_engine_subtitle">Gemini Nano on-device &amp; Trợ lý thông minh</string>
+    <string name="utilities_backup_restore_title">Sao lưu &amp; Phục hồi</string>
+    <string name="utilities_backup_restore_subtitle">Đồng bộ hoặc khôi phục dữ liệu</string>
+    <string name="utilities_app_info_title">Thông tin ứng dụng</string>
+    <string name="utilities_app_info_subtitle">NotePay v1.0.0</string>
 </resources>

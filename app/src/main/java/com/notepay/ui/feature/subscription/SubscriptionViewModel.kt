@@ -31,7 +31,6 @@ data class SubscriptionUiState(
     val recentTransactions: List<Transaction> = emptyList(),
     val isLoading: Boolean = true,
     val showAddDialog: Boolean = false,
-    val error: String? = null,
 )
 
 // Dialog state tách riêng để tránh recompose toàn bộ
@@ -105,7 +104,9 @@ class SubscriptionViewModel @Inject constructor(
     fun onAmountChanged(input: String) = _dialogState.update { it.copy(amountInput = input.filter(Char::isDigit)) }
     fun onRepeatMonthsChanged(months: Int) = _dialogState.update { it.copy(repeatMonths = months) }
     fun onRemindDaysChanged(days: Int) = _dialogState.update { it.copy(remindDaysBefore = days) }
-    fun onNoteChanged(note: String) = _dialogState.update { it.copy(note = note.take(200)) }
+    fun onNoteChanged(note: String) = _dialogState.update {
+        it.copy(note = note.take(Transaction.MAX_NOTE_LENGTH))
+    }
     fun onNextDueDateChanged(epochMs: Long) = _dialogState.update { it.copy(nextDueEpochMs = epochMs) }
     fun onCategoryChanged(category: String) = _dialogState.update { it.copy(category = category) }
 

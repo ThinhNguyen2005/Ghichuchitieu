@@ -5,6 +5,16 @@ import org.junit.Test
 import kotlin.test.assertFailsWith
 
 class TransactionTest {
+    @Test
+    fun `note policy truncates to transaction maximum length`() {
+        val longNote = "a".repeat(Transaction.MAX_NOTE_LENGTH + 20)
+
+        val truncated = TransactionNotePolicy.truncate(longNote)
+
+        assertThat(truncated.length).isEqualTo(Transaction.MAX_NOTE_LENGTH)
+        assertThat(truncated).endsWith("...")
+    }
+
 
     @Test
     fun `valid transaction constructs successfully`() {

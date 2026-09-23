@@ -82,4 +82,23 @@ class GetMonthlySummaryUseCaseTest {
             awaitComplete()
         }
     }
+
+    @Test
+    fun `walletId filter queries observeByWalletAndMonth`() = runTest {
+        val txs: List<Transaction> = listOf(
+            TestTransactionFactory.expense(
+                amount = Money(50_000_00),
+                category = Category.FOOD,
+                walletId = 2L,
+            ),
+        )
+        every { transactionRepo.observeByWalletAndMonth(2L, 2026, 6) } returns flowOf(txs)
+
+        useCase(2026, 6, walletId = 2L).test {
+            val s = awaitItem()
+            assertThat(s.totalExpense).isEqualTo(Money(50_000_00))
+            assertThat(s.transactions).containsExactlyElementsIn(txs)
+            awaitComplete()
+        }
+    }
 }

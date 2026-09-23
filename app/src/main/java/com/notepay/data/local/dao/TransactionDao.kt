@@ -28,6 +28,14 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE wallet_id = :walletId ORDER BY occurred_at DESC")
     fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>>
 
+    @Query("""
+        SELECT * FROM transactions
+        WHERE wallet_id = :walletId
+        AND occurred_at BETWEEN :startMillis AND :endMillis
+        ORDER BY occurred_at DESC
+    """)
+    fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): TransactionEntity?
 

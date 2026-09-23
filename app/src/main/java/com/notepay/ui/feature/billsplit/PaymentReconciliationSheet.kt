@@ -28,12 +28,8 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.formatter.PresentationDateFormatter
 import com.notepay.ui.util.MoneyFormatter
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,7 +303,7 @@ fun PaymentReconciliationSheet(
                                             )
                                         }
                                         Text(
-                                            text = "$walletName • ${formatInstant(tx.occurredAt)}",
+                                            text = "$walletName • ${PresentationDateFormatter.formatDayMonthTime(tx.occurredAt)}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -371,17 +367,4 @@ fun PaymentReconciliationSheet(
             }
         }
     }
-}
-
-private fun formatInstant(instant: kotlin.time.Instant): String {
-    val tz = TimeZone.currentSystemDefault()
-    val localDateTime = instant.toLocalDateTime(tz)
-    return String.format(
-        Locale.US,
-        "%02d/%02d %02d:%02d",
-        localDateTime.day,
-        localDateTime.month.number,
-        localDateTime.hour,
-        localDateTime.minute
-    )
 }

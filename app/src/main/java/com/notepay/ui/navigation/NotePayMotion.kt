@@ -18,9 +18,9 @@ internal object NotePayMotion {
 
 private val rootTabRoutes = listOf(
     Route.Home.path,
-    Route.TransactionList.path,
     Route.Stats.path,
-    Route.BillSplit.path,
+    Route.Assets.path,
+    Route.Utilities.path,
 )
 
 internal fun rootTabIndexForRoute(route: String?): Int? {
