@@ -12,8 +12,6 @@ import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import android.content.Context
 import com.notepay.domain.repository.SubscriptionRepository
-import com.notepay.ai.LocalAiModelManager
-import com.notepay.ai.LocalModelState
 import com.notepay.ai.OnDeviceBudgetAdvisor
 import com.notepay.domain.analytics.AdvisorAvailability
 import io.mockk.coEvery
@@ -149,15 +147,12 @@ class StatsViewModelTest {
     @Test
     fun `local advice failure returns to retryable state`() = runTest {
         val advisor = mockk<OnDeviceBudgetAdvisor>(relaxed = true)
-        val modelManager = mockk<LocalAiModelManager>(relaxed = true)
         coEvery { advisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
         coEvery { advisor.generate(any()) } throws IllegalStateException("unexpected failure")
-        every { modelManager.state } returns MutableStateFlow(LocalModelState())
 
         val viewModel = createViewModel(
             repo = FakeTransactionRepository(listOf(tIncome, tFood)),
             advisor = advisor,
-            modelManager = modelManager,
         )
         val collectJob = launch(UnconfinedTestDispatcher()) { viewModel.state.collect {} }
 
@@ -172,15 +167,12 @@ class StatsViewModelTest {
     @Test
     fun `local advice cancellation returns to retryable state`() = runTest {
         val advisor = mockk<OnDeviceBudgetAdvisor>(relaxed = true)
-        val modelManager = mockk<LocalAiModelManager>(relaxed = true)
         coEvery { advisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
         coEvery { advisor.generate(any()) } throws CancellationException("cancelled")
-        every { modelManager.state } returns MutableStateFlow(LocalModelState())
 
         val viewModel = createViewModel(
             repo = FakeTransactionRepository(listOf(tIncome, tFood)),
             advisor = advisor,
-            modelManager = modelManager,
         )
         val collectJob = launch(UnconfinedTestDispatcher()) { viewModel.state.collect {} }
 
@@ -196,21 +188,17 @@ class StatsViewModelTest {
         repo: TransactionRepository,
         walletRepo: WalletRepository = FakeWalletRepository(),
         advisor: OnDeviceBudgetAdvisor? = null,
-        modelManager: LocalAiModelManager? = null,
     ): StatsViewModel {
         val fakeContext = mockk<Context>(relaxed = true)
         val fakeSubRepo = FakeSubscriptionRepository()
         val resolvedAdvisor = advisor ?: mockk<OnDeviceBudgetAdvisor>(relaxed = true)
-        val resolvedModelManager = modelManager ?: mockk<LocalAiModelManager>(relaxed = true)
         coEvery { resolvedAdvisor.availability() } returns AdvisorAvailability.STATISTICAL_ONLY
-        every { resolvedModelManager.state } returns MutableStateFlow(LocalModelState())
         return StatsViewModel(
             repo,
             walletRepo,
             fakeSubRepo,
             fakeContext,
             resolvedAdvisor,
-            resolvedModelManager,
         )
     }
 }
@@ -243,6 +231,7 @@ private class FakeTransactionRepository(
     override fun observeAll(): Flow<List<Transaction>> = flowOf(transactions)
     override fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>> = flowOf(transactions)
     override fun observeByWallet(walletId: Long): Flow<List<Transaction>> = flowOf(transactions)
+    override fun observeByWalletAndMonth(walletId: Long, year: Int, month: Int): Flow<List<Transaction>> = flowOf(transactions.filter { it.walletId == walletId })
     override suspend fun getById(id: Long): Transaction? = null
     override fun observeById(id: Long): Flow<Transaction?> = flowOf(null)
     override suspend fun upsert(transaction: Transaction): Long = 0

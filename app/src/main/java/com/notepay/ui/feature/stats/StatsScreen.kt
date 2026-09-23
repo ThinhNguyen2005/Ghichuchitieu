@@ -95,7 +95,6 @@ import com.notepay.R
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.ForecastConfidence
-import com.notepay.ai.LocalModelInstallStatus
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
@@ -981,11 +980,8 @@ private fun LocalAdvisorCard(
     val idleDescription = when (advisor.availability) {
         AdvisorAvailability.GEMINI_NANO ->
             stringResource(R.string.stats_advisor_gemini_description)
-        AdvisorAvailability.LOCAL_MODEL ->
-            stringResource(
-                R.string.stats_advisor_local_ready_format,
-                advisor.localModel.displayName ?: stringResource(R.string.ai_model_display_name),
-            )
+        AdvisorAvailability.CLOUD_GEMINI ->
+            stringResource(R.string.stats_advisor_cloud_ready_format, "Gemini 2.0 Flash")
         AdvisorAvailability.STATISTICAL_ONLY ->
             stringResource(R.string.stats_advisor_statistical_description)
         AdvisorAvailability.CHECKING ->
@@ -1022,28 +1018,7 @@ private fun LocalAdvisorCard(
             }
         }
 
-        if (advisor.localModel.status == LocalModelInstallStatus.IMPORTING) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.stats_model_installing),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                val progress = advisor.localModel.progress
-                if (progress != null) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-            }
-        } else when (advisor.status) {
+        when (advisor.status) {
             LocalAdvisorStatus.RUNNING -> {
                 Box(
                     modifier = Modifier
@@ -1124,17 +1099,6 @@ private fun LocalAdvisorCard(
                         }
                     }
                 }
-                advisor.localModel.message
-                    ?.takeIf { advisor.localModel.status == LocalModelInstallStatus.ERROR }
-                    ?.let { message ->
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
             }
 
             LocalAdvisorStatus.READY -> {
@@ -1154,7 +1118,7 @@ private fun LocalAdvisorCard(
                         Text(
                             text = when (result?.provider) {
                                 AdvisorProvider.GEMINI_NANO -> stringResource(R.string.stats_provider_gemini)
-                                AdvisorProvider.LOCAL_LITERT_MODEL -> stringResource(R.string.stats_provider_local)
+                                AdvisorProvider.CLOUD_GEMINI -> stringResource(R.string.stats_provider_cloud)
                                 AdvisorProvider.STATISTICAL_FALLBACK, null -> stringResource(R.string.stats_provider_statistics)
                             },
                             style = MaterialTheme.typography.labelSmall,
@@ -1175,8 +1139,8 @@ private fun LocalAdvisorCard(
                     if (result?.provider != AdvisorProvider.GEMINI_NANO) {
                         IconButton(onClick = onSelectModel) {
                             Icon(
-                                Icons.Rounded.FolderOpen,
-                                contentDescription = stringResource(R.string.stats_cd_open_local_ai_settings),
+                                Icons.Rounded.Settings,
+                                contentDescription = stringResource(R.string.stats_cd_open_ai_settings),
                                 modifier = Modifier.size(18.dp),
                             )
                         }

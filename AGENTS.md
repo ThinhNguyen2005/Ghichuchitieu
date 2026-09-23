@@ -26,7 +26,16 @@ Use `--no-daemon` when diagnosing clean CI-like builds. Do not commit APKs, keys
 
 Use Kotlin with four-space indentation and idiomatic, immutable-first code. Prefer `StateFlow` in ViewModels and stateless Compose components that receive state plus callbacks. Name screens `*Screen`, ViewModels `*ViewModel`, UI states `*UiState`, and use cases as verbs (for example, `SuggestCategoryUseCase`). Keep composables small; put reusable visuals in `ui/component/` and business rules outside the UI layer.
 
+Avoid redundant nested `Scaffold` calls. The root navigation host (`NotePayNavHost`) already manages a root `Scaffold` (handling system insets, snackbar host, and the floating navigation bar offset). Main tab screens (`HomeScreen`, `StatsScreen`, `AssetsScreen`, `UtilitiesScreen`) should not nest their own `Scaffold` wrappers; use `Box` or `Column` with standard insets and padding instead to avoid duplicate insets, layout measurement overhead, and nested scroll conflicts.
+
 No formatter or linter is configured; match nearby code and let the Kotlin compiler enforce correctness. Add dependencies through `gradle/libs.versions.toml`, not inline versions.
+
+## Localization & Text Guidelines (Zero Hardcoded Strings Policy)
+
+Tuyệt đối **KHÔNG BAO GIỜ viết text cứng (hardcoded strings)** vào code UI Compose hay ViewModel. Toàn bộ chuỗi hiển thị, nhãn nút, tiêu đề, mô tả, thông báo lỗi, contentDescription bắt buộc phải được trích xuất vào tài nguyên đa ngôn ngữ:
+- `app/src/main/res/values/strings.xml` (Tiếng Việt)
+- `app/src/main/res/values-en/strings.xml` (English)
+Trong Compose, luôn sử dụng `stringResource(R.string.your_key)` hoặc `pluralStringResource(...)`. Bất kỳ khi nào tạo hoặc sửa đổi UI, bắt buộc phải đồng bộ song song cả 2 file tài nguyên trên, không được để sót bất kỳ chuỗi cứng nào trong code.
 
 ## Testing Guidelines
 

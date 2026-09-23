@@ -293,7 +293,7 @@ private fun AccountDetailsStep(
         ) {
             Icon(Icons.Rounded.QrCode2, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.bill_split_vietqr_config_title), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.bill_split_vietqr_cd), fontWeight = FontWeight.Bold)
         }
     }
 }

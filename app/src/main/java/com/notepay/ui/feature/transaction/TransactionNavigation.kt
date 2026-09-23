@@ -54,8 +54,18 @@ fun NavGraphBuilder.transactionGraph(
             },
         )
     }
-    composable(Route.TransactionList.path) {
+    composable(
+        route = "${Route.TransactionList.path}?walletId={walletId}",
+        arguments = listOf(
+            navArgument("walletId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) {
         TransactionListScreen(
+            onBack = { navController.popBackStack() },
             onTransactionClick = { txId ->
                 navController.navigate(Route.TransactionDetail(txId).path)
             },

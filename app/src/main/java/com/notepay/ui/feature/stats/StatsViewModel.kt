@@ -14,7 +14,6 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.ai.LocalAiModelManager
 import com.notepay.ai.OnDeviceBudgetAdvisor
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
@@ -59,7 +58,6 @@ class StatsViewModel @Inject constructor(
     private val subscriptionRepo: SubscriptionRepository,
     @param:ApplicationContext private val context: Context,
     private val budgetAdvisor: OnDeviceBudgetAdvisor,
-    private val localModelManager: LocalAiModelManager,
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -106,11 +104,6 @@ class StatsViewModel @Inject constructor(
     @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
 
     init {
-        viewModelScope.launch {
-            localModelManager.state.collect { modelState ->
-                _localAdvisor.update { current -> current.copy(localModel = modelState) }
-            }
-        }
         viewModelScope.launch {
             refreshAdvisorAvailability()
         }
@@ -432,7 +425,6 @@ class StatsViewModel @Inject constructor(
             _localAdvisor.update { current ->
                 LocalAdvisorUiState(
                     availability = current.availability,
-                    localModel = current.localModel,
                 )
             }
         }
@@ -521,12 +513,11 @@ class StatsViewModel @Inject constructor(
                         availability = when (result.provider) {
                             com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
                                 AdvisorAvailability.GEMINI_NANO
-                            com.notepay.domain.analytics.AdvisorProvider.LOCAL_LITERT_MODEL ->
-                                AdvisorAvailability.LOCAL_MODEL
+                            com.notepay.domain.analytics.AdvisorProvider.CLOUD_GEMINI ->
+                                AdvisorAvailability.CLOUD_GEMINI
                             com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
                                 _localAdvisor.value.availability
                         },
-                        localModel = localModelManager.state.value,
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -549,26 +540,11 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    fun importLocalModel(uri: Uri) {
-        viewModelScope.launch {
-            localModelManager.importModel(uri)
-            refreshAdvisorAvailability()
-        }
-    }
-
-    fun removeLocalModel() {
-        viewModelScope.launch {
-            localModelManager.removeModel()
-            refreshAdvisorAvailability()
-        }
-    }
-
-    private suspend fun refreshAdvisorAvailability() {
+    suspend fun refreshAdvisorAvailability() {
         val availability = budgetAdvisor.availability()
         _localAdvisor.update { current ->
             current.copy(
                 availability = availability,
-                localModel = localModelManager.state.value,
             )
         }
     }
@@ -576,7 +552,6 @@ class StatsViewModel @Inject constructor(
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
     }
-
     fun selectWallet(walletId: Long?) {
         _selectedWalletId.value = walletId
     }

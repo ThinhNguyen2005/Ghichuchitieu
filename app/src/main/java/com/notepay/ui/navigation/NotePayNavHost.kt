@@ -45,12 +45,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.navigation.compose.composable
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.notepay.platform.OsCompatHelper
 import com.notepay.ui.component.LocalNotePayBackdrop
 import com.notepay.ui.feature.billsplit.billSplitGraph
-import com.notepay.ui.feature.home.homeScreen
 import com.notepay.ui.feature.stats.statsScreen
 import com.notepay.ui.feature.subscription.subscriptionScreen
 import com.notepay.ui.feature.transaction.transactionGraph
@@ -78,6 +79,7 @@ fun NotePayNavHost(
         drawRect(systemBackground)
         drawContent()
     }
+    val pagerState = rememberPagerState(initialPage = 0) { bottomTabs.size }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val isMainTab = isMainTabRoute(currentRoute)
@@ -85,11 +87,11 @@ fun NotePayNavHost(
     var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
 
     val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
-    var navigationBarOffset by remember { mutableFloatStateOf(0f) }
+    val navigationBarOffsetState = remember { mutableFloatStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(currentRoute) {
-        navigationBarOffset = 0f
+    LaunchedEffect(currentRoute, pagerState.currentPage) {
+        navigationBarOffsetState.floatValue = 0f
         showQuickAddSheet = false
     }
 
@@ -98,25 +100,27 @@ fun NotePayNavHost(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (isMainTab) {
                     val delta = available.y
-                    navigationBarOffset = (navigationBarOffset - delta).coerceIn(0f, barHeightPx)
+                    navigationBarOffsetState.floatValue =
+                        (navigationBarOffsetState.floatValue - delta).coerceIn(0f, barHeightPx)
                 }
                 return Offset.Zero
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 if (isMainTab) {
-                    val targetOffset = if (navigationBarOffset > barHeightPx / 2f) barHeightPx else 0f
+                    val currentOffset = navigationBarOffsetState.floatValue
+                    val targetOffset = if (currentOffset > barHeightPx / 2f) barHeightPx else 0f
                     if (reducedMotion) {
-                        navigationBarOffset = targetOffset
+                        navigationBarOffsetState.floatValue = targetOffset
                     } else {
                         coroutineScope.launch {
-                            Animatable(navigationBarOffset).animateTo(
+                            Animatable(currentOffset).animateTo(
                                 targetValue = targetOffset,
                                 animationSpec = tween(
                                     durationMillis = NotePayMotion.navigationBarSettleDurationMillis
                                 )
                             ) {
-                                navigationBarOffset = this.value
+                                navigationBarOffsetState.floatValue = this.value
                             }
                         }
                     }
@@ -210,13 +214,45 @@ fun NotePayNavHost(
                                 }
                             },
                         ) {
-                            homeScreen(navController)
+                            composable(Route.Home.path) {
+                                MainTabPager(
+                                    pagerState = pagerState,
+                                    navController = navController,
+                                    showFeedback = ::showFeedback,
+                                    reducedMotion = reducedMotion,
+                                )
+                            }
                             transactionGraph(navController, ::showFeedback)
-                            statsScreen(navController)
-                            billSplitGraph(navController, navigationBarOffset, ::showFeedback)
-                            subscriptionScreen(navController, navigationBarOffset)
-                            walletGraph(navController, ::showFeedback)
-                            utilitiesGraph(navController)
+                            statsScreen(
+                                navController = navController,
+                                onNavigateToTab = { tabIndex ->
+                                    coroutineScope.launch {
+                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
+                                        else pagerState.animateScrollToPage(tabIndex)
+                                    }
+                                },
+                            )
+                            billSplitGraph(navController, ::showFeedback)
+                            subscriptionScreen(navController)
+                            walletGraph(
+                                navController = navController,
+                                showFeedback = ::showFeedback,
+                                onNavigateToTab = { tabIndex ->
+                                    coroutineScope.launch {
+                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
+                                        else pagerState.animateScrollToPage(tabIndex)
+                                    }
+                                },
+                            )
+                            utilitiesGraph(
+                                navController = navController,
+                                onNavigateToTab = { tabIndex ->
+                                    coroutineScope.launch {
+                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
+                                        else pagerState.animateScrollToPage(tabIndex)
+                                    }
+                                },
+                            )
                         }
                     }
                 }
@@ -224,16 +260,28 @@ fun NotePayNavHost(
                 if (isMainTab) {
                     NotePayBottomBar(
                         currentRoute = currentRoute,
-                        navigationBarOffset = navigationBarOffset,
+                        selectedTabIndex = pagerState.targetPage,
+                        navigationBarOffsetProvider = { navigationBarOffsetState.floatValue },
                         showQuickAddSheet = showQuickAddSheet,
                         useNavigationGlass = useNavigationGlass,
                         reducedMotion = reducedMotion,
                         backdrop = backdrop,
                         onTabSelected = { route ->
-                            navController.navigate(route.path) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            val targetIndex = when (route) {
+                                Route.Home -> 0
+                                Route.Stats -> 1
+                                Route.Assets -> 2
+                                Route.Utilities -> 3
+                                else -> 0
+                            }
+                            if (pagerState.currentPage != targetIndex) {
+                                coroutineScope.launch {
+                                    if (reducedMotion) {
+                                        pagerState.scrollToPage(targetIndex)
+                                    } else {
+                                        pagerState.animateScrollToPage(targetIndex)
+                                    }
+                                }
                             }
                         },
                         onToggleQuickAdd = {

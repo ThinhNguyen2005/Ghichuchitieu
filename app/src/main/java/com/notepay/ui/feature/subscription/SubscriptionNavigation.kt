@@ -10,7 +10,7 @@ import androidx.navigation.navArgument
 
 fun NavGraphBuilder.subscriptionScreen(
     navController: NavController,
-    navigationBarOffset: Float,
+    navigationBarOffset: Float = 0f,
 ) {
     composable(
         route = "subscription?showCreate={showCreate}",

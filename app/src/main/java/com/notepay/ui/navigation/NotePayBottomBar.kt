@@ -30,15 +30,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CallSplit
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.outlined.CallSplit
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -105,20 +106,14 @@ internal data class BottomTab(
 
 internal val bottomTabs = listOf(
     BottomTab(Route.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
+    BottomTab(Route.Stats, R.string.nav_report, Icons.Outlined.Analytics, Icons.Filled.Analytics),
     BottomTab(
-        Route.TransactionList,
-        R.string.nav_transactions,
-        Icons.AutoMirrored.Outlined.ReceiptLong,
-        Icons.AutoMirrored.Filled.ReceiptLong,
+        Route.Assets,
+        R.string.nav_assets,
+        Icons.Outlined.AccountBalanceWallet,
+        Icons.Filled.AccountBalanceWallet,
     ),
-    BottomTab(Route.AddDummy, R.string.nav_add, Icons.Rounded.Add, Icons.Rounded.Add),
-    BottomTab(Route.Stats, R.string.nav_stats, Icons.Outlined.Analytics, Icons.Filled.Analytics),
-    BottomTab(
-        Route.BillSplit,
-        R.string.nav_bill_split,
-        Icons.AutoMirrored.Outlined.CallSplit,
-        Icons.AutoMirrored.Filled.CallSplit,
-    ),
+    BottomTab(Route.Utilities, R.string.nav_more, Icons.Outlined.MoreHoriz, Icons.Filled.MoreHoriz),
 )
 
 internal fun isMainTabRoute(route: String?): Boolean {
@@ -203,7 +198,6 @@ private fun RowScope.NotePayBottomTabItem(
 @Composable
 fun BoxScope.NotePayBottomBar(
     currentRoute: String?,
-    navigationBarOffset: Float,
     showQuickAddSheet: Boolean,
     useNavigationGlass: Boolean,
     reducedMotion: Boolean,
@@ -211,10 +205,12 @@ fun BoxScope.NotePayBottomBar(
     onTabSelected: (Route) -> Unit,
     onToggleQuickAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    navigationBarOffsetProvider: () -> Float = { 0f },
+    selectedTabIndex: Int? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-    val navTabs = remember { bottomTabs.filter { it.route != Route.AddDummy } }
+    val navTabs = remember { bottomTabs }
     val tabLabels = bottomTabs.map { tab -> stringResource(tab.labelRes) }
     val fabContentDesc = stringResource(
         if (showQuickAddSheet) R.string.quick_add_close_menu else R.string.quick_add_open_menu
@@ -225,7 +221,7 @@ fun BoxScope.NotePayBottomBar(
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
-    val selectedIndex = remember(currentRoute) {
+    val selectedIndex = selectedTabIndex ?: remember(currentRoute) {
         rootTabIndexForRoute(currentRoute) ?: 0
     }
 
@@ -237,11 +233,8 @@ fun BoxScope.NotePayBottomBar(
             .zIndex(2f)
             .alpha(if (showQuickAddSheet) 0.92f else 1f)
             .align(Alignment.BottomCenter)
-            .offset {
-                IntOffset(
-                    x = 0,
-                    y = navigationBarOffset.roundToInt()
-                )
+            .graphicsLayer {
+                translationY = navigationBarOffsetProvider()
             }
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .navigationBarsPadding(),
@@ -572,3 +565,35 @@ fun BoxScope.NotePayBottomBar(
         )
     }
 }
+
+@Deprecated(
+    message = "Use navigationBarOffsetProvider lambda instead to avoid recomposition",
+    replaceWith = ReplaceWith(
+        "NotePayBottomBar(currentRoute, showQuickAddSheet, useNavigationGlass, reducedMotion, backdrop, onTabSelected, onToggleQuickAdd, modifier, { navigationBarOffset })"
+    )
+)
+@Composable
+fun BoxScope.NotePayBottomBar(
+    currentRoute: String?,
+    navigationBarOffset: Float,
+    showQuickAddSheet: Boolean,
+    useNavigationGlass: Boolean,
+    reducedMotion: Boolean,
+    backdrop: Backdrop,
+    onTabSelected: (Route) -> Unit,
+    onToggleQuickAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NotePayBottomBar(
+        currentRoute = currentRoute,
+        showQuickAddSheet = showQuickAddSheet,
+        useNavigationGlass = useNavigationGlass,
+        reducedMotion = reducedMotion,
+        backdrop = backdrop,
+        onTabSelected = onTabSelected,
+        onToggleQuickAdd = onToggleQuickAdd,
+        modifier = modifier,
+        navigationBarOffsetProvider = { navigationBarOffset },
+    )
+}
+
