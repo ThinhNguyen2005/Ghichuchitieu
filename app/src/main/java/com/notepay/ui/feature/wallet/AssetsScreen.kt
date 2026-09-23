@@ -33,8 +33,7 @@ import androidx.compose.material.icons.automirrored.rounded.CompareArrows
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
@@ -782,9 +781,9 @@ private fun WalletAssetCard(
     val colorValue = WalletUiHelper.getColor(wallet.colorKey)
 
     val cardBorder = if (wallet.isActive) {
-        BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+        BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
     } else {
-        null
+        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     }
 
     Card(
@@ -949,27 +948,30 @@ private fun WalletAssetCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Action Row: Chọn ví chính minh bạch + Nút sửa + Điều hướng
+            // Action Row: Đặt ví chính (trái) | Chỉnh sửa ví (phải)
+            // Hai hành động được tách biệt rõ ràng, mỗi bên có touch target ≥ 44dp
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Trái: Nút "Đặt làm ví chính" — chỉ hiện khi chưa là ví chính
+                // Dùng icon Star (không phải Check) để khỏi nhầm với badge trạng thái
                 if (!wallet.isActive) {
                     TextButton(
                         onClick = onSetDefault,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        modifier = Modifier.height(32.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 36.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Check,
+                            imageVector = Icons.Rounded.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(13.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = stringResource(R.string.set_as_active_wallet),
                             style = MaterialTheme.typography.labelSmall,
@@ -978,29 +980,30 @@ private fun WalletAssetCard(
                         )
                     }
                 } else {
-                    Spacer(modifier = Modifier.width(1.dp))
+                    // Ví đang là ví chính → không có action cần thực hiện,
+                    // badge ở trên đã thông báo rõ trạng thái
+                    Spacer(modifier = Modifier.weight(1f))
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onEdit,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = stringResource(R.string.edit_wallet_title),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
+                // Phải: Nút Chỉnh sửa — TextButton với icon + nhãn, touch target đủ rộng
+                // ChevronRight loại bỏ (card toàn thẻ đã clickable rồi, chevron gây nhầm lẫn)
+                TextButton(
+                    onClick = onEdit,
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.defaultMinSize(minHeight = 36.dp)
+                ) {
                     Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Rounded.Edit,
+                        contentDescription = stringResource(R.string.edit_wallet_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = stringResource(R.string.edit_wallet_title),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
