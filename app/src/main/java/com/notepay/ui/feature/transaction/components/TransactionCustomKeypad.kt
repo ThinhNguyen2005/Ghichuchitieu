@@ -130,7 +130,7 @@ private fun KeyCell(
 
     Box(
         modifier = modifier
-            .aspectRatio(0.9f)
+            .aspectRatio(1.35f)
             .clip(shape)
             .background(containerColor)
             .border(
