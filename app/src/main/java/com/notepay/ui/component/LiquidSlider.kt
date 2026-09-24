@@ -45,7 +45,7 @@ fun LiquidSlider(
     backdrop: Backdrop? = null,
 ) {
     require(valueRange.start <= valueRange.endInclusive) { "valueRange must not be descending." }
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = com.notepay.ui.theme.isAppDarkTheme()
     val rangeLength = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
     val fraction = ((value - valueRange.start) / rangeLength).coerceIn(0f, 1f)
     val trackShape = RoundedCornerShape(percent = 50)

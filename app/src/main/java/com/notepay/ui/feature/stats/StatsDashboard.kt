@@ -15,7 +15,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -170,7 +170,7 @@ private fun ViewModeToggle(
     onChanged: (StatsViewType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val momoPinkBg = if (isDark) Color(0xFF3D1426) else Color(0xFFFFF0F5)
     val cardBg = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else Color.White
 
@@ -339,8 +339,8 @@ private fun OverviewCard(
 
             val bannerBg = when {
                 isFlat -> MaterialTheme.colorScheme.surfaceContainerHigh
-                isGood -> if (isSystemInDarkTheme()) Color(0xFF1B382B) else Color(0xFFE8F5E9)
-                else -> if (isSystemInDarkTheme()) Color(0xFF3E1B1B) else Color(0xFFFFEBEE)
+                isGood -> if (isAppDarkTheme()) Color(0xFF1B382B) else Color(0xFFE8F5E9)
+                else -> if (isAppDarkTheme()) Color(0xFF3E1B1B) else Color(0xFFFFEBEE)
             }
             val bannerContentColor = when {
                 isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -424,7 +424,7 @@ private fun MetricCard(
         MaterialTheme.typography.titleMedium
     }
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val containerColor = if (active) {
         if (isDark) Color(0xFF2A1B24) else Color.White
     } else {

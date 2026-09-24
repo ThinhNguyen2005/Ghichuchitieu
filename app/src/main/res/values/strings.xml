@@ -83,6 +83,11 @@
     <!-- Number-to-words helper -->
     <string name="number_words_zero">Không</string>
     <string name="number_words_currency_suffix">đồng</string>
+    <string name="unit_million">triệu</string>
+    <string name="unit_billion">tỷ</string>
+    <string name="unit_trillion">nghìn tỷ</string>
+    <string name="approx_symbol">≈ %s</string>
+    <string name="magnitude_words_prefix">Đọc là: %s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Tìm theo ghi chú</string>
@@ -760,9 +765,10 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_budget_amount">Số tiền hạn mức</string>
     <string name="wallet_monthly_budget_format">Quy đổi sang hàng tháng để cảnh báo: %1$s đ/tháng</string>
     <string name="wallet_icon_title">Biểu tượng ví</string>
-    <string name="wallet_color_title">Màu sắc nhận diện</string>
-    <string name="wallet_vietqr_later_title">Cấu hình VietQR sau</string>
-    <string name="wallet_vietqr_later_description">Sau khi tạo ví, vào Chia tiền → icon QR trên thanh trên cùng để cấu hình ngân hàng + STK + tên chủ TK nhanh chóng.</string>
+    <string name="wallet_preview_badge">Xem trước</string>
+    <string name="wallet_preview_name_placeholder">Tên ví mới</string>
+    <string name="wallet_color_auto_hint">Màu sắc được tự động chọn để không trùng lặp với các ví khác</string>
+    <string name="wallet_color_in_use">Đang dùng</string>
     <string name="detail_info_title">Thông tin chi tiết</string>
     <string name="detail_timestamp">Thời điểm</string>
     <string name="detail_wallet_missing">Ví không còn tồn tại</string>
@@ -800,6 +806,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="assets_chart_range_6m">6 tháng</string>
     <string name="assets_chart_range_1y">1 năm</string>
     <string name="assets_trend_no_data">Chưa đủ dữ liệu biến động</string>
+    <string name="assets_balance_stable">Số dư ổn định</string>
+    <string name="assets_trend_no_change_caption">Chưa có biến động</string>
     <string name="assets_scrubber_at_date">Vào %1$s</string>
     <string name="assets_allocation_title">Phân bổ tài sản</string>
     <string name="assets_allocation_no_balance">Chưa có số dư để phân bổ</string>
@@ -864,6 +872,11 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="settings_theme_title">Màu sắc chủ đề</string>
     <string name="settings_theme_description">Chọn tông màu giao diện bạn muốn sử dụng</string>
     <string name="theme_ios">iOS (Trắng/Đen)</string>
+    <string name="theme_light">Sáng</string>
+    <string name="theme_dark">Tối</string>
+    <string name="theme_system">Hệ thống</string>
+    <string name="settings_theme_mode_title">Chế độ giao diện</string>
+    <string name="settings_theme_mode_desc">Tùy chỉnh giao diện Sáng, Tối hoặc theo Hệ thống</string>
     <string name="autocapture_title">Tự động ghi từ thông báo</string>
     <string name="autocapture_enabled_description">Chỉ xử lý thông báo từ ứng dụng đã được kiểm chứng.</string>
     <string name="autocapture_disabled_description">Bật để NotePay có thể tự động ghi nhận giao dịch từ thông báo ngân hàng.</string>
@@ -941,4 +954,102 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="utilities_backup_restore_subtitle">Đồng bộ hoặc khôi phục dữ liệu</string>
     <string name="utilities_app_info_title">Thông tin ứng dụng</string>
     <string name="utilities_app_info_subtitle">NotePay v1.0.0</string>
+
+    <!-- Currency settings screen -->
+    <string name="currency_settings_title">Tiền tệ &amp; Định dạng</string>
+    <string name="currency_preview_title">Xem trước hiển thị</string>
+    <string name="currency_preview_note">Định dạng này áp dụng cho toàn bộ số dư và giao dịch.</string>
+    <string name="currency_preview_positive">Khoản thu nhập mẫu</string>
+    <string name="currency_preview_negative">Khoản chi tiêu mẫu</string>
+    <string name="currency_primary_unit_title">Đơn vị tiền tệ chính</string>
+    <string name="currency_symbol_position_title">Vị trí ký hiệu</string>
+    <string name="currency_position_after">Sau số tiền (100.000 ₫)</string>
+    <string name="currency_position_before">Trước số tiền (₫ 100.000)</string>
+    <string name="currency_separator_title">Dấu phân cách hàng nghìn</string>
+    <string name="currency_separator_dot">Dấu chấm (.) ví dụ: 1.000.000</string>
+    <string name="currency_separator_comma">Dấu phẩy (,) ví dụ: 1,000,000</string>
+    <string name="currency_vnd">Đồng Việt Nam (VND)</string>
+    <string name="currency_usd">Đô la Mỹ (USD)</string>
+    <string name="currency_eur">Đồng Euro (EUR)</string>
+    <string name="currency_jpy">Yên Nhật (JPY)</string>
+    <string name="currency_gbp">Bảng Anh (GBP)</string>
+    <string name="currency_krw">Won Hàn Quốc (KRW)</string>
+    <string name="currency_sgd">Đô la Singapore (SGD)</string>
+    <string name="currency_thb">Baht Thái (THB)</string>
+
+    <!-- Category management screen -->
+    <string name="category_management_title">Danh mục thu chi</string>
+    <string name="category_tab_expense">Khoản chi</string>
+    <string name="category_tab_income">Khoản thu</string>
+    <string name="category_section_custom">Danh mục tùy biến của bạn</string>
+    <string name="category_section_default">Danh mục mặc định hệ thống</string>
+    <string name="category_badge_default">Mặc định</string>
+    <string name="category_custom_empty">Chưa có danh mục tự tạo nào. Nhấn \'+\' để thêm.</string>
+    <string name="category_dialog_add_title">Thêm danh mục mới</string>
+    <string name="category_dialog_edit_title">Chỉnh sửa danh mục</string>
+    <string name="category_field_name">Tên danh mục</string>
+    <string name="category_field_name_error">Tên danh mục không được để trống</string>
+    <string name="category_field_color">Màu sắc đại diện</string>
+    <string name="category_field_icon">Biểu tượng</string>
+    <string name="category_delete_dialog_title">Xóa danh mục?</string>
+    <string name="category_delete_dialog_message">Bạn có chắc chắn muốn xóa danh mục \"%1$s\" không? Các giao dịch cũ thuộc danh mục này sẽ được chuyển về \"Khác\".</string>
+    <string name="category_type_label">Loại danh mục</string>
+
+    <!-- Appearance & Language screen -->
+    <string name="appearance_language_title">Giao diện &amp; Ngôn ngữ</string>
+    <string name="appearance_section_theme">Chế độ giao diện</string>
+    <string name="appearance_theme_light">Sáng</string>
+    <string name="appearance_theme_dark">Tối</string>
+    <string name="appearance_theme_system">Hệ thống</string>
+    <string name="appearance_section_color">Màu sắc chủ đề</string>
+    <string name="appearance_color_ios">Đơn sắc iOS</string>
+    <string name="appearance_color_dynamic">Màu hệ thống</string>
+    <string name="appearance_color_ocean">Xanh biển</string>
+    <string name="appearance_color_emerald">Ngọc lục bảo</string>
+    <string name="appearance_color_amber">Vàng kim</string>
+    <string name="appearance_color_rose">Hồng ngọc</string>
+    <string name="appearance_section_glass">Hiệu ứng thị giác</string>
+    <string name="appearance_liquid_glass_title">Kính mờ Liquid Glass</string>
+    <string name="appearance_liquid_glass_desc">Làm mờ nền vật lý trên thanh điều hướng</string>
+    <string name="appearance_section_language">Ngôn ngữ ứng dụng</string>
+    <string name="appearance_lang_vi">Tiếng Việt</string>
+    <string name="appearance_lang_en">English (Tiếng Anh)</string>
+    <string name="appearance_lang_system">Theo ngôn ngữ máy</string>
+
+    <!-- AI settings screen -->
+    <string name="ai_settings_title">Trí tuệ nhân tạo (AI)</string>
+    <string name="ai_nano_banner_title">Gemini Nano on-device</string>
+    <string name="ai_nano_banner_ready">Đang hoạt động trên thiết bị. Mọi phân tích ngoại tuyến 100% không gửi lên đám mây.</string>
+    <string name="ai_nano_banner_unsupported">Thiết bị chưa hỗ trợ AICore Gemini Nano. Ứng dụng sẽ sử dụng Cloud AI hoặc mô hình cục bộ fallback.</string>
+    <string name="ai_section_cloud">Gemini Cloud AI</string>
+    <string name="ai_cloud_toggle_title">Bật Gemini Cloud AI</string>
+    <string name="ai_cloud_toggle_desc">Sử dụng mô hình đám mây của Google để phân tích tài chính chuyên sâu</string>
+    <string name="ai_api_key_label">Google AI Studio API Key</string>
+    <string name="ai_api_key_hint">Nhập hoặc dán khóa API tại đây</string>
+    <string name="ai_api_key_supporting">Lấy API Key miễn phí tại Google AI Studio</string>
+    <string name="ai_api_key_paste">Dán</string>
+    <string name="ai_api_key_clear">Xóa</string>
+    <string name="ai_test_connection">Kiểm tra kết nối</string>
+    <string name="ai_testing_connection">Đang kiểm tra kết nối...</string>
+    <string name="ai_test_success">Kết nối thành công! Khóa API hoạt động bình thường.</string>
+    <string name="ai_test_failure">Không thể kết nối. Vui lòng kiểm tra lại khóa API và mạng.</string>
+    <string name="ai_test_empty_key">Vui lòng nhập API key trước khi kiểm tra.</string>
+    <string name="ai_model_selection_title">Phiên bản mô hình AI</string>
+    <string name="ai_section_features">Tính năng AI</string>
+    <string name="ai_smart_receipt_title">Quét hóa đơn thông minh</string>
+    <string name="ai_smart_receipt_desc">Tự động trích xuất thông tin số tiền, ngày giờ và danh mục từ ảnh chụp hóa đơn</string>
+    <string name="ai_section_privacy">Bảo mật &amp; Quyền riêng tư</string>
+    <string name="ai_privacy_desc">Dữ liệu thu chi của bạn là tài sản cá nhân. NotePay không bao giờ lưu trữ ảnh chụp hóa đơn hay thông tin tài chính lên máy chủ bên thứ ba.</string>
+
+    <!-- App Widgets -->
+    <string name="widget_quick_action_name">Ghi chép nhanh</string>
+    <string name="widget_quick_action_desc">Mở nhanh giao diện thêm chi tiêu ngay từ màn hình chính.</string>
+    <string name="widget_spent_glance_name">Tiến trình chi tiêu</string>
+    <string name="widget_spent_glance_desc">Xem nhanh thanh tiến trình chi tiêu trong tháng so với hạn mức ngân sách.</string>
+    <string name="widget_spent_glance_title">Chi tiêu Tháng %1$s</string>
+    <string name="widget_spent_glance_default_wallet">Ví mặc định</string>
+    <string name="widget_spent_glance_no_budget">Chưa đặt hạn mức</string>
+    <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
+    <string name="widget_spent_glance_remaining">Còn lại: %1$s</string>
+    <string name="widget_spent_glance_overspent">Vượt hạn mức %1$s</string>
 </resources>

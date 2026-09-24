@@ -24,6 +24,7 @@ import com.notepay.ui.feature.transaction.components.CalcKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -208,35 +209,45 @@ class AddTransactionViewModel @Inject constructor(
             )
         }
         viewModelScope.launch(ioDispatcher) {
-            val result = imageScanner.scan(uri)
-            val parsed = result.amountInput?.let(AmountParser::parse)
-            _state.update { current ->
-                val updatedErrors = parsed?.let { parseResult ->
-                    current.errors
-                        .minus(FieldError.AMOUNT_EMPTY)
-                        .minus(FieldError.AMOUNT_INVALID)
-                        .let { errors -> parseResult.error?.asFieldError()?.let(errors::plus) ?: errors }
-                } ?: current.errors
-                // Also update calcState when OCR fills in an amount
-                val scannedLong = parsed?.amount?.amountInCents?.div(100L) ?: 0L
-                val newCalcState = if (scannedLong > 0)
-                    CalculatorState(currentOperand = scannedLong.toString())
-                else current.calcState
-                val resolvedNote = if (current.note.isBlank() && !result.note.isNullOrBlank()) result.note else current.note
-                val resolvedSuggestion = if (!current.isCategoryExplicitlySelected && resolvedNote.isNotBlank()) {
-                    suggestCategoryUseCase.suggestDetailed(resolvedNote, current.type == TransactionType.INCOME)
-                } else null
-                current.copy(
-                    amountInput = parsed?.input ?: current.amountInput,
-                    amount = parsed?.amount ?: current.amount,
-                    note = resolvedNote,
-                    category = resolvedSuggestion?.category ?: current.category,
-                    suggestedCategory = resolvedSuggestion?.category ?: current.suggestedCategory,
-                    errors = updatedErrors,
-                    isImageScanning = false,
-                    imageScanMessage = result.message,
-                    calcState = newCalcState,
-                )
+            try {
+                val result = imageScanner.scan(uri)
+                val parsed = result.amountInput?.let(AmountParser::parse)
+                _state.update { current ->
+                    val updatedErrors = parsed?.let { parseResult ->
+                        current.errors
+                            .minus(FieldError.AMOUNT_EMPTY)
+                            .minus(FieldError.AMOUNT_INVALID)
+                            .let { errors -> parseResult.error?.asFieldError()?.let(errors::plus) ?: errors }
+                    } ?: current.errors
+                    // Also update calcState when OCR fills in an amount
+                    val scannedLong = parsed?.amount?.amountInCents?.div(100L) ?: 0L
+                    val newCalcState = if (scannedLong > 0)
+                        CalculatorState(currentOperand = scannedLong.toString())
+                    else current.calcState
+                    val resolvedNote = if (current.note.isBlank() && !result.note.isNullOrBlank()) result.note else current.note
+                    val resolvedSuggestion = if (!current.isCategoryExplicitlySelected && resolvedNote.isNotBlank()) {
+                        suggestCategoryUseCase.suggestDetailed(resolvedNote, current.type == TransactionType.INCOME)
+                    } else null
+                    current.copy(
+                        amountInput = parsed?.input ?: current.amountInput,
+                        amount = parsed?.amount ?: current.amount,
+                        note = resolvedNote,
+                        category = resolvedSuggestion?.category ?: current.category,
+                        suggestedCategory = resolvedSuggestion?.category ?: current.suggestedCategory,
+                        errors = updatedErrors,
+                        isImageScanning = false,
+                        imageScanMessage = result.message,
+                        calcState = newCalcState,
+                    )
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                _state.update { current ->
+                    current.copy(
+                        isImageScanning = false,
+                        imageScanMessage = context.getString(R.string.image_scan_read_error),
+                    )
+                }
             }
         }
     }

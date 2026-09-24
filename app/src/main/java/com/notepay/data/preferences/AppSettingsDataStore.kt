@@ -28,7 +28,12 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
         val KEY_DAILY_REMINDER_HOUR = intPreferencesKey("daily_reminder_hour")
         val KEY_DAILY_REMINDER_MINUTE = intPreferencesKey("daily_reminder_minute")
-        
+
+        val KEY_CURRENCY_CODE = stringPreferencesKey("currency_code")
+        val KEY_CURRENCY_SYMBOL_POSITION = stringPreferencesKey("currency_symbol_position")
+        val KEY_CURRENCY_THOUSAND_SEPARATOR = stringPreferencesKey("currency_thousand_separator")
+        val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+
         fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
     }
 
@@ -86,6 +91,46 @@ class AppSettingsDataStore @Inject constructor(
             } else {
                 preferences[key] = uriString
             }
+        }
+    }
+
+    val currencyCode: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_CURRENCY_CODE] ?: "VND"
+    }
+
+    suspend fun setCurrencyCode(code: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_CURRENCY_CODE] = code
+        }
+    }
+
+    val currencySymbolPosition: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_CURRENCY_SYMBOL_POSITION] ?: "after"
+    }
+
+    suspend fun setCurrencySymbolPosition(position: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_CURRENCY_SYMBOL_POSITION] = position
+        }
+    }
+
+    val currencyThousandSeparator: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_CURRENCY_THOUSAND_SEPARATOR] ?: "dot"
+    }
+
+    suspend fun setCurrencyThousandSeparator(separator: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_CURRENCY_THOUSAND_SEPARATOR] = separator
+        }
+    }
+
+    val appLanguage: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_APP_LANGUAGE] ?: "system"
+    }
+
+    suspend fun setAppLanguage(language: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_APP_LANGUAGE] = language
         }
     }
 }

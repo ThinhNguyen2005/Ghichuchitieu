@@ -9,7 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -56,7 +56,7 @@ fun FloatingAddButton(
         label = "addPressScale",
     )
     val shape = CircleShape
-    val darkTheme = isSystemInDarkTheme()
+    val darkTheme = isAppDarkTheme()
     val buttonSurface = if (darkTheme) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
     } else {

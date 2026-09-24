@@ -9,11 +9,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.clickable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -33,6 +29,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastFirstOrNull
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -222,11 +219,13 @@ class DampedDragAnimation(
                     scaleYAnimation.snapTo(initialScale)
                 } else {
                     press()
-                    valueAnimation.animateTo(targetValue, valueAnimationSpec) { updateVelocity() }
-                    if (velocity != 0f) {
-                        velocityAnimation.animateTo(0f, velocityAnimationSpec)
+                    coroutineScope {
+                        launch { valueAnimation.animateTo(targetValue, valueAnimationSpec) }
+                        if (velocity != 0f) {
+                            launch { velocityAnimation.animateTo(0f, velocityAnimationSpec) }
+                        }
+                        release()
                     }
-                    release()
                 }
             }
         }
@@ -320,39 +319,3 @@ class InteractiveHighlight(
     }
 }
 
-fun Modifier.liquidPopClick(
-    onClick: () -> Unit
-): Modifier = composed {
-    val coroutineScope = rememberCoroutineScope()
-    val scale = remember { Animatable(1f) }
-    
-    this
-        .graphicsLayer(
-            scaleX = scale.value,
-            scaleY = scale.value
-        )
-        .clickable(
-            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-            indication = null
-        ) {
-            coroutineScope.launch {
-                // Bung ra nhanh (quick pop out to 1.25f)
-                scale.animateTo(
-                    targetValue = 1.25f,
-                    animationSpec = spring(
-                        dampingRatio = 0.4f, // Đàn hồi đàn hồi jiggle
-                        stiffness = 500f
-                    )
-                )
-                // Thu về 1f mượt mà
-                scale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(
-                        dampingRatio = 0.5f,
-                        stiffness = 300f
-                    )
-                )
-            }
-            onClick()
-        }
-}

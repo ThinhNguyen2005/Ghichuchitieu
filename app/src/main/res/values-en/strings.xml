@@ -83,6 +83,11 @@
     <!-- Number-to-words helper -->
     <string name="number_words_zero">Zero</string>
     <string name="number_words_currency_suffix">VND</string>
+    <string name="unit_million">million</string>
+    <string name="unit_billion">billion</string>
+    <string name="unit_trillion">trillion</string>
+    <string name="approx_symbol">≈ %s</string>
+    <string name="magnitude_words_prefix">In words: %s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Search by note</string>
@@ -773,9 +778,10 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="wallet_budget_amount">Limit amount</string>
     <string name="wallet_monthly_budget_format">Converted monthly warning amount: %1$s VND/month</string>
     <string name="wallet_icon_title">Wallet icon</string>
-    <string name="wallet_color_title">Wallet color</string>
-    <string name="wallet_vietqr_later_title">Configure VietQR later</string>
-    <string name="wallet_vietqr_later_description">After creating a wallet, open Bill Split → the QR icon in the top bar to quickly configure the bank, account number, and holder name.</string>
+    <string name="wallet_preview_badge">Preview</string>
+    <string name="wallet_preview_name_placeholder">New wallet name</string>
+    <string name="wallet_color_auto_hint">Color is automatically chosen to avoid collision with other wallets</string>
+    <string name="wallet_color_in_use">In use</string>
     <string name="detail_info_title">Details</string>
     <string name="detail_timestamp">Time</string>
     <string name="detail_wallet_missing">Wallet no longer exists</string>
@@ -813,6 +819,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="assets_chart_range_6m">6M</string>
     <string name="assets_chart_range_1y">1Y</string>
     <string name="assets_trend_no_data">Not enough fluctuation data</string>
+    <string name="assets_balance_stable">Balance stable</string>
+    <string name="assets_trend_no_change_caption">No fluctuation</string>
     <string name="assets_scrubber_at_date">On %1$s</string>
     <string name="assets_allocation_title">Asset Allocation</string>
     <string name="assets_allocation_no_balance">No balance to allocate</string>
@@ -877,6 +885,11 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="settings_theme_title">Theme colors</string>
     <string name="settings_theme_description">Choose the interface color tone you want to use</string>
     <string name="theme_ios">iOS (White/Black)</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System</string>
+    <string name="settings_theme_mode_title">Appearance Mode</string>
+    <string name="settings_theme_mode_desc">Customize Light, Dark, or System appearance</string>
     <string name="autocapture_title">Automatic notification capture</string>
     <string name="autocapture_enabled_description">Only process notifications from verified apps.</string>
     <string name="autocapture_disabled_description">Enable to let NotePay automatically record transactions from bank notifications.</string>
@@ -954,4 +967,102 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="utilities_backup_restore_subtitle">Sync or recover financial data</string>
     <string name="utilities_app_info_title">About application</string>
     <string name="utilities_app_info_subtitle">NotePay v1.0.0</string>
+
+    <!-- Currency settings screen -->
+    <string name="currency_settings_title">Currency &amp; Formatting</string>
+    <string name="currency_preview_title">Display Preview</string>
+    <string name="currency_preview_note">This format applies to all balances and transactions.</string>
+    <string name="currency_preview_positive">Sample Income</string>
+    <string name="currency_preview_negative">Sample Expense</string>
+    <string name="currency_primary_unit_title">Primary Currency</string>
+    <string name="currency_symbol_position_title">Symbol Position</string>
+    <string name="currency_position_after">After amount (100,000 ₫)</string>
+    <string name="currency_position_before">Before amount (₫ 100,000)</string>
+    <string name="currency_separator_title">Thousand Separator</string>
+    <string name="currency_separator_dot">Dot (.) e.g. 1.000.000</string>
+    <string name="currency_separator_comma">Comma (,) e.g. 1,000,000</string>
+    <string name="currency_vnd">Vietnamese Dong (VND)</string>
+    <string name="currency_usd">US Dollar (USD)</string>
+    <string name="currency_eur">Euro (EUR)</string>
+    <string name="currency_jpy">Japanese Yen (JPY)</string>
+    <string name="currency_gbp">British Pound (GBP)</string>
+    <string name="currency_krw">Korean Won (KRW)</string>
+    <string name="currency_sgd">Singapore Dollar (SGD)</string>
+    <string name="currency_thb">Thai Baht (THB)</string>
+
+    <!-- Category management screen -->
+    <string name="category_management_title">Categories</string>
+    <string name="category_tab_expense">Expense</string>
+    <string name="category_tab_income">Income</string>
+    <string name="category_section_custom">Your Custom Categories</string>
+    <string name="category_section_default">System Default Categories</string>
+    <string name="category_badge_default">Default</string>
+    <string name="category_custom_empty">No custom categories yet. Tap \'+\' to add.</string>
+    <string name="category_dialog_add_title">Add New Category</string>
+    <string name="category_dialog_edit_title">Edit Category</string>
+    <string name="category_field_name">Category Name</string>
+    <string name="category_field_name_error">Category name cannot be empty</string>
+    <string name="category_field_color">Color Tag</string>
+    <string name="category_field_icon">Icon</string>
+    <string name="category_delete_dialog_title">Delete Category?</string>
+    <string name="category_delete_dialog_message">Are you sure you want to delete category \"%1$s\"? Existing transactions will be moved to \"Other\".</string>
+    <string name="category_type_label">Category Type</string>
+
+    <!-- Appearance & Language screen -->
+    <string name="appearance_language_title">Appearance &amp; Language</string>
+    <string name="appearance_section_theme">Theme Mode</string>
+    <string name="appearance_theme_light">Light</string>
+    <string name="appearance_theme_dark">Dark</string>
+    <string name="appearance_theme_system">System</string>
+    <string name="appearance_section_color">Theme Accent Color</string>
+    <string name="appearance_color_ios">iOS Monochrome</string>
+    <string name="appearance_color_dynamic">Dynamic Material You</string>
+    <string name="appearance_color_ocean">Ocean Blue</string>
+    <string name="appearance_color_emerald">Emerald Green</string>
+    <string name="appearance_color_amber">Amber Gold</string>
+    <string name="appearance_color_rose">Rose Pink</string>
+    <string name="appearance_section_glass">Visual Effects</string>
+    <string name="appearance_liquid_glass_title">Liquid Glass Blur</string>
+    <string name="appearance_liquid_glass_desc">Physical blur effect on navigation bar</string>
+    <string name="appearance_section_language">Application Language</string>
+    <string name="appearance_lang_vi">Vietnamese</string>
+    <string name="appearance_lang_en">English</string>
+    <string name="appearance_lang_system">System Default</string>
+
+    <!-- AI settings screen -->
+    <string name="ai_settings_title">Artificial Intelligence (AI)</string>
+    <string name="ai_nano_banner_title">Gemini Nano on-device</string>
+    <string name="ai_nano_banner_ready">Running on-device. All analytics are 100% offline and never sent to cloud.</string>
+    <string name="ai_nano_banner_unsupported">Device does not support on-device Gemini Nano. App will use Cloud AI or local fallback model.</string>
+    <string name="ai_section_cloud">Gemini Cloud AI</string>
+    <string name="ai_cloud_toggle_title">Enable Gemini Cloud AI</string>
+    <string name="ai_cloud_toggle_desc">Use Google\'s cloud models for advanced financial analytics</string>
+    <string name="ai_api_key_label">Google AI Studio API Key</string>
+    <string name="ai_api_key_hint">Enter or paste API key here</string>
+    <string name="ai_api_key_supporting">Get free API Key at Google AI Studio</string>
+    <string name="ai_api_key_paste">Paste</string>
+    <string name="ai_api_key_clear">Clear</string>
+    <string name="ai_test_connection">Test Connection</string>
+    <string name="ai_testing_connection">Testing connection...</string>
+    <string name="ai_test_success">Connection successful! API Key is active.</string>
+    <string name="ai_test_failure">Connection failed. Please check your API key and network.</string>
+    <string name="ai_test_empty_key">Please enter an API key before testing.</string>
+    <string name="ai_model_selection_title">AI Model Version</string>
+    <string name="ai_section_features">AI Features</string>
+    <string name="ai_smart_receipt_title">Smart Receipt AI</string>
+    <string name="ai_smart_receipt_desc">Automatically extract amount, date, and category from receipt images</string>
+    <string name="ai_section_privacy">Privacy &amp; Security</string>
+    <string name="ai_privacy_desc">Your financial data is personal. NotePay never stores receipt photos or transaction data on third-party servers.</string>
+
+    <!-- App Widgets -->
+    <string name="widget_quick_action_name">Quick Add</string>
+    <string name="widget_quick_action_desc">Instantly open add transaction screen from your home screen.</string>
+    <string name="widget_spent_glance_name">Spending Glance</string>
+    <string name="widget_spent_glance_desc">Quickly glance at monthly spending progress compared to your budget limit.</string>
+    <string name="widget_spent_glance_title">Spent in %1$s</string>
+    <string name="widget_spent_glance_default_wallet">Default Wallet</string>
+    <string name="widget_spent_glance_no_budget">No budget set</string>
+    <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
+    <string name="widget_spent_glance_remaining">Remaining: %1$s</string>
+    <string name="widget_spent_glance_overspent">Over budget by %1$s</string>
 </resources>

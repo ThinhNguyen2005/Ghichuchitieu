@@ -65,6 +65,8 @@ import kotlinx.coroutines.launch
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
     liquidGlassEnabled: Boolean = false,
+    pendingRoute: String? = null,
+    onRouteHandled: () -> Unit = {},
 ) {
     val useNavigationGlass = liquidGlassEnabled && OsCompatHelper.liquidGlassCompatibility(
         isHardwareAccelerated = LocalView.current.isHardwareAccelerated,
@@ -87,6 +89,14 @@ fun NotePayNavHost(
     val navigationBarOffsetState = remember { mutableFloatStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(pendingRoute) {
+        if (pendingRoute != null) {
+            navController.navigate(pendingRoute) {
+                launchSingleTop = true
+            }
+            onRouteHandled()
+        }
+    }
 
     LaunchedEffect(currentRoute, pagerState.currentPage) {
         navigationBarOffsetState.floatValue = 0f

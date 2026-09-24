@@ -181,6 +181,65 @@ class AddWalletViewModelTest {
         assertThat(state.isEditMode).isTrue()
     }
 
+    @Test
+    fun `initial state auto assigns first unused color when primary is taken`() = runTest {
+        val existing = Wallet(
+            id = 1L,
+            name = "Ví Chính",
+            initialBalance = Money(0),
+            iconKey = "cash",
+            colorKey = "primary"
+        )
+        fakeWalletRepository.savedWallets.add(existing)
+
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertThat(state.colorKey).isEqualTo("secondary")
+        assertThat(state.usedColorKeys).containsExactly("primary")
+        assertThat(state.isAutoColorAssigned).isTrue()
+    }
+
+    @Test
+    fun `manual color change turns isAutoColorAssigned to false`() = runTest {
+        val viewModel = AddWalletViewModel(fakeWalletRepository, SavedStateHandle(), context)
+        testScheduler.advanceUntilIdle()
+
+        assertThat(viewModel.state.value.isAutoColorAssigned).isTrue()
+        viewModel.onColorChanged("ocean")
+        assertThat(viewModel.state.value.colorKey).isEqualTo("ocean")
+        assertThat(viewModel.state.value.isAutoColorAssigned).isFalse()
+    }
+
+    @Test
+    fun `editing wallet excludes self color from usedColorKeys`() = runTest {
+        val wallet = Wallet(
+            id = 42L,
+            name = "Ví Đang Sửa",
+            initialBalance = Money(0),
+            iconKey = "bank",
+            colorKey = "tertiary"
+        )
+        val otherWallet = Wallet(
+            id = 99L,
+            name = "Ví Khác",
+            initialBalance = Money(0),
+            iconKey = "cash",
+            colorKey = "emerald"
+        )
+        fakeWalletRepository.savedWallets.addAll(listOf(wallet, otherWallet))
+
+        val savedStateHandle = SavedStateHandle(mapOf("id" to 42L))
+        val viewModel = AddWalletViewModel(fakeWalletRepository, savedStateHandle, context)
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertThat(state.colorKey).isEqualTo("tertiary")
+        assertThat(state.usedColorKeys).containsExactly("emerald")
+        assertThat(state.isAutoColorAssigned).isFalse()
+    }
+
     private class FakeWalletRepository(
         private val throwOnSave: Boolean = false
     ) : WalletRepository {

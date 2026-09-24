@@ -142,121 +142,105 @@ fun AddTransactionScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Scrollable content (không bao giờ bị keypad che vì weight(1f)) ─
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                // Loại giao dịch
-                TransactionTypeSelector(
-                    selectedType = state.type,
-                    onTypeChanged = { viewModel.onEvent(AddTransactionEvent.TypeChanged(it)) },
-                    expenseLabel = expenseLabel,
-                    incomeLabel = incomeLabel,
+            // Loại giao dịch
+            TransactionTypeSelector(
+                selectedType = state.type,
+                onTypeChanged = { viewModel.onEvent(AddTransactionEvent.TypeChanged(it)) },
+                expenseLabel = expenseLabel,
+                incomeLabel = incomeLabel,
+            )
+
+            // Thông báo từ OCR nếu có
+            state.imageScanMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
 
-                // Thông báo từ OCR nếu có
-                state.imageScanMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            // Hiển thị số tiền (read-only, do custom keypad điều khiển)
+            TransactionAmountDisplay(amountInput = state.displayExpression)
 
-                // Hiển thị số tiền (read-only, do custom keypad điều khiển)
-                TransactionAmountDisplay(amountInput = state.displayExpression)
-
-                // Gợi ý danh mục thời gian thực
-                val suggested = state.suggestedCategory
-                if (suggested != null) {
-                    TransactionSuggestionChipRow(
-                        suggestedCategory = suggested,
-                        reason = state.suggestionReason,
-                        isApplied = suggested == state.category,
-                        onSelect = { viewModel.onEvent(AddTransactionEvent.CategoryChanged(it)) }
-                    )
-                }
-
-                // Chọn nhanh danh mục
-                CategoryQuickSelectionRow(
-                    categories = state.availableCategories,
-                    selectedCategory = state.category,
-                    isIncome = state.type == TransactionType.INCOME,
-                    onCategoryChanged = { viewModel.onEvent(AddTransactionEvent.CategoryChanged(it)) },
-                    onSeeAllClick = { showAllCategories.value = true }
+            // Gợi ý danh mục thời gian thực
+            val suggested = state.suggestedCategory
+            if (suggested != null) {
+                TransactionSuggestionChipRow(
+                    suggestedCategory = suggested,
+                    reason = state.suggestionReason,
+                    isApplied = suggested == state.category,
+                    onSelect = { viewModel.onEvent(AddTransactionEvent.CategoryChanged(it)) }
                 )
+            }
 
-                // Chọn ví
-                val selectedWallet = state.availableWallets.firstOrNull { it.id == state.walletId }
-                TransactionWalletField(
-                    label = fieldWallet,
-                    value = selectedWallet?.name ?: noWalletSelected,
-                    onClick = {
-                        if (state.availableWallets.size > 1) {
-                            showWalletPicker.value = true
-                        } else {
-                            android.widget.Toast.makeText(
-                                context, noOtherWalletToast, android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        }
+            // Chọn nhanh danh mục
+            CategoryQuickSelectionRow(
+                categories = state.availableCategories,
+                selectedCategory = state.category,
+                isIncome = state.type == TransactionType.INCOME,
+                onCategoryChanged = { viewModel.onEvent(AddTransactionEvent.CategoryChanged(it)) },
+                onSeeAllClick = { showAllCategories.value = true }
+            )
+
+            // Chọn ví
+            val selectedWallet = state.availableWallets.firstOrNull { it.id == state.walletId }
+            TransactionWalletField(
+                label = fieldWallet,
+                value = selectedWallet?.name ?: noWalletSelected,
+                onClick = {
+                    if (state.availableWallets.size > 1) {
+                        showWalletPicker.value = true
+                    } else {
+                        android.widget.Toast.makeText(
+                            context, noOtherWalletToast, android.widget.Toast.LENGTH_SHORT
+                        ).show()
                     }
+                }
+            )
+
+            // Ghi chú hiển thị tóm tắt (chỉ đọc) — nhập qua phím 📝 trên keypad
+            if (state.note.isNotBlank()) {
+                NotePreviewChip(
+                    note = state.note,
+                    onClick = { showNoteSheet.value = true },
                 )
-
-                // Ghi chú hiển thị tóm tắt (chỉ đọc) — nhập qua phím 📝 trên keypad
-                if (state.note.isNotBlank()) {
-                    NotePreviewChip(
-                        note = state.note,
-                        onClick = { showNoteSheet.value = true },
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
             }
 
-            // ── Bàn phím tự chế 4×5 cố định đáy — không che content phía trên ─
-            Surface(
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding(),
-                ) {
-                    TransactionCustomKeypad(
-                        dateLabel = dateLabel,
-                        noteLabel = state.note.take(14).ifBlank { "" },
-                        canSave = state.canSave,
-                        isSaving = state.isSaving,
-                        onKey = { key ->
-                            when (key) {
-                                CalcKey.Date -> showDatePicker.value = true
-                                CalcKey.Note -> showNoteSheet.value = true
-                                CalcKey.Save -> {
-                                    if (state.canSave) {
-                                        viewModel.onEvent(AddTransactionEvent.Save)
-                                    } else {
-                                        viewModel.onEvent(AddTransactionEvent.Save)
-                                        screenScope.launch {
-                                            snackbarHostState.currentSnackbarData?.dismiss()
-                                            snackbarHostState.showSnackbar(validationMessage)
-                                        }
-                                    }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Bàn phím tự chế 4×5 nằm chung trong cùng 1 Column cuộn ─
+            TransactionCustomKeypad(
+                dateLabel = dateLabel,
+                noteLabel = state.note.take(14).ifBlank { "" },
+                canSave = state.canSave,
+                isSaving = state.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+                onKey = { key ->
+                    when (key) {
+                        CalcKey.Date -> showDatePicker.value = true
+                        CalcKey.Note -> showNoteSheet.value = true
+                        CalcKey.Save -> {
+                            if (state.canSave) {
+                                viewModel.onEvent(AddTransactionEvent.Save)
+                            } else {
+                                viewModel.onEvent(AddTransactionEvent.Save)
+                                screenScope.launch {
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    snackbarHostState.showSnackbar(validationMessage)
                                 }
-                                else -> viewModel.onEvent(AddTransactionEvent.CalcKeyPressed(key))
                             }
-                        },
-                        onBackspaceLong = { viewModel.onEvent(AddTransactionEvent.BackspaceLong) },
-                    )
-                }
-            }
+                        }
+                        else -> viewModel.onEvent(AddTransactionEvent.CalcKeyPressed(key))
+                    }
+                },
+                onBackspaceLong = { viewModel.onEvent(AddTransactionEvent.BackspaceLong) },
+            )
         }
     }
 

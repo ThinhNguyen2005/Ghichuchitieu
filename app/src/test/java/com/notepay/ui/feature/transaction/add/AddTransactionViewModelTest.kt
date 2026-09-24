@@ -218,6 +218,14 @@ private class FakeCategoryRepository : CategoryRepository {
         Category.registerCustomCategories(current)
         categoriesFlow.value = Category.getAll()
     }
+
+    override suspend fun updateCustomCategory(category: Category) = addCustomCategory(category)
+
+    override suspend fun deleteCustomCategory(categoryId: String) {
+        val current = Category.getAll().filter { it.isCustom && it.id != categoryId }
+        Category.registerCustomCategories(current)
+        categoriesFlow.value = Category.getAll()
+    }
 }
 
 private class FakeWalletRepository(

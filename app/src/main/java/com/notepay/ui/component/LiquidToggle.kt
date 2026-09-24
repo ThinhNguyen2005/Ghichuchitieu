@@ -34,7 +34,7 @@ fun LiquidToggle(
     contentDescription: String? = null,
     backdrop: Backdrop? = null,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = com.notepay.ui.theme.isAppDarkTheme()
     val shape = RoundedCornerShape(percent = 50)
     val thumbOffset = animateDpAsState(
         targetValue = if (checked) 24.dp else 4.dp,

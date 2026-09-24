@@ -16,4 +16,10 @@ interface CategoryRepository {
 
     /** Thêm danh mục tùy biến mới */
     suspend fun addCustomCategory(category: Category)
+
+    /** Cập nhật danh mục tùy biến */
+    suspend fun updateCustomCategory(category: Category)
+
+    /** Xóa danh mục tùy biến theo id */
+    suspend fun deleteCustomCategory(categoryId: String)
 }

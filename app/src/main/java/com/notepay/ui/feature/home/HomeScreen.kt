@@ -68,13 +68,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.FileUtils
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.notepay.R
 import com.notepay.domain.model.Money
+import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.BalanceCard
+import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.SmartInsightsCard
@@ -92,11 +96,14 @@ fun HomeScreen(
     onNavigateToReminders: () -> Unit,
     onNavigateToAppSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
+    onEditTransaction: (Long) -> Unit = onTransactionClick,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showWalletSwitcher by remember { mutableStateOf(false) }
     var isBudgetProjectionDismissed by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     val listState = rememberLazyListState()
 
@@ -244,12 +251,20 @@ fun HomeScreen(
                 )
             }
 
-            item {
-                SmartInsightsCard(
-                    streakDays = state.streakDays,
-                    isBudgetExceeded = state.isBudgetExceeded,
-                    budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
-                )
+            if (!state.isSmartInsightsDismissed) {
+                item(key = "smart_insights") {
+                    SmartInsightsCard(
+                        streakDays = state.streakDays,
+                        isBudgetExceeded = state.isBudgetExceeded,
+                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
+                        onDismiss = {
+                            coroutineScope.launch {
+                                delay(250)
+                                viewModel.dismissSmartInsights()
+                            }
+                        },
+                    )
+                }
             }
 
             val budgetProjection = state.budgetProjection
@@ -257,7 +272,7 @@ fun HomeScreen(
             val budgetLimit = activeWallet?.budgetLimit
 
             if (budgetProjection != null && !isBudgetProjectionDismissed && activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0L) {
-                item {
+                item(key = "budget_projection") {
                     BudgetProjectionCard(
                         projection = budgetProjection,
                         budgetLimit = budgetLimit,
@@ -293,7 +308,8 @@ fun HomeScreen(
                         transaction = tx,
                         walletName = walletName,
                         onClick = { onTransactionClick(tx.id) },
-                        onEdit = { onTransactionClick(tx.id) },
+                        onEdit = { onEditTransaction(tx.id) },
+                        onDelete = { pendingDeleteTransaction = tx },
                     )
                 }
             }
@@ -397,6 +413,21 @@ fun HomeScreen(
                 TextButton(onClick = { showWalletSwitcher = false }) {
                     Text(closeLabel)
                 }
+            }
+        )
+    }
+
+    pendingDeleteTransaction?.let { tx ->
+        val itemName = tx.note.ifBlank { tx.category.displayName }
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.confirm_delete_transaction_title),
+            itemName = itemName,
+            onConfirm = {
+                viewModel.deleteTransaction(tx.id)
+                pendingDeleteTransaction = null
+            },
+            onDismiss = {
+                pendingDeleteTransaction = null
             }
         )
     }

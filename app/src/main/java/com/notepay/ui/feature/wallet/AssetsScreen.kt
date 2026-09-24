@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.rounded.CompareArrows
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
@@ -252,29 +253,55 @@ private fun AssetsHeader(
                         fontWeight = FontWeight.Medium
                     )
 
-                    if (scrubbedPoint == null && changePercentage != 0f) {
-                        val isPositive = changePercentage >= 0f
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isPositive) Color(0xFF34C759).copy(alpha = 0.15f) else Color(0xFFFF3B30).copy(alpha = 0.15f)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    if (scrubbedPoint == null) {
+                        if (changePercentage != 0f) {
+                            val isPositive = changePercentage >= 0f
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isPositive) Color(0xFF34C759).copy(alpha = 0.15f) else Color(0xFFFF3B30).copy(alpha = 0.15f)
                             ) {
-                                Icon(
-                                    imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
-                                    contentDescription = null,
-                                    tint = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${if (isPositive) "+" else ""}${String.format("%.1f", changePercentage)}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
+                                        contentDescription = null,
+                                        tint = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${if (isPositive) "+" else ""}${String.format("%.1f", changePercentage)}%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
+                                    )
+                                }
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Remove,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = stringResource(R.string.assets_balance_stable),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -387,13 +414,26 @@ private fun AssetTrendChartCard(
                 .fillMaxWidth()
                 .padding(18.dp)
         ) {
-            // Tầng 1: Tiêu đề biểu đồ
-            Text(
-                text = stringResource(R.string.assets_trend_chart_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            // Tầng 1: Tiêu đề biểu đồ + Chú thích trạng thái nếu số dư ổn định
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.assets_trend_chart_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (points.isNotEmpty() && points.maxOf { it.amount.amountInCents } == points.minOf { it.amount.amountInCents }) {
+                    Text(
+                        text = stringResource(R.string.assets_trend_no_change_caption),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

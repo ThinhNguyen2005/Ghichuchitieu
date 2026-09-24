@@ -6,6 +6,8 @@ import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.CategoryRepository
+import com.notepay.platform.widget.WidgetUpdateHelper
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -16,6 +18,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
+import android.content.Context
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +27,7 @@ class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
     private val mapper: TransactionMapper,
     private val categoryRepository: CategoryRepository,
+    @param:ApplicationContext private val context: Context,
     @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) : TransactionRepository {
 
@@ -57,10 +61,16 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getById(id: Long): Transaction? =
         dao.getById(id)?.let(mapper::toDomain)
 
-    override suspend fun upsert(transaction: Transaction): Long =
-        dao.upsert(mapper.toEntity(transaction))
+    override suspend fun upsert(transaction: Transaction): Long {
+        val id = dao.upsert(mapper.toEntity(transaction))
+        WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+        return id
+    }
 
-    override suspend fun delete(id: Long) = dao.delete(id)
+    override suspend fun delete(id: Long) {
+        dao.delete(id)
+        WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+    }
 
     override suspend fun findRecentSimilar(
         noteKeyword: String,

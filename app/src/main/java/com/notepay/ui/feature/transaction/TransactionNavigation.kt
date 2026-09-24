@@ -69,6 +69,9 @@ fun NavGraphBuilder.transactionGraph(
             onTransactionClick = { txId ->
                 navController.navigate(Route.TransactionDetail(txId).path)
             },
+            onEditTransaction = { txId ->
+                navController.navigate(Route.EditTransaction(txId).path)
+            },
             onFeedback = showFeedback,
         )
     }

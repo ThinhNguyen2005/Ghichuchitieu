@@ -158,25 +158,6 @@ fun TransactionAmountSection(
                 .clickable(onClick = onRequestFocus),
         ) {
             TransactionAmountDisplay(amountInput = amountInput)
-            val amountLong = remember(amountInput) { amountInput.toLongOrNull() ?: 0L }
-            val amountInWords = remember(amountLong, currencySuffix, zeroWords) {
-                if (amountLong > 0L) {
-                    runCatching {
-                        VietnameseMoneyWordsFormatter.format(amountLong, zeroWords) + " " + currencySuffix
-                    }.getOrDefault("")
-                } else {
-                    ""
-                }
-            }
-            if (amountInWords.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = amountInWords,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Normal,
-                )
-            }
         }
     }
 }

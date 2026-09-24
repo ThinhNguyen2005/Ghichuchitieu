@@ -92,9 +92,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Close
+import com.notepay.ui.component.ConfirmDeleteDialog
+import com.notepay.ui.component.DayDetailDialog
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.MonthlyCalendarView
-import com.notepay.ui.component.DayDetailDialog
+import com.notepay.ui.component.SwipeableTransactionItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -104,6 +106,7 @@ import kotlinx.datetime.toLocalDateTime
 fun TransactionListScreen(
     onBack: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
+    onEditTransaction: (Long) -> Unit = {},
     onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
@@ -114,6 +117,7 @@ fun TransactionListScreen(
 
     var isSearchActive by remember { mutableStateOf(false) }
     var selectedDayForDetail by remember { mutableStateOf<LocalDate?>(null) }
+    var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -229,7 +233,9 @@ fun TransactionListScreen(
                             DayGroupSection(
                                 dayGroup = dayGroup,
                                 walletsMap = state.walletsMap,
-                                onTransactionClick = onTransactionClick
+                                onTransactionClick = onTransactionClick,
+                                onEditTransaction = onEditTransaction,
+                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx }
                             )
                         }
                     }
@@ -282,6 +288,21 @@ fun TransactionListScreen(
                 onDismiss = { viewModel.openWalletPicker(false) },
                 onSelectWallet = { walletId ->
                     viewModel.selectWallet(walletId)
+                }
+            )
+        }
+
+        pendingDeleteTransaction?.let { tx ->
+            val itemName = tx.note.ifBlank { tx.category.displayName }
+            ConfirmDeleteDialog(
+                title = stringResource(R.string.confirm_delete_transaction_title),
+                itemName = itemName,
+                onConfirm = {
+                    viewModel.delete(tx)
+                    pendingDeleteTransaction = null
+                },
+                onDismiss = {
+                    pendingDeleteTransaction = null
                 }
             )
         }
@@ -645,8 +666,13 @@ private fun DayGroupSection(
     dayGroup: TransactionDayGroup,
     walletsMap: Map<Long, String>,
     onTransactionClick: (Long) -> Unit,
+    onEditTransaction: (Long) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         // Date Header
         Row(
             modifier = Modifier
@@ -673,92 +699,15 @@ private fun DayGroupSection(
         }
 
         // Transactions Container
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppTheme.shapes.corner16,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                dayGroup.transactions.forEachIndexed { index, tx ->
-                    TransactionListItem(
-                        transaction = tx,
-                        walletName = walletsMap[tx.walletId] ?: stringResource(R.string.wallet_fallback),
-                        onClick = { onTransactionClick(tx.id) }
-                    )
-                    if (index < dayGroup.transactions.size - 1) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 68.dp, end = 16.dp),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionListItem(
-    transaction: Transaction,
-    walletName: String,
-    onClick: () -> Unit,
-) {
-    val tz = remember { TimeZone.currentSystemDefault() }
-    val localDateTime = remember(transaction.occurredAt) {
-        transaction.occurredAt.toLocalDateTime(tz)
-    }
-    val timeStr = "%02d:%02d".format(localDateTime.hour, localDateTime.minute)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CategoryAvatar(category = transaction.category, size = 42.dp)
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            val title = if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else transaction.category.displayName
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            val detailLine = if (transaction.note.isNotBlank()) {
-                "$timeStr · $walletName · ${transaction.note}"
-            } else {
-                "$timeStr · $walletName"
-            }
-            Text(
-                text = detailLine,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        dayGroup.transactions.forEach { tx ->
+            SwipeableTransactionItem(
+                transaction = tx,
+                walletName = walletsMap[tx.walletId] ?: stringResource(R.string.wallet_fallback),
+                onClick = { onTransactionClick(tx.id) },
+                onEdit = { onEditTransaction(tx.id) },
+                onDelete = { onDeleteTransaction(tx) },
             )
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        val isIncome = transaction.type == TransactionType.INCOME
-        val color = if (isIncome) Color(0xFF34C759) else Color(0xFFFF3B30)
-        val prefix = if (isIncome) "+" else "-"
-
-        Text(
-            text = "$prefix${MoneyFormatter.format(transaction.amount)}",
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            ),
-            color = color
-        )
     }
 }
 

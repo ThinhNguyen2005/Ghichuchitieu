@@ -49,6 +49,8 @@ object CalculatorEngine {
                 pendingOperator = operator,
                 resetOnNextDigit = true,
             )
+        } else if (state.leftOperand != null && state.pendingOperator != null && state.resetOnNextDigit) {
+            state.copy(pendingOperator = operator)
         } else {
             state.copy(
                 leftOperand = current,
@@ -61,7 +63,11 @@ object CalculatorEngine {
     fun equals(state: CalculatorState): CalculatorState {
         val current = state.currentOperand.toLongOrNull() ?: 0L
         return if (state.leftOperand != null && state.pendingOperator != null) {
-            val result = evaluate(state.leftOperand, current, state.pendingOperator)
+            val result = if (state.resetOnNextDigit) {
+                state.leftOperand
+            } else {
+                evaluate(state.leftOperand, current, state.pendingOperator)
+            }
             CalculatorState(currentOperand = result.toString())
         } else {
             state.copy(pendingOperator = null, leftOperand = null, resetOnNextDigit = false)
@@ -81,12 +87,16 @@ object CalculatorEngine {
     fun currentValue(state: CalculatorState): Long? = state.currentOperand.toLongOrNull()
 
     fun displayExpression(state: CalculatorState): String {
-        val right = formatNumber(state.currentOperand.toLongOrNull() ?: 0L)
         return if (state.leftOperand != null && state.pendingOperator != null) {
             val left = formatNumber(state.leftOperand)
-            "$left ${state.pendingOperator} $right"
+            if (state.resetOnNextDigit) {
+                "$left ${state.pendingOperator}"
+            } else {
+                val right = formatNumber(state.currentOperand.toLongOrNull() ?: 0L)
+                "$left ${state.pendingOperator} $right"
+            }
         } else {
-            right
+            formatNumber(state.currentOperand.toLongOrNull() ?: 0L)
         }
     }
 

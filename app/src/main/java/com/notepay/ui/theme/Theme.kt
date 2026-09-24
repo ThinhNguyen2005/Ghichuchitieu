@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -24,10 +25,12 @@ import androidx.core.view.WindowCompat
  */
 object ThemeManager {
     var currentThemeColor by mutableStateOf("ios")
+    var themeMode by mutableStateOf("system")
 
     fun initialize(context: Context) {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         currentThemeColor = prefs.getString("theme_color", "ios") ?: "ios"
+        themeMode = prefs.getString("theme_mode", "system") ?: "system"
     }
 
     fun updateThemeColor(context: Context, color: String) {
@@ -35,11 +38,31 @@ object ThemeManager {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         prefs.edit { putString("theme_color", color) }
     }
+
+    fun updateThemeMode(context: Context, mode: String) {
+        themeMode = mode
+        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
+        prefs.edit { putString("theme_mode", mode) }
+    }
 }
+
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
+/**
+ * Tiện ích kiểm tra xem giao diện hiện tại của ứng dụng có đang là Dark Theme hay không.
+ * Luôn tôn trọng cài đặt Theme của ứng dụng (Sáng / Tối / Hệ thống), khắc phục triệt để lỗi
+ * khi hệ thống OS là Dark nhưng người dùng chọn giao diện Sáng trong ứng dụng.
+ */
+@Composable
+fun isAppDarkTheme(): Boolean = LocalDarkTheme.current
 
 @Composable
 fun NotePayTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = when (ThemeManager.themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    },
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -81,6 +104,7 @@ fun NotePayTheme(
     }
 
     CompositionLocalProvider(
+        LocalDarkTheme provides darkTheme,
         LocalAppColors provides appColors,
         LocalAppTypography provides appTypography,
         LocalAppShapes provides appShapes,

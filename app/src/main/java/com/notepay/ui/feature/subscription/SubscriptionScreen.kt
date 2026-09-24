@@ -360,7 +360,7 @@ private fun CalendarTab(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = AppTheme.shapes.corner16,
             colors = CardDefaults.cardColors(
-                containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+                containerColor = if (com.notepay.ui.theme.isAppDarkTheme()) {
                     MaterialTheme.colorScheme.surfaceContainer
                 } else {
                     Color.White

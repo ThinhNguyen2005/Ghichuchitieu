@@ -20,6 +20,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 import com.notepay.data.preferences.AiSettingsDataStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 /** Result is intentionally limited to a draft amount; the original image is never persisted. */
@@ -47,7 +48,7 @@ class LocalTransactionImageScanner @Inject constructor(
     suspend fun scan(uri: Uri): LocalImageScanResult {
         val bitmap = decodeBitmap(uri)
             ?: return LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
-        val vietQrAmount = bitmap?.let(::extractVietQrAmount)
+        val vietQrAmount = bitmap.let(::extractVietQrAmount)
         if (vietQrAmount != null) {
             return LocalImageScanResult(
                 amountInput = vietQrAmount.toString(),
@@ -56,8 +57,9 @@ class LocalTransactionImageScanner @Inject constructor(
             )
         }
 
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        var recognizer: com.google.mlkit.vision.text.TextRecognizer? = null
         return try {
+            recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             val image = InputImage.fromBitmap(bitmap, 0)
             val text = Tasks.await(recognizer.process(image))
             val reconstructedLines = reconstructHorizontalLines(text)
@@ -109,10 +111,11 @@ class LocalTransactionImageScanner @Inject constructor(
                     }
                 }
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
             LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         } finally {
-            recognizer.close()
+            runCatching { recognizer?.close() }
         }
     }
 

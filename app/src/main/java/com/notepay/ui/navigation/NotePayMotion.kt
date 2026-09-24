@@ -8,10 +8,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 internal object NotePayMotion {
-    const val tabIndicatorDurationMillis = 220
-    const val contentDurationMillis = 220
-    const val contentFadeOutDurationMillis = 140
-    const val contentFadeDelayMillis = 40
+    const val tabIndicatorDurationMillis = 200
+    const val contentDurationMillis = 200
+    const val contentFadeOutDurationMillis = 200
+    const val contentFadeDelayMillis = 0
     const val navigationBarSettleDurationMillis = 200
     val contentTranslation: Dp = 12.dp
 }

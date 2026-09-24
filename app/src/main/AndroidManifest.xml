@@ -36,6 +36,31 @@
             </intent-filter>
         </activity>
 
+        <!-- Quick Action Widget -->
+        <receiver
+            android:name=".platform.widget.QuickActionWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_action_info" />
+        </receiver>
+
+        <!-- Spent Glance Widget -->
+        <receiver
+            android:name=".platform.widget.SpentGlanceWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.notepay.action.REFRESH_WIDGETS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_spent_glance_info" />
+        </receiver>
+
 
 
         <provider

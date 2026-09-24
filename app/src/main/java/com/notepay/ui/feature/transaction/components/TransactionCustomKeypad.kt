@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -131,7 +130,7 @@ private fun KeyCell(
 
     Box(
         modifier = modifier
-            .aspectRatio(0.9f)
+            .aspectRatio(1.35f)
             .clip(shape)
             .background(containerColor)
             .border(
@@ -157,7 +156,7 @@ private fun KeyCell(
 
             CalcKey.ThreeZeros -> {
                 Text(
-                    text = ".000",
+                    text = "000",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
@@ -244,24 +243,13 @@ private fun KeyCell(
                         color = contentColor,
                     )
                 } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.CheckCircle,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.transaction_save_button),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = contentColor,
-                            maxLines = 1,
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.action_save),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
+                        maxLines = 1,
+                    )
                 }
             }
         }

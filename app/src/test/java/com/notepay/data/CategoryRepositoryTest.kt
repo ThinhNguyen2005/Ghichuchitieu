@@ -102,4 +102,48 @@ class CategoryRepositoryTest {
         val customs = repository.observeCategories().first().filter { it.isCustom }
         assertThat(customs).containsExactly(restored)
     }
+
+    @Test
+    fun testDeleteCustomCategory() = runTest {
+        val customCat = Category(
+            id = "CUSTOM_DELETE",
+            displayName = "Nuôi pet",
+            colorArgb = 0xFFBA68C8L,
+            isIncome = false,
+            isCustom = true
+        )
+        repository.addCustomCategory(customCat)
+        assertThat(repository.observeCategories().first()).contains(customCat)
+
+        repository.deleteCustomCategory("CUSTOM_DELETE")
+
+        val categories = repository.observeCategories().first()
+        assertThat(categories).doesNotContain(customCat)
+    }
+
+    @Test
+    fun testUpdateCustomCategory() = runTest {
+        val customCat = Category(
+            id = "CUSTOM_UPDATE",
+            displayName = "Ban đầu",
+            colorArgb = 0xFF123456L,
+            isIncome = false,
+            isCustom = true,
+            iconId = "food"
+        )
+        repository.addCustomCategory(customCat)
+
+        val updated = customCat.copy(
+            displayName = "Cập nhật",
+            colorArgb = 0xFF654321L,
+            iconId = "shopping"
+        )
+        repository.updateCustomCategory(updated)
+
+        val categories = repository.observeCategories().first()
+        val found = categories.find { it.id == "CUSTOM_UPDATE" }
+        assertThat(found?.displayName).isEqualTo("Cập nhật")
+        assertThat(found?.colorArgb).isEqualTo(0xFF654321L)
+        assertThat(found?.iconId).isEqualTo("shopping")
+    }
 }
