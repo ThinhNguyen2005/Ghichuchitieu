@@ -90,13 +90,33 @@ fun MainTabPager(
                         else pagerState.animateScrollToPage(2)
                     }
                 },
-                onNavigateToAppSettings = {
-                    navController.navigate(Route.AppSettings.path) {
+                onNavigateToCurrencySettings = {
+                    navController.navigate(Route.CurrencySettings.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToCategoryManagement = {
+                    navController.navigate(Route.CategoryManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAppearanceLanguage = {
+                    navController.navigate(Route.AppearanceLanguage.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAiSettings = {
+                    navController.navigate(Route.AiSettings.path) {
                         launchSingleTop = true
                     }
                 },
                 onNavigateToBackupRestore = {
                     navController.navigate(Route.BackupRestore.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAppSettings = {
+                    navController.navigate(Route.AppSettings.path) {
                         launchSingleTop = true
                     }
                 },

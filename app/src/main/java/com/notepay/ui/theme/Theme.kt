@@ -24,10 +24,12 @@ import androidx.core.view.WindowCompat
  */
 object ThemeManager {
     var currentThemeColor by mutableStateOf("ios")
+    var themeMode by mutableStateOf("system")
 
     fun initialize(context: Context) {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         currentThemeColor = prefs.getString("theme_color", "ios") ?: "ios"
+        themeMode = prefs.getString("theme_mode", "system") ?: "system"
     }
 
     fun updateThemeColor(context: Context, color: String) {
@@ -35,11 +37,21 @@ object ThemeManager {
         val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
         prefs.edit { putString("theme_color", color) }
     }
+
+    fun updateThemeMode(context: Context, mode: String) {
+        themeMode = mode
+        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
+        prefs.edit { putString("theme_mode", mode) }
+    }
 }
 
 @Composable
 fun NotePayTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = when (ThemeManager.themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    },
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current

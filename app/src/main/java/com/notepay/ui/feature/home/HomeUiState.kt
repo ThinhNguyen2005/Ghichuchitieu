@@ -27,6 +27,7 @@ data class HomeUiState(
     val dueRemindersCount: Int = 0,
     val walletBackgroundUri: String? = null,
     val streakDays: Int = 0,
+    val isSmartInsightsDismissed: Boolean = false,
 ) {
     val isBudgetExceeded: Boolean
         get() {

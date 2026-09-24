@@ -219,44 +219,35 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            // ── Bàn phím tự chế 4×5 cố định đáy — không che content phía trên ─
-            Surface(
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding(),
-                ) {
-                    TransactionCustomKeypad(
-                        dateLabel = dateLabel,
-                        noteLabel = state.note.take(14).ifBlank { "" },
-                        canSave = state.canSave,
-                        isSaving = state.isSaving,
-                        onKey = { key ->
-                            when (key) {
-                                CalcKey.Date -> showDatePicker.value = true
-                                CalcKey.Note -> showNoteSheet.value = true
-                                CalcKey.Save -> {
-                                    if (state.canSave) {
-                                        viewModel.onEvent(AddTransactionEvent.Save)
-                                    } else {
-                                        viewModel.onEvent(AddTransactionEvent.Save)
-                                        screenScope.launch {
-                                            snackbarHostState.currentSnackbarData?.dismiss()
-                                            snackbarHostState.showSnackbar(validationMessage)
-                                        }
-                                    }
+            // ── Bàn phím tự chế 4×5 nằm chung Column liền mạch với trang ─
+            TransactionCustomKeypad(
+                dateLabel = dateLabel,
+                noteLabel = state.note.take(14).ifBlank { "" },
+                canSave = state.canSave,
+                isSaving = state.isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+                onKey = { key ->
+                    when (key) {
+                        CalcKey.Date -> showDatePicker.value = true
+                        CalcKey.Note -> showNoteSheet.value = true
+                        CalcKey.Save -> {
+                            if (state.canSave) {
+                                viewModel.onEvent(AddTransactionEvent.Save)
+                            } else {
+                                viewModel.onEvent(AddTransactionEvent.Save)
+                                screenScope.launch {
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    snackbarHostState.showSnackbar(validationMessage)
                                 }
-                                else -> viewModel.onEvent(AddTransactionEvent.CalcKeyPressed(key))
                             }
-                        },
-                        onBackspaceLong = { viewModel.onEvent(AddTransactionEvent.BackspaceLong) },
-                    )
-                }
-            }
+                        }
+                        else -> viewModel.onEvent(AddTransactionEvent.CalcKeyPressed(key))
+                    }
+                },
+                onBackspaceLong = { viewModel.onEvent(AddTransactionEvent.BackspaceLong) },
+            )
         }
     }
 

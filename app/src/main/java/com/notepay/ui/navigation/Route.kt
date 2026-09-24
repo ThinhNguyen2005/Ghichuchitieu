@@ -22,6 +22,10 @@ sealed interface Route {
     data object AddDummy : Route { override val path = "add-dummy" }
     data object AppSettings : Route { override val path = "app-settings" }
     data object BackupRestore : Route { override val path = "backup-restore" }
+    data object CurrencySettings : Route { override val path = "currency-settings" }
+    data object CategoryManagement : Route { override val path = "category-management" }
+    data object AppearanceLanguage : Route { override val path = "appearance-language" }
+    data object AiSettings : Route { override val path = "ai-settings" }
     data class EditTransaction(val id: Long) : Route {
         override val path = "edit-transaction/$id"
         companion object {

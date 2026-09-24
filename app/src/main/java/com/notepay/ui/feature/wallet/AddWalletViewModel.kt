@@ -11,12 +11,14 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
+import com.notepay.ui.util.WalletUiHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,11 +41,13 @@ class AddWalletViewModel @Inject constructor(
     val feedback = _feedback.asSharedFlow()
 
     init {
-        if (walletId != null && walletId > 0L) {
-            viewModelScope.launch {
+        viewModelScope.launch {
+            val allWallets = walletRepository.observeAll().firstOrNull().orEmpty()
+            if (walletId != null && walletId > 0L) {
                 val wallet = walletRepository.getById(walletId)
                 if (wallet != null) {
                     loadedWallet = wallet
+                    val usedColors = allWallets.filter { it.id != wallet.id }.map { it.colorKey }.toSet()
                     _state.update {
                         it.copy(
                             name = wallet.name,
@@ -53,13 +57,27 @@ class AddWalletViewModel @Inject constructor(
                             budgetPeriod = BudgetPeriod.MONTHLY,
                             iconKey = wallet.iconKey,
                             colorKey = wallet.colorKey,
+                            usedColorKeys = usedColors,
+                            isAutoColorAssigned = false,
                             linkedPackageName = wallet.linkedPackageName ?: "",
                             bankBin = wallet.bankBin,
                             accountNumber = wallet.accountNumber ?: "",
                             accountName = wallet.accountName ?: "",
-                            isEditMode = true
+                            isEditMode = true,
                         )
                     }
+                }
+            } else {
+                val usedColors = allWallets.map { it.colorKey }.toSet()
+                val autoColor = WalletUiHelper.colorList.firstOrNull { it.first !in usedColors }?.first
+                    ?: WalletUiHelper.colorList.first().first
+                _state.update {
+                    it.copy(
+                        colorKey = autoColor,
+                        usedColorKeys = usedColors,
+                        isAutoColorAssigned = true,
+                        isEditMode = false,
+                    )
                 }
             }
         }
@@ -92,7 +110,7 @@ class AddWalletViewModel @Inject constructor(
     }
 
     fun onColorChanged(colorKey: String) {
-        _state.update { it.copy(colorKey = colorKey) }
+        _state.update { it.copy(colorKey = colorKey, isAutoColorAssigned = false) }
     }
 
     fun onLinkedBankChanged(packageName: String, bin: String?) {

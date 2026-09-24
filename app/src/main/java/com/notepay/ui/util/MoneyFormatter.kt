@@ -6,7 +6,7 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 /**
- * Thread-safe Money Formatter for Vietnamese Locale & Compact formatting.
+ * Thread-safe Money Formatter for Vietnamese Locale & Custom currency formatting.
  *
  * Ví dụ: Money(1_000_000_00) → "1.000.000 ₫"
  */
@@ -25,6 +25,31 @@ object MoneyFormatter {
         val formatter = DecimalFormat("#,##0", symbols)
         val majorUnits = money.amountInCents / 100L
         return "${formatter.format(majorUnits)} ₫"
+    }
+
+    /**
+     * Formats Money with custom currency symbol, position and grouping separator.
+     */
+    fun formatCustom(
+        money: Money,
+        currencySymbol: String = "₫",
+        symbolPosition: String = "after",
+        thousandSeparator: String = "dot",
+    ): String {
+        val groupingChar = if (thousandSeparator == "comma") ',' else '.'
+        val decimalChar = if (groupingChar == '.') ',' else '.'
+        val symbols = DecimalFormatSymbols(Locale.ROOT).apply {
+            groupingSeparator = groupingChar
+            decimalSeparator = decimalChar
+        }
+        val formatter = DecimalFormat("#,##0", symbols)
+        val majorUnits = money.amountInCents / 100L
+        val formattedNumber = formatter.format(majorUnits)
+        return if (symbolPosition == "before") {
+            "$currencySymbol$formattedNumber"
+        } else {
+            "$formattedNumber $currencySymbol"
+        }
     }
 
     /** Compact: 1.5M, 250K, 1.2B. Dùng cho chart/dashboard preview (hỗ trợ cả số âm). */

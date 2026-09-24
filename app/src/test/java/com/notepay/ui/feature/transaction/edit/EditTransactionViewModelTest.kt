@@ -310,6 +310,8 @@ private class EditFakeCategoryRepository : CategoryRepository {
     override fun observeCategories(): Flow<List<Category>> = flowOf(Category.getAll())
     override suspend fun getCategories(): List<Category> = Category.getAll()
     override suspend fun addCustomCategory(category: Category) = Unit
+    override suspend fun updateCustomCategory(category: Category) = Unit
+    override suspend fun deleteCustomCategory(categoryId: String) = Unit
 }
 
 private class EditFakeTransactionRepository(

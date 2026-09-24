@@ -65,6 +65,11 @@ class HomeViewModel @Inject constructor(
     private val currentMonth = today.month.number
 
     private val _selectedMonth = MutableStateFlow(currentYear to currentMonth)
+    private val _isSmartInsightsDismissed = MutableStateFlow(false)
+
+    fun dismissSmartInsights() {
+        _isSmartInsightsDismissed.value = true
+    }
 
     private fun getDaysInMonth(year: Int, month: Int): Int {
         return when (month) {
@@ -82,9 +87,10 @@ class HomeViewModel @Inject constructor(
     val state = combine(
         _selectedMonth,
         walletRepo.observeActive(),
-    ) { monthPair, activeWallet ->
-        monthPair to activeWallet
-    }.flatMapLatest { (monthPair, activeWallet) ->
+        _isSmartInsightsDismissed,
+    ) { monthPair, activeWallet, isDismissed ->
+        Triple(monthPair, activeWallet, isDismissed)
+    }.flatMapLatest { (monthPair, activeWallet, isDismissed) ->
         val (year, month) = monthPair
         val bgFlow = if (activeWallet != null) {
             appSettingsDataStore.observeWalletBackground(activeWallet.id)
@@ -167,6 +173,7 @@ class HomeViewModel @Inject constructor(
                 dueRemindersCount = dueCount,
                 walletBackgroundUri = bgUri,
                 streakDays = streak,
+                isSmartInsightsDismissed = isDismissed,
             )
         }
     }.stateIn(

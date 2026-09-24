@@ -1,7 +1,5 @@
 package com.notepay.ui.feature.wallet
 
-import com.notepay.domain.model.Money
-
 enum class BudgetPeriod {
     DAILY, WEEKLY, MONTHLY
 }
@@ -14,6 +12,8 @@ data class AddWalletUiState(
     val budgetPeriod: BudgetPeriod = BudgetPeriod.MONTHLY,
     val iconKey: String = "cash",
     val colorKey: String = "primary",
+    val usedColorKeys: Set<String> = emptySet(),
+    val isAutoColorAssigned: Boolean = false,
     val linkedPackageName: String = "",
     val bankBin: String? = null,
     val accountNumber: String = "",

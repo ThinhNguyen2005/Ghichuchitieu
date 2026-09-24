@@ -66,6 +66,24 @@ class CategoryRepositoryImpl @Inject constructor(
             
         loadAndRegister()
     }
+
+    override suspend fun updateCustomCategory(category: Category) {
+        addCustomCategory(category)
+    }
+
+    override suspend fun deleteCustomCategory(categoryId: String) {
+        val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
+        ids.remove(categoryId)
+        prefs.edit {
+            putStringSet("custom_category_ids", ids)
+            remove("custom_category_${categoryId}_name")
+            remove("custom_category_${categoryId}_color")
+            remove("custom_category_${categoryId}_is_income")
+            remove("custom_category_${categoryId}_icon")
+        }
+        loadAndRegister()
+    }
+
     @SuppressLint("UseKtx") // KTX edit(commit = true) cannot preserve commit()'s Boolean failure check.
     suspend fun replaceCustomCategories(categories: List<Category>) {
         val previousIds = prefs.getStringSet("custom_category_ids", emptySet()).orEmpty()

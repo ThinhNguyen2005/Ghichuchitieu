@@ -58,8 +58,12 @@ fun UtilitiesScreen(
     onNavigateToBillSplit: () -> Unit,
     onNavigateToSubscription: () -> Unit,
     onNavigateToAssets: () -> Unit,
-    onNavigateToAppSettings: () -> Unit,
+    onNavigateToCurrencySettings: () -> Unit,
+    onNavigateToCategoryManagement: () -> Unit,
+    onNavigateToAppearanceLanguage: () -> Unit,
+    onNavigateToAiSettings: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
+    onNavigateToAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -135,7 +139,7 @@ fun UtilitiesScreen(
                             iconTint = Color(0xFF5856D6),
                             title = stringResource(R.string.utilities_currency_title),
                             subtitle = stringResource(R.string.utilities_currency_subtitle),
-                            onClick = onNavigateToAppSettings
+                            onClick = onNavigateToCurrencySettings
                         )
                         ItemDivider()
                         UtilityRowItem(
@@ -143,15 +147,7 @@ fun UtilitiesScreen(
                             iconTint = Color(0xFFFF2D55),
                             title = stringResource(R.string.utilities_categories_title),
                             subtitle = stringResource(R.string.utilities_categories_subtitle),
-                            onClick = onNavigateToAppSettings
-                        )
-                        ItemDivider()
-                        UtilityRowItem(
-                            icon = Icons.Rounded.FileDownload,
-                            iconTint = Color(0xFF00C7BE),
-                            title = stringResource(R.string.utilities_export_backup_title),
-                            subtitle = stringResource(R.string.utilities_export_backup_subtitle),
-                            onClick = onNavigateToBackupRestore
+                            onClick = onNavigateToCategoryManagement
                         )
                     }
                 }
@@ -175,7 +171,7 @@ fun UtilitiesScreen(
                             iconTint = Color(0xFFAF52DE),
                             title = stringResource(R.string.utilities_appearance_language_title),
                             subtitle = stringResource(R.string.utilities_appearance_language_subtitle),
-                            onClick = onNavigateToAppSettings
+                            onClick = onNavigateToAppearanceLanguage
                         )
                         ItemDivider()
                         UtilityRowItem(
@@ -183,7 +179,7 @@ fun UtilitiesScreen(
                             iconTint = Color(0xFFFF9500),
                             title = stringResource(R.string.settings_ai_engine_title),
                             subtitle = stringResource(R.string.utilities_ai_engine_subtitle),
-                            onClick = onNavigateToAppSettings
+                            onClick = onNavigateToAiSettings
                         )
                         ItemDivider()
                         UtilityRowItem(

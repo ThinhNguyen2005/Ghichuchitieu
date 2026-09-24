@@ -566,34 +566,4 @@ fun BoxScope.NotePayBottomBar(
     }
 }
 
-@Deprecated(
-    message = "Use navigationBarOffsetProvider lambda instead to avoid recomposition",
-    replaceWith = ReplaceWith(
-        "NotePayBottomBar(currentRoute, showQuickAddSheet, useNavigationGlass, reducedMotion, backdrop, onTabSelected, onToggleQuickAdd, modifier, { navigationBarOffset })"
-    )
-)
-@Composable
-fun BoxScope.NotePayBottomBar(
-    currentRoute: String?,
-    navigationBarOffset: Float,
-    showQuickAddSheet: Boolean,
-    useNavigationGlass: Boolean,
-    reducedMotion: Boolean,
-    backdrop: Backdrop,
-    onTabSelected: (Route) -> Unit,
-    onToggleQuickAdd: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    NotePayBottomBar(
-        currentRoute = currentRoute,
-        showQuickAddSheet = showQuickAddSheet,
-        useNavigationGlass = useNavigationGlass,
-        reducedMotion = reducedMotion,
-        backdrop = backdrop,
-        onTabSelected = onTabSelected,
-        onToggleQuickAdd = onToggleQuickAdd,
-        modifier = modifier,
-        navigationBarOffsetProvider = { navigationBarOffset },
-    )
-}
 
