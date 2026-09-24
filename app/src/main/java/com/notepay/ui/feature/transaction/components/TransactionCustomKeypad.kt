@@ -156,7 +156,7 @@ private fun KeyCell(
 
             CalcKey.ThreeZeros -> {
                 Text(
-                    text = ".000",
+                    text = "000",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,

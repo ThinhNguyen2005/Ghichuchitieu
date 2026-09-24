@@ -13,13 +13,17 @@ import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
@@ -31,27 +35,108 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.sp
 
 /**
+ * Helper định dạng nhãn cấp độ số tiền thông minh (Smart Magnitude):
+ * - Dưới 1 triệu: trả về null (ẩn hoàn toàn, giao diện gọn gàng cho chi tiêu nhỏ hằng ngày).
+ * - Từ 1 triệu trở lên: hiển thị badge gọn gàng (vd "≈ 520 triệu", "1,5 triệu", "2 tỷ") giúp
+ *   người dùng đối soát số 0 tức thì mà không bị rối mắt bởi câu chữ dài dòng.
+ */
+private fun formatSmartMagnitude(
+    amount: Long,
+    millionLabel: String,
+    billionLabel: String,
+    trillionLabel: String,
+    approxFormat: String,
+): String? {
+    if (amount < 1_000_000L) return null
+
+    return when {
+        amount < 1_000_000_000L -> {
+            val millions = amount.toDouble() / 1_000_000.0
+            val isExact = amount % 1_000_000L == 0L
+            val isExactTenth = amount % 100_000L == 0L
+            val formattedNum = if (isExact) {
+                (amount / 1_000_000L).toString()
+            } else if (millions < 100.0 && isExactTenth) {
+                String.format(java.util.Locale.US, "%.1f", millions).replace('.', ',')
+            } else if (millions < 10.0) {
+                String.format(java.util.Locale.US, "%.1f", millions).replace('.', ',')
+            } else {
+                (amount / 1_000_000L).toString()
+            }
+            val text = "$formattedNum $millionLabel"
+            if (isExact || (millions < 100.0 && isExactTenth)) text else String.format(approxFormat, text)
+        }
+        amount < 1_000_000_000_000L -> {
+            val billions = amount.toDouble() / 1_000_000_000.0
+            val isExact = amount % 1_000_000_000L == 0L
+            val isExactTenth = amount % 100_000_000L == 0L
+            val formattedNum = if (isExact) {
+                (amount / 1_000_000_000L).toString()
+            } else if (billions < 100.0 && isExactTenth) {
+                String.format(java.util.Locale.US, "%.1f", billions).replace('.', ',')
+            } else if (billions < 10.0) {
+                String.format(java.util.Locale.US, "%.1f", billions).replace('.', ',')
+            } else {
+                (amount / 1_000_000_000L).toString()
+            }
+            val text = "$formattedNum $billionLabel"
+            if (isExact || (billions < 100.0 && isExactTenth)) text else String.format(approxFormat, text)
+        }
+        else -> {
+            val trillions = amount.toDouble() / 1_000_000_000_000.0
+            val isExact = amount % 1_000_000_000_000L == 0L
+            val formattedNum = if (isExact) {
+                (amount / 1_000_000_000_000L).toString()
+            } else {
+                String.format(java.util.Locale.US, "%.1f", trillions).replace('.', ',')
+            }
+            val text = "$formattedNum $trillionLabel"
+            if (isExact) text else String.format(approxFormat, text)
+        }
+    }
+}
+
+/**
  * Hiển thị số tiền / biểu thức đã được format sẵn từ CalculatorEngine.
- * KHÔNG format lại — tránh bug double-format (vd "5.000" → "5.0.00").
- * Hiển thị thêm dòng đọc số bằng chữ tiếng Việt phía dưới.
+ * Tự động co giãn kích thước chữ (Dynamic Font Sizing) theo độ dài để KHÔNG BAO GIỜ bị tràn hay cắt thành "...".
+ * Hiển thị nhãn cấp độ số tiền thông minh (Smart Magnitude Chip) thay cho câu đọc dài dòng gây rối mắt.
  */
 @Composable
 fun TransactionAmountDisplay(
     amountInput: String,
     modifier: Modifier = Modifier
 ) {
-    // Parse số thuần từ chuỗi đã format (vd "5.054.542" → 5054542L)
     val rawNumber = remember(amountInput) {
         amountInput.replace(".", "").toLongOrNull() ?: 0L
     }
     val zeroWords = stringResource(R.string.number_words_zero)
     val currencySuffix = stringResource(R.string.number_words_currency_suffix)
+    val millionLabel = stringResource(R.string.unit_million)
+    val billionLabel = stringResource(R.string.unit_billion)
+    val trillionLabel = stringResource(R.string.unit_trillion)
+    val approxFormat = stringResource(R.string.approx_symbol)
+
     val amountInWords = remember(rawNumber, zeroWords, currencySuffix) {
         if (rawNumber > 0L) {
             runCatching {
                 VietnameseMoneyWordsFormatter.format(rawNumber, zeroWords) + " " + currencySuffix
             }.getOrDefault("")
         } else ""
+    }
+
+    val smartMagnitude = remember(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat) {
+        formatSmartMagnitude(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat)
+    }
+
+    var showFullWords by remember { mutableStateOf(false) }
+
+    // Dynamic Font Sizing: Càng nhiều chữ số thì font tự thu nhỏ để KHÔNG BAO GIỜ bị tràn hoặc nhảy dấu "..."
+    val length = amountInput.length
+    val (amountFontSize, currencyFontSize) = when {
+        length <= 7 -> 38.sp to 24.sp      // vd: "500.000"
+        length <= 10 -> 30.sp to 20.sp     // vd: "50.000.000"
+        length <= 13 -> 24.sp to 16.sp     // vd: "520.000.335" hoặc "5.000.000.000"
+        else -> 20.sp to 14.sp             // vd: "500.000.000 + 200.000.000"
     }
 
     Column(
@@ -64,43 +149,70 @@ fun TransactionAmountDisplay(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            // amountInput đã được format bởi CalculatorEngine.displayExpression → hiển thị thẳng
             Text(
                 text = amountInput.ifBlank { "0" },
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
+                fontSize = amountFontSize,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                softWrap = false,
+                overflow = TextOverflow.Clip
             )
 
             Text(
                 text = stringResource(R.string.currency_vnd_symbol),
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
-                ),
+                fontSize = currencyFontSize,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 6.dp)
             )
         }
-        // Dòng đọc số bằng chữ (chỉ hiển khi có số thuần)
-        if (amountInWords.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = amountInWords,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Normal,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+
+        // Smart Magnitude Pill Badge (Chỉ hiển thị cho số lớn >= 1.000.000 để tránh visual noise cho chi tiêu nhỏ)
+        if (smartMagnitude != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                shape = AppTheme.shapes.circle,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(AppTheme.shapes.circle)
+                    .clickable { showFullWords = !showFullWords }
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = smartMagnitude,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // Nếu người dùng chạm vào pill thì mở rộng hiển thị toàn văn đọc số bằng chữ
+            if (showFullWords && amountInWords.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.magnitude_words_prefix, amountInWords),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
     }
 }
@@ -319,7 +431,7 @@ fun RowScope.KeypadButton(
             }
             KeypadKey.DotThreeZeros -> {
                 Text(
-                    text = ".000",
+                    text = "000",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

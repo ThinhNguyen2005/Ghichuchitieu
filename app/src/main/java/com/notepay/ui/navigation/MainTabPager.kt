@@ -55,6 +55,9 @@ fun MainTabPager(
                 onTransactionClick = { txId ->
                     navController.navigate(Route.TransactionDetail(txId).path)
                 },
+                onEditTransaction = { txId ->
+                    navController.navigate(Route.EditTransaction(txId).path)
+                },
             )
             1 -> StatsScreen(
                 onAddTransaction = { navController.navigate(Route.AddTransaction.path) },

@@ -118,6 +118,9 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xmx1024m")
+            }
         }
     }
 

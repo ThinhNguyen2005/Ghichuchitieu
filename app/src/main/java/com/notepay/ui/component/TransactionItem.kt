@@ -77,7 +77,7 @@ fun TransactionItem(
         Modifier
     }
 
-    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val isLightTheme = !com.notepay.ui.theme.isAppDarkTheme()
     val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 
     Card(

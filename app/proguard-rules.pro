@@ -28,3 +28,15 @@
 -keep class com.notepay.** { *; }
 -keepattributes InnerClasses,EnclosingMethod,Signature
 
+# ML Kit & Firebase ComponentRegistrars (Required for reflection-based discovery)
+-keep class * implements com.google.firebase.components.ComponentRegistrar {
+    public <init>();
+    public *;
+}
+-keep class com.google.mlkit.** { *; }
+-keep interface com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_text_common.** { *; }
+-keep class com.google.android.gms.vision.** { *; }
+-dontwarn com.google.mlkit.**
+
+

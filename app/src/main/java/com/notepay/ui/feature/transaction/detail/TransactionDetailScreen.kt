@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.transaction.detail
 
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.theme.isAppDarkTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -109,7 +110,7 @@ fun TransactionDetailScreen(
                         MetaCard(transaction = tx, walletName = state.walletName)
 
                         if (state.isAutoCapture) {
-                            val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+                            val isLightTheme = !isAppDarkTheme()
                             val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 
                             Card(
@@ -211,7 +212,7 @@ private fun MetaCard(
 ) {
     val tz = TimeZone.currentSystemDefault()
     val date = transaction.occurredAt.toLocalDateTime(tz)
-    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val isLightTheme = !isAppDarkTheme()
     val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 
     Card(
@@ -316,7 +317,7 @@ private fun ActionsBlock(
     onCreateBillSplit: () -> Unit,
     onCreateSubscription: () -> Unit,
 ) {
-    val isLightTheme = !androidx.compose.foundation.isSystemInDarkTheme()
+    val isLightTheme = !isAppDarkTheme()
     val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 
     Card(

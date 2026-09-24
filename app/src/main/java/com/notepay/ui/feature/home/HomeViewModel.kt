@@ -15,6 +15,7 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
 import com.notepay.platform.OsCompatHelper
@@ -42,6 +43,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val transactionRepo: TransactionRepository,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
     private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val budgetSettingsStore: BudgetSettingsStore,
@@ -53,6 +55,12 @@ class HomeViewModel @Inject constructor(
     private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
+
+    fun deleteTransaction(transactionId: Long) {
+        viewModelScope.launch {
+            deleteTransactionUseCase(transactionId)
+        }
+    }
 
     init {
         viewModelScope.launch {

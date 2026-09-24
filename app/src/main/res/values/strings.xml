@@ -83,6 +83,11 @@
     <!-- Number-to-words helper -->
     <string name="number_words_zero">Không</string>
     <string name="number_words_currency_suffix">đồng</string>
+    <string name="unit_million">triệu</string>
+    <string name="unit_billion">tỷ</string>
+    <string name="unit_trillion">nghìn tỷ</string>
+    <string name="approx_symbol">≈ %s</string>
+    <string name="magnitude_words_prefix">Đọc là: %s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Tìm theo ghi chú</string>
@@ -1035,4 +1040,16 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="ai_smart_receipt_desc">Tự động trích xuất thông tin số tiền, ngày giờ và danh mục từ ảnh chụp hóa đơn</string>
     <string name="ai_section_privacy">Bảo mật &amp; Quyền riêng tư</string>
     <string name="ai_privacy_desc">Dữ liệu thu chi của bạn là tài sản cá nhân. NotePay không bao giờ lưu trữ ảnh chụp hóa đơn hay thông tin tài chính lên máy chủ bên thứ ba.</string>
+
+    <!-- App Widgets -->
+    <string name="widget_quick_action_name">Ghi chép nhanh</string>
+    <string name="widget_quick_action_desc">Mở nhanh giao diện thêm chi tiêu ngay từ màn hình chính.</string>
+    <string name="widget_spent_glance_name">Tiến trình chi tiêu</string>
+    <string name="widget_spent_glance_desc">Xem nhanh thanh tiến trình chi tiêu trong tháng so với hạn mức ngân sách.</string>
+    <string name="widget_spent_glance_title">Chi tiêu Tháng %1$s</string>
+    <string name="widget_spent_glance_default_wallet">Ví mặc định</string>
+    <string name="widget_spent_glance_no_budget">Chưa đặt hạn mức</string>
+    <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
+    <string name="widget_spent_glance_remaining">Còn lại: %1$s</string>
+    <string name="widget_spent_glance_overspent">Vượt hạn mức %1$s</string>
 </resources>

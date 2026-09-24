@@ -8,7 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -485,7 +485,7 @@ private fun BillSplitOverview(
     splitCount: Int,
     modifier: Modifier = Modifier,
 ) {
-    val isLightTheme = !isSystemInDarkTheme()
+    val isLightTheme = !isAppDarkTheme()
     val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 
     Card(
@@ -566,7 +566,7 @@ private fun DebtorGroupRow(
     )
     val initial = debtorName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
 
-    val cardBgColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+    val cardBgColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -667,7 +667,7 @@ private fun PaidBillSplitRow(
     val note = itemState.parentTransaction?.note ?: stringResource(R.string.billsplit_default_note)
     val paidColor = MaterialTheme.colorScheme.tertiary
 
-    val cardBgColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+    val cardBgColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
     Card(
         modifier = Modifier
             .fillMaxWidth()

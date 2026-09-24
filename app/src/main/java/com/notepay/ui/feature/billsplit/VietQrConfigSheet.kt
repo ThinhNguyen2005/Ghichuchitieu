@@ -10,7 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -163,8 +163,8 @@ fun VietQrConfigSheet(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            focusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
-                            unfocusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+                            focusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
+                            unfocusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -294,7 +294,7 @@ fun VietQrConfigSheet(
                             },
                         shape = AppTheme.shapes.corner16,
                         colors = CardDefaults.cardColors(
-                            containerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+                            containerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -346,8 +346,8 @@ fun VietQrConfigSheet(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                            focusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
-                            unfocusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+                            focusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
+                            unfocusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -376,8 +376,8 @@ fun VietQrConfigSheet(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                            focusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
-                            unfocusedContainerColor = if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+                            focusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer,
+                            unfocusedContainerColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -419,7 +419,7 @@ private fun BankRow(
     val containerColor = if (isSelected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     } else {
-        if (!isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
+        if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
     }
 
     Card(

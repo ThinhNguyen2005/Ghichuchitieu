@@ -14,7 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -522,7 +522,7 @@ private fun CategoryBreakdownRow(
             .clickable(onClick = onClick),
         shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isSystemInDarkTheme()) {
+            containerColor = if (!isAppDarkTheme()) {
                 Color.White
             } else {
                 MaterialTheme.colorScheme.surfaceContainer
@@ -637,7 +637,7 @@ private fun BudgetProgressBar(
         modifier = Modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isSystemInDarkTheme()) {
+            containerColor = if (!isAppDarkTheme()) {
                 Color.White
             } else {
                 MaterialTheme.colorScheme.surfaceContainer
@@ -773,7 +773,7 @@ private fun SpendingPredictionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isSystemInDarkTheme()) {
+            containerColor = if (!isAppDarkTheme()) {
                 Color.White
             } else {
                 MaterialTheme.colorScheme.surfaceContainer
@@ -1455,7 +1455,7 @@ private fun InsightCard(
         modifier = modifier.height(214.dp),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isSystemInDarkTheme()) {
+            containerColor = if (!isAppDarkTheme()) {
                 Color.White
             } else {
                 MaterialTheme.colorScheme.surfaceContainer

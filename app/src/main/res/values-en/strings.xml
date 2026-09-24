@@ -83,6 +83,11 @@
     <!-- Number-to-words helper -->
     <string name="number_words_zero">Zero</string>
     <string name="number_words_currency_suffix">VND</string>
+    <string name="unit_million">million</string>
+    <string name="unit_billion">billion</string>
+    <string name="unit_trillion">trillion</string>
+    <string name="approx_symbol">≈ %s</string>
+    <string name="magnitude_words_prefix">In words: %s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Search by note</string>
@@ -1048,4 +1053,16 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="ai_smart_receipt_desc">Automatically extract amount, date, and category from receipt images</string>
     <string name="ai_section_privacy">Privacy &amp; Security</string>
     <string name="ai_privacy_desc">Your financial data is personal. NotePay never stores receipt photos or transaction data on third-party servers.</string>
+
+    <!-- App Widgets -->
+    <string name="widget_quick_action_name">Quick Add</string>
+    <string name="widget_quick_action_desc">Instantly open add transaction screen from your home screen.</string>
+    <string name="widget_spent_glance_name">Spending Glance</string>
+    <string name="widget_spent_glance_desc">Quickly glance at monthly spending progress compared to your budget limit.</string>
+    <string name="widget_spent_glance_title">Spent in %1$s</string>
+    <string name="widget_spent_glance_default_wallet">Default Wallet</string>
+    <string name="widget_spent_glance_no_budget">No budget set</string>
+    <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
+    <string name="widget_spent_glance_remaining">Remaining: %1$s</string>
+    <string name="widget_spent_glance_overspent">Over budget by %1$s</string>
 </resources>

@@ -33,7 +33,7 @@ fun LiquidGlassPanel(
     backdrop: Backdrop? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = com.notepay.ui.theme.isAppDarkTheme()
     val surfaceTint = if (tint.isSpecified) {
         tint
     } else {

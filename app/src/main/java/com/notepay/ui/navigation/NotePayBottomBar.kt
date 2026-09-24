@@ -11,7 +11,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -216,8 +216,8 @@ fun BoxScope.NotePayBottomBar(
         if (showQuickAddSheet) R.string.quick_add_close_menu else R.string.quick_add_open_menu
     )
     val primaryColor = MaterialTheme.colorScheme.primary
-    val isLightTheme = !isSystemInDarkTheme()
-    val containerColor = if (isLightTheme) Color(0xFFFAFAFA).copy(0.65f) else Color(0xFF121212).copy(0.7f)
+    val isLightTheme = !isAppDarkTheme()
+    val containerColor = if (isLightTheme) Color.White.copy(alpha = 0.82f) else Color(0xFF1E1E1E).copy(alpha = 0.75f)
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -247,7 +247,7 @@ fun BoxScope.NotePayBottomBar(
                     .weight(1f)
                     .height(64.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .background(if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer)
                     .padding(4.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -541,11 +541,14 @@ fun BoxScope.NotePayBottomBar(
                             onDrawSurface = {
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
-                                    if (isLightTheme) Color.Black.copy(0.1f)
-                                    else Color.White.copy(0.1f),
+                                    if (isLightTheme) Color.Black.copy(0.08f)
+                                    else Color.White.copy(0.12f),
                                     alpha = 1f - progress
                                 )
-                                drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                                drawRect(
+                                    if (isLightTheme) Color.Black.copy(alpha = 0.03f * progress)
+                                    else Color.White.copy(alpha = 0.03f * progress)
+                                )
                             }
                         )
                         .height(56f.dp)

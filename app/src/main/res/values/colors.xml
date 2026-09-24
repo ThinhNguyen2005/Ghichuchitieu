@@ -14,4 +14,17 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Widget Design Tokens (Light) -->
+    <color name="widget_bg">#FFFFFFFF</color>
+    <color name="widget_stroke">#FFE5E5EA</color>
+    <color name="widget_text_primary">#FF000000</color>
+    <color name="widget_text_secondary">#FF6C6C70</color>
+    <color name="widget_btn_bg">#FF000000</color>
+    <color name="widget_btn_text">#FFFFFFFF</color>
+    <color name="widget_progress_track">#FFE5E5EA</color>
+    <color name="widget_progress_bar">#FF34C759</color>
+    <color name="widget_progress_warning">#FFFF9F0A</color>
+    <color name="widget_progress_danger">#FFFF3B30</color>
+    <color name="widget_chip_bg">#FFF2F2F7</color>
 </resources>

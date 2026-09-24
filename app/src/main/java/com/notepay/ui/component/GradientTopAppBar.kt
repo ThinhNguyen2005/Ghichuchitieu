@@ -1,7 +1,7 @@
 package com.notepay.ui.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,9 +26,8 @@ fun GradientTopAppBar(
         containerColor = Color.Transparent
     )
 ) {
-    val isLightTheme = !isSystemInDarkTheme()
-    val topBarColor = if (isLightTheme) Color(0xFFFAFAFA) else Color(0xFF121212)
-    val gradientBrush = remember(isLightTheme) {
+    val topBarColor = MaterialTheme.colorScheme.background
+    val gradientBrush = remember(topBarColor) {
         Brush.verticalGradient(
             0.0f to topBarColor,
             0.6f to topBarColor,

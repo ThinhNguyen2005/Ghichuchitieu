@@ -52,6 +52,7 @@ class TransactionRepositoryImplTest {
             dao = fakeDao,
             mapper = TransactionMapper(),
             categoryRepository = categoryRepository,
+            context = context,
             dispatcher = mainDispatcherRule.testDispatcher
         )
     }

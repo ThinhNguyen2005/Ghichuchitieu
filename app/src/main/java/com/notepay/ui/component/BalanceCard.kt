@@ -3,7 +3,7 @@ package com.notepay.ui.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,7 +77,7 @@ fun BalanceCard(
     if (wallet == null) return
 
     val hasCustomBg = !backgroundImageUri.isNullOrBlank()
-    val isLightTheme = !isSystemInDarkTheme()
+    val isLightTheme = !isAppDarkTheme()
     val defaultCardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
     val defaultBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
 

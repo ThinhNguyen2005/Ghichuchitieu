@@ -75,8 +75,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.notepay.R
 import com.notepay.domain.model.Money
+import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.BalanceCard
+import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.SmartInsightsCard
@@ -94,11 +96,13 @@ fun HomeScreen(
     onNavigateToReminders: () -> Unit,
     onNavigateToAppSettings: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
+    onEditTransaction: (Long) -> Unit = onTransactionClick,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showWalletSwitcher by remember { mutableStateOf(false) }
     var isBudgetProjectionDismissed by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     val listState = rememberLazyListState()
@@ -304,7 +308,8 @@ fun HomeScreen(
                         transaction = tx,
                         walletName = walletName,
                         onClick = { onTransactionClick(tx.id) },
-                        onEdit = { onTransactionClick(tx.id) },
+                        onEdit = { onEditTransaction(tx.id) },
+                        onDelete = { pendingDeleteTransaction = tx },
                     )
                 }
             }
@@ -408,6 +413,21 @@ fun HomeScreen(
                 TextButton(onClick = { showWalletSwitcher = false }) {
                     Text(closeLabel)
                 }
+            }
+        )
+    }
+
+    pendingDeleteTransaction?.let { tx ->
+        val itemName = tx.note.ifBlank { tx.category.displayName }
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.confirm_delete_transaction_title),
+            itemName = itemName,
+            onConfirm = {
+                viewModel.deleteTransaction(tx.id)
+                pendingDeleteTransaction = null
+            },
+            onDismiss = {
+                pendingDeleteTransaction = null
             }
         )
     }
