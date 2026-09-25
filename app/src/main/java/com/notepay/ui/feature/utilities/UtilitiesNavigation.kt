@@ -69,6 +69,11 @@ fun NavGraphBuilder.utilitiesGraph(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }

@@ -28,6 +28,11 @@ fun NavGraphBuilder.walletGraph(
                     navController.navigate("${Route.TransactionList.path}?walletId=$walletId")
                 },
                 onFeedback = showFeedback,
+                onNavigateToDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }

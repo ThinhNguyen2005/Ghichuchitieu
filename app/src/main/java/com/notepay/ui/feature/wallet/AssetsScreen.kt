@@ -87,6 +87,7 @@ import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.feature.debt.DebtSummaryCard
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.WalletUiHelper
 import kotlin.math.roundToInt
@@ -98,6 +99,7 @@ fun AssetsScreen(
     onEditWallet: (Long) -> Unit,
     onWalletClick: (Long) -> Unit,
     onFeedback: suspend (UiFeedback) -> Boolean,
+    onNavigateToDebtManagement: () -> Unit = {},
     viewModel: AssetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -160,6 +162,17 @@ fun AssetsScreen(
                     AssetAllocationCard(
                         allocationItems = state.allocationItems
                     )
+                }
+
+                // Thẻ tóm tắt Sổ nợ cá nhân (Personal Debts Summary)
+                val summary = state.debtSummary
+                if (summary != null && (summary.activeDebtsCount > 0 || summary.totalToCollect.amountInCents > 0L || summary.totalToPay.amountInCents > 0L)) {
+                    item {
+                        DebtSummaryCard(
+                            summary = summary,
+                            onClick = onNavigateToDebtManagement,
+                        )
+                    }
                 }
 
                 // Header danh sách ví

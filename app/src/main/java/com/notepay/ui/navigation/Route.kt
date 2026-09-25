@@ -19,6 +19,14 @@ sealed interface Route {
         }
     }
     data object Utilities : Route { override val path = "utilities" }
+    data object DebtManagement : Route { override val path = "debt-management" }
+    data class DebtDetail(val id: Long) : Route {
+        override val path = "debt-detail/$id"
+        companion object {
+            const val ROUTE = "debt-detail/{id}"
+            const val ARG_ID = "id"
+        }
+    }
     data object AddDummy : Route { override val path = "add-dummy" }
     data object AppSettings : Route { override val path = "app-settings" }
     data object BackupRestore : Route { override val path = "backup-restore" }

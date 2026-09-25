@@ -75,6 +75,11 @@ fun MainTabPager(
                     navController.navigate("${Route.TransactionList.path}?walletId=$walletId")
                 },
                 onFeedback = showFeedback,
+                onNavigateToDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
             )
             3 -> UtilitiesScreen(
                 onNavigateToBillSplit = {
@@ -120,6 +125,11 @@ fun MainTabPager(
                 },
                 onNavigateToAppSettings = {
                     navController.navigate(Route.AppSettings.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
                         launchSingleTop = true
                     }
                 },

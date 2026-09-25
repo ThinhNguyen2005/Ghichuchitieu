@@ -54,6 +54,7 @@ import com.notepay.ui.feature.billsplit.billSplitGraph
 import com.notepay.ui.feature.stats.statsScreen
 import com.notepay.ui.feature.subscription.subscriptionScreen
 import com.notepay.ui.feature.transaction.transactionGraph
+import com.notepay.ui.feature.debt.debtGraph
 import com.notepay.ui.feature.utilities.utilitiesGraph
 import com.notepay.ui.feature.wallet.walletGraph
 import com.notepay.ui.feedback.FeedbackDuration
@@ -260,6 +261,7 @@ fun NotePayNavHost(
                                     }
                                 },
                             )
+                            debtGraph(navController)
                         }
                     }
                 }

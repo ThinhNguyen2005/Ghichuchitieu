@@ -2,6 +2,7 @@ package com.notepay.ui.feature.wallet
 
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.usecase.debt.DebtSummary
 
 enum class AssetChartRange {
     WEEK,
@@ -48,4 +49,5 @@ data class AssetsUiState(
     val transferAmountInput: String = "",
     val transferNote: String = "",
     val isTransferSubmitting: Boolean = false,
+    val debtSummary: DebtSummary? = null,
 )

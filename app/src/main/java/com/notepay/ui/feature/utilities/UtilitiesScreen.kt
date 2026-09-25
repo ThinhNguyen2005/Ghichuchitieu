@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Paid
+import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -64,6 +65,7 @@ fun UtilitiesScreen(
     onNavigateToAiSettings: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToAppSettings: () -> Unit,
+    onNavigateToDebtManagement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -116,6 +118,14 @@ fun UtilitiesScreen(
                             title = stringResource(R.string.bill_split_title),
                             subtitle = stringResource(R.string.utilities_bill_split_subtitle),
                             onClick = onNavigateToBillSplit
+                        )
+                        ItemDivider()
+                        UtilityRowItem(
+                            icon = Icons.Rounded.Payments,
+                            iconTint = Color(0xFF34C759),
+                            title = stringResource(R.string.debt_nav_title),
+                            subtitle = stringResource(R.string.debt_utilities_subtitle),
+                            onClick = onNavigateToDebtManagement
                         )
                         ItemDivider()
                         UtilityRowItem(

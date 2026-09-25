@@ -84,7 +84,8 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_1_2,
                 NotePayDatabase.MIGRATION_2_3,
                 NotePayDatabase.MIGRATION_3_4,
-                NotePayDatabase.MIGRATION_4_5
+                NotePayDatabase.MIGRATION_4_5,
+                NotePayDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -180,7 +181,8 @@ class DatabaseMigrationTest {
             .addMigrations(
                 NotePayDatabase.MIGRATION_2_3,
                 NotePayDatabase.MIGRATION_3_4,
-                NotePayDatabase.MIGRATION_4_5
+                NotePayDatabase.MIGRATION_4_5,
+                NotePayDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -217,5 +219,56 @@ class DatabaseMigrationTest {
 
         dbV5.close()
         context.deleteDatabase("test_migration_2_3.db")
+    }
+
+    @Test
+    fun testMigration5To6() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val dbFile = context.getDatabasePath("test_migration_5_6.db")
+        if (dbFile.exists()) {
+            dbFile.delete()
+        }
+
+        val dbV5 = context.openOrCreateDatabase("test_migration_5_6.db", Context.MODE_PRIVATE, null)
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS `wallets` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `initial_balance_cents` INTEGER NOT NULL, `icon_key` TEXT NOT NULL, `color_key` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `budget_limit_cents` INTEGER, `linked_package_name` TEXT, `bank_bin` TEXT, `account_number` TEXT, `account_name` TEXT, `created_at` INTEGER NOT NULL)")
+        dbV5.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_active` ON `wallets` (`is_active`)")
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount_cents` INTEGER NOT NULL, `type` TEXT NOT NULL, `category` TEXT NOT NULL, `note` TEXT NOT NULL, `occurred_at` INTEGER NOT NULL, `wallet_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `is_auto_capture` INTEGER NOT NULL DEFAULT 0, `is_internal_transfer` INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        dbV5.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
+        dbV5.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS `categories` (`id` TEXT PRIMARY KEY NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `icon_name` TEXT NOT NULL, `color_hex` TEXT NOT NULL, `is_default` INTEGER NOT NULL DEFAULT 0, `created_at` INTEGER NOT NULL)")
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS `bill_splits` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transaction_id` INTEGER NOT NULL, `debtor_name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `is_paid` INTEGER NOT NULL, `memo_code` TEXT NOT NULL, `paid_at` INTEGER, `created_at` INTEGER NOT NULL, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        dbV5.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_splits_transaction_id` ON `bill_splits` (`transaction_id`)")
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS `subscriptions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `category` TEXT NOT NULL, `next_due_date` INTEGER NOT NULL, `repeat_months` INTEGER NOT NULL, `remind_days_before` INTEGER NOT NULL, `note` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)")
+        dbV5.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        dbV5.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, '8813cd4b386f74d312d5d6142521f842')")
+        dbV5.execSQL("PRAGMA user_version = 5")
+        dbV5.close()
+
+        val dbV6 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_5_6.db")
+            .addMigrations(NotePayDatabase.MIGRATION_5_6)
+            .allowMainThreadQueries()
+            .build()
+
+        val debtEntity = com.notepay.data.local.entity.DebtEntity(
+            id = 1L,
+            personName = "Tran Van Test",
+            phoneNumber = "0987654321",
+            type = "LEND",
+            originalAmountCents = 50000000L,
+            walletId = null,
+            createdAt = 1000L,
+            dueDate = 2000L,
+            note = "Test note",
+            isSettled = false,
+        )
+        dbV6.debtDao().insertDebt(debtEntity)
+
+        val retrieved = dbV6.debtDao().getWithPaymentsById(1L)
+        assertThat(retrieved).isNotNull()
+        assertThat(retrieved?.debt?.personName).isEqualTo("Tran Van Test")
+        assertThat(retrieved?.debt?.originalAmountCents).isEqualTo(50000000L)
+
+        dbV6.close()
+        context.deleteDatabase("test_migration_5_6.db")
     }
 }

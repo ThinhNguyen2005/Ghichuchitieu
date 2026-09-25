@@ -7,8 +7,14 @@ import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.debt.Debt
+import com.notepay.domain.model.debt.DebtPayment
+import com.notepay.domain.model.debt.DebtType
+import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.repository.DebtRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +30,9 @@ class AssetsViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
+
+    private val fakeDebtRepo = FakeDebtRepository()
+    private val getDebtSummaryUseCase = GetDebtSummaryUseCase(fakeDebtRepo)
 
     private val walletCash = TestData.wallet(
         id = 1L,
@@ -62,7 +71,7 @@ class AssetsViewModelTest {
         val walletRepo = FakeWalletRepository(listOf(walletCash, walletBank))
         val txRepo = FakeTransactionRepository(listOf(txSalary, txFood))
 
-        val viewModel = AssetsViewModel(walletRepo, txRepo)
+        val viewModel = AssetsViewModel(walletRepo, txRepo, getDebtSummaryUseCase)
         val state = viewModel.state.value
 
         assertThat(state.isLoading).isFalse()
@@ -87,7 +96,7 @@ class AssetsViewModelTest {
         val walletRepo = FakeWalletRepository(listOf(walletCash))
         val txRepo = FakeTransactionRepository(listOf(txFood))
 
-        val viewModel = AssetsViewModel(walletRepo, txRepo)
+        val viewModel = AssetsViewModel(walletRepo, txRepo, getDebtSummaryUseCase)
         assertThat(viewModel.state.value.selectedChartRange).isEqualTo(AssetChartRange.MONTH)
         assertThat(viewModel.state.value.trendPoints).hasSize(30)
 
@@ -101,7 +110,7 @@ class AssetsViewModelTest {
         val walletRepo = FakeWalletRepository(listOf(walletCash, walletBank))
         val txRepo = FakeTransactionRepository(emptyList())
 
-        val viewModel = AssetsViewModel(walletRepo, txRepo)
+        val viewModel = AssetsViewModel(walletRepo, txRepo, getDebtSummaryUseCase)
         viewModel.setActiveWallet(2L)
 
         assertThat(walletRepo.activeWalletId).isEqualTo(2L)
@@ -152,5 +161,18 @@ class AssetsViewModelTest {
         override suspend fun delete(id: Long) {}
 
         override suspend fun findRecentSimilar(noteKeyword: String, fromMillis: Long, toMillis: Long): List<Transaction> = emptyList()
+    }
+
+    private class FakeDebtRepository : DebtRepository {
+        override fun observeAll(): Flow<List<DebtWithHistory>> = flowOf(emptyList())
+        override fun observeByType(type: DebtType): Flow<List<DebtWithHistory>> = flowOf(emptyList())
+        override fun observeById(id: Long): Flow<DebtWithHistory?> = flowOf(null)
+        override suspend fun getById(id: Long): DebtWithHistory? = null
+        override suspend fun upsertDebt(debt: Debt): Long = 1L
+        override suspend fun deleteDebt(id: Long) {}
+        override suspend fun recordPayment(payment: DebtPayment): Long = 1L
+        override suspend fun deletePayment(id: Long) {}
+        override suspend fun markSettled(debtId: Long, isSettled: Boolean) {}
+        override suspend fun getDebtsDueInRange(startMillis: Long, endMillis: Long): List<Debt> = emptyList()
     }
 }
