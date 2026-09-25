@@ -12,7 +12,7 @@ fun NavGraphBuilder.debtGraph(
     navController: NavController,
 ) {
     composable(Route.DebtManagement.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             DebtManagementScreen(
                 onBack = { navController.popBackStack() },
                 onDebtClick = { debtId ->
@@ -28,7 +28,7 @@ fun NavGraphBuilder.debtGraph(
             navArgument(Route.DebtDetail.ARG_ID) { type = NavType.LongType }
         )
     ) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             DebtDetailScreen(
                 onBack = { navController.popBackStack() },
             )

@@ -2,10 +2,13 @@ package com.notepay.ui.component
 
 import android.app.ActivityManager
 import android.content.Context
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.EnterExitState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -13,31 +16,55 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
- * Modifier hỗ trợ bo góc mượt mà cho các màn hình con trong NavHost khi người dùng
- * thực hiện thao tác vuốt lùi (Predictive Back Gesture).
+ * Container bọc màn hình con trong NavGraph với cơ chế Predictive Back chuẩn Telegram:
  *
- * - Khi ở trạng thái tĩnh (toàn màn hình): cornerRadius = 0.dp (tràn viền tự nhiên, phẳng).
- * - Khi đang vuốt back hoặc chuyển cảnh: cornerRadius tự động bo tròn mượt mà đến [maxRadius]
- *   theo tiến trình tuyến tính (LinearEasing) bám sát tuyệt đối theo ngón tay người dùng.
- * - [enableElevation]: Tự động bật bóng nổi cao cấp (Material 3) trên thiết bị tiêu chuẩn/mạnh,
- *   và tự động tắt trên thiết bị yếu (Low-RAM / Android Go) để đảm bảo 60fps/120fps không bao giờ giật lag.
+ * 1. Khi vuốt từ mép trái: Màn hình thu nhỏ nhẹ (scale ~0.92), bo góc tròn (28.dp),
+ *    đổ bóng nổi và bị đẩy nhẹ sang phải (~32.dp).
+ * 2. Khi vuốt từ mép phải: Tương tự, màn hình thu nhỏ và bị đẩy nhẹ sang trái (~ -32.dp).
+ * 3. Khi buông tay ra (Gesture confirmed): Trang lướt/trượt dứt khoát 100% sang bên phải ra khỏi màn hình.
+ * 4. Khi kéo ngược lại để hủy (Cancelled): Đàn hồi mượt mà về trạng thái toàn màn hình ban đầu.
  */
 @Composable
-fun Modifier.predictiveBackCorners(
-    scope: AnimatedContentScope,
+fun AnimatedContentScope.PredictiveBackDestination(
+    modifier: Modifier = Modifier,
     maxRadius: Dp = 28.dp,
     enableElevation: Boolean? = null,
-): Modifier {
+    onBack: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    if (onBack == null) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            content()
+        }
+        return
+    }
+
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val targetFixedShiftPx = with(density) { 32.dp.toPx() }
+    val maxRadiusPx = with(density) { maxRadius.toPx() }
+    val maxElevationPx = with(density) { 10.dp.toPx() }
+
     val shouldEnableElevation = remember(context, enableElevation) {
         enableElevation ?: run {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
@@ -45,50 +72,87 @@ fun Modifier.predictiveBackCorners(
         }
     }
 
-    val cornerRadius by scope.transition.animateDp(
-        label = "predictiveBackCorners",
-        transitionSpec = { tween(durationMillis = 250, easing = LinearEasing) }
-    ) { state ->
-        when (state) {
-            EnterExitState.Visible -> 0.dp
-            EnterExitState.PreEnter,
-            EnterExitState.PostExit -> maxRadius
-        }
-    }
+    val offsetX = remember { Animatable(0f) }
+    val scale = remember { Animatable(1f) }
+    val cornerRadius = remember { Animatable(0f) }
+    val elevation = remember { Animatable(0f) }
+    val alpha = remember { Animatable(1f) }
 
-    return this.graphicsLayer {
-        val radiusPx = cornerRadius.toPx()
-        val maxRadiusPx = maxRadius.toPx()
-        if (radiusPx > 0.5f) {
-            shape = RoundedCornerShape(radiusPx)
-            clip = true
-            if (shouldEnableElevation) {
-                val progress = if (maxRadiusPx > 0f) (radiusPx / maxRadiusPx).coerceIn(0f, 1f) else 0f
-                shadowElevation = 8.dp.toPx() * progress
-            } else {
-                shadowElevation = 0f
+    PredictiveBackHandler(enabled = true) { progressFlow ->
+        var isLeftEdge = true
+        try {
+            progressFlow.collect { backEvent ->
+                isLeftEdge = backEvent.swipeEdge == BackEventCompat.EDGE_LEFT
+                val progress = backEvent.progress
+
+                // Telegram gesture: Nhanh chóng đạt trạng thái preview cố định (trong ~12% đầu của thao tác vuốt)
+                // và giữ cố định (không bám đuổi theo ngón tay nữa khi ngón tay di chuyển tiếp)
+                val previewFactor = FastOutSlowInEasing.transform((progress / 0.12f).coerceIn(0f, 1f))
+
+                val targetScale = 1f - (0.08f * previewFactor)
+                val currentRadius = maxRadiusPx * previewFactor
+                val currentElevation = if (shouldEnableElevation) maxElevationPx * previewFactor else 0f
+                val currentShift = if (isLeftEdge) {
+                    targetFixedShiftPx * previewFactor
+                } else {
+                    -targetFixedShiftPx * previewFactor
+                }
+
+                scale.snapTo(targetScale)
+                cornerRadius.snapTo(currentRadius)
+                elevation.snapTo(currentElevation)
+                offsetX.snapTo(currentShift)
             }
-        } else {
-            clip = false
-            shadowElevation = 0f
+
+            // Khi buông tay xác nhận: Trượt dứt khoát 100% sang phải ra khỏi màn hình (Telegram physics)
+            coroutineScope {
+                launch {
+                    offsetX.animateTo(
+                        targetValue = screenWidthPx,
+                        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                    )
+                }
+                launch {
+                    alpha.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(durationMillis = 180)
+                    )
+                }
+            }
+            onBack()
+        } catch (e: CancellationException) {
+            // Khi hủy thao tác vuốt (kéo ngược về mép hoặc huỷ gesture):
+            // Phục hồi lại toàn màn hình với spring mượt mà, bọc NonCancellable để hoàn tất an toàn
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                coroutineScope {
+                    launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                    launch { scale.animateTo(1f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                    launch { cornerRadius.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                    launch { elevation.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                    launch { alpha.animateTo(1f, tween(durationMillis = 150)) }
+                }
+            }
         }
     }
-}
 
-/**
- * Container bọc màn hình đích trong NavGraph composable(...) với hiệu ứng bo góc Predictive Back.
- */
-@Composable
-fun AnimatedContentScope.PredictiveBackDestination(
-    modifier: Modifier = Modifier,
-    maxRadius: Dp = 28.dp,
-    enableElevation: Boolean? = null,
-    content: @Composable () -> Unit,
-) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .predictiveBackCorners(this, maxRadius, enableElevation)
+            .graphicsLayer {
+                this.translationX = offsetX.value
+                this.scaleX = scale.value
+                this.scaleY = scale.value
+                this.alpha = alpha.value
+                val r = cornerRadius.value
+                if (r > 0.5f) {
+                    shape = RoundedCornerShape(r)
+                    clip = true
+                    shadowElevation = elevation.value
+                } else {
+                    clip = false
+                    shadowElevation = 0f
+                }
+            }
             .background(MaterialTheme.colorScheme.background)
     ) {
         content()

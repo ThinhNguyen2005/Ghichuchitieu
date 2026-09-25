@@ -231,12 +231,8 @@ fun NotePayNavHost(
                                     fadeIn(tween(NotePayMotion.contentDurationMillis)) +
                                         scaleIn(
                                             initialScale = 0.95f,
-                                            transformOrigin = TransformOrigin(0f, 0.5f),
+                                            transformOrigin = TransformOrigin(0.5f, 0.5f),
                                             animationSpec = tween(NotePayMotion.contentDurationMillis),
-                                        ) +
-                                        slideInHorizontally(
-                                            animationSpec = tween(NotePayMotion.contentDurationMillis),
-                                            initialOffsetX = { -(it * 0.05f).toInt() },
                                         )
                                 }
                             },
@@ -244,16 +240,10 @@ fun NotePayNavHost(
                                 if (reducedMotion) {
                                     ExitTransition.None
                                 } else {
-                                    fadeOut(tween(NotePayMotion.contentFadeOutDurationMillis)) +
-                                        scaleOut(
-                                            targetScale = 0.90f,
-                                            transformOrigin = TransformOrigin(0f, 0.5f),
-                                            animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
-                                        ) +
-                                        slideOutHorizontally(
-                                            animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
-                                            targetOffsetX = { (it * 0.12f).toInt() },
-                                        )
+                                    slideOutHorizontally(
+                                        animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
+                                        targetOffsetX = { it },
+                                    ) + fadeOut(tween(NotePayMotion.contentFadeOutDurationMillis))
                                 }
                             },
                         ) {

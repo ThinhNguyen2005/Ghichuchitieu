@@ -38,7 +38,7 @@ fun NavGraphBuilder.walletGraph(
         }
     }
     composable(Route.AddWallet.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AddWalletScreen(
                 onSaved = { feedback ->
                     navController.popBackStack()
@@ -55,7 +55,7 @@ fun NavGraphBuilder.walletGraph(
             navArgument(Route.EditWallet.ARG_ID) { type = NavType.LongType }
         )
     ) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AddWalletScreen(
                 onSaved = { feedback ->
                     navController.popBackStack()

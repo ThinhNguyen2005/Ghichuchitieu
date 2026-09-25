@@ -33,7 +33,7 @@ fun NavGraphBuilder.billSplitGraph(
 
         val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
         val showCreate by showCreateFlow.collectAsState()
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             BillSplitScreen(
                 onDebtorClick = { debtorName ->
                     navController.navigate(Route.DebtorDetail(debtorName).path)
@@ -52,7 +52,7 @@ fun NavGraphBuilder.billSplitGraph(
         arguments = listOf(navArgument(Route.DebtorDetail.ARG_NAME) { type = NavType.StringType }),
     ) { backStackEntry ->
         val debtorName = backStackEntry.arguments?.getString(Route.DebtorDetail.ARG_NAME).orEmpty()
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             DebtorDetailScreen(
                 debtorName = debtorName,
                 onBack = { navController.popBackStack() },

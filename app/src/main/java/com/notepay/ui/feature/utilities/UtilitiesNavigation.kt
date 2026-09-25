@@ -79,32 +79,32 @@ fun NavGraphBuilder.utilitiesGraph(
         }
     }
     composable(Route.CurrencySettings.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             CurrencySettingsScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.CategoryManagement.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             CategoryManagementScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.AppearanceLanguage.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AppearanceLanguageScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.AiSettings.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AiSettingsScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.BackupRestore.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             BackupRestoreScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.AppSettings.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AppSettingsScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },

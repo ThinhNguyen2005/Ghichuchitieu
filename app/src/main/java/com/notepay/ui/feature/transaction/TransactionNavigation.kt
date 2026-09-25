@@ -18,7 +18,7 @@ fun NavGraphBuilder.transactionGraph(
     showFeedback: suspend (UiFeedback) -> Boolean,
 ) {
     composable(Route.AddTransaction.path) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AddTransactionScreen(
                 onSaved = { navController.popBackStack() },
                 onBack = { navController.popBackStack() },
@@ -29,7 +29,7 @@ fun NavGraphBuilder.transactionGraph(
         route = Route.EditTransaction.ROUTE,
         arguments = listOf(navArgument(Route.EditTransaction.ARG_ID) { type = NavType.LongType }),
     ) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             EditTransactionScreen(
                 onSaved = { feedback ->
                     navController.popBackStack()
@@ -44,7 +44,7 @@ fun NavGraphBuilder.transactionGraph(
         route = Route.TransactionDetail.ROUTE,
         arguments = listOf(navArgument(Route.TransactionDetail.ARG_ID) { type = NavType.LongType }),
     ) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             TransactionDetailScreen(
                 onBack = { navController.popBackStack() },
                 onEdit = { id -> navController.navigate(Route.EditTransaction(id).path) },
@@ -71,7 +71,7 @@ fun NavGraphBuilder.transactionGraph(
             }
         )
     ) {
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             TransactionListScreen(
                 onBack = { navController.popBackStack() },
                 onTransactionClick = { txId ->

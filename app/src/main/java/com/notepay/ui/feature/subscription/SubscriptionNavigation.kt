@@ -31,7 +31,7 @@ fun NavGraphBuilder.subscriptionScreen(
 
         val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
         val showCreate by showCreateFlow.collectAsState()
-        PredictiveBackDestination {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             SubscriptionScreen(
                 navigationBarOffset = navigationBarOffset,
                 initialShowCreate = showCreate,
