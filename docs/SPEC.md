@@ -1204,4 +1204,23 @@ sau đó Domain layer trước (vì không phụ thuộc Android), rồi test, r
 
 ---
 
-**Tài liệu này dài nhưng cố tình.** Phase 1 của NotePay tuy đơn giản về tính năng nhưng là nền tảng cho 4 phase sau. Làm đúng từ đầu = 4 phase sau chỉ là "thêm tính năng", không phải "viết lại".
+## 13. Phân hệ Sổ Nợ (Debt & Loan Management)
+
+Phân hệ Sổ Nợ hỗ trợ quản lý toàn diện các khoản cho vay (`LEND`) và đi vay (`BORROW`) cá nhân theo chuẩn Local-First:
+
+### 13.1 Tính năng cốt lõi
+- **Quản lý hai chiều**: Theo dõi riêng biệt danh sách khoản nợ cần thu (`LEND`) và khoản nợ cần trả (`BORROW`).
+- **Lịch sử trả nợ từng phần**: Cho phép người vay hoặc người dùng trả góp nhiều lần (`debt_payments`), tự động tính toán số dư nợ còn lại (`remainingAmount`).
+- **Tự động tất toán (`isSettled`)**: Khi tổng tiền trả $\ge$ số tiền vay ban đầu, hệ thống tự động đánh dấu đã thanh toán xong.
+- **Đồng bộ hóa giao dịch ví**: Tùy chọn sinh giao dịch `EXPENSE` hoặc `INCOME` trực tiếp vào ví đã chọn khi tạo nợ hoặc ghi nhận đợt trả nợ.
+- **Nhắc nợ thông minh & VietQR**: Sinh mã QR VietQR động (EMVCo payload + ảnh QR NAPAS) từ thông tin ví nhận tiền, kèm các mẫu tin nhắn nhắc nợ lịch sự qua SMS / Zalo / Messenger.
+
+### 13.2 Kiến trúc kỹ thuật & CSDL
+- **Room v6**: Bảng `debts`, `debt_payments` liên kết khóa ngoại với bảng `wallets`. Migration `MIGRATION_5_6`.
+- **Domain UseCases**: `CreateDebtUseCase`, `RecordDebtPaymentUseCase`, `GetDebtsUseCase`, `GetDebtSummaryUseCase`, `DeleteDebtUseCase`.
+- **Compose UI**: `DebtManagementScreen`, `DebtDetailScreen`, `DebtRemindBottomSheet`, `CreateDebtBottomSheet`, `RecordPaymentDialog`, `DebtSummaryCard` (nhúng trong `AssetsScreen`).
+- **Chi tiết đầy đủ**: Xem đặc tả chi tiết tại [DEBT_MANAGEMENT.md](DEBT_MANAGEMENT.md).
+
+---
+
+**Tài liệu này dài nhưng cố tình.** Phase 1 của NotePay tuy đơn giản về tính năng nhưng là nền tảng cho các phase sau. Làm đúng từ đầu = các phase sau chỉ là "thêm tính năng", không phải "viết lại".

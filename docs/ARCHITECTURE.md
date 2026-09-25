@@ -75,6 +75,12 @@ not merged: the former supports transaction filtering/creation behavior and
 the latter is a single-select subscription flow. Similar names do not imply
 shared semantics.
 
+- `ui/feature/debt` owns debt and loan management (`DebtManagementScreen`, `DebtDetailScreen`,
+  `DebtRemindBottomSheet`, `CreateDebtBottomSheet`, `RecordPaymentDialog`, `DebtSummaryCard`).
+  It manages two-way debt tracking (`LEND` / `BORROW`), partial repayment history, dynamic
+  VietQR generation with pre-filled SMS/share reminder messages, and optional wallet transaction synchronization.
+  See [DEBT_MANAGEMENT.md](DEBT_MANAGEMENT.md) for data schemas and use cases.
+
 ## State, events, and effects
 
 ViewModels expose persistent screen data as `StateFlow<FeatureUiState>` and
