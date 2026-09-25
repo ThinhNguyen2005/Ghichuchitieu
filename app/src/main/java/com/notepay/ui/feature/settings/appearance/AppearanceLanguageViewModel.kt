@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.platform.LocaleHelper
 import com.notepay.platform.OsCompatHelper
-import com.notepay.ui.theme.ThemeManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,12 +28,14 @@ class AppearanceLanguageViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<AppearanceLanguageUiState> = combine(
+        appSettingsDataStore.themeMode,
+        appSettingsDataStore.themeColor,
         appSettingsDataStore.liquidGlassEnabled,
         appSettingsDataStore.appLanguage,
-    ) { glassEnabled, lang ->
+    ) { mode, color, glassEnabled, lang ->
         AppearanceLanguageUiState(
-            themeMode = ThemeManager.themeMode,
-            themeColor = ThemeManager.currentThemeColor,
+            themeMode = mode,
+            themeColor = color,
             liquidGlassEnabled = glassEnabled,
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
             appLanguage = lang,
@@ -43,18 +44,20 @@ class AppearanceLanguageViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = AppearanceLanguageUiState(
-            themeMode = ThemeManager.themeMode,
-            themeColor = ThemeManager.currentThemeColor,
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
         ),
     )
 
-    fun setThemeMode(context: Context, mode: String) {
-        ThemeManager.updateThemeMode(context, mode)
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            appSettingsDataStore.setThemeMode(mode)
+        }
     }
 
-    fun setThemeColor(context: Context, color: String) {
-        ThemeManager.updateThemeColor(context, color)
+    fun setThemeColor(color: String) {
+        viewModelScope.launch {
+            appSettingsDataStore.setThemeColor(color)
+        }
     }
 
     fun setLiquidGlassEnabled(enabled: Boolean) {
@@ -70,3 +73,4 @@ class AppearanceLanguageViewModel @Inject constructor(
         }
     }
 }
+

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.preferencesDataStore
 import com.notepay.platform.OsCompatHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,7 +16,14 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "notepay_app_settings")
+private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "notepay_app_settings",
+    produceMigrations = { context ->
+        listOf(
+            SharedPreferencesMigration(context, "notepay_settings")
+        )
+    }
+)
 
 @Singleton
 class AppSettingsDataStore @Inject constructor(
@@ -38,6 +46,8 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_CURRENCY_SYMBOL_POSITION = stringPreferencesKey("currency_symbol_position")
         val KEY_CURRENCY_THOUSAND_SEPARATOR = stringPreferencesKey("currency_thousand_separator")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_THEME_COLOR = stringPreferencesKey("theme_color")
 
         fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
     }
@@ -171,6 +181,26 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setAppLanguage(language: String) {
         dataStore.edit { preferences ->
             preferences[KEY_APP_LANGUAGE] = language
+        }
+    }
+
+    val themeMode: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_THEME_MODE] ?: "system"
+    }
+
+    suspend fun setThemeMode(mode: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_THEME_MODE] = mode
+        }
+    }
+
+    val themeColor: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_THEME_COLOR] ?: "ios"
+    }
+
+    suspend fun setThemeColor(color: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_THEME_COLOR] = color
         }
     }
 }

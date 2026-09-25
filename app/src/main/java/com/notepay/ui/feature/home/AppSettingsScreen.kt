@@ -99,7 +99,6 @@ import com.notepay.platform.LiquidGlassBlockReason
 import com.notepay.platform.OsCompatHelper
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.theme.ThemeManager
 
 /**
  * State thuần túy cho màn hình Cài đặt (SettingsUiState).
@@ -131,6 +130,7 @@ fun AppSettingsScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val geminiApiKey by viewModel.geminiApiKey.collectAsStateWithLifecycle()
     val cloudAiEnabled by viewModel.cloudAiEnabled.collectAsStateWithLifecycle()
     val smartReceiptAiEnabled by viewModel.smartReceiptAiEnabled.collectAsStateWithLifecycle()
@@ -160,7 +160,7 @@ fun AppSettingsScreen(
     }
 
     val uiState = SettingsUiState(
-        themeMode = ThemeManager.themeMode,
+        themeMode = themeMode,
         geminiApiKey = geminiApiKey,
         cloudAiEnabled = cloudAiEnabled,
         smartReceiptAiEnabled = smartReceiptAiEnabled,
@@ -187,7 +187,7 @@ fun AppSettingsScreen(
         },
         onThemeModeSelected = { mode ->
             playHaptic()
-            ThemeManager.updateThemeMode(context, mode)
+            viewModel.setThemeMode(mode)
         },
         onSaveApiKey = { key ->
             playHaptic()

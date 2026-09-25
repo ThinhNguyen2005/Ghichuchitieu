@@ -5,46 +5,41 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.platform.widget.WidgetConstants
+import com.notepay.ui.MainViewModel
 import com.notepay.ui.navigation.NotePayNavHost
-import com.notepay.ui.navigation.Route
 import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.theme.ThemeManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var appSettings: AppSettingsDataStore
 
-    private val _pendingRoute = MutableStateFlow<String?>(null)
-    val pendingRoute = _pendingRoute.asStateFlow()
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
 
         super.onCreate(savedInstanceState)
-        handleIncomingIntent(intent)
-
-        ThemeManager.initialize(this)
+        viewModel.handleIncomingIntent(intent)
 
         setContent {
-            NotePayTheme {
-                val glassEnabled by appSettings.liquidGlassEnabled
-                    .collectAsStateWithLifecycle(false)
-                val targetRoute by pendingRoute.collectAsStateWithLifecycle(null)
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val themeColor by viewModel.themeColor.collectAsStateWithLifecycle()
+            val glassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
+            val targetRoute by viewModel.pendingRoute.collectAsStateWithLifecycle()
 
+            NotePayTheme(
+                themeMode = themeMode,
+                themeColor = themeColor,
+            ) {
                 NotePayNavHost(
                     liquidGlassEnabled = glassEnabled,
                     pendingRoute = targetRoute,
-                    onRouteHandled = { _pendingRoute.value = null },
+                    onRouteHandled = viewModel::onRouteHandled,
                 )
             }
         }
@@ -53,18 +48,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleIncomingIntent(intent)
-    }
-
-    private fun handleIncomingIntent(intent: Intent?) {
-        val navigateTo = intent?.getStringExtra(WidgetConstants.EXTRA_NAVIGATE_TO)
-            ?: if (intent?.action == WidgetConstants.ACTION_QUICK_ADD) {
-                Route.AddTransaction.path
-            } else {
-                null
-            }
-        if (navigateTo != null) {
-            _pendingRoute.value = navigateTo
-        }
+        viewModel.handleIncomingIntent(intent)
     }
 }

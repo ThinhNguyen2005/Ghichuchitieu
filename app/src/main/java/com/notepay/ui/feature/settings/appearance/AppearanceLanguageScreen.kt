@@ -60,7 +60,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.ThemeManager
 
 private data class ThemeColorOption(
     val id: String,
@@ -153,10 +152,10 @@ fun AppearanceLanguageScreen(
                         val modes = listOf("light", "dark", "system")
                         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                             modes.forEachIndexed { index, mode ->
-                                val isSelected = ThemeManager.themeMode == mode
+                                val isSelected = uiState.themeMode == mode
                                 SegmentedButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.setThemeMode(context, mode) },
+                                    onClick = { viewModel.setThemeMode(mode) },
                                     shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
                                     icon = {
                                         Icon(
@@ -206,12 +205,12 @@ fun AppearanceLanguageScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(themeColorOptions) { option ->
-                            val isSelected = ThemeManager.currentThemeColor == option.id
+                            val isSelected = uiState.themeColor == option.id
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
-                                    .clickable { viewModel.setThemeColor(context, option.id) }
+                                    .clickable { viewModel.setThemeColor(option.id) }
                                     .padding(4.dp),
                             ) {
                                 Box(

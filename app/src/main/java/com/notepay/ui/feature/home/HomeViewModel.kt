@@ -270,6 +270,18 @@ class HomeViewModel @Inject constructor(
         initialValue = 30,
     )
 
+    val themeMode = appSettingsDataStore.themeMode.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = "system",
+    )
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            appSettingsDataStore.setThemeMode(mode)
+        }
+    }
+
     fun setLiquidGlassEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsDataStore.setLiquidGlassEnabled(enabled)

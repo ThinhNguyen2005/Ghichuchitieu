@@ -3,7 +3,6 @@ package com.notepay
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.notepay.domain.repository.CategoryRepository
 import com.notepay.worker.ReminderScheduler
 import com.notepay.worker.SubscriptionReminderWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -15,9 +14,6 @@ class NotePayApp : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
-    @Inject
-    lateinit var categoryRepository: CategoryRepository // Khởi tạo sớm để đăng ký custom categories
-
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -25,7 +21,6 @@ class NotePayApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        com.notepay.platform.LocaleHelper.initializeOnAppStart(this)
         SubscriptionReminderWorker.schedule(this)
         ReminderScheduler.scheduleDailyReminder(this)
     }

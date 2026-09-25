@@ -1,50 +1,16 @@
 package com.notepay.ui.theme
 
 import android.app.Activity
-import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.core.content.edit
 import androidx.core.view.WindowCompat
-
-/**
- * NotePay Theme Controller
- * Quản lý trạng thái theme (iOS Monochrome, Dynamic, Presets),
- * cấu hình thanh trạng thái (System Insets) và phân phối Theme tokens.
- * Toàn bộ định nghĩa màu sắc và ColorScheme được tổ chức tại Color.kt.
- */
-object ThemeManager {
-    var currentThemeColor by mutableStateOf("ios")
-    var themeMode by mutableStateOf("system")
-
-    fun initialize(context: Context) {
-        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        currentThemeColor = prefs.getString("theme_color", "ios") ?: "ios"
-        themeMode = prefs.getString("theme_mode", "system") ?: "system"
-    }
-
-    fun updateThemeColor(context: Context, color: String) {
-        currentThemeColor = color
-        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit { putString("theme_color", color) }
-    }
-
-    fun updateThemeMode(context: Context, mode: String) {
-        themeMode = mode
-        val prefs = context.getSharedPreferences("notepay_settings", Context.MODE_PRIVATE)
-        prefs.edit { putString("theme_mode", mode) }
-    }
-}
 
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
@@ -58,7 +24,9 @@ fun isAppDarkTheme(): Boolean = LocalDarkTheme.current
 
 @Composable
 fun NotePayTheme(
-    darkTheme: Boolean = when (ThemeManager.themeMode) {
+    themeMode: String = "system",
+    themeColor: String = "ios",
+    darkTheme: Boolean = when (themeMode) {
         "light" -> false
         "dark" -> true
         else -> isSystemInDarkTheme()
@@ -66,12 +34,11 @@ fun NotePayTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val currentTheme = ThemeManager.currentThemeColor
 
     val materialColorScheme = if (darkTheme) {
-        getDarkColorScheme(currentTheme, context)
+        getDarkColorScheme(themeColor, context)
     } else {
-        getLightColorScheme(currentTheme, context)
+        getLightColorScheme(themeColor, context)
     }
 
     val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
@@ -89,8 +56,7 @@ fun NotePayTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-                ?: return@SideEffect
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 window.isNavigationBarContrastEnforced = false
