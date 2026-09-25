@@ -8,6 +8,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
+import com.notepay.ui.component.PredictiveBackDestination
+
 fun NavGraphBuilder.subscriptionScreen(
     navController: NavController,
     navigationBarOffset: Float = 0f,
@@ -29,13 +31,15 @@ fun NavGraphBuilder.subscriptionScreen(
 
         val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
         val showCreate by showCreateFlow.collectAsState()
-        SubscriptionScreen(
-            navigationBarOffset = navigationBarOffset,
-            initialShowCreate = showCreate,
-            onBack = { navController.popBackStack() },
-            onClearShowCreate = {
-                backStackEntry.savedStateHandle["showCreate"] = false
-            }
-        )
+        PredictiveBackDestination {
+            SubscriptionScreen(
+                navigationBarOffset = navigationBarOffset,
+                initialShowCreate = showCreate,
+                onBack = { navController.popBackStack() },
+                onClearShowCreate = {
+                    backStackEntry.savedStateHandle["showCreate"] = false
+                }
+            )
+        }
     }
 }

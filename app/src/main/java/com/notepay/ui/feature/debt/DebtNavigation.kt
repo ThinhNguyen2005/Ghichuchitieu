@@ -5,18 +5,21 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.notepay.ui.component.PredictiveBackDestination
 import com.notepay.ui.navigation.Route
 
 fun NavGraphBuilder.debtGraph(
     navController: NavController,
 ) {
     composable(Route.DebtManagement.path) {
-        DebtManagementScreen(
-            onBack = { navController.popBackStack() },
-            onDebtClick = { debtId ->
-                navController.navigate(Route.DebtDetail(debtId).path)
-            },
-        )
+        PredictiveBackDestination {
+            DebtManagementScreen(
+                onBack = { navController.popBackStack() },
+                onDebtClick = { debtId ->
+                    navController.navigate(Route.DebtDetail(debtId).path)
+                },
+            )
+        }
     }
 
     composable(
@@ -25,8 +28,10 @@ fun NavGraphBuilder.debtGraph(
             navArgument(Route.DebtDetail.ARG_ID) { type = NavType.LongType }
         )
     ) {
-        DebtDetailScreen(
-            onBack = { navController.popBackStack() },
-        )
+        PredictiveBackDestination {
+            DebtDetailScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
