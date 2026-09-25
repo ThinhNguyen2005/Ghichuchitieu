@@ -21,13 +21,15 @@ import androidx.compose.ui.unit.dp
  * thực hiện thao tác vuốt lùi (Predictive Back Gesture).
  *
  * - Khi ở trạng thái tĩnh (toàn màn hình): cornerRadius = 0.dp (tràn viền tự nhiên, phẳng).
- * - Khi đang vuốt back hoặc chuyển cảnh: cornerRadius tự động bo tròn mượt mà đến [maxRadius],
- *   đồng thời shadow elevation tăng tỷ lệ theo góc bo để tạo hiệu ứng thẻ nổi cao cấp (Material 3).
+ * - Khi đang vuốt back hoặc chuyển cảnh: cornerRadius tự động bo tròn mượt mà đến [maxRadius].
+ * - [enableElevation]: Mặc định tắt (false) để tránh overhead dựng bóng (shadow layer) liên tục
+ *   trên GPU khi drag gesture, giúp đạt 60fps/120fps mượt mà tuyệt đối.
  */
 @Composable
 fun Modifier.predictiveBackCorners(
     scope: AnimatedContentScope,
     maxRadius: Dp = 28.dp,
+    enableElevation: Boolean = false,
 ): Modifier {
     val cornerRadius by scope.transition.animateDp(
         label = "predictiveBackCorners",
@@ -46,8 +48,12 @@ fun Modifier.predictiveBackCorners(
         if (radiusPx > 0.5f) {
             shape = RoundedCornerShape(radiusPx)
             clip = true
-            val progress = if (maxRadiusPx > 0f) (radiusPx / maxRadiusPx).coerceIn(0f, 1f) else 0f
-            shadowElevation = 8.dp.toPx() * progress
+            if (enableElevation) {
+                val progress = if (maxRadiusPx > 0f) (radiusPx / maxRadiusPx).coerceIn(0f, 1f) else 0f
+                shadowElevation = 8.dp.toPx() * progress
+            } else {
+                shadowElevation = 0f
+            }
         } else {
             clip = false
             shadowElevation = 0f
@@ -62,12 +68,13 @@ fun Modifier.predictiveBackCorners(
 fun AnimatedContentScope.PredictiveBackDestination(
     modifier: Modifier = Modifier,
     maxRadius: Dp = 28.dp,
+    enableElevation: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .predictiveBackCorners(this, maxRadius)
+            .predictiveBackCorners(this, maxRadius, enableElevation)
             .background(MaterialTheme.colorScheme.background)
     ) {
         content()

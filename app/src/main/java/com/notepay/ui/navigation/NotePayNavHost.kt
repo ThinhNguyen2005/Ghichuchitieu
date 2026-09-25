@@ -8,8 +8,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -219,6 +222,30 @@ fun NotePayNavHost(
                                         animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
                                         targetOffsetX = { -direction * motionDistancePx },
                                     )
+                                }
+                            },
+                            popEnterTransition = {
+                                if (reducedMotion) {
+                                    EnterTransition.None
+                                } else {
+                                    fadeIn(tween(NotePayMotion.contentDurationMillis)) +
+                                        scaleIn(
+                                            initialScale = 0.96f,
+                                            transformOrigin = TransformOrigin(0.5f, 0.5f),
+                                            animationSpec = tween(NotePayMotion.contentDurationMillis),
+                                        )
+                                }
+                            },
+                            popExitTransition = {
+                                if (reducedMotion) {
+                                    ExitTransition.None
+                                } else {
+                                    fadeOut(tween(NotePayMotion.contentFadeOutDurationMillis)) +
+                                        scaleOut(
+                                            targetScale = 0.92f,
+                                            transformOrigin = TransformOrigin(0.5f, 0.5f),
+                                            animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
+                                        )
                                 }
                             },
                         ) {
