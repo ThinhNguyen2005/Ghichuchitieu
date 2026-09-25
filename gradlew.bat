@@ -25,6 +25,7 @@
 
 @rem Set local scope for the variables with windows NT shell
 if "%OS%"=="Windows_NT" setlocal
+if not defined JAVA_HOME if exist "C:\Program Files\Android\Android Studio\jbr" set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
 
 set DIRNAME=%~dp0
 if "%DIRNAME%"=="" set DIRNAME=.
