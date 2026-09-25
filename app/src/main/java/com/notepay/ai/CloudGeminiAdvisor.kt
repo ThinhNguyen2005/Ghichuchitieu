@@ -36,7 +36,7 @@ class CloudGeminiAdvisor @Inject constructor(
         private const val TIMEOUT_MILLIS = 15_000L
     }
 
-    internal var isOfflineFlavor: Boolean = (com.notepay.BuildConfig.FLAVOR == "local")
+    internal var isOfflineFlavor: Boolean = false
 
     suspend fun isConfigured(): Boolean = withContext(ioDispatcher) {
         if (isOfflineFlavor) return@withContext false

@@ -111,10 +111,10 @@ jobs:
           } > app/signing.properties
 
       - name: Run flavor unit tests
-        run: ./gradlew :app:testLocalDebugUnitTest :app:testPlayDebugUnitTest --stacktrace
+        run: ./gradlew :app:testFullDebugUnitTest :app:testPlayDebugUnitTest --stacktrace
 
       - name: Assemble signed release APKs
-        run: ./gradlew :app:assembleLocalRelease :app:assemblePlayRelease --stacktrace
+        run: ./gradlew :app:assembleFullRelease :app:assemblePlayRelease --stacktrace
 
       - name: Verify APK metadata
         shell: bash
@@ -132,29 +132,29 @@ jobs:
           fi
 
           play_apk="app/build/outputs/apk/play/release/app-play-release.apk"
-          local_apk="app/build/outputs/apk/local/release/app-local-release.apk"
+          full_apk="app/build/outputs/apk/full/release/app-full-release.apk"
           expected_play="versionCode='${RELEASE_VERSION_CODE}' versionName='${RELEASE_VERSION_NAME}'"
-          expected_local="versionCode='${RELEASE_VERSION_CODE}' versionName='${RELEASE_VERSION_NAME}-local'"
+          expected_full="versionCode='${RELEASE_VERSION_CODE}' versionName='${RELEASE_VERSION_NAME}-full'"
 
           play_badging="$($aapt_path dump badging "$play_apk")"
-          local_badging="$($aapt_path dump badging "$local_apk")"
+          full_badging="$($aapt_path dump badging "$full_apk")"
           if ! printf '%s\n' "$play_badging" | grep -Fq "$expected_play"; then
             echo "Play APK metadata does not match the release tag."
             exit 1
           fi
-          if ! printf '%s\n' "$local_badging" | grep -Fq "$expected_local"; then
-            echo "Local APK metadata does not match the release tag."
+          if ! printf '%s\n' "$full_badging" | grep -Fq "$expected_full"; then
+            echo "Full APK metadata does not match the release tag."
             exit 1
           fi
           echo "Play APK metadata verified: versionName=$RELEASE_VERSION_NAME versionCode=$RELEASE_VERSION_CODE."
-          echo "Local APK metadata verified: versionName=$RELEASE_VERSION_NAME-local versionCode=$RELEASE_VERSION_CODE."
+          echo "Full APK metadata verified: versionName=$RELEASE_VERSION_NAME-full versionCode=$RELEASE_VERSION_CODE."
 
       - name: Verify APK signatures
         shell: bash
         run: |
           set -euo pipefail
           apk_paths=(
-            app/build/outputs/apk/local/release/app-local-release.apk
+            app/build/outputs/apk/full/release/app-full-release.apk
             app/build/outputs/apk/play/release/app-play-release.apk
           )
           for apk in "${apk_paths[@]}"; do
@@ -183,10 +183,10 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cp app/build/outputs/apk/play/release/app-play-release.apk "dist/NotePay-play-${RELEASE_TAG}.apk"
-          cp app/build/outputs/apk/local/release/app-local-release.apk "dist/NotePay-local-${RELEASE_TAG}.apk"
+          cp app/build/outputs/apk/full/release/app-full-release.apk "dist/NotePay-full-${RELEASE_TAG}.apk"
           (
             cd dist
-            sha256sum "NotePay-play-${RELEASE_TAG}.apk" "NotePay-local-${RELEASE_TAG}.apk" > SHA256SUMS.txt
+            sha256sum "NotePay-play-${RELEASE_TAG}.apk" "NotePay-full-${RELEASE_TAG}.apk" > SHA256SUMS.txt
           )
 
       - name: Create immutable GitHub Release
@@ -206,7 +206,7 @@ jobs:
             --verify-tag \
             --generate-notes \
             "dist/NotePay-play-${RELEASE_TAG}.apk" \
-            "dist/NotePay-local-${RELEASE_TAG}.apk" \
+            "dist/NotePay-full-${RELEASE_TAG}.apk" \
             dist/SHA256SUMS.txt
 
       - name: Remove release signing material

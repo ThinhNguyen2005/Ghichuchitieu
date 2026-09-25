@@ -538,7 +538,6 @@ private fun AiEngineSettingsCard(
     var showPassword by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<Result<String>?>(null) }
-    val isLocalFlavor = com.notepay.BuildConfig.FLAVOR == "local"
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -556,10 +555,7 @@ private fun AiEngineSettingsCard(
             SettingHeader(
                 icon = Icons.Rounded.AutoAwesome,
                 title = stringResource(R.string.settings_ai_engine_title),
-                description = stringResource(
-                    if (isLocalFlavor) R.string.settings_ai_engine_subtitle_local
-                    else R.string.settings_ai_engine_subtitle
-                )
+                description = stringResource(R.string.settings_ai_engine_subtitle)
             )
 
             // Khu vực 4: Thông báo Gemini Nano Status Banner (Warning / Assist Banner)
@@ -608,52 +604,7 @@ private fun AiEngineSettingsCard(
                 }
             }
 
-            if (isLocalFlavor) {
-                // Local Privacy Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = AppTheme.shapes.corner14,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Shield,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings_ai_local_offline_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_ai_local_offline_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            } else {
+
                 // Khu vực 2: Khung nhập API Key (OutlinedTextField + supportingText link + Single Visibility Toggle)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -916,7 +867,6 @@ private fun AiEngineSettingsCard(
                         )
                     }
                 }
-            }
         }
     }
 }
