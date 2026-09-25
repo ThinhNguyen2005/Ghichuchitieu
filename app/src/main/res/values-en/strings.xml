@@ -1065,4 +1065,58 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
     <string name="widget_spent_glance_remaining">Remaining: %1$s</string>
     <string name="widget_spent_glance_overspent">Over budget by %1$s</string>
+
+    <!-- Smart Notifications & Reminders -->
+    <string name="notif_channel_budget_alerts">Budget Alerts</string>
+    <string name="notif_channel_budget_alerts_desc" formatted="false">Alerts when spending reaches 80% or 100% of budget limit</string>
+    <string name="notif_channel_weekly_digest">Weekly Financial Digest</string>
+    <string name="notif_channel_weekly_digest_desc">Summary report of spending every Sunday evening</string>
+    <string name="notif_channel_daily_reminders">Daily Tracking &amp; Streak</string>
+    <string name="notif_channel_daily_reminders_desc">Reminders to maintain daily spending tracking habit</string>
+    <string name="notif_subscription_channel_name">Subscription &amp; Bill Reminders</string>
+    <string name="notif_subscription_channel_desc">Notifications when subscriptions or recurring bills are due soon</string>
+
+    <string name="notif_budget_instant_warning_title">⚠️ You have spent %1$d%% of your budget!</string>
+    <string name="notif_budget_instant_warning_content">Spent %1$s out of %2$s budget limit. Keep an eye on upcoming expenses.</string>
+    <string name="notif_budget_instant_exceeded_title">🚨 Spending has exceeded budget limit!</string>
+    <string name="notif_budget_instant_exceeded_content">Total spending reached %1$s (Limit: %2$s). Please balance your expenses!</string>
+
+    <string name="notif_weekly_digest_title">📊 Weekly Spending Digest</string>
+    <string name="notif_weekly_digest_content">This week you spent %1$s%2$s.%3$s</string>
+    <string name="notif_weekly_digest_comparison_increase"> (%1$d%% increase from last week ⚠️)</string>
+    <string name="notif_weekly_digest_comparison_decrease"> (%1$d%% decrease from last week 🎉)</string>
+    <string name="notif_weekly_digest_comparison_equal"> (same as last week)</string>
+    <string name="notif_weekly_digest_top_category">\nTop spending category: %1$s (%2$s)</string>
+
+    <string name="notif_streak_milestone_3_title">🔥 3-day tracking streak!</string>
+    <string name="notif_streak_milestone_3_content">A great habit is forming. Take 10 seconds to record today\'s spending!</string>
+    <string name="notif_streak_milestone_7_title">🏆 Amazing! 7-day tracking streak!</string>
+    <string name="notif_streak_milestone_7_content">One full week of great financial control. Keep up the momentum today!</string>
+    <string name="notif_streak_milestone_14_title">⭐ Discipline master: 14-day streak!</string>
+    <string name="notif_streak_milestone_14_content">You are mastering your finances. Don\'t forget to record today\'s transactions!</string>
+    <string name="notif_streak_milestone_30_title">👑 Tracking Legend: 30-day streak!</string>
+    <string name="notif_streak_milestone_30_content">An admirable month of consistency! Record today to set a new record.</string>
+
+    <string name="notif_streak_rotate_1">Your wallet needs an update! Record today\'s spending to protect your %1$d-day streak 🔥.</string>
+    <string name="notif_streak_rotate_2">Only takes 5 seconds in NotePay to keep your %1$d-day streak 🔥 intact.</string>
+    <string name="notif_streak_rotate_3">Financial discipline starts with every cup of coffee. Record today to keep your %1$d-day streak 🔥!</string>
+
+    <string name="notif_daily_rotate_title_1">☕ Any spending to record today?</string>
+    <string name="notif_daily_rotate_content_1">Record now to start your personal finance mastery streak with NotePay!</string>
+    <string name="notif_daily_rotate_title_2">💡 5 seconds tonight, peace of mind all month!</string>
+    <string name="notif_daily_rotate_content_2">Don\'t let minor expenses slip away. Open the app and log them now!</string>
+    <string name="notif_daily_rotate_title_3">🎯 Financial discipline is the path to freedom</string>
+    <string name="notif_daily_rotate_content_3">Take a moment this evening to check your wallet and budget plan.</string>
+
+    <!-- Notification Settings UI -->
+    <string name="settings_notification_section_title">Notifications &amp; Reminders</string>
+    <string name="settings_notif_budget_alerts_title">Budget Alerts</string>
+    <string name="settings_notif_budget_alerts_desc" formatted="false">Notify when spending reaches 80% or 100% of budget</string>
+    <string name="settings_notif_weekly_digest_title">Weekly Financial Digest</string>
+    <string name="settings_notif_weekly_digest_desc">Summary spending report at 20:00 every Sunday</string>
+    <string name="settings_notif_daily_reminder_title">Daily Tracking &amp; Streak</string>
+    <string name="settings_notif_daily_reminder_desc">Remind in the evening if no transactions recorded</string>
+    <string name="settings_notif_reminder_time_title">Reminder Time</string>
+    <string name="settings_notif_reminder_time_dialog">Select Reminder Time</string>
+
 </resources>

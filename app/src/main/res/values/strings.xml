@@ -1052,4 +1052,58 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="widget_spent_glance_budget_progress">%1$s / %2$s (%3$d%%)</string>
     <string name="widget_spent_glance_remaining">Còn lại: %1$s</string>
     <string name="widget_spent_glance_overspent">Vượt hạn mức %1$s</string>
+
+    <!-- Smart Notifications & Reminders -->
+    <string name="notif_channel_budget_alerts">Cảnh báo hạn mức ngân sách</string>
+    <string name="notif_channel_budget_alerts_desc" formatted="false">Thông báo khi chi tiêu chạm ngưỡng 80% hoặc 100% ngân sách</string>
+    <string name="notif_channel_weekly_digest">Tổng kết tài chính tuần</string>
+    <string name="notif_channel_weekly_digest_desc">Báo cáo tổng kết chi tiêu vào mỗi tối Chủ Nhật</string>
+    <string name="notif_channel_daily_reminders">Nhắc nhở ghi chép &amp; Streak</string>
+    <string name="notif_channel_daily_reminders_desc">Lời nhắc duy trì thói quen ghi chép chi tiêu mỗi tối</string>
+    <string name="notif_subscription_channel_name">Nhắc nhở hóa đơn định kỳ</string>
+    <string name="notif_subscription_channel_desc">Thông báo khi các gói đăng ký hoặc hóa đơn định kỳ sắp đến hạn thanh toán</string>
+
+    <string name="notif_budget_instant_warning_title">⚠️ Bạn đã chi %1$d%% hạn mức ngân sách!</string>
+    <string name="notif_budget_instant_warning_content">Đã chi %1$s trên tổng hạn mức %2$s. Hãy chú ý các khoản chi tiếp theo nhé.</string>
+    <string name="notif_budget_instant_exceeded_title">🚨 Chi tiêu đã vượt hạn mức ngân sách!</string>
+    <string name="notif_budget_instant_exceeded_content">Tổng chi tiêu đạt %1$s (Hạn mức: %2$s). Cần cân đối lại tài chính ngay!</string>
+
+    <string name="notif_weekly_digest_title">📊 Tổng kết chi tiêu tuần qua</string>
+    <string name="notif_weekly_digest_content">Tuần này bạn đã chi %1$s%2$s.%3$s</string>
+    <string name="notif_weekly_digest_comparison_increase"> (tăng %1$d%% so với tuần trước ⚠️)</string>
+    <string name="notif_weekly_digest_comparison_decrease"> (giảm %1$d%% so với tuần trước 🎉)</string>
+    <string name="notif_weekly_digest_comparison_equal"> (tương đương tuần trước)</string>
+    <string name="notif_weekly_digest_top_category">\nKhoản chi lớn nhất: %1$s (%2$s)</string>
+
+    <string name="notif_streak_milestone_3_title">🔥 3 ngày liên tiếp ghi chép!</string>
+    <string name="notif_streak_milestone_3_content">Thói quen tốt đang dần hình thành. Dành 10 giây ghi lại các khoản chi hôm nay nhé!</string>
+    <string name="notif_streak_milestone_7_title">🏆 Tuyệt vời! Bạn đã giữ Streak 7 ngày!</string>
+    <string name="notif_streak_milestone_7_content">Tròn 1 tuần kiểm soát tài chính xuất sắc. Tiếp tục giữ vững phong độ hôm nay nhé!</string>
+    <string name="notif_streak_milestone_14_title">⭐ Đẳng cấp kỷ luật: 14 ngày Streak!</string>
+    <string name="notif_streak_milestone_14_content">Bạn đang làm chủ đồng tiền của mình cực tốt. Đừng quên ghi lại giao dịch ngày hôm nay!</string>
+    <string name="notif_streak_milestone_30_title">👑 Huyền thoại ghi chép: 30 ngày Streak!</string>
+    <string name="notif_streak_milestone_30_content">Một tháng kiên trì đáng ngưỡng mộ! Tiếp tục ghi chép hôm nay để lập kỷ lục mới nhé.</string>
+
+    <string name="notif_streak_rotate_1">Ví tiền cũng cần được cập nhật! Ghi lại các khoản chi hôm nay để bảo toàn chuỗi 🔥 %1$d ngày nhé.</string>
+    <string name="notif_streak_rotate_2">Chỉ mất 5 giây mở NotePay để chuỗi 🔥 %1$d ngày của bạn không bị gián đoạn.</string>
+    <string name="notif_streak_rotate_3">Kỷ luật tài chính bắt đầu từ từng ly cà phê. Ghi chép hôm nay để giữ chuỗi 🔥 %1$d ngày nhé!</string>
+
+    <string name="notif_daily_rotate_title_1">☕ Hôm nay bạn có khoản chi tiêu nào không?</string>
+    <string name="notif_daily_rotate_content_1">Ghi lại ngay để bắt đầu chuỗi ngày làm chủ tài chính cá nhân cùng NotePay!</string>
+    <string name="notif_daily_rotate_title_2">💡 5 giây buổi tối, an tâm cả tháng!</string>
+    <string name="notif_daily_rotate_content_2">Đừng để các khoản chi lặt vặt biến mất khỏi sổ sách. Mở app ghi chép ngay nhé!</string>
+    <string name="notif_daily_rotate_title_3">🎯 Kỷ luật tài chính là con đường tự do</string>
+    <string name="notif_daily_rotate_content_3">Dành chút thời gian cuối ngày điểm lại ví tiền và kế hoạch ngân sách của bạn nhé.</string>
+
+    <!-- Notification Settings UI -->
+    <string name="settings_notification_section_title">Thông báo &amp; Lời nhắc</string>
+    <string name="settings_notif_budget_alerts_title">Cảnh báo ngân sách</string>
+    <string name="settings_notif_budget_alerts_desc" formatted="false">Thông báo khi chi tiêu chạm ngưỡng 80% hoặc 100% hạn mức</string>
+    <string name="settings_notif_weekly_digest_title">Tổng kết tài chính tuần</string>
+    <string name="settings_notif_weekly_digest_desc">Báo cáo tổng chi tiêu vào lúc 20:00 tối Chủ Nhật</string>
+    <string name="settings_notif_daily_reminder_title">Nhắc nhở ghi chép &amp; Streak</string>
+    <string name="settings_notif_daily_reminder_desc">Nhắc nhở ghi chép vào buổi tối nếu chưa có giao dịch</string>
+    <string name="settings_notif_reminder_time_title">Giờ nhắc nhở</string>
+    <string name="settings_notif_reminder_time_dialog">Chọn giờ nhắc nhở</string>
+
 </resources>

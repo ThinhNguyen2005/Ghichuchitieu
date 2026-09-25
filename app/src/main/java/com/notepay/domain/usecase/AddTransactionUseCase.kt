@@ -4,6 +4,8 @@ import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.model.TransactionType
+import com.notepay.platform.notification.BudgetAlertNotifier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -25,15 +27,17 @@ class AddTransactionUseCase @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val walletRepo: WalletRepository,
     @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
+    private val budgetAlertNotifier: BudgetAlertNotifier? = null,
 ) {
     suspend operator fun invoke(transaction: Transaction): Result<Long> = try {
         Result.success(withContext(dispatcher) {
             val wallet = walletRepo.getById(transaction.walletId)
                 ?: error("Wallet ${transaction.walletId} not found")
-            transactionRepo.upsert(transaction).also {
-                // Phase 2+: cập nhật balance ví + lưu audit log
-                @Suppress("UNUSED_VARIABLE") val _w = wallet
+            val id = transactionRepo.upsert(transaction)
+            if (transaction.type == TransactionType.EXPENSE) {
+                budgetAlertNotifier?.checkAndNotify(transaction.walletId)
             }
+            id
         })
     } catch (cancellation: CancellationException) {
         throw cancellation

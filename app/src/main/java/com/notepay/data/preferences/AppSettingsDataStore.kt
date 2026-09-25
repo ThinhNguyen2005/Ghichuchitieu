@@ -29,12 +29,52 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_DAILY_REMINDER_HOUR = intPreferencesKey("daily_reminder_hour")
         val KEY_DAILY_REMINDER_MINUTE = intPreferencesKey("daily_reminder_minute")
 
+        val KEY_BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
+        val KEY_WEEKLY_DIGEST_ENABLED = booleanPreferencesKey("weekly_digest_enabled")
+        val KEY_LAST_NOTIFIED_BUDGET_MONTH = stringPreferencesKey("last_notified_budget_month")
+        val KEY_LAST_NOTIFIED_BUDGET_THRESHOLD = intPreferencesKey("last_notified_budget_threshold")
+
         val KEY_CURRENCY_CODE = stringPreferencesKey("currency_code")
         val KEY_CURRENCY_SYMBOL_POSITION = stringPreferencesKey("currency_symbol_position")
         val KEY_CURRENCY_THOUSAND_SEPARATOR = stringPreferencesKey("currency_thousand_separator")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
 
         fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
+    }
+
+    val budgetAlertsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_BUDGET_ALERTS_ENABLED] ?: true
+    }
+
+    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_BUDGET_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    val weeklyDigestEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_WEEKLY_DIGEST_ENABLED] ?: true
+    }
+
+    suspend fun setWeeklyDigestEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_WEEKLY_DIGEST_ENABLED] = enabled
+        }
+    }
+
+    val lastNotifiedBudgetMonth: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[KEY_LAST_NOTIFIED_BUDGET_MONTH]
+    }
+
+    val lastNotifiedBudgetThreshold: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[KEY_LAST_NOTIFIED_BUDGET_THRESHOLD] ?: 0
+    }
+
+    suspend fun recordBudgetAlertNotification(monthKey: String, threshold: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_LAST_NOTIFIED_BUDGET_MONTH] = monthKey
+            preferences[KEY_LAST_NOTIFIED_BUDGET_THRESHOLD] = threshold
+        }
     }
 
     /**

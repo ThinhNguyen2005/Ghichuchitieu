@@ -81,4 +81,31 @@ class AddTransactionUseCaseTest {
 
         coVerify(exactly = 1) { transactionRepo.upsert(any()) }
     }
+
+    @Test
+    fun `invoke with expense triggers budget alert check`() = runTest(dispatcher) {
+        val wallet = TestData.wallet()
+        val budgetNotifier = mockk<com.notepay.platform.notification.BudgetAlertNotifier>(relaxed = true)
+        val useCaseWithNotifier = AddTransactionUseCase(transactionRepo, walletRepo, dispatcher, budgetNotifier)
+        coEvery { walletRepo.getById(1L) } returns wallet
+        coEvery { transactionRepo.upsert(any()) } returns 1L
+
+        useCaseWithNotifier(TestTransactionFactory.expense(walletId = 1L))
+
+        coVerify(exactly = 1) { budgetNotifier.checkAndNotify(1L) }
+    }
+
+    @Test
+    fun `invoke with income does not trigger budget alert check`() = runTest(dispatcher) {
+        val wallet = TestData.wallet()
+        val budgetNotifier = mockk<com.notepay.platform.notification.BudgetAlertNotifier>(relaxed = true)
+        val useCaseWithNotifier = AddTransactionUseCase(transactionRepo, walletRepo, dispatcher, budgetNotifier)
+        coEvery { walletRepo.getById(1L) } returns wallet
+        coEvery { transactionRepo.upsert(any()) } returns 1L
+
+        useCaseWithNotifier(TestTransactionFactory.income(walletId = 1L))
+
+        coVerify(exactly = 0) { budgetNotifier.checkAndNotify(any()) }
+    }
 }
+
