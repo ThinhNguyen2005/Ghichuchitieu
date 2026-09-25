@@ -5,12 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.platform.LocaleHelper
 import com.notepay.platform.widget.WidgetConstants
 import com.notepay.ui.navigation.NotePayNavHost
 import com.notepay.ui.navigation.Route
@@ -38,13 +36,6 @@ class MainActivity : ComponentActivity() {
         ThemeManager.initialize(this)
 
         setContent {
-            val appLanguage by appSettings.appLanguage
-                .collectAsStateWithLifecycle(LocaleHelper.LANG_SYSTEM)
-
-            LaunchedEffect(appLanguage) {
-                LocaleHelper.applyLocale(this@MainActivity, appLanguage)
-            }
-
             NotePayTheme {
                 val glassEnabled by appSettings.liquidGlassEnabled
                     .collectAsStateWithLifecycle(false)

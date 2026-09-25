@@ -4,15 +4,17 @@ import android.app.LocaleManager
 import android.content.Context
 import android.os.Build
 import android.os.LocaleList
+import androidx.core.content.edit
 import java.util.Locale
 
 /**
  * Quản lý ngôn ngữ và Locale tập trung cho toàn bộ ứng dụng NotePay.
  *
- * Áp dụng triệt để các nguyên tắc:
- * 1. Tránh set lại Locale nếu ngôn ngữ hiện tại của hệ thống hoặc app đã khớp (ngăn chặn recreate() lặp vòng).
- * 2. Đồng bộ chuẩn mã ngôn ngữ ("vi", "en", "system"), xử lý nhất quán các biến thể ("vi-VN", "vi_VN").
- * 3. Tương thích chuẩn Android 13+ (LocaleManager / Per-App Language Preferences) và fallback an toàn cho Android < 13.
+ * Khắc phục triệt để hiện tượng nhấp nháy / Activity relaunch loop:
+ * 1. Không set lại Locale nếu ngôn ngữ hiện tại của hệ thống hoặc app đã khớp.
+ * 2. Tuyệt đối không can thiệp Locale trong LaunchedEffect của Activity lifecycle.
+ * 3. Đồng bộ mã ngôn ngữ: dùng "vi-VN" cho tiếng Việt trên Android để khớp với hệ thống,
+ *    tránh xung đột vi vs vi-VN giữa app và OS (đặc biệt là Xiaomi HyperOS/MIUI).
  */
 object LocaleHelper {
 
@@ -20,13 +22,11 @@ object LocaleHelper {
     const val LANG_EN = "en"
     const val LANG_SYSTEM = "system"
 
+    private const val PREFS_NAME = "notepay_settings"
+    private const val KEY_APP_LANGUAGE = "app_language"
+
     /**
      * Chuẩn hóa bất kỳ chuỗi locale / language tag nào về chuẩn nội bộ của app ("vi", "en", "system").
-     *
-     * Ví dụ:
-     * - "vi", "vi-VN", "vi_VN", "vi-Latn-VN" -> "vi"
-     * - "en", "en-US", "en_US", "en-GB" -> "en"
-     * - null, rỗng, "system" -> "system"
      */
     fun normalizeLanguageCode(rawCode: String?): String {
         if (rawCode.isNullOrBlank()) return LANG_SYSTEM
@@ -57,19 +57,28 @@ object LocaleHelper {
                 return appLocales.isEmpty
             }
 
-            if (appLocales.isEmpty) {
-                // App đang dùng mặc định hệ thống, nhưng mục tiêu là ngôn ngữ cụ thể -> Chưa khớp
-                return false
+            // Nếu per-app locales đã được set và ngôn ngữ đầu tiên khớp với target -> Đã khớp
+            if (!appLocales.isEmpty) {
+                val currentFirst = appLocales[0] ?: return false
+                if (normalizeLanguageCode(currentFirst.language) == target) {
+                    return true
+                }
             }
 
-            // Kiểm tra ngôn ngữ đầu tiên trong danh sách per-app locales
-            val currentFirst = appLocales[0] ?: return false
-            return normalizeLanguageCode(currentFirst.language) == target
+            // Nếu target là "vi" và ngôn ngữ hệ thống hiện tại cũng là "vi",
+            // đồng thời appLocales đang trống -> Đang dùng vi-VN của hệ thống -> Đã khớp!
+            val systemLocale = Locale.getDefault()
+            if (normalizeLanguageCode(systemLocale.language) == target && appLocales.isEmpty) {
+                return true
+            }
+
+            return false
         } else {
             if (target == LANG_SYSTEM) {
                 return true
             }
 
+            @Suppress("DEPRECATION")
             val currentLocale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 context.resources.configuration.locales[0]
             } else {
@@ -83,10 +92,14 @@ object LocaleHelper {
 
     /**
      * Áp dụng ngôn ngữ cho ứng dụng một cách an toàn.
-     * Nếu ngôn ngữ đã khớp với trạng thái hiện tại, hàm sẽ return ngay lập tức.
+     * Chỉ gọi khi người dùng chủ động chọn đổi ngôn ngữ trong cài đặt.
      */
     fun applyLocale(context: Context, targetLanguage: String) {
         val target = normalizeLanguageCode(targetLanguage)
+
+        // Lưu vào SharedPreferences cho cold-start
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putString(KEY_APP_LANGUAGE, target) }
 
         // Tuyệt đối không set lại nếu đã khớp để tránh recreate() liên tục
         if (isAlreadyApplied(context, target)) {
@@ -96,8 +109,8 @@ object LocaleHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val localeManager = context.getSystemService(LocaleManager::class.java) ?: return
             val localeList = when (target) {
-                LANG_VI -> LocaleList.forLanguageTags(LANG_VI)
-                LANG_EN -> LocaleList.forLanguageTags(LANG_EN)
+                LANG_VI -> LocaleList.forLanguageTags("vi-VN")
+                LANG_EN -> LocaleList.forLanguageTags("en")
                 else -> LocaleList.getEmptyLocaleList()
             }
             localeManager.applicationLocales = localeList
@@ -114,6 +127,20 @@ object LocaleHelper {
             config.setLocale(targetLocale)
             @Suppress("DEPRECATION")
             context.resources.updateConfiguration(config, context.resources.displayMetrics)
+        }
+    }
+
+    /**
+     * Khởi tạo Locale khi khởi động ứng dụng (chỉ chạy 1 lần duy nhất trong Application.onCreate).
+     * Trên Android 13+, LocaleManager tự động duy trì cấu hình nên không cần can thiệp.
+     */
+    fun initializeOnAppStart(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val savedLang = prefs.getString(KEY_APP_LANGUAGE, null)
+            if (!savedLang.isNullOrBlank() && savedLang != LANG_SYSTEM) {
+                applyLocale(context, savedLang)
+            }
         }
     }
 }

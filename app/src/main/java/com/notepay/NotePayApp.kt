@@ -25,6 +25,7 @@ class NotePayApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        com.notepay.platform.LocaleHelper.initializeOnAppStart(this)
         SubscriptionReminderWorker.schedule(this)
         ReminderScheduler.scheduleDailyReminder(this)
     }
