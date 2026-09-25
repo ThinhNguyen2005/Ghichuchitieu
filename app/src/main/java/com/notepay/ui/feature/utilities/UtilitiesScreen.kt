@@ -58,7 +58,7 @@ import com.notepay.ui.theme.AppTheme
 fun UtilitiesScreen(
     onNavigateToBillSplit: () -> Unit,
     onNavigateToSubscription: () -> Unit,
-    onNavigateToAssets: () -> Unit,
+    onNavigateToAssets: () -> Unit = {},
     onNavigateToCurrencySettings: () -> Unit,
     onNavigateToCategoryManagement: () -> Unit,
     onNavigateToAppearanceLanguage: () -> Unit,
@@ -134,14 +134,6 @@ fun UtilitiesScreen(
                             title = stringResource(R.string.utilities_reminder_title),
                             subtitle = stringResource(R.string.utilities_subscriptions_subtitle),
                             onClick = onNavigateToSubscription
-                        )
-                        ItemDivider()
-                        UtilityRowItem(
-                            icon = Icons.Rounded.AccountBalanceWallet,
-                            iconTint = Color(0xFF34C759),
-                            title = stringResource(R.string.utilities_wallet_manage_title),
-                            subtitle = stringResource(R.string.utilities_wallet_manage_subtitle),
-                            onClick = onNavigateToAssets
                         )
                         ItemDivider()
                         UtilityRowItem(
