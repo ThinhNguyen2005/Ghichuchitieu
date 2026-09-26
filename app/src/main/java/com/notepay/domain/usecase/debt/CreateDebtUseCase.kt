@@ -22,6 +22,7 @@ class CreateDebtUseCase @Inject constructor(
     suspend operator fun invoke(
         debt: Debt,
         syncWithWallet: Boolean = false,
+        actionNote: String? = null,
     ): Result<Long> = try {
         withContext(ioDispatcher) {
             val debtId = debtRepository.upsertDebt(debt)
@@ -30,11 +31,13 @@ class CreateDebtUseCase @Inject constructor(
                 val isLend = debt.type == DebtType.LEND
                 val txType = if (isLend) TransactionType.EXPENSE else TransactionType.INCOME
                 val category = if (isLend) Category.BILL else Category.INCOME_OTHER
-                val actionPrefix = if (isLend) "Cho vay" else "Đi vay"
-                val note = if (debt.note.isNotBlank()) {
-                    "$actionPrefix: ${debt.personName} (${debt.note})"
-                } else {
-                    "$actionPrefix: ${debt.personName}"
+                val note = actionNote ?: run {
+                    val actionPrefix = if (isLend) "Cho vay" else "Đi vay"
+                    if (debt.note.isNotBlank()) {
+                        "$actionPrefix: ${debt.personName} (${debt.note})"
+                    } else {
+                        "$actionPrefix: ${debt.personName}"
+                    }
                 }
 
                 val transaction = Transaction(

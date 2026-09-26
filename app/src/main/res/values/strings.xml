@@ -1002,6 +1002,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="appearance_theme_dark">Tối</string>
     <string name="appearance_theme_system">Hệ thống</string>
     <string name="appearance_section_color">Màu sắc chủ đề</string>
+    <string name="appearance_color_ledger">Giấy ngà &amp; Mực ấm</string>
     <string name="appearance_color_ios">Đơn sắc iOS</string>
     <string name="appearance_color_dynamic">Màu hệ thống</string>
     <string name="appearance_color_ocean">Xanh biển</string>
@@ -1175,4 +1176,15 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_qr_not_configured">Chưa thiết lập số tài khoản ngân hàng trong ví.</string>
     <string name="debt_action_copy_message">Sao chép tin nhắn</string>
     <string name="debt_action_copy_done">Đã sao chép</string>
+    <string name="debt_chip_all">Tất cả (%s)</string>
+    <string name="error_no_dialer_app">Không tìm thấy ứng dụng thực hiện cuộc gọi</string>
+    <string name="error_no_sms_app">Không tìm thấy ứng dụng gửi tin nhắn SMS</string>
+    <string name="debt_tx_note_lend">Cho vay: %1$s</string>
+    <string name="debt_tx_note_lend_with_note">Cho vay: %1$s (%2$s)</string>
+    <string name="debt_tx_note_borrow">Đi vay: %1$s</string>
+    <string name="debt_tx_note_borrow_with_note">Đi vay: %1$s (%2$s)</string>
+    <string name="debt_tx_note_repay_lend">Thu nợ từ %1$s</string>
+    <string name="debt_tx_note_repay_lend_with_note">Thu nợ từ %1$s (%2$s)</string>
+    <string name="debt_tx_note_repay_borrow">Trả nợ cho %1$s</string>
+    <string name="debt_tx_note_repay_borrow_with_note">Trả nợ cho %1$s (%2$s)</string>
 </resources>

@@ -24,6 +24,7 @@ class RecordDebtPaymentUseCase @Inject constructor(
         debt: Debt,
         payment: DebtPayment,
         syncWithWallet: Boolean = false,
+        actionNote: String? = null,
     ): Result<Long> = try {
         withContext(ioDispatcher) {
             var createdTxId: Long? = null
@@ -32,11 +33,13 @@ class RecordDebtPaymentUseCase @Inject constructor(
                 val isLend = debt.type == DebtType.LEND
                 val txType = if (isLend) TransactionType.INCOME else TransactionType.EXPENSE
                 val category = if (isLend) Category.INCOME_OTHER else Category.BILL
-                val actionPrefix = if (isLend) "Thu nợ từ" else "Trả nợ cho"
-                val note = if (payment.note.isNotBlank()) {
-                    "$actionPrefix ${debt.personName} (${payment.note})"
-                } else {
-                    "$actionPrefix ${debt.personName}"
+                val note = actionNote ?: run {
+                    val actionPrefix = if (isLend) "Thu nợ từ" else "Trả nợ cho"
+                    if (payment.note.isNotBlank()) {
+                        "$actionPrefix ${debt.personName} (${payment.note})"
+                    } else {
+                        "$actionPrefix ${debt.personName}"
+                    }
                 }
 
                 val transaction = Transaction(

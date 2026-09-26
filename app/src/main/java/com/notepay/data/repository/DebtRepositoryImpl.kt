@@ -1,6 +1,7 @@
 package com.notepay.data.repository
 
 import com.notepay.data.local.dao.DebtDao
+import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.mapper.DebtMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.debt.Debt
@@ -17,6 +18,7 @@ import javax.inject.Inject
 
 class DebtRepositoryImpl @Inject constructor(
     private val dao: DebtDao,
+    private val transactionDao: TransactionDao,
     private val mapper: DebtMapper,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : DebtRepository {
@@ -51,6 +53,13 @@ class DebtRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteDebt(id: Long) = withContext(ioDispatcher) {
+        // Dọn dẹp toàn bộ các giao dịch ví liên kết với các khoản trả nợ của nợ này
+        val payments = dao.getPaymentsByDebtId(id)
+        payments.forEach { payment ->
+            payment.transactionId?.let { txId ->
+                transactionDao.delete(txId)
+            }
+        }
         dao.deleteDebtById(id)
     }
 
@@ -71,8 +80,23 @@ class DebtRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deletePayment(id: Long) = withContext(ioDispatcher) {
-        val debt = dao.observeAllWithPayments() // or find debtId
+        val payment = dao.getPaymentById(id) ?: return@withContext
+        // 1. Nếu có giao dịch ví tương ứng, xóa giao dịch ví để hoàn tiền chính xác
+        payment.transactionId?.let { txId ->
+            transactionDao.delete(txId)
+        }
+        // 2. Xóa bản ghi thanh toán
         dao.deletePaymentById(id)
+
+        // 3. Tự động kiểm tra lại tổng tiền đã trả: nếu bị hụt dưới nợ gốc, bỏ cờ isSettled
+        val debtWithPayments = dao.getWithPaymentsById(payment.debtId)
+        if (debtWithPayments != null) {
+            val totalPaidCents = debtWithPayments.payments.sumOf { it.amountCents }
+            val originalCents = debtWithPayments.debt.originalAmountCents
+            if (totalPaidCents < originalCents && debtWithPayments.debt.isSettled) {
+                dao.updateDebt(debtWithPayments.debt.copy(isSettled = false))
+            }
+        }
     }
 
     override suspend fun markSettled(debtId: Long, isSettled: Boolean) = withContext(ioDispatcher) {

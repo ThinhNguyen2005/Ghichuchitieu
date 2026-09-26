@@ -35,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -78,8 +80,10 @@ fun BalanceCard(
 
     val hasCustomBg = !backgroundImageUri.isNullOrBlank()
     val isLightTheme = !isAppDarkTheme()
-    val defaultCardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
-    val defaultBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    val defaultCardBgColor = if (isLightTheme) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
+    val defaultBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val cardShape = if (hasCustomBg) AppTheme.shapes.corner24 else AppTheme.shapes.card
 
     val primaryTextColor = if (hasCustomBg) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = if (hasCustomBg) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -101,14 +105,28 @@ fun BalanceCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner24,
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = if (hasCustomBg) Color.Transparent else defaultCardBgColor
         ),
         border = if (!hasCustomBg) BorderStroke(1.dp, defaultBorderColor) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = if (hasCustomBg) 6.dp else 2.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (!hasCustomBg) {
+                        Modifier.drawBehind {
+                            drawRect(
+                                color = primaryColor,
+                                topLeft = Offset.Zero,
+                                size = Size(3.5f * density, size.height)
+                            )
+                        }
+                    } else Modifier
+                )
+        ) {
             // 1. Lớp Ảnh nền + Multi-layer Scrim Gradient
             if (hasCustomBg) {
                 val imageModel = remember(backgroundImageUri) {

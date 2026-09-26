@@ -195,7 +195,7 @@ class AppSettingsDataStore @Inject constructor(
     }
 
     val themeColor: Flow<String> = dataStore.data.map { preferences ->
-        preferences[KEY_THEME_COLOR] ?: "ios"
+        preferences[KEY_THEME_COLOR] ?: "ledger"
     }
 
     suspend fun setThemeColor(color: String) {

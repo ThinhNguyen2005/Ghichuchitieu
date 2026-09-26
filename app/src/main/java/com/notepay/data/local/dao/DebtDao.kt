@@ -58,6 +58,9 @@ interface DebtDao {
     @Query("SELECT * FROM debt_payments WHERE debt_id = :debtId ORDER BY paid_at DESC")
     suspend fun getPaymentsByDebtId(debtId: Long): List<DebtPaymentEntity>
 
+    @Query("SELECT * FROM debt_payments WHERE id = :id LIMIT 1")
+    suspend fun getPaymentById(id: Long): DebtPaymentEntity?
+
     @Transaction
     @Query("SELECT * FROM debts WHERE is_settled = 0 AND due_date IS NOT NULL AND due_date BETWEEN :startMillis AND :endMillis")
     suspend fun getDebtsDueInRange(startMillis: Long, endMillis: Long): List<DebtEntity>

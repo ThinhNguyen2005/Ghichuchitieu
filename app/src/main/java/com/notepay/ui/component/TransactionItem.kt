@@ -52,7 +52,7 @@ fun TransactionItem(
     modifier: Modifier = Modifier,
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
-    val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val amountColor = if (isIncome) AppTheme.colors.success else AppTheme.colors.error
     val sign = if (isIncome) "+" else "−"
 
     val systemTz = TimeZone.currentSystemDefault()
@@ -78,13 +78,13 @@ fun TransactionItem(
     }
 
     val isLightTheme = !com.notepay.ui.theme.isAppDarkTheme()
-    val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+    val cardBgColor = if (isLightTheme) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .then(clickModifier),
-        shape = AppTheme.shapes.corner16,
+        shape = AppTheme.shapes.row,
         colors = CardDefaults.cardColors(
             containerColor = cardBgColor
         ),

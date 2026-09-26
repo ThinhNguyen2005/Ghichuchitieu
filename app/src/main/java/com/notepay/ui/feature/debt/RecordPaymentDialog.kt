@@ -103,7 +103,7 @@ fun RecordPaymentDialog(
                 ) {
                     SuggestionChip(
                         onClick = { amountText = remainingMajor.toString() },
-                        label = { Text("Tất cả (${MoneyFormatter.format(debtWithHistory.remainingAmount)})") }
+                        label = { Text(stringResource(R.string.debt_chip_all, MoneyFormatter.format(debtWithHistory.remainingAmount))) }
                     )
                     if (remainingMajor >= 2) {
                         SuggestionChip(

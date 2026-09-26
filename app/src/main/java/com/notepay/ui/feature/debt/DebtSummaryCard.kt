@@ -17,8 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.rounded.Handshake
-import androidx.compose.material.icons.rounded.TrendingDown
-import androidx.compose.material.icons.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.domain.model.Money
 import com.notepay.domain.usecase.debt.DebtSummary
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
@@ -48,10 +49,11 @@ fun DebtSummaryCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = AppTheme.shapes.corner20,
+        shape = AppTheme.shapes.cardAlt,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -94,7 +96,7 @@ fun DebtSummaryCard(
                                 MoneyFormatter.format(summary.netBalance)
                             ),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (summary.netBalance.amountInCents >= 0) Color(0xFF34C759) else Color(0xFFFF3B30),
+                            color = if (summary.netBalance.amountInCents >= 0) AppTheme.colors.success else AppTheme.colors.error,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -121,31 +123,31 @@ fun DebtSummaryCard(
                     modifier = Modifier
                         .weight(1f)
                         .clip(AppTheme.shapes.corner16)
-                        .background(Color(0xFF34C759).copy(alpha = 0.08f))
+                        .background(AppTheme.colors.success.copy(alpha = 0.10f))
                         .padding(12.dp)
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
-                                tint = Color(0xFF248A3D),
+                                tint = AppTheme.colors.success,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.debt_summary_to_collect),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF248A3D),
+                                color = AppTheme.colors.success,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = summary?.let { MoneyFormatter.format(it.totalToCollect) } ?: "0 ₫",
+                            text = summary?.let { MoneyFormatter.format(it.totalToCollect) } ?: MoneyFormatter.format(Money.ZERO),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF248A3D)
+                            color = AppTheme.colors.success
                         )
                     }
                 }
@@ -155,31 +157,31 @@ fun DebtSummaryCard(
                     modifier = Modifier
                         .weight(1f)
                         .clip(AppTheme.shapes.corner16)
-                        .background(Color(0xFFFF9500).copy(alpha = 0.08f))
+                        .background(AppTheme.colors.warning.copy(alpha = 0.10f))
                         .padding(12.dp)
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingDown,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                                 contentDescription = null,
-                                tint = Color(0xFFC97600),
+                                tint = AppTheme.colors.warning,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.debt_summary_to_pay),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFFC97600),
+                                color = AppTheme.colors.warning,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = summary?.let { MoneyFormatter.format(it.totalToPay) } ?: "0 ₫",
+                            text = summary?.let { MoneyFormatter.format(it.totalToPay) } ?: MoneyFormatter.format(Money.ZERO),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFC97600)
+                            color = AppTheme.colors.warning
                         )
                     }
                 }

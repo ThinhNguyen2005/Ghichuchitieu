@@ -17,7 +17,6 @@ import com.notepay.domain.usecase.GetTransactionsUseCase
 import com.notepay.ui.feedback.FeedbackDuration
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.formatter.TransactionDateHeaderFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -398,13 +397,12 @@ private fun groupTransactionsByDay(
             DayOfWeek.FRIDAY -> "THỨ SÁU"
             DayOfWeek.SATURDAY -> "THỨ BẢY"
             DayOfWeek.SUNDAY -> "CHỦ NHẬT"
-            else -> ""
         }
 
         val headerText = when (today.toEpochDays() - date.toEpochDays()) {
-            0L -> "HÔM NAY · thg ${date.monthNumber} ${date.day}"
-            1L -> "HÔM QUA · thg ${date.monthNumber} ${date.day}"
-            else -> "$dayOfWeekStr · thg ${date.monthNumber} ${date.day}"
+            0L -> "HÔM NAY · thg ${date.month.number} ${date.day}"
+            1L -> "HÔM QUA · thg ${date.month.number} ${date.day}"
+            else -> "$dayOfWeekStr · thg ${date.month.number} ${date.day}"
         }
 
         TransactionDayGroup(

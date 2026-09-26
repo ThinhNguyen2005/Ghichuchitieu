@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import android.content.ActivityNotFoundException
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,11 +26,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.Message
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -275,10 +276,14 @@ fun DebtDetailScreen(
                                         )
                                         IconButton(
                                             onClick = {
-                                                val callIntent = Intent(Intent.ACTION_DIAL).apply {
-                                                    data = Uri.parse("tel:${debt.phoneNumber}")
+                                                try {
+                                                    val callIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                        data = Uri.parse("tel:${debt.phoneNumber}")
+                                                    }
+                                                    context.startActivity(callIntent)
+                                                } catch (_: ActivityNotFoundException) {
+                                                    Toast.makeText(context, context.getString(R.string.error_no_dialer_app), Toast.LENGTH_SHORT).show()
                                                 }
-                                                context.startActivity(callIntent)
                                             },
                                             modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                                         ) {
@@ -291,15 +296,19 @@ fun DebtDetailScreen(
                                         }
                                         IconButton(
                                             onClick = {
-                                                val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                                    data = Uri.parse("smsto:${debt.phoneNumber}")
+                                                try {
+                                                    val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                                        data = Uri.parse("smsto:${debt.phoneNumber}")
+                                                    }
+                                                    context.startActivity(smsIntent)
+                                                } catch (_: ActivityNotFoundException) {
+                                                    Toast.makeText(context, context.getString(R.string.error_no_sms_app), Toast.LENGTH_SHORT).show()
                                                 }
-                                                context.startActivity(smsIntent)
                                             },
                                             modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Rounded.Message,
+                                                imageVector = Icons.AutoMirrored.Rounded.Message,
                                                 contentDescription = stringResource(R.string.debt_action_sms),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(20.dp),

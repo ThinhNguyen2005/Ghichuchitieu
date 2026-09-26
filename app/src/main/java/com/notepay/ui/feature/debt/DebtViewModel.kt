@@ -1,7 +1,9 @@
 package com.notepay.ui.feature.debt
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
 import com.notepay.domain.model.Money
 import com.notepay.domain.model.debt.Debt
 import com.notepay.domain.model.debt.DebtPayment
@@ -14,6 +16,7 @@ import com.notepay.domain.usecase.debt.GetDebtsUseCase
 import com.notepay.domain.usecase.debt.RecordDebtPaymentUseCase
 import com.notepay.domain.repository.DebtRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +45,7 @@ class DebtViewModel @Inject constructor(
     private val deleteDebtUseCase: DeleteDebtUseCase,
     private val debtRepository: DebtRepository,
     private val walletRepository: WalletRepository,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _selectedTab = MutableStateFlow<DebtType?>(null)
@@ -114,19 +118,37 @@ class DebtViewModel @Inject constructor(
         syncWithWallet: Boolean,
     ) {
         viewModelScope.launch {
+            val trimmedName = personName.trim()
+            val trimmedNote = note.trim()
             val debt = Debt(
                 id = 0L,
-                personName = personName.trim(),
+                personName = trimmedName,
                 phoneNumber = phoneNumber?.takeIf { it.isNotBlank() }?.trim(),
                 type = type,
                 originalAmount = amount,
                 walletId = walletId,
                 createdAt = Clock.System.now(),
                 dueDate = dueDate,
-                note = note.trim(),
+                note = trimmedNote,
                 isSettled = false,
             )
-            val result = createDebtUseCase(debt, syncWithWallet)
+            val actionNote = if (syncWithWallet) {
+                if (type == DebtType.LEND) {
+                    if (trimmedNote.isNotBlank()) {
+                        context.getString(R.string.debt_tx_note_lend_with_note, trimmedName, trimmedNote)
+                    } else {
+                        context.getString(R.string.debt_tx_note_lend, trimmedName)
+                    }
+                } else {
+                    if (trimmedNote.isNotBlank()) {
+                        context.getString(R.string.debt_tx_note_borrow_with_note, trimmedName, trimmedNote)
+                    } else {
+                        context.getString(R.string.debt_tx_note_borrow, trimmedName)
+                    }
+                }
+            } else null
+
+            val result = createDebtUseCase(debt, syncWithWallet, actionNote)
             if (result.isSuccess) {
                 _events.emit(DebtUiEvent.DebtCreated)
             }
@@ -141,15 +163,33 @@ class DebtViewModel @Inject constructor(
         syncWithWallet: Boolean,
     ) {
         viewModelScope.launch {
+            val trimmedNote = note.trim()
             val payment = DebtPayment(
                 id = 0L,
                 debtId = debt.id,
                 amount = amount,
                 walletId = walletId,
                 paidAt = Clock.System.now(),
-                note = note.trim(),
+                note = trimmedNote,
             )
-            val result = recordDebtPaymentUseCase(debt, payment, syncWithWallet)
+            val actionNote = if (syncWithWallet) {
+                val isLend = debt.type == DebtType.LEND
+                if (isLend) {
+                    if (trimmedNote.isNotBlank()) {
+                        context.getString(R.string.debt_tx_note_repay_lend_with_note, debt.personName, trimmedNote)
+                    } else {
+                        context.getString(R.string.debt_tx_note_repay_lend, debt.personName)
+                    }
+                } else {
+                    if (trimmedNote.isNotBlank()) {
+                        context.getString(R.string.debt_tx_note_repay_borrow_with_note, debt.personName, trimmedNote)
+                    } else {
+                        context.getString(R.string.debt_tx_note_repay_borrow, debt.personName)
+                    }
+                }
+            } else null
+
+            val result = recordDebtPaymentUseCase(debt, payment, syncWithWallet, actionNote)
             if (result.isSuccess) {
                 _events.emit(DebtUiEvent.PaymentRecorded)
             }

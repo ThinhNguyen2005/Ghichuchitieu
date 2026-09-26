@@ -1015,6 +1015,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="appearance_theme_dark">Dark</string>
     <string name="appearance_theme_system">System</string>
     <string name="appearance_section_color">Theme Accent Color</string>
+    <string name="appearance_color_ledger">Warm Paper &amp; Ink</string>
     <string name="appearance_color_ios">iOS Monochrome</string>
     <string name="appearance_color_dynamic">Dynamic Material You</string>
     <string name="appearance_color_ocean">Ocean Blue</string>
@@ -1188,4 +1189,15 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_qr_not_configured">Bank account has not been configured in wallet.</string>
     <string name="debt_action_copy_message">Copy message</string>
     <string name="debt_action_copy_done">Copied</string>
+    <string name="debt_chip_all">All (%s)</string>
+    <string name="error_no_dialer_app">No phone dialer application found</string>
+    <string name="error_no_sms_app">No SMS messaging application found</string>
+    <string name="debt_tx_note_lend">Lent to: %1$s</string>
+    <string name="debt_tx_note_lend_with_note">Lent to: %1$s (%2$s)</string>
+    <string name="debt_tx_note_borrow">Borrowed from: %1$s</string>
+    <string name="debt_tx_note_borrow_with_note">Borrowed from: %1$s (%2$s)</string>
+    <string name="debt_tx_note_repay_lend">Collected debt from %1$s</string>
+    <string name="debt_tx_note_repay_lend_with_note">Collected debt from %1$s (%2$s)</string>
+    <string name="debt_tx_note_repay_borrow">Repaid debt to %1$s</string>
+    <string name="debt_tx_note_repay_borrow_with_note">Repaid debt to %1$s (%2$s)</string>
 </resources>

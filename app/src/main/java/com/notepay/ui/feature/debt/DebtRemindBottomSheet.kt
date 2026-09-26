@@ -25,7 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Message
+import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
@@ -124,25 +124,25 @@ fun DebtRemindBottomSheet(
     }
 
     val qrImageUrl = remember(hasBankConfig, receivingWallet, debtWithHistory.remainingAmount, memo) {
-        if (hasBankConfig && receivingWallet != null) {
+        if (hasBankConfig) {
             VietQrGenerator.generateImageUrl(
-                bankBin = receivingWallet.bankBin.orEmpty(),
-                accountNumber = receivingWallet.accountNumber.orEmpty(),
+                bankBin = receivingWallet?.bankBin.orEmpty(),
+                accountNumber = receivingWallet?.accountNumber.orEmpty(),
                 amountCents = debtWithHistory.remainingAmount.amountInCents,
                 memo = memo,
-                accountName = receivingWallet.accountName,
+                accountName = receivingWallet?.accountName,
             )
         } else null
     }
 
     val emvPayload = remember(hasBankConfig, receivingWallet, debtWithHistory.remainingAmount, memo) {
-        if (hasBankConfig && receivingWallet != null) {
+        if (hasBankConfig) {
             VietQrGenerator.generateEmvCoPayload(
-                bankBin = receivingWallet.bankBin.orEmpty(),
-                accountNumber = receivingWallet.accountNumber.orEmpty(),
+                bankBin = receivingWallet?.bankBin.orEmpty(),
+                accountNumber = receivingWallet?.accountNumber.orEmpty(),
                 amountCents = debtWithHistory.remainingAmount.amountInCents,
                 memo = memo,
-                accountName = receivingWallet.accountName,
+                accountName = receivingWallet?.accountName,
             )
         } else null
     }
@@ -400,7 +400,7 @@ fun DebtRemindBottomSheet(
                             try {
                                 context.startActivity(smsIntent)
                             } catch (_: Exception) {
-                                Toast.makeText(context, reminderMessage, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.error_no_sms_app), Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = AppTheme.shapes.corner16,
@@ -409,7 +409,7 @@ fun DebtRemindBottomSheet(
                             .defaultMinSize(minHeight = 48.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Message,
+                            imageVector = Icons.AutoMirrored.Rounded.Message,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                         )

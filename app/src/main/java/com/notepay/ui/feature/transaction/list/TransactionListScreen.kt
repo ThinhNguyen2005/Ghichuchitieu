@@ -73,7 +73,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
@@ -585,7 +585,7 @@ private fun SummaryStatisticsCard(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         ),
-                        color = Color(0xFF34C759)
+                        color = AppTheme.colors.success
                     )
                 }
 
@@ -607,7 +607,7 @@ private fun SummaryStatisticsCard(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         ),
-                        color = Color(0xFFFF3B30)
+                        color = AppTheme.colors.error
                     )
                 }
             }
@@ -688,7 +688,7 @@ private fun DayGroupSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             val net = dayGroup.totalIncome - dayGroup.totalExpense
-            val netColor = if (net.amountInCents >= 0) Color(0xFF34C759) else Color(0xFFFF3B30)
+            val netColor = if (net.amountInCents >= 0) AppTheme.colors.success else AppTheme.colors.error
             val prefix = if (net.amountInCents >= 0) "+" else ""
             Text(
                 text = "$prefix${MoneyFormatter.format(net)}",

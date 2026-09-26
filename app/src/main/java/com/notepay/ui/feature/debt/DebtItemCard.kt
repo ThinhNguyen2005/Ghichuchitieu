@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CallMade
-import androidx.compose.material.icons.rounded.CallReceived
+import androidx.compose.material.icons.automirrored.rounded.CallMade
+import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -48,17 +48,18 @@ fun DebtItemCard(
 ) {
     val debt = item.debt
     val isLend = debt.type == DebtType.LEND
-    val typeColor = if (isLend) Color(0xFF34C759) else Color(0xFFFF9500)
+    val typeColor = if (isLend) AppTheme.colors.success else AppTheme.colors.warning
     val now = Clock.System.now()
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = AppTheme.shapes.corner20,
+        shape = AppTheme.shapes.card,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -104,7 +105,7 @@ fun DebtItemCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Icon(
-                            imageVector = if (isLend) Icons.Rounded.CallMade else Icons.Rounded.CallReceived,
+                            imageVector = if (isLend) Icons.AutoMirrored.Rounded.CallMade else Icons.AutoMirrored.Rounded.CallReceived,
                             contentDescription = null,
                             tint = typeColor,
                             modifier = Modifier.size(16.dp)
@@ -133,22 +134,22 @@ fun DebtItemCard(
                     item.isFullyPaid -> {
                         StatusBadge(
                             text = stringResource(R.string.debt_status_settled),
-                            containerColor = Color(0xFF34C759).copy(alpha = 0.15f),
-                            contentColor = Color(0xFF248A3D)
+                            containerColor = AppTheme.colors.success.copy(alpha = 0.15f),
+                            contentColor = AppTheme.colors.success
                         )
                     }
                     item.isOverdue(now) -> {
                         StatusBadge(
                             text = stringResource(R.string.debt_status_overdue),
-                            containerColor = Color(0xFFFF3B30).copy(alpha = 0.15f),
-                            contentColor = Color(0xFFD70015)
+                            containerColor = AppTheme.colors.error.copy(alpha = 0.15f),
+                            contentColor = AppTheme.colors.error
                         )
                     }
                     item.isDueToday(now) -> {
                         StatusBadge(
                             text = stringResource(R.string.debt_status_due_today),
-                            containerColor = Color(0xFFFF9500).copy(alpha = 0.15f),
-                            contentColor = Color(0xFFC97600)
+                            containerColor = AppTheme.colors.warning.copy(alpha = 0.15f),
+                            contentColor = AppTheme.colors.warning
                         )
                     }
                     debt.dueDate != null -> {

@@ -25,7 +25,7 @@ fun isAppDarkTheme(): Boolean = LocalDarkTheme.current
 @Composable
 fun NotePayTheme(
     themeMode: String = "system",
-    themeColor: String = "ios",
+    themeColor: String = "ledger",
     darkTheme: Boolean = when (themeMode) {
         "light" -> false
         "dark" -> true

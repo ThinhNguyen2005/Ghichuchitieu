@@ -68,6 +68,7 @@ private data class ThemeColorOption(
 )
 
 private val themeColorOptions = listOf(
+    ThemeColorOption("ledger", R.string.appearance_color_ledger, Color(0xFFB5502E)),
     ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E)),
     ThemeColorOption("dynamic", R.string.appearance_color_dynamic, Color(0xFF6750A4)),
     ThemeColorOption("ocean", R.string.appearance_color_ocean, Color(0xFF007AFF)),
