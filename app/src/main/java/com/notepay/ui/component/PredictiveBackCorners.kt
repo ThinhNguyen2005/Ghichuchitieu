@@ -7,7 +7,6 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,9 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -58,10 +57,8 @@ fun AnimatedContentScope.PredictiveBackDestination(
 
     val context = LocalContext.current
     val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-
-    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-    val targetFixedShiftPx = with(density) { 32.dp.toPx() }
+    val windowInfo = LocalWindowInfo.current
+    val screenWidthPx = windowInfo.containerSize.width.toFloat()
     val maxRadiusPx = with(density) { maxRadius.toPx() }
     val maxElevationPx = with(density) { 10.dp.toPx() }
 
@@ -79,56 +76,43 @@ fun AnimatedContentScope.PredictiveBackDestination(
     val alpha = remember { Animatable(1f) }
 
     PredictiveBackHandler(enabled = true) { progressFlow ->
-        var isLeftEdge = true
+        var isLeftEdge = false
         try {
             progressFlow.collect { backEvent ->
                 isLeftEdge = backEvent.swipeEdge == BackEventCompat.EDGE_LEFT
                 val progress = backEvent.progress
+                val eased = FastOutSlowInEasing.transform(progress.coerceIn(0f, 1f))
 
-                // Telegram gesture: Nhanh chóng đạt trạng thái preview cố định (trong ~12% đầu của thao tác vuốt)
-                // và giữ cố định (không bám đuổi theo ngón tay nữa khi ngón tay di chuyển tiếp)
-                val previewFactor = FastOutSlowInEasing.transform((progress / 0.12f).coerceIn(0f, 1f))
-
-                val targetScale = 1f - (0.08f * previewFactor)
-                val currentRadius = maxRadiusPx * previewFactor
-                val currentElevation = if (shouldEnableElevation) maxElevationPx * previewFactor else 0f
-                val currentShift = if (isLeftEdge) {
-                    targetFixedShiftPx * previewFactor
-                } else {
-                    -targetFixedShiftPx * previewFactor
-                }
+                val targetScale = 1f - (0.08f * eased)
+                val currentRadius = maxRadiusPx * eased
+                val currentElevation = if (shouldEnableElevation) maxElevationPx * eased else 0f
+                val maxShiftPx = screenWidthPx * 0.09f
+                val currentShift = if (isLeftEdge) maxShiftPx * eased else -maxShiftPx * eased
 
                 scale.snapTo(targetScale)
                 cornerRadius.snapTo(currentRadius)
                 elevation.snapTo(currentElevation)
                 offsetX.snapTo(currentShift)
             }
+            val exitTargetX = if (isLeftEdge) screenWidthPx else -screenWidthPx
 
-            // Khi buông tay xác nhận: Trượt dứt khoát 100% sang phải ra khỏi màn hình (Telegram physics)
             coroutineScope {
                 launch {
                     offsetX.animateTo(
-                        targetValue = screenWidthPx,
+                        targetValue = exitTargetX,
                         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
                     )
                 }
-                launch {
-                    alpha.animateTo(
-                        targetValue = 0f,
-                        animationSpec = tween(durationMillis = 180)
-                    )
-                }
+                launch { alpha.animateTo(0f, tween(durationMillis = 180)) }
             }
             onBack()
-        } catch (e: CancellationException) {
-            // Khi hủy thao tác vuốt (kéo ngược về mép hoặc huỷ gesture):
-            // Phục hồi lại toàn màn hình với spring mượt mà, bọc NonCancellable để hoàn tất an toàn
+        } catch (_: CancellationException) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
                 coroutineScope {
-                    launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                    launch { scale.animateTo(1f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                    launch { cornerRadius.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                    launch { elevation.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                    launch { offsetX.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 400f)) }
+                    launch { scale.animateTo(1f, spring(dampingRatio = 0.85f, stiffness = 500f)) }
+                    launch { cornerRadius.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 650f)) }
+                    launch { elevation.animateTo(0f, tween(durationMillis = 150)) } // đổ bóng không cần vật lý lò xo
                     launch { alpha.animateTo(1f, tween(durationMillis = 150)) }
                 }
             }

@@ -7,6 +7,7 @@ import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.platform.LocaleHelper
 import com.notepay.platform.OsCompatHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,25 +20,29 @@ data class AppearanceLanguageUiState(
     val themeColor: String = "ledger",
     val liquidGlassEnabled: Boolean = false,
     val isLiquidGlassSupported: Boolean = true,
+    val hapticFeedbackEnabled: Boolean = true,
     val appLanguage: String = "system",
 )
 
 @HiltViewModel
 class AppearanceLanguageViewModel @Inject constructor(
     private val appSettingsDataStore: AppSettingsDataStore,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val uiState: StateFlow<AppearanceLanguageUiState> = combine(
         appSettingsDataStore.themeMode,
         appSettingsDataStore.themeColor,
         appSettingsDataStore.liquidGlassEnabled,
+        appSettingsDataStore.hapticFeedbackEnabled,
         appSettingsDataStore.appLanguage,
-    ) { mode, color, glassEnabled, lang ->
+    ) { mode, color, glassEnabled, hapticEnabled, lang ->
         AppearanceLanguageUiState(
             themeMode = mode,
             themeColor = color,
             liquidGlassEnabled = glassEnabled,
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
+            hapticFeedbackEnabled = hapticEnabled,
             appLanguage = lang,
         )
     }.stateIn(
@@ -66,7 +71,13 @@ class AppearanceLanguageViewModel @Inject constructor(
         }
     }
 
-    fun setLanguage(context: Context, language: String) {
+    fun setHapticFeedbackEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setHapticFeedbackEnabled(enabled)
+        }
+    }
+
+    fun setLanguage(language: String) {
         viewModelScope.launch {
             appSettingsDataStore.setAppLanguage(language)
             LocaleHelper.applyLocale(context, language)

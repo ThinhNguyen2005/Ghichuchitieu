@@ -8,18 +8,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +47,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.ui.window.DialogProperties
 
 /**
  * Dialog chi tiết một ngày, dùng chung cho:
@@ -56,6 +56,7 @@ import androidx.compose.material.icons.outlined.FolderOpen
  *
  * Nếu danh sách rỗng sẽ hiện thông báo trống.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayDetailDialog(
     date: LocalDate,
@@ -68,6 +69,8 @@ fun DayDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(decorFitsSystemWindows = true),
+
         title = {
             // P2-13: title có "Thứ X," phía trước + subtitle tương đối.
             val weekday = when (date.dayOfWeek.ordinal) {
@@ -80,7 +83,7 @@ fun DayDetailDialog(
                 6 -> stringResource(R.string.day_sunday)
                 else -> ""
             }
-            val diffDays = date.toEpochDays().toLong() - today.toEpochDays().toLong()
+            val diffDays = date.toEpochDays() - today.toEpochDays()
             val relative = when {
                 diffDays == 0L -> stringResource(R.string.date_today)
                 diffDays > 0L -> pluralStringResource(

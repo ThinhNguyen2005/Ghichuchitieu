@@ -1012,6 +1012,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="appearance_section_glass">Hiệu ứng thị giác</string>
     <string name="appearance_liquid_glass_title">Kính mờ Liquid Glass</string>
     <string name="appearance_liquid_glass_desc">Làm mờ nền vật lý trên thanh điều hướng</string>
+    <string name="appearance_haptic_feedback_title">Phản hồi rung xúc giác</string>
+    <string name="appearance_haptic_feedback_desc">Rung nhẹ khi chạm mốc hành động và rung xác nhận khi vuốt giao dịch</string>
     <string name="appearance_section_language">Ngôn ngữ ứng dụng</string>
     <string name="appearance_lang_vi">Tiếng Việt</string>
     <string name="appearance_lang_en">English (Tiếng Anh)</string>

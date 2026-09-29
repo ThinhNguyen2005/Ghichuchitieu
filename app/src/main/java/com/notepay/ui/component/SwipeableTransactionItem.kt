@@ -60,17 +60,19 @@ fun SwipeableTransactionItem(
     onClick: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
+    hapticEnabled: Boolean = true,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
 
     val actionThresholdPx = with(density) { 88.dp.toPx() }
-    val commitThresholdPx = with(density) { 140.dp.toPx() }
-    val maxDragPx = with(density) { 160.dp.toPx() }
+    val commitThresholdPx = with(density) { 116.dp.toPx() }
+    val maxDragPx = with(density) { 140.dp.toPx() }
 
     val offsetX = remember { Animatable(0f) }
-    var hasTriggeredHaptic by remember { mutableStateOf(false) }
+    var hasTriggeredActionHaptic by remember { mutableStateOf(false) }
+    var hasTriggeredCommitHaptic by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -149,7 +151,8 @@ fun SwipeableTransactionItem(
                             coroutineScope.launch {
                                 offsetX.stop() // Ngắt animation tức thì nếu đang nảy
                             }
-                            hasTriggeredHaptic = false
+                            hasTriggeredActionHaptic = false
+                            hasTriggeredCommitHaptic = false
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
@@ -166,12 +169,26 @@ fun SwipeableTransactionItem(
                                     target
                                 }
 
-                                // Kích hoạt rung haptic 1 lần khi vượt qua mốc snap
-                                if (abs(dampedTarget) >= actionThresholdPx && !hasTriggeredHaptic) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    hasTriggeredHaptic = true
-                                } else if (abs(dampedTarget) < actionThresholdPx && hasTriggeredHaptic) {
-                                    hasTriggeredHaptic = false
+                                val currentAbsDrag = abs(dampedTarget)
+
+                                // Mốc 1: Vượt qua actionThresholdPx (88dp) - Rung nhẹ báo "đã lộ nút"
+                                if (currentAbsDrag >= actionThresholdPx && !hasTriggeredActionHaptic) {
+                                    if (hapticEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    hasTriggeredActionHaptic = true
+                                } else if (currentAbsDrag < actionThresholdPx && hasTriggeredActionHaptic) {
+                                    hasTriggeredActionHaptic = false
+                                }
+
+                                // Mốc 2: Vượt qua commitThresholdPx (116dp) - Rung dứt khoát báo "ngưỡng xác nhận thao tác"
+                                if (currentAbsDrag >= commitThresholdPx && !hasTriggeredCommitHaptic) {
+                                    if (hapticEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                    hasTriggeredCommitHaptic = true
+                                } else if (currentAbsDrag < commitThresholdPx && hasTriggeredCommitHaptic) {
+                                    hasTriggeredCommitHaptic = false
                                 }
 
                                 offsetX.snapTo(dampedTarget)
@@ -193,7 +210,8 @@ fun SwipeableTransactionItem(
                                         stiffness = if (committed) 500f else 380f
                                     )
                                 )
-                                hasTriggeredHaptic = false
+                                hasTriggeredActionHaptic = false
+                                hasTriggeredCommitHaptic = false
                             }
                         },
                         onDragCancel = {
@@ -205,7 +223,8 @@ fun SwipeableTransactionItem(
                                         stiffness = Spring.StiffnessMedium
                                     )
                                 )
-                                hasTriggeredHaptic = false
+                                hasTriggeredActionHaptic = false
+                                hasTriggeredCommitHaptic = false
                             }
                         }
                     )

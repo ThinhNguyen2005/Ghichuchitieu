@@ -1025,6 +1025,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="appearance_section_glass">Visual Effects</string>
     <string name="appearance_liquid_glass_title">Liquid Glass Blur</string>
     <string name="appearance_liquid_glass_desc">Physical blur effect on navigation bar</string>
+    <string name="appearance_haptic_feedback_title">Haptic Feedback</string>
+    <string name="appearance_haptic_feedback_desc">Light vibration when reaching action threshold and confirm vibration on swipe</string>
     <string name="appearance_section_language">Application Language</string>
     <string name="appearance_lang_vi">Vietnamese</string>
     <string name="appearance_lang_en">English</string>

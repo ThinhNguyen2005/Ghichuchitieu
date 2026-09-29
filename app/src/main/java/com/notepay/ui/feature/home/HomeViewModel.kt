@@ -208,6 +208,12 @@ class HomeViewModel @Inject constructor(
         initialValue = BudgetSettings(),
     )
 
+    val hapticFeedbackEnabled = appSettingsDataStore.hapticFeedbackEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
     val geminiApiKey = aiSettingsDataStore.geminiApiKey.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

@@ -33,6 +33,7 @@ class AppSettingsDataStore @Inject constructor(
 
     companion object {
         val KEY_LIQUID_GLASS_ENABLED = booleanPreferencesKey("liquid_glass_enabled")
+        val KEY_HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
         val KEY_DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
         val KEY_DAILY_REMINDER_HOUR = intPreferencesKey("daily_reminder_hour")
         val KEY_DAILY_REMINDER_MINUTE = intPreferencesKey("daily_reminder_minute")
@@ -99,6 +100,16 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setLiquidGlassEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_LIQUID_GLASS_ENABLED] = enabled
+        }
+    }
+
+    val hapticFeedbackEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HAPTIC_FEEDBACK_ENABLED] ?: true
+    }
+
+    suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HAPTIC_FEEDBACK_ENABLED] = enabled
         }
     }
 

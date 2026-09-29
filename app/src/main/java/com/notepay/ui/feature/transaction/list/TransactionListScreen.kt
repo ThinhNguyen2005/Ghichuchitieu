@@ -111,6 +111,7 @@ fun TransactionListScreen(
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
     val dateRangeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -235,7 +236,8 @@ fun TransactionListScreen(
                                 walletsMap = state.walletsMap,
                                 onTransactionClick = onTransactionClick,
                                 onEditTransaction = onEditTransaction,
-                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx }
+                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                                hapticFeedbackEnabled = hapticFeedbackEnabled,
                             )
                         }
                     }
@@ -668,6 +670,7 @@ private fun DayGroupSection(
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
+    hapticFeedbackEnabled: Boolean = true,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -706,6 +709,7 @@ private fun DayGroupSection(
                 onClick = { onTransactionClick(tx.id) },
                 onEdit = { onEditTransaction(tx.id) },
                 onDelete = { onDeleteTransaction(tx) },
+                hapticEnabled = hapticFeedbackEnabled,
             )
         }
     }
