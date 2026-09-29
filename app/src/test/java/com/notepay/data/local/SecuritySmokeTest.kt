@@ -28,15 +28,11 @@ class SecuritySmokeTest {
         // Print ra console các permission được tìm thấy (để debug)
         println("Found permissions: ${requestedPermissions.joinToString()}")
 
-        // Bản local không có INTERNET, bản play và full có INTERNET
-        if (context.packageName.contains(".local")) {
-            assertThat(requestedPermissions.toList()).doesNotContain("android.permission.INTERNET")
-        } else {
-            assertThat(requestedPermissions.toList()).contains("android.permission.INTERNET")
-        }
+        // Cả bản play và full đều có INTERNET
+        assertThat(requestedPermissions.toList()).contains("android.permission.INTERNET")
 
         // Bản play không xin quyền đọc SMS / lắng nghe thông báo ngầm
-        if (!context.packageName.contains(".full") && !context.packageName.contains(".local")) {
+        if (!context.packageName.contains(".full")) {
             assertThat(requestedPermissions.toList()).doesNotContain("android.permission.BIND_NOTIFICATION_LISTENER_SERVICE")
         }
         assertThat(requestedPermissions.toList()).doesNotContain("android.permission.READ_SMS")

@@ -73,7 +73,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
@@ -111,6 +111,7 @@ fun TransactionListScreen(
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
     val dateRangeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -235,7 +236,8 @@ fun TransactionListScreen(
                                 walletsMap = state.walletsMap,
                                 onTransactionClick = onTransactionClick,
                                 onEditTransaction = onEditTransaction,
-                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx }
+                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                                hapticFeedbackEnabled = hapticFeedbackEnabled,
                             )
                         }
                     }
@@ -585,7 +587,7 @@ private fun SummaryStatisticsCard(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         ),
-                        color = Color(0xFF34C759)
+                        color = AppTheme.colors.success
                     )
                 }
 
@@ -607,7 +609,7 @@ private fun SummaryStatisticsCard(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         ),
-                        color = Color(0xFFFF3B30)
+                        color = AppTheme.colors.error
                     )
                 }
             }
@@ -668,6 +670,7 @@ private fun DayGroupSection(
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
+    hapticFeedbackEnabled: Boolean = true,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -688,7 +691,7 @@ private fun DayGroupSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             val net = dayGroup.totalIncome - dayGroup.totalExpense
-            val netColor = if (net.amountInCents >= 0) Color(0xFF34C759) else Color(0xFFFF3B30)
+            val netColor = if (net.amountInCents >= 0) AppTheme.colors.success else AppTheme.colors.error
             val prefix = if (net.amountInCents >= 0) "+" else ""
             Text(
                 text = "$prefix${MoneyFormatter.format(net)}",
@@ -706,6 +709,7 @@ private fun DayGroupSection(
                 onClick = { onTransactionClick(tx.id) },
                 onEdit = { onEditTransaction(tx.id) },
                 onDelete = { onDeleteTransaction(tx) },
+                hapticEnabled = hapticFeedbackEnabled,
             )
         }
     }

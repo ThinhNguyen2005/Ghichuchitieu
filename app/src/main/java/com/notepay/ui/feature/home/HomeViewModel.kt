@@ -208,6 +208,12 @@ class HomeViewModel @Inject constructor(
         initialValue = BudgetSettings(),
     )
 
+    val hapticFeedbackEnabled = appSettingsDataStore.hapticFeedbackEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
     val geminiApiKey = aiSettingsDataStore.geminiApiKey.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -246,6 +252,42 @@ class HomeViewModel @Inject constructor(
         initialValue = true,
     )
 
+    val budgetAlertsEnabled = appSettingsDataStore.budgetAlertsEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
+    val weeklyDigestEnabled = appSettingsDataStore.weeklyDigestEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
+
+    val reminderHour = appSettingsDataStore.reminderHour.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = 20,
+    )
+
+    val reminderMinute = appSettingsDataStore.reminderMinute.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = 30,
+    )
+
+    val themeMode = appSettingsDataStore.themeMode.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = "system",
+    )
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            appSettingsDataStore.setThemeMode(mode)
+        }
+    }
+
     fun setLiquidGlassEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsDataStore.setLiquidGlassEnabled(enabled)
@@ -256,9 +298,39 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             appSettingsDataStore.setDailyReminderEnabled(enabled)
             if (enabled) {
-                ReminderScheduler.scheduleDailyReminder(context)
+                ReminderScheduler.scheduleDailyReminder(
+                    context,
+                    targetHour = reminderHour.value,
+                    targetMinute = reminderMinute.value,
+                )
             } else {
                 ReminderScheduler.cancelDailyReminder(context)
+            }
+        }
+    }
+
+    fun setBudgetAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setBudgetAlertsEnabled(enabled)
+        }
+    }
+
+    fun setWeeklyDigestEnabled(context: Context, enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setWeeklyDigestEnabled(enabled)
+            if (enabled) {
+                ReminderScheduler.scheduleWeeklyDigest(context)
+            } else {
+                ReminderScheduler.cancelWeeklyDigest(context)
+            }
+        }
+    }
+
+    fun updateReminderTime(context: Context, hour: Int, minute: Int) {
+        viewModelScope.launch {
+            appSettingsDataStore.setReminderTime(hour, minute)
+            if (dailyReminderEnabled.value) {
+                ReminderScheduler.scheduleDailyReminder(context, hour, minute)
             }
         }
     }

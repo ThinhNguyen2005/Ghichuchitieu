@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +60,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.ThemeManager
 
 private data class ThemeColorOption(
     val id: String,
@@ -69,6 +68,7 @@ private data class ThemeColorOption(
 )
 
 private val themeColorOptions = listOf(
+    ThemeColorOption("ledger", R.string.appearance_color_ledger, Color(0xFFB5502E)),
     ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E)),
     ThemeColorOption("dynamic", R.string.appearance_color_dynamic, Color(0xFF6750A4)),
     ThemeColorOption("ocean", R.string.appearance_color_ocean, Color(0xFF007AFF)),
@@ -97,8 +97,6 @@ fun AppearanceLanguageScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -153,10 +151,10 @@ fun AppearanceLanguageScreen(
                         val modes = listOf("light", "dark", "system")
                         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                             modes.forEachIndexed { index, mode ->
-                                val isSelected = ThemeManager.themeMode == mode
+                                val isSelected = uiState.themeMode == mode
                                 SegmentedButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.setThemeMode(context, mode) },
+                                    onClick = { viewModel.setThemeMode(mode) },
                                     shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
                                     icon = {
                                         Icon(
@@ -206,12 +204,12 @@ fun AppearanceLanguageScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(themeColorOptions) { option ->
-                            val isSelected = ThemeManager.currentThemeColor == option.id
+                            val isSelected = uiState.themeColor == option.id
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
-                                    .clickable { viewModel.setThemeColor(context, option.id) }
+                                    .clickable { viewModel.setThemeColor(option.id) }
                                     .padding(4.dp),
                             ) {
                                 Box(
@@ -293,7 +291,49 @@ fun AppearanceLanguageScreen(
                 }
             }
 
-            // Section 4: Ngôn ngữ ứng dụng (Language)
+            // Section 4: Phản hồi rung (Haptic Feedback)
+            item {
+                SectionHeader(
+                    icon = Icons.Rounded.Vibration,
+                    title = stringResource(R.string.appearance_haptic_feedback_title),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppTheme.shapes.corner20,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 56.dp)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.appearance_haptic_feedback_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.appearance_haptic_feedback_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = uiState.hapticFeedbackEnabled,
+                            onCheckedChange = { viewModel.setHapticFeedbackEnabled(it) },
+                        )
+                    }
+                }
+            }
+
+            // Section 5: Ngôn ngữ ứng dụng (Language)
             item {
                 SectionHeader(
                     icon = Icons.Rounded.Translate,
@@ -313,7 +353,7 @@ fun AppearanceLanguageScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .defaultMinSize(minHeight = 56.dp)
-                                    .clickable { viewModel.setLanguage(context, option.code) }
+                                    .clickable { viewModel.setLanguage(option.code) }
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -331,7 +371,7 @@ fun AppearanceLanguageScreen(
                                 )
                                 RadioButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.setLanguage(context, option.code) },
+                                    onClick = { viewModel.setLanguage(option.code) },
                                 )
                             }
                             if (index < languageOptions.lastIndex) {

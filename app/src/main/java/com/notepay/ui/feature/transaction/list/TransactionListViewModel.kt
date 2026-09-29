@@ -33,6 +33,8 @@ import kotlin.time.Clock
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import com.notepay.data.preferences.AppSettingsDataStore
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
@@ -44,7 +46,8 @@ class TransactionListViewModel internal constructor(
     private val addTransaction: AddTransactionUseCase,
     private val walletRepository: WalletRepository,
     private val ioDispatcher: CoroutineDispatcher,
-    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    private val savedStateHandle: SavedStateHandle,
+    private val appSettingsDataStore: AppSettingsDataStore? = null,
     private val getString: (Int) -> String,
 ) : ViewModel() {
 
@@ -54,18 +57,26 @@ class TransactionListViewModel internal constructor(
         deleteTransaction: DeleteTransactionUseCase,
         addTransaction: AddTransactionUseCase,
         walletRepository: WalletRepository,
+        appSettingsDataStore: AppSettingsDataStore,
         savedStateHandle: SavedStateHandle,
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ) : this(
-        getTransactions,
-        deleteTransaction,
-        addTransaction,
-        walletRepository,
-        ioDispatcher,
-        savedStateHandle,
-        context::getString,
+        getTransactions = getTransactions,
+        deleteTransaction = deleteTransaction,
+        addTransaction = addTransaction,
+        walletRepository = walletRepository,
+        ioDispatcher = ioDispatcher,
+        savedStateHandle = savedStateHandle,
+        appSettingsDataStore = appSettingsDataStore,
+        getString = context::getString,
     )
+
+    val hapticFeedbackEnabled: StateFlow<Boolean> = appSettingsDataStore?.hapticFeedbackEnabled?.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    ) ?: MutableStateFlow(true)
 
     private val initialWalletId: Long? =
         savedStateHandle.get<String>("walletId")?.toLongOrNull()
@@ -140,10 +151,6 @@ class TransactionListViewModel internal constructor(
 
     fun toggleViewMode() {
         filters.update { it.copy(isCalendarView = !it.isCalendarView) }
-    }
-
-    fun setCalendarView(isCalendar: Boolean) {
-        filters.update { it.copy(isCalendarView = isCalendar) }
     }
 
     fun onPreviousMonth() {
@@ -252,11 +259,6 @@ class TransactionListViewModel internal constructor(
         }
     }
 
-    fun undoDelete() {
-        val transaction = actionState.value.pendingUndoTransaction ?: return
-        undoDelete(transaction)
-    }
-
     private fun undoDelete(transaction: Transaction) {
         viewModelScope.launch(ioDispatcher) {
             val result = addTransaction(transaction.copy(id = 0L))
@@ -335,12 +337,12 @@ private fun filterTransactions(
         when (filters.dateRangePreset) {
             DateRangePreset.ALL_TIME -> true
             DateRangePreset.THIS_MONTH -> {
-                txDate.year == today.year && txDate.monthNumber == today.monthNumber
+                txDate.year == today.year && txDate.month.number == today.month.number
             }
             DateRangePreset.LAST_MONTH -> {
-                val lastMonth = if (today.monthNumber == 1) 12 else today.monthNumber - 1
-                val lastMonthYear = if (today.monthNumber == 1) today.year - 1 else today.year
-                txDate.year == lastMonthYear && txDate.monthNumber == lastMonth
+                val lastMonth = if (today.month.number == 1) 12 else today.month.number - 1
+                val lastMonthYear = if (today.month.number == 1) today.year - 1 else today.year
+                txDate.year == lastMonthYear && txDate.month.number == lastMonth
             }
             DateRangePreset.LAST_30_DAYS -> {
                 (today.toEpochDays() - txDate.toEpochDays()) in 0..30
@@ -391,21 +393,23 @@ private fun groupTransactionsByDay(
         }
 
         val dayOfWeekStr = when (date.dayOfWeek) {
-            DayOfWeek.MONDAY -> "THỨ HAI"
-            DayOfWeek.TUESDAY -> "THỨ BA"
-            DayOfWeek.WEDNESDAY -> "THỨ TƯ"
-            DayOfWeek.THURSDAY -> "THỨ NĂM"
-            DayOfWeek.FRIDAY -> "THỨ SÁU"
-            DayOfWeek.SATURDAY -> "THỨ BẢY"
-            DayOfWeek.SUNDAY -> "CHỦ NHẬT"
-            else -> ""
+            DayOfWeek.MONDAY -> getString(R.string.day_monday)
+            DayOfWeek.TUESDAY -> getString(R.string.day_tuesday)
+            DayOfWeek.WEDNESDAY -> getString(R.string.day_wednesday)
+            DayOfWeek.THURSDAY -> getString(R.string.day_thursday)
+            DayOfWeek.FRIDAY -> getString(R.string.day_friday)
+            DayOfWeek.SATURDAY -> getString(R.string.day_saturday)
+            DayOfWeek.SUNDAY -> getString(R.string.day_sunday)
         }
 
-        val headerText = when (today.toEpochDays() - date.toEpochDays()) {
-            0L -> "HÔM NAY · thg ${date.monthNumber} ${date.day}"
-            1L -> "HÔM QUA · thg ${date.monthNumber} ${date.day}"
-            else -> "$dayOfWeekStr · thg ${date.monthNumber} ${date.day}"
-        }
+        val headerText = TransactionDateHeaderFormatter.format(
+            target = date,
+            today = today,
+            todayFormat = getString(R.string.date_today_format),
+            yesterdayFormat = getString(R.string.date_yesterday_format),
+            otherFormat = getString(R.string.date_other_format),
+            dayOfWeek = dayOfWeekStr,
+        )
 
         TransactionDayGroup(
             date = date,

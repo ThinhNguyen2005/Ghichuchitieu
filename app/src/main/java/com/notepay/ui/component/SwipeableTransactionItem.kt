@@ -8,13 +8,10 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -22,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -60,21 +55,24 @@ import kotlin.math.sign
 @Composable
 fun SwipeableTransactionItem(
     transaction: Transaction,
+    modifier: Modifier = Modifier,
     walletName: String = "",
     onClick: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
+    hapticEnabled: Boolean = true,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
 
     val actionThresholdPx = with(density) { 88.dp.toPx() }
-    val maxDragPx = with(density) { 160.dp.toPx() }
+    val commitThresholdPx = with(density) { 116.dp.toPx() }
+    val maxDragPx = with(density) { 140.dp.toPx() }
 
     val offsetX = remember { Animatable(0f) }
-    var hasTriggeredHaptic by remember { mutableStateOf(false) }
+    var hasTriggeredActionHaptic by remember { mutableStateOf(false) }
+    var hasTriggeredCommitHaptic by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -153,7 +151,8 @@ fun SwipeableTransactionItem(
                             coroutineScope.launch {
                                 offsetX.stop() // Ngắt animation tức thì nếu đang nảy
                             }
-                            hasTriggeredHaptic = false
+                            hasTriggeredActionHaptic = false
+                            hasTriggeredCommitHaptic = false
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
@@ -170,12 +169,26 @@ fun SwipeableTransactionItem(
                                     target
                                 }
 
-                                // Kích hoạt rung haptic 1 lần khi vượt qua mốc snap
-                                if (abs(dampedTarget) >= actionThresholdPx && !hasTriggeredHaptic) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    hasTriggeredHaptic = true
-                                } else if (abs(dampedTarget) < actionThresholdPx && hasTriggeredHaptic) {
-                                    hasTriggeredHaptic = false
+                                val currentAbsDrag = abs(dampedTarget)
+
+                                // Mốc 1: Vượt qua actionThresholdPx (88dp) - Rung nhẹ báo "đã lộ nút"
+                                if (currentAbsDrag >= actionThresholdPx && !hasTriggeredActionHaptic) {
+                                    if (hapticEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    hasTriggeredActionHaptic = true
+                                } else if (currentAbsDrag < actionThresholdPx && hasTriggeredActionHaptic) {
+                                    hasTriggeredActionHaptic = false
+                                }
+
+                                // Mốc 2: Vượt qua commitThresholdPx (116dp) - Rung dứt khoát báo "ngưỡng xác nhận thao tác"
+                                if (currentAbsDrag >= commitThresholdPx && !hasTriggeredCommitHaptic) {
+                                    if (hapticEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                    hasTriggeredCommitHaptic = true
+                                } else if (currentAbsDrag < commitThresholdPx && hasTriggeredCommitHaptic) {
+                                    hasTriggeredCommitHaptic = false
                                 }
 
                                 offsetX.snapTo(dampedTarget)
@@ -184,25 +197,21 @@ fun SwipeableTransactionItem(
                         onDragEnd = {
                             coroutineScope.launch {
                                 val finalOffset = offsetX.value
-                                val triggered = abs(finalOffset) >= actionThresholdPx
+                                val committed = abs(finalOffset) >= commitThresholdPx
 
-                                if (triggered) {
-                                    if (finalOffset < 0) {
-                                        onDelete?.invoke()
-                                    } else {
-                                        onEdit?.invoke()
-                                    }
+                                if (committed) {
+                                    if (finalOffset < 0) onDelete?.invoke() else onEdit?.invoke()
                                 }
 
-                                // Bung lò xo trở về vị trí ban đầu mượt mà
                                 offsetX.animateTo(
                                     targetValue = 0f,
                                     animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
+                                        dampingRatio = if (committed) 0.85f else 0.7f,
+                                        stiffness = if (committed) 500f else 380f
                                     )
                                 )
-                                hasTriggeredHaptic = false
+                                hasTriggeredActionHaptic = false
+                                hasTriggeredCommitHaptic = false
                             }
                         },
                         onDragCancel = {
@@ -214,7 +223,8 @@ fun SwipeableTransactionItem(
                                         stiffness = Spring.StiffnessMedium
                                     )
                                 )
-                                hasTriggeredHaptic = false
+                                hasTriggeredActionHaptic = false
+                                hasTriggeredCommitHaptic = false
                             }
                         }
                     )

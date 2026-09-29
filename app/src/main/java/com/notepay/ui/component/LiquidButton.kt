@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
 import com.notepay.ui.theme.AppTheme
 
 /** Solid action button; keeps existing call sites and touch geometry. */
@@ -31,7 +30,6 @@ fun LiquidButton(
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
     contentColor: Color = Color.Unspecified,
-    backdrop: Backdrop? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val surface = when {

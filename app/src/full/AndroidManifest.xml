@@ -2,10 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Bản local (100% offline): TẮT hoàn toàn quyền Internet -->
-    <uses-permission
-        android:name="android.permission.INTERNET"
-        tools:node="remove" />
+    <!-- Bản Full: Đầy đủ Internet và lắng nghe thông báo biến động số dư ngân hàng -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>

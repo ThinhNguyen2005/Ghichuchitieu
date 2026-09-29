@@ -44,7 +44,6 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ThumbDown
@@ -58,7 +57,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,7 +69,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,7 +97,6 @@ import com.notepay.domain.model.Money
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
-import com.notepay.ui.component.LiquidGlassPanel
 import com.notepay.ui.component.TransactionItem
 import com.notepay.ui.feature.subscription.AddSubscriptionBottomSheet
 import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
@@ -312,7 +308,7 @@ private fun StatsEmptyState(
                 text = stringResource(R.string.stats_empty_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
             Button(
@@ -742,12 +738,6 @@ private fun SpendingPredictionCard(
     prediction: com.notepay.domain.analytics.SpendingPrediction,
 ) {
     val probability = prediction.overBudgetProbability
-    val riskColor = when {
-        probability == null -> MaterialTheme.colorScheme.secondary
-        probability >= 0.70 -> MaterialTheme.colorScheme.error
-        probability >= 0.35 -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
 
     val confidenceLabel = when (prediction.confidence) {
         ForecastConfidence.LOW -> stringResource(R.string.stats_confidence_low)
@@ -990,7 +980,6 @@ private fun LocalAdvisorCard(
 
     InsightCard(
         modifier = modifier,
-        accentColor = MaterialTheme.colorScheme.primary,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1183,7 +1172,6 @@ private fun DynamicDailyBudgetCard(
 
     InsightCard(
         modifier = modifier,
-        accentColor = accentColor,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1288,7 +1276,6 @@ private fun AiAdviceCard(
 
     InsightCard(
         modifier = modifier,
-        accentColor = accentColor,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1379,7 +1366,6 @@ private fun SubscriptionProposalCard(
 ) {
     InsightCard(
         modifier = modifier,
-        accentColor = MaterialTheme.colorScheme.primary,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1448,7 +1434,6 @@ private fun SubscriptionProposalCard(
 @Composable
 private fun InsightCard(
     modifier: Modifier = Modifier,
-    accentColor: Color,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(

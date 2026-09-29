@@ -8,8 +8,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +57,7 @@ import com.notepay.ui.feature.billsplit.billSplitGraph
 import com.notepay.ui.feature.stats.statsScreen
 import com.notepay.ui.feature.subscription.subscriptionScreen
 import com.notepay.ui.feature.transaction.transactionGraph
+import com.notepay.ui.feature.debt.debtGraph
 import com.notepay.ui.feature.utilities.utilitiesGraph
 import com.notepay.ui.feature.wallet.walletGraph
 import com.notepay.ui.feedback.FeedbackDuration
@@ -220,6 +224,28 @@ fun NotePayNavHost(
                                     )
                                 }
                             },
+                            popEnterTransition = {
+                                if (reducedMotion) {
+                                    EnterTransition.None
+                                } else {
+                                    fadeIn(tween(NotePayMotion.contentDurationMillis)) +
+                                        scaleIn(
+                                            initialScale = 0.95f,
+                                            transformOrigin = TransformOrigin(0.5f, 0.5f),
+                                            animationSpec = tween(NotePayMotion.contentDurationMillis),
+                                        )
+                                }
+                            },
+                            popExitTransition = {
+                                if (reducedMotion) {
+                                    ExitTransition.None
+                                } else {
+                                    slideOutHorizontally(
+                                        animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
+                                        targetOffsetX = { it },
+                                    ) + fadeOut(tween(NotePayMotion.contentFadeOutDurationMillis))
+                                }
+                            },
                         ) {
                             composable(Route.Home.path) {
                                 MainTabPager(
@@ -260,6 +286,7 @@ fun NotePayNavHost(
                                     }
                                 },
                             )
+                            debtGraph(navController)
                         }
                     }
                 }

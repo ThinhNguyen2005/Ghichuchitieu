@@ -58,8 +58,8 @@ android {
         }
     }
 
-    // Play has Internet access; Local owns offline notification capture.
-    // Shared UI and business logic stay in src/main.
+    // Play: Google Play Store distribution (Internet access, no notification listener).
+    // Full: Sideload / GitHub distribution (Internet access + bank notification capture).
     flavorDimensions += "distribution"
 
     productFlavors {
@@ -67,10 +67,10 @@ android {
             dimension = "distribution"
         }
 
-        create("local") {
+        create("full") {
             dimension = "distribution"
-            applicationIdSuffix = ".local"
-            versionNameSuffix = "-local"
+            applicationIdSuffix = ".full"
+            versionNameSuffix = "-full"
         }
     }
 

@@ -1,6 +1,6 @@
 # NotePay
 
-NotePay is a local-first Android expense manager written in Kotlin and Jetpack Compose. It records income and expenses, forecasts spending, supports bill splitting with a VietQR-compatible payment payload, and can optionally parse selected bank notifications on-device.
+NotePay is a local-first Android expense manager written in Kotlin and Jetpack Compose. It records income and expenses, forecasts spending, manages debts and loans (Sổ nợ Vay & Cho vay) with VietQR payment sheets, supports bill splitting with a VietQR-compatible payment payload, and can optionally parse selected bank notifications on-device.
 
 ## Privacy model
 
@@ -26,6 +26,10 @@ Only TPBank is currently enabled for automatic recording. Other apps shown in th
 ## QR and bill split
 
 The QR payload is generated locally in `ui/util/VietQrGenerator.kt`; it contains the receiving bank BIN, account number, amount, transfer memo, and CRC. Treat it as a payment instruction: verify recipient, amount, and memo in the banking app before confirming. NotePay is not affiliated with NAPAS, VietQR, or any bank.
+
+## Debt & loan tracking (Sổ Nợ)
+
+Track personal lending and borrowing (`LEND` and `BORROW`) with partial repayment history, automatic settlement calculation, due date badges, and optional wallet transaction synchronization. Generate dynamic VietQR remittance sheets and pre-formatted reminder messages directly from the debt detail screen. See [docs/DEBT_MANAGEMENT.md](docs/DEBT_MANAGEMENT.md) for architecture, schema details, and use cases.
 
 ## Contributing
 

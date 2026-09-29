@@ -35,6 +35,7 @@ object DatabaseModule {
             NotePayDatabase.MIGRATION_2_3,
             NotePayDatabase.MIGRATION_3_4,
             NotePayDatabase.MIGRATION_4_5,
+            NotePayDatabase.MIGRATION_5_6,
         )
         .build()
 
@@ -49,4 +50,7 @@ object DatabaseModule {
 
     @Provides
     fun provideSubscriptionDao(db: NotePayDatabase): SubscriptionDao = db.subscriptionDao()
+
+    @Provides
+    fun provideDebtDao(db: NotePayDatabase): com.notepay.data.local.dao.DebtDao = db.debtDao()
 }

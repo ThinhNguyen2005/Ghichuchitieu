@@ -1,355 +1,333 @@
 ---
-version: 2.0.0
-name: NotePay iOS Monochrome & Pure Clarity
-description: Single source of truth for NotePay Android design tokens, iOS-inspired monochrome palette, typography, elevation, motion, and interaction rules.
+version: 3.0.0
+name: NotePay — Ledger Ink & Warm Paper
+description: Bộ design token mới cho NotePay — tách hẳn khỏi mặc định Material 3 (tím #6750A4, elevation dp, corner scale đồng nhất) và khỏi việc chỉ sao chép iOS monochrome. Xây dựng bản sắc riêng: giấy sổ tay ấm (ledger paper), mực đậm, accent đất nung, bóng đổ mềm dạng "paper lift", bo góc bất đối xứng.
 
 colors:
-  # Light Mode Monochrome Canvas (~80%) - iOS System Grouped Baseline
-  background: "#F2F2F7"          # Apple iOS System Grouped Background
-  surface: "#FFFFFF"             # Apple Pure White Card / Secondary Grouped
-  surface-subtle: "#F8F8FA"      # Subtle elevated container
-  surface-container: "#E5E5EA"   # Apple System Fill / Quaternary
-  surface-variant: "#E5E5EA"     # Subtle input container
+  # ==== LIGHT MODE — "Warm Paper Ledger" (~75%) ====
+  background: "#F7F3EC"            # Giấy ngà ấm, không phải xám lạnh Material/Apple
+  surface: "#FFFDF8"                # Bề mặt card — trắng ngà, ấm hơn #FFFFFF thuần
+  surface-sunken: "#EFE8DC"         # Vùng lõm (input, ô nhập liệu chưa focus)
+  surface-raised: "#FFFFFF"         # Bề mặt nổi cao nhất (modal, sheet)
 
-  text-primary: "#000000"        # Apple Primary Label (#000000 / #1C1C1E)
-  text-secondary: "#6C6C70"      # Apple Secondary Label (~5.1:1 WCAG AA)
-  text-muted: "#8E8E93"          # Apple Tertiary / Placeholder Label
+  text-primary: "#1F1B16"           # Mực đen ấm (không phải #000000 lạnh)
+  text-secondary: "#6B6255"         # Nâu xám ấm, ~4.8:1
+  text-muted: "#A69C8C"             # Placeholder / disabled
 
-  border: "#D1D1D6"              # Apple System Gray 4 Border
-  border-subtle: "#E5E5EA"       # Subtle divider line
-  separator: "rgba(60, 60, 67, 0.29)" # Apple System Separator (0x4A3C3C43)
+  border: "#DCD3C2"                 # Viền giấy ấm
+  border-strong: "#C7BBA4"          # Viền nhấn (dashed divider ledger)
+  hairline: "rgba(31, 27, 22, 0.10)"
 
-  # Light Mode Action & Primary (~15%) - Pure High-Contrast Black
-  primary: "#000000"             # Pitch Black Action
-  on-primary: "#FFFFFF"          # Pure White on Black
-  primary-container: "#E5E5EA"   # Inactive / subtle button container
-  on-primary-container: "#000000"
+  # ==== LIGHT MODE — Accent thương hiệu (~15%) — KHÔNG phải tím M3, KHÔNG phải đen/trắng Apple ====
+  primary: "#B5502E"                 # Đất nung (terracotta ink) — màu chữ ký của NotePay
+  on-primary: "#FFF8F0"
+  primary-container: "#F3DFCF"       # Nền nhạt của accent, dùng cho badge/trạng thái nhẹ
+  on-primary-container: "#5C2413"
 
-  secondary: "#3A3A3C"
-  on-secondary: "#FFFFFF"
-  secondary-container: "#E5E5EA"
-  on-secondary-container: "#1C1C1E"
+  secondary: "#3E4A3E"               # Xanh rêu đậm — dùng cho icon phụ, tab phụ
+  on-secondary: "#F7F3EC"
+  secondary-container: "#DCE3D5"
+  on-secondary-container: "#1F2A1F"
 
-  cta: "#000000"                 # Primary Action: Solid Black Pill
-  on-cta: "#FFFFFF"
+  cta: "#B5502E"                     # Nút hành động chính: pill đất nung, không phải đen tuyền
+  on-cta: "#FFF8F0"
 
-  # Dark Mode Monochrome Canvas (~80%) - Apple True Black OLED
-  dark-background: "#000000"     # Pure OLED True Black
-  dark-surface: "#1C1C1E"        # Apple Dark Secondary Grouped Background
-  dark-surface-subtle: "#242426" # Slightly elevated dark container
-  dark-surface-container: "#2C2C2E" # Apple Dark Tertiary Fill
-  dark-surface-variant: "#2C2C2E"
+  # ==== DARK MODE — "Ink Night" (~75%) ====
+  dark-background: "#15130F"         # Đen ấm ngả nâu, không phải OLED #000000 thuần
+  dark-surface: "#211E18"
+  dark-surface-sunken: "#1A1712"
+  dark-surface-raised: "#2A261E"
 
-  dark-text-primary: "#FFFFFF"   # Pure Crisp White Label
-  dark-text-secondary: "#8E8E93" # Apple Dark Secondary Label (~5.4:1)
-  dark-text-muted: "#636366"     # Apple Dark Placeholder / Disabled
+  dark-text-primary: "#F3ECDF"       # Trắng ngà, không trắng lạnh
+  dark-text-secondary: "#B7AC97"
+  dark-text-muted: "#7C7263"
 
-  dark-border: "#38383A"         # Apple Dark Separator Strong
-  dark-border-subtle: "#2C2C2E"  # Apple Dark Subtle Border
-  dark-separator: "rgba(84, 84, 88, 0.60)" # Apple Dark Separator (0x99545458)
+  dark-border: "#3A3327"
+  dark-border-strong: "#4E4433"
+  dark-hairline: "rgba(243, 236, 223, 0.09)"
 
-  # Dark Mode Action & Primary (~15%) - Pure High-Contrast White
-  dark-primary: "#FFFFFF"        # Crisp White Action
-  dark-on-primary: "#000000"     # Pure Black on White
-  dark-primary-container: "#2C2C2E"
-  dark-on-primary-container: "#FFFFFF"
+  # ==== DARK MODE — Accent (~15%) ====
+  dark-primary: "#E08A5C"            # Đất nung sáng hơn cho nền tối
+  dark-on-primary: "#2E1206"
+  dark-primary-container: "#4A2415"
+  dark-on-primary-container: "#F3DFCF"
 
-  dark-secondary: "#8E8E93"
-  dark-on-secondary: "#000000"
-  dark-secondary-container: "#2C2C2E"
-  dark-on-secondary-container: "#FFFFFF"
+  dark-secondary: "#8FA485"
+  dark-on-secondary: "#12190F"
+  dark-secondary-container: "#2B3527"
+  dark-on-secondary-container: "#DCE3D5"
 
-  dark-cta: "#FFFFFF"            # Primary Action: Solid White Pill in Dark Mode
-  dark-on-cta: "#000000"
+  dark-cta: "#E08A5C"
+  dark-on-cta: "#2E1206"
 
-  # Semantic Financial Status (~5% - Strictly for Cash Flow, Never Decorative)
-  income: "#34C759"              # Apple Human Interface Guideline Green
-  income-container: "#E8F8EE"
-  dark-income: "#30D158"         # Apple Dark Vibrant Green
-  dark-income-container: "#0B2E16"
+  # ==== Semantic tài chính (~10%) — desaturated, ấm, KHÁC hệ Apple #34C759/#FF3B30 ====
+  income: "#4C7A4A"                  # Xanh lá rêu đục, không phải xanh lá tươi hệ thống
+  income-container: "#E1EBDC"
+  dark-income: "#7FAE78"
+  dark-income-container: "#233021"
 
-  expense: "#FF3B30"             # Apple Human Interface Guideline Red
-  expense-container: "#FEECEB"
-  dark-expense: "#FF453A"        # Apple Dark Vibrant Red
-  dark-expense-container: "#3D0C09"
+  expense: "#A63B2E"                 # Đỏ gạch đất, cùng họ với primary — đồng bộ tông ấm
+  expense-container: "#F3DAD2"
+  dark-expense: "#D9705A"
+  dark-expense-container: "#3D1B14"
 
-  warning: "#FF9F0A"             # Apple Amber Warning
-  warning-container: "#FFF9DB"
-  dark-warning: "#FFD60A"
-  dark-warning-container: "#3B3200"
-
-  error: "#FF3B30"
-  error-container: "#FFDAD6"
-  dark-error: "#FF453A"
-  dark-error-container: "#93000A"
+  warning: "#B8862E"                 # Vàng đất (mù tạt), không phải vàng cam Apple
+  warning-container: "#F3E6C8"
+  dark-warning: "#D9AC5C"
+  dark-warning-container: "#3B2C0F"
 
 typography:
+  # Ghép chữ: Serif hiển thị (bản sắc "sổ ghi chép") + Sans nội dung + Mono cho số
   display-large:
-    fontFamily: Inter
-    fontSize: 34px
+    fontFamily: "Fraunces"          # Serif ấm, thay cho Inter mặc định — tạo cảm giác "sổ tay", khác hẳn font hệ thống
+    fontSize: 32px
     fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: -0.02em
-  headline-large:
-    fontFamily: Inter
-    fontSize: 22px
-    fontWeight: 600
-    lineHeight: 1.27
-  title-large:
-    fontFamily: Inter
-    fontSize: 20px
-    fontWeight: 600
-    lineHeight: 1.25
-  title-medium:
-    fontFamily: Inter
-    fontSize: 18px
-    fontWeight: 600
-    lineHeight: 1.33
-  body-large:
-    fontFamily: Inter
-    fontSize: 17px
-    fontWeight: 400
-    lineHeight: 1.29
-  body-medium:
-    fontFamily: Inter
-    fontSize: 15px
-    fontWeight: 400
-    lineHeight: 1.33
-  caption:
-    fontFamily: Inter
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1.33
-    letterSpacing: 0.02em
-  eyebrow:
-    fontFamily: Inter
-    fontSize: 11px
-    fontWeight: 600
-    lineHeight: 1.36
-    letterSpacing: 0.06em
-    textTransform: uppercase
-
-  # Monospace Tabular Numerics for Financial Exactness
-  amount-hero:
-    fontFamily: JetBrains Mono
-    fontSize: 34px
-    fontWeight: 700
     lineHeight: 1.18
     letterSpacing: -0.01em
+  headline-large:
+    fontFamily: "Fraunces"
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 1.25
+  title-large:
+    fontFamily: "Manrope"
+    fontSize: 19px
+    fontWeight: 700
+    lineHeight: 1.26
+  title-medium:
+    fontFamily: "Manrope"
+    fontSize: 17px
+    fontWeight: 700
+    lineHeight: 1.3
+  body-large:
+    fontFamily: "Manrope"
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 1.4
+  body-medium:
+    fontFamily: "Manrope"
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 1.4
+  caption:
+    fontFamily: "Manrope"
+    fontSize: 12px
+    fontWeight: 500
+    lineHeight: 1.35
+  eyebrow:
+    fontFamily: "Manrope"
+    fontSize: 10.5px
+    fontWeight: 700
+    lineHeight: 1.3
+    letterSpacing: 0.08em
+    textTransform: uppercase
+
+  amount-hero:
+    fontFamily: "JetBrains Mono"
+    fontSize: 36px
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: -0.015em
   amount-card:
-    fontFamily: JetBrains Mono
+    fontFamily: "JetBrains Mono"
     fontSize: 24px
     fontWeight: 700
-    lineHeight: 1.25
+    lineHeight: 1.2
   amount-row:
-    fontFamily: JetBrains Mono
-    fontSize: 16px
+    fontFamily: "JetBrains Mono"
+    fontSize: 15px
     fontWeight: 600
     lineHeight: 1.25
   number-tabular:
-    fontFamily: JetBrains Mono
-    fontSize: 14px
+    fontFamily: "JetBrains Mono"
+    fontSize: 13px
     fontWeight: 500
-    lineHeight: 1.28
+    lineHeight: 1.3
 
-rounded:
-  xs: 4px       # indicator dot / micro tag
-  sm: 8px       # corner8: small chip / badge / popup menu
-  md: 12px      # corner12: input field / secondary card
-  lg: 16px      # corner16: prominent surface / transaction row / modal
-  xl: 20px      # corner20: large picker sheet / glass panel
-  xxl: 24px     # corner24: hero balance card / bottom sheet top corners
-  capsule: 9999px # capsule (50%): tab indicator / action pill button
-  full: 9999px  # circle: icon button / category avatar / FAB
+# Bo góc: KHÔNG dùng thang đều 4/8/12/16/28 kiểu Material, mà là hệ bất đối xứng
+# — mỗi surface có 1 góc "bẻ" khác các góc còn lại, gợi nhớ mép giấy gấp trong sổ tay
+radius:
+  chip: 10px
+  input: 14px
+  row: 16px
+  card: "18px 18px 18px 6px"        # 3 góc tròn đều, góc dưới-trái bẻ nhọn — chữ ký hình khối của NotePay
+  card-alt: "6px 18px 18px 18px"    # biến thể soi gương, dùng xen kẽ trong list để tạo nhịp điệu
+  sheet-top: "24px 24px 0 0"
+  pill: 999px
+  avatar: 999px
 
 spacing:
-  xs: 4px       # spaceExtraSmall
-  sm: 8px       # spaceSmall / paddingSmall
-  md: 16px      # spaceMedium / paddingMedium (primary screen gutter)
-  lg: 24px      # spaceLarge / paddingLarge (section gap)
-  xl: 32px      # spaceExtraLarge (hero top spacing)
-  xxl: 48px     # empty state & splash spacing
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 32px
+  xxl: 40px
+
+# Đổ bóng: bỏ hệ "elevation dp" phẳng của Material. Dùng bóng đổ mềm, lệch nhẹ,
+# mô phỏng ánh sáng chiếu chéo lên giấy — không dùng bóng màu, không dùng 0px phẳng tuyệt đối như bản iOS cũ
+elevation:
+  resting:
+    boxShadow: "0px 1px 2px rgba(31,27,22,0.06)"
+  raised:
+    boxShadow: "0px 4px 10px rgba(31,27,22,0.08), 0px 1px 2px rgba(31,27,22,0.05)"
+  floating:
+    boxShadow: "0px 10px 24px rgba(31,27,22,0.12), 0px 2px 6px rgba(31,27,22,0.06)"
+  pressed:
+    boxShadow: "0px 0px 0px rgba(31,27,22,0)"   # phẳng hẳn khi nhấn — phản hồi xúc giác qua bóng, không chỉ qua scale
 
 motion:
-  fast: 120ms
-  normal: 200ms
-  emphasized: 280ms
-  sheet-spring: 350ms
-  easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0) # FastOutSlowIn
+  fast: 130ms
+  normal: 220ms
+  emphasized: 300ms
+  sheet-spring: 380ms
+  easing-standard: cubic-bezier(0.22, 1, 0.36, 1)   # "ease-out-quint" — nảy nhẹ như trang giấy lật, khác FastOutSlowIn của Material
   spring-bounce:
-    dampingRatio: 0.65
-    stiffness: 400.0
+    dampingRatio: 0.7
+    stiffness: 320.0
 
 components:
   primary-action-button:
     backgroundColor: "{colors.cta}"
     textColor: "{colors.on-cta}"
-    rounded: "{rounded.capsule}"
-    height: 54px
+    radius: "{radius.pill}"
+    height: 52px
+    shadow: "{elevation.raised}"
   liquid-navigation-bar:
-    backgroundColor: "{colors.surface}"
-    backdropBlur: 20px
+    backgroundColor: "{colors.surface-raised}"
     indicatorColor: "{colors.primary}"
-    height: 64px
-    rounded: "{rounded.capsule}"
+    height: 62px
+    radius: "{radius.pill}"
+    shadow: "{elevation.floating}"
+    border: "1px solid {colors.border}"
   balance-hero-card:
     backgroundColor: "{colors.surface}"
-    rounded: "{rounded.xxl}"
+    radius: "{radius.card}"
     padding: "{spacing.lg}"
-    elevation: 0px
-    border: "1px solid {colors.border-subtle}"
+    shadow: "{elevation.raised}"
+    border: "1px solid {colors.border}"
+    accentEdge: "3px solid {colors.primary}"   # dải mực mảnh bên trái card — chi tiết nhận diện riêng, không có ở Material/Apple
   transaction-item-row:
     backgroundColor: "{colors.surface}"
-    rounded: "{rounded.lg}"
+    radius: "{radius.row}"
     padding: "{spacing.md}"
     swipeThreshold: 72px
+    divider: "dashed 1px {colors.border-strong}"  # đường kẻ đứt kiểu sổ ghi chép giữa các dòng, thay cho hairline đặc
   amount-display-hero:
     typography: "{typography.amount-hero}"
     textColor: "{colors.text-primary}"
     currencySymbolColor: "{colors.text-muted}"
   category-chip:
-    backgroundColor: "{colors.surface-container}"
+    backgroundColor: "{colors.surface-sunken}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.capsule}"
-    height: 36px
+    radius: "{radius.chip}"
+    height: 34px
+    border: "1px solid {colors.border}"
   ai-advisor-card:
-    backgroundColor: "{colors.surface-subtle}"
-    borderColor: "{colors.border}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.xl}"
+    backgroundColor: "{colors.primary-container}"
+    borderColor: "{colors.primary}"
+    textColor: "{colors.on-primary-container}"
+    radius: "{radius.card-alt}"
+    shadow: "{elevation.resting}"
 ---
 
-# NotePay Design Specification: iOS Monochrome & Pure Clarity
+# NotePay Design Specification v3: Ledger Ink & Warm Paper
 
-## 1. Philosophy: Pure iOS Minimalism
-NotePay follows the design ethos of **Apple iOS System Financial Applications**: no rainbow gradients, no distracting primary brand colors, and zero decorative visual clutter.
+## 1. Vì sao tách khỏi Material 3 và bản iOS monochrome cũ
+
+**Vấn đề của bản cũ:**
+- Bảng màu B&W thuần (`#000000`/`#FFFFFF`) là công thức của Apple Human Interface Guidelines — không tạo bản sắc riêng, ai nhìn cũng thấy quen mắt "giống app Apple".
+- Xanh/đỏ income-expense (`#34C759`/`#FF3B30`) là màu hệ thống iOS mặc định, trùng với hàng nghìn app khác.
+- Thang bo góc 8/12/16/20/24 đều và đối xứng là công thức chuẩn của cả Material lẫn iOS — không có điểm nhận diện riêng.
+- `elevation: 0px` + border hairline là lối "phẳng hoá" điển hình của thiết kế hệ thống, không có chiều sâu vật lý.
+
+**Hướng đi mới — ẩn dụ "sổ ghi chép" (ledger):**
+Một app quản lý chi tiêu về bản chất là một cuốn sổ. NotePay v3 lấy giấy ấm, mực đất nung, và các chi tiết "viết tay" (góc bẻ, đường kẻ đứt, dải mực bên card) làm ngôn ngữ thị giác — thứ không thể nhầm với Material 3 hay bất kỳ app hệ thống nào.
 
 ```text
-Light Mode:
-Pure Black Action (#000000) on White Card (#FFFFFF) over System Gray (#F2F2F7)
+Nền giấy ấm (#F7F3EC) → Card giấy ngà (#FFFDF8), góc bẻ bất đối xứng
                                   ↓
-Dark Mode:
-Crisp White Action (#FFFFFF) on Dark Surface (#1C1C1E) over True Black OLED (#000000)
+Accent: Đất nung (#B5502E) — không đen/trắng, không tím Material
                                   ↓
-Semantics (Only for cashflow):
-Apple Green (#34C759 / #30D158) for Income | Apple Red (#FF3B30 / #FF453A) for Expense
+Số liệu tài chính: Xanh rêu đục (income) / Đỏ gạch (expense) — cùng họ tông đất, không phải xanh-đỏ hệ thống
 ```
 
-### Key Principles
-1. **Monochrome Dominance**: The primary visual identity is high-contrast Black & White. All primary buttons, tab indicators, active states, and title headers use pure black in light mode and pure white in dark mode.
-2. **True Black OLED Dark Mode**: Background is `#000000`, surfaces are `#1C1C1E`. Saves battery on OLED displays and offers seamless edge-to-edge immersion.
-3. **Tabular Monospace Numerics**: Money amounts are strictly rendered in `JetBrains Mono` with identical digit widths. Numbers do not jitter during transitions or live calculations.
-4. **Restraint over Decoration**: Color is treated as information, not decoration. Only two colors are permitted to stand out: Income Green and Expense Red.
+---
+
+## 2. Hệ màu
+
+### Canvas & Surface (~75%)
+| Token | Light | Dark |
+|---|---|---|
+| background | `#F7F3EC` giấy ngà ấm | `#15130F` đen ấm |
+| surface | `#FFFDF8` | `#211E18` |
+| text-primary | `#1F1B16` mực ấm | `#F3ECDF` |
+| text-secondary | `#6B6255` (~4.8:1) | `#B7AC97` |
+| border | `#DCD3C2` | `#3A3327` |
+
+Điểm khác biệt cốt lõi: **không dùng xám lạnh** (`#F2F2F7`, `#1C1C1E` kiểu Apple) và **không dùng trắng/đen tuyệt đối làm nền** — mọi tông đều ngả vàng/nâu nhẹ để tạo cảm giác giấy thật.
+
+### Accent thương hiệu (~15%)
+- `primary` = `#B5502E` (đất nung) thay cho đen/trắng thuần hoặc tím Material `#6750A4`.
+- `secondary` = `#3E4A3E` (rêu đậm) cho các yếu tố phụ, không cạnh tranh với primary.
+- Nút CTA là pill đất nung, không phải pill đen/trắng — nhận diện được ngay cả khi chụp màn hình không có logo.
+
+### Semantic tài chính (~10%)
+- Income `#4C7A4A`, Expense `#A63B2E` — đều được "hạ tông" (desaturate) và kéo về họ màu đất, để không chỏi với accent chính như cách xanh-lá-tươi/đỏ-tươi hệ thống thường chỏi với mọi bảng màu.
+- *Quy tắc nghiêm ngặt*: đây vẫn là 2 màu DUY NHẤT mang nghĩa cash-flow — không dùng trang trí ở nơi khác.
 
 ---
 
-## 2. Color System: The iOS Black & White Architecture
+## 3. Bo góc — hệ bất đối xứng thay cho thang đều
 
-### Canvas & Surface Structure (~80%)
-- **Light Mode**:
-  - `background`: `#F2F2F7` (Apple System Grouped Background)
-  - `surface`: `#FFFFFF` (Pure White Card / Modal Surface)
-  - `surface-container`: `#E5E5EA` (Apple System Gray 5 Fill)
-  - `text-primary`: `#000000` (High contrast, 15.8:1 ratio)
-  - `text-secondary`: `#6C6C70` (Apple Secondary Label, 5.1:1 ratio, WCAG AA compliant)
-  - `separator`: `#D1D1D6` / `rgba(60, 60, 67, 0.29)`
-- **Dark Mode**:
-  - `dark-background`: `#000000` (Apple OLED True Black)
-  - `dark-surface`: `#1C1C1E` (Apple System Dark Surface)
-  - `dark-surface-container`: `#2C2C2E` (Apple System Dark Gray 4 Fill)
-  - `dark-text-primary`: `#FFFFFF` (High contrast, 16.2:1 ratio)
-  - `dark-text-secondary`: `#8E8E93` (Apple Dark Secondary Label, 5.4:1 ratio)
-  - `dark-separator`: `#38383A` / `rgba(84, 84, 88, 0.60)`
+Thay vì một thang bán kính áp đều cho mọi surface (kiểu Material `4/8/12/16/28`), NotePay v3 dùng **góc bẻ**: 3 góc bo tròn, 1 góc gần như vuông (6px), luân phiên xoay chiều giữa các thẻ liên tiếp trong danh sách.
 
-### Primary Action & Active Accent (~15%)
-- **Light Mode Action**: Solid Black (`#000000`) with crisp White text/icon (`#FFFFFF`).
-- **Dark Mode Action**: Solid White (`#FFFFFF`) with pitch Black text/icon (`#000000`).
-- **Inactive / Ghost States**: Neutral Gray Container (`#E5E5EA` Light / `#2C2C2E` Dark).
+- `card`: `18px 18px 18px 6px` — góc dưới-trái bẻ nhọn.
+- `card-alt`: `6px 18px 18px 18px` — soi gương, dùng cho thẻ AI Advisor hoặc xen kẽ trong feed để tạo nhịp điệu thị giác, tránh cảm giác "dập khuôn hàng loạt".
 
-### Semantic Financial Status (~5%)
-- **Income (Cash In)**: `#34C759` (Light) / `#30D158` (Dark).
-- **Expense (Cash Out)**: `#FF3B30` (Light) / `#FF453A` (Dark).
-- **Warning (Threshold approaching)**: `#FF9F0A` (Light) / `#FFD60A` (Dark).
-- *Strict Rule*: No decorative buttons, backgrounds, or app bars may use red, green, or blue. These colors are strictly reserved for cashflow values and status badges.
+Đây là chi tiết dễ nhận ra nhất khi so sánh cạnh-cạnh với bất kỳ app Material 3 hay iOS nào — không app nào khác có góc bẻ này trừ khi cố tình sao chép NotePay.
 
 ---
 
-## 3. Typography: Dual-Font Architecture
+## 4. Đổ bóng — "paper lift" thay cho elevation phẳng
 
-NotePay pairs `Inter` for human prose with `JetBrains Mono` for financial numeracy:
+Bỏ hoàn toàn mô hình "elevation dp" của Material (nơi độ cao chỉ là một con số trừu tượng) và bỏ luôn `elevation: 0px` tuyệt đối của bản Apple cũ. Thay bằng bóng đổ vật lý, mô phỏng ánh sáng chiếu chéo:
 
-| Token | Font | Size / Weight | Line Height | Usage |
-|---|---|---|---|---|
-| `amount-hero` | JetBrains Mono | 34sp / Bold (700) | 1.18 | Large transaction amount input |
-| `amount-card` | JetBrains Mono | 24sp / Bold (700) | 1.25 | Primary balance on Hero Card |
-| `amount-row` | JetBrains Mono | 16sp / SemiBold (600) | 1.25 | Transaction list item cash values |
-| `number-tabular` | JetBrains Mono | 14sp / Medium (500) | 1.28 | Percentages, dates, account numbers |
-| `display-large` | Inter | 34sp / SemiBold (600) | 1.20 | Large screen titles, month header |
-| `headline-large` | Inter | 22sp / SemiBold (600) | 1.27 | Section headers, sheet titles |
-| `title-large` | Inter | 20sp / SemiBold (600) | 1.25 | TopAppBar titles, dialog titles |
-| `body-large` | Inter | 17sp / Regular (400) | 1.29 | Default form fields, body text |
-| `body-medium` | Inter | 15sp / Regular (400) | 1.33 | Secondary descriptions, note text |
-| `caption` | Inter | 12sp / Medium (500) | 1.33 | Timestamps, Vietnamese words spelling |
-| `eyebrow` | Inter | 11sp / SemiBold (600) | 1.36 | Category badges, uppercase tags |
+| Cấp | Dùng cho | Box-shadow |
+|---|---|---|
+| resting | chip, thẻ AI advisor | `0px 1px 2px rgba(31,27,22,0.06)` |
+| raised | balance card, button | `0px 4px 10px rgba(31,27,22,.08), 0px 1px 2px rgba(31,27,22,.05)` |
+| floating | nav bar, bottom sheet | `0px 10px 24px rgba(31,27,22,.12), 0px 2px 6px rgba(31,27,22,.06)` |
+| pressed | trạng thái nhấn | phẳng hẳn — bóng biến mất tức thời, tạo cảm giác "ấn xuống giấy" |
+
+Bóng luôn dùng màu mực ấm (`rgba(31,27,22,…)`) chứ không dùng đen thuần hay bóng có màu theo accent — giữ cảm giác tự nhiên như ánh sáng thật.
 
 ---
 
-## 4. Spacing & Shapes
+## 5. Card & chi tiết nhận diện riêng
 
-### Spatial Scale (4dp Core Rhythm)
-- `4dp (xs)`: Micro gaps between badge icon and text.
-- `8dp (sm)`: Compact internal chip padding, small control margins.
-- `16dp (md)`: **Primary Screen Gutter**, standard form field spacing.
-- `24dp (lg)`: Card internal padding, section breaks.
-- `32dp (xl)`: Hero card top margin, empty state gaps.
-
-### Shape Scale (`AppShapes`)
-- `8dp (corner8)`: Small filter chips, menu popovers.
-- `12dp (corner12)`: Form inputs, date selector cells.
-- `16dp (corner16)`: Transaction list items, card surfaces, dialogs.
-- `20dp (corner20)`: Category grid container, bottom action panels.
-- `24dp (corner24)`: Hero balance card, bottom sheet top corners.
-- `Capsule (50% / 9999px)`: Primary CTA button, sliding tab indicator pills.
-- `Circle (9999px)`: Category icon avatars, round action buttons.
+- **Balance Hero Card**: có `accentEdge` — một dải mực đất nung dày 3px dọc theo cạnh trái card, như một dải bookmark. Chi tiết này không tồn tại ở bản Material lẫn bản iOS cũ.
+- **Transaction Row**: đường phân cách giữa các dòng đổi từ hairline đặc sang **nét đứt** (`dashed 1px`), gợi liên tưởng tới đường xé của biên lai giấy.
+- **Category Chip**: nền `surface-sunken` (giấy lõm nhẹ) + viền mảnh, thay vì fill xám phẳng kiểu Material system-fill.
 
 ---
 
-## 5. Components & iOS Monochrome Behavior
+## 6. Typography — ghép chữ mới
 
-### 1. Primary Action Button (`LiquidButton`)
-- In Light Mode: Background `#000000`, Text/Icon `#FFFFFF`.
-- In Dark Mode: Background `#FFFFFF`, Text/Icon `#000000`.
-- Shape: Full Capsule (`AppTheme.shapes.capsule`).
-- Minimum height: `54dp`.
-- Press animation: Subtle scaling down to `0.97f` on touch down with fast spring release.
-
-### 2. Balance Hero Card (`BalanceCard`)
-- Clean white card (`#FFFFFF`) in Light Mode, dark surface (`#1C1C1E`) in Dark Mode.
-- No heavy colorful gradients. Thin border stroke (`1.dp` solid `#D1D1D6` / `#38383A`).
-- Large balance number in `JetBrains Mono` (`amount-card`).
-- Income/Expense indicators using subtle background tint with green/red indicator arrows.
-
-### 3. Transaction Type Selector (Income vs Expense)
-- Sliding pill indicator moving horizontally over a segmented track.
-- Active tab background is pure Black (Light) / White (Dark).
-- Inactive text is subtle gray (`#6C6C70` / `#8E8E93`).
-
-### 4. Liquid Navigation Tab Bar (`NotePayBottomBar`)
-- Floating pill dock above the bottom edge.
-- Background uses subtle frosted glass (`backdropBlur: 20px`) with semi-transparent white/dark surface.
-- Active tab indicator: Solid Black/White pill slider.
+- **Fraunces** (serif ấm, có cá tính "viết tay hiện đại") cho tiêu đề lớn — thay cho Inter, vốn là lựa chọn an toàn/trung tính dùng trong hầu hết app hệ thống.
+- **Manrope** (sans hình học, thân thiện) cho nội dung — thay cho Inter ở phần body, giữ dễ đọc nhưng có nét bo tròn riêng hơn.
+- **JetBrains Mono** giữ lại cho số liệu tài chính — đây là lựa chọn đúng, không cần đổi vì tính đơn cách (tabular) là yêu cầu chức năng chứ không phải gu thẩm mỹ.
 
 ---
 
-## 6. Do's and Don'ts
+## 7. Nên và không nên
 
-### Do's
-- **DO** use `MaterialTheme.colorScheme.primary` for primary action buttons so they automatically switch between Black (Light Mode) and White (Dark Mode).
-- **DO** use `MaterialTheme.colorScheme.onPrimary` for text/icons placed inside primary buttons.
-- **DO** keep backgrounds neutral: `#F2F2F7` for Light Mode and `#000000` for Dark Mode.
-- **DO** reserve Green (`#34C759`) and Red (`#FF3B30`) strictly for cash flow data (Income / Expense).
+### Nên
+- Luân phiên `card` / `card-alt` trong danh sách để tránh lặp góc bẻ cùng chiều liên tục.
+- Dùng `accentEdge` chỉ trên các card "hero" hoặc card cần nhấn mạnh — không lạm dụng trên mọi surface.
+- Giữ nguyên tắc chỉ 2 màu income/expense mang ý nghĩa tài chính; mọi màu khác (kể cả accent chính) không được dùng để biểu thị lãi/lỗ.
 
-### Don'ts
-- **DON'T** introduce colored brand accents (e.g. green, blue, purple buttons). Keep primary actions strictly Black and White.
-- **DON'T** hardcode raw hex colors like `Color(0xFF1B7F4F)` inside Composables. Always reference semantic tokens.
-- **DON'T** apply drop shadows with color tint. Use neutral elevation or subtle 1dp hairline borders (`#D1D1D6` / `#38383A`).
+### Không nên
+- Không quay lại xám lạnh hệ thống (`#F2F2F7`, `#E5E5EA`) hoặc đen/trắng tuyệt đối làm nền — phá vỡ cảm giác "giấy ấm".
+- Không dùng bo góc đối xứng đều ở mọi card — làm mất đi chi tiết nhận diện cốt lõi của phiên bản này.
+- Không thêm bóng màu theo accent (ví dụ bóng đất nung) — bóng chỉ dùng tông mực trung tính để giữ cảm giác vật lý tự nhiên.

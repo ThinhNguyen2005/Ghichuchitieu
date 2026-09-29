@@ -100,6 +100,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
     var showWalletSwitcher by remember { mutableStateOf(false) }
     var isBudgetProjectionDismissed by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
@@ -310,6 +311,7 @@ fun HomeScreen(
                         onClick = { onTransactionClick(tx.id) },
                         onEdit = { onEditTransaction(tx.id) },
                         onDelete = { pendingDeleteTransaction = tx },
+                        hapticEnabled = hapticFeedbackEnabled,
                     )
                 }
             }

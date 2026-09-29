@@ -99,7 +99,6 @@ import com.notepay.platform.LiquidGlassBlockReason
 import com.notepay.platform.OsCompatHelper
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.theme.ThemeManager
 
 /**
  * State thuần túy cho màn hình Cài đặt (SettingsUiState).
@@ -114,6 +113,10 @@ data class SettingsUiState(
     val isLiquidGlassSupported: Boolean = true,
     val liquidGlassStatusText: String = "",
     val dailyReminderEnabled: Boolean = false,
+    val budgetAlertsEnabled: Boolean = true,
+    val weeklyDigestEnabled: Boolean = true,
+    val reminderHour: Int = 20,
+    val reminderMinute: Int = 30,
 )
 
 /**
@@ -127,12 +130,17 @@ fun AppSettingsScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val geminiApiKey by viewModel.geminiApiKey.collectAsStateWithLifecycle()
     val cloudAiEnabled by viewModel.cloudAiEnabled.collectAsStateWithLifecycle()
     val smartReceiptAiEnabled by viewModel.smartReceiptAiEnabled.collectAsStateWithLifecycle()
     val isGeminiNanoAvailable by viewModel.isGeminiNanoAvailable.collectAsStateWithLifecycle()
     val liquidGlassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
     val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsStateWithLifecycle()
+    val budgetAlertsEnabled by viewModel.budgetAlertsEnabled.collectAsStateWithLifecycle()
+    val weeklyDigestEnabled by viewModel.weeklyDigestEnabled.collectAsStateWithLifecycle()
+    val reminderHour by viewModel.reminderHour.collectAsStateWithLifecycle()
+    val reminderMinute by viewModel.reminderMinute.collectAsStateWithLifecycle()
 
     val glassCompatibility = remember(view.isHardwareAccelerated) {
         OsCompatHelper.liquidGlassCompatibility(
@@ -152,7 +160,7 @@ fun AppSettingsScreen(
     }
 
     val uiState = SettingsUiState(
-        themeMode = ThemeManager.themeMode,
+        themeMode = themeMode,
         geminiApiKey = geminiApiKey,
         cloudAiEnabled = cloudAiEnabled,
         smartReceiptAiEnabled = smartReceiptAiEnabled,
@@ -161,6 +169,10 @@ fun AppSettingsScreen(
         isLiquidGlassSupported = glassCompatibility.isSupported,
         liquidGlassStatusText = "${glassCompatibility.deviceDescription} • $glassStatus",
         dailyReminderEnabled = dailyReminderEnabled,
+        budgetAlertsEnabled = budgetAlertsEnabled,
+        weeklyDigestEnabled = weeklyDigestEnabled,
+        reminderHour = reminderHour,
+        reminderMinute = reminderMinute,
     )
 
     fun playHaptic() {
@@ -175,7 +187,7 @@ fun AppSettingsScreen(
         },
         onThemeModeSelected = { mode ->
             playHaptic()
-            ThemeManager.updateThemeMode(context, mode)
+            viewModel.setThemeMode(mode)
         },
         onSaveApiKey = { key ->
             playHaptic()
@@ -207,6 +219,18 @@ fun AppSettingsScreen(
             playHaptic()
             viewModel.setDailyReminderEnabled(context, enabled)
         },
+        onToggleBudgetAlerts = { enabled ->
+            playHaptic()
+            viewModel.setBudgetAlertsEnabled(enabled)
+        },
+        onToggleWeeklyDigest = { enabled ->
+            playHaptic()
+            viewModel.setWeeklyDigestEnabled(context, enabled)
+        },
+        onUpdateReminderTime = { hour, minute ->
+            playHaptic()
+            viewModel.updateReminderTime(context, hour, minute)
+        },
         onNavigateToBackupRestore = {
             playHaptic()
             onNavigateToBackupRestore()
@@ -230,9 +254,13 @@ fun SettingsContent(
     onOpenKeyPage: () -> Unit,
     onToggleLiquidGlass: (Boolean) -> Unit,
     onToggleDailyReminder: (Boolean) -> Unit,
+    onToggleBudgetAlerts: (Boolean) -> Unit = {},
+    onToggleWeeklyDigest: (Boolean) -> Unit = {},
+    onUpdateReminderTime: (Int, Int) -> Unit = { _, _ -> },
     onNavigateToBackupRestore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -321,35 +349,93 @@ fun SettingsContent(
                         }
                     )
 
+                }
+            }
+
+            // Khu vực: Thông báo & Lời nhắc thông minh
+            item {
+                SectionHeader(title = stringResource(R.string.settings_notification_section_title))
+            }
+            item {
+                SettingCard {
+                    // Cảnh báo ngân sách
+                    SettingListItem(
+                        icon = Icons.Rounded.Warning,
+                        title = stringResource(R.string.settings_notif_budget_alerts_title),
+                        description = stringResource(R.string.settings_notif_budget_alerts_desc),
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.budgetAlertsEnabled,
+                                onCheckedChange = onToggleBudgetAlerts,
+                            )
+                        }
+                    )
+
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 8.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                     )
 
+                    // Tổng kết tuần
+                    SettingListItem(
+                        icon = Icons.AutoMirrored.Rounded.ReceiptLong,
+                        title = stringResource(R.string.settings_notif_weekly_digest_title),
+                        description = stringResource(R.string.settings_notif_weekly_digest_desc),
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.weeklyDigestEnabled,
+                                onCheckedChange = onToggleWeeklyDigest,
+                            )
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    )
+
+                    // Nhắc nhở hàng ngày & Streak
                     SettingListItem(
                         icon = Icons.Rounded.NotificationsActive,
-                        title = stringResource(R.string.settings_daily_reminder_title),
-                        description = if (uiState.dailyReminderEnabled) {
-                            stringResource(R.string.settings_daily_reminder_enabled)
-                        } else {
-                            stringResource(R.string.settings_daily_reminder_disabled)
-                        },
+                        title = stringResource(R.string.settings_notif_daily_reminder_title),
+                        description = stringResource(R.string.settings_notif_daily_reminder_desc),
                         trailingContent = {
                             Switch(
                                 checked = uiState.dailyReminderEnabled,
                                 onCheckedChange = onToggleDailyReminder,
-                                thumbContent = if (uiState.dailyReminderEnabled) {
-                                    {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize)
-                                        )
-                                    }
-                                } else null
                             )
                         }
                     )
+
+                    if (uiState.dailyReminderEnabled) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+
+                        // Giờ nhắc nhở
+                        SettingListItem(
+                            icon = Icons.Rounded.CheckCircle,
+                            title = stringResource(R.string.settings_notif_reminder_time_title),
+                            description = "%02d:%02d".format(uiState.reminderHour, uiState.reminderMinute),
+                            onClick = {
+                                android.app.TimePickerDialog(
+                                    context,
+                                    { _, hour, minute -> onUpdateReminderTime(hour, minute) },
+                                    uiState.reminderHour,
+                                    uiState.reminderMinute,
+                                    true,
+                                ).show()
+                            },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = Icons.Rounded.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        )
+                    }
                 }
             }
 
@@ -452,7 +538,6 @@ private fun AiEngineSettingsCard(
     var showPassword by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<Result<String>?>(null) }
-    val isLocalFlavor = com.notepay.BuildConfig.FLAVOR == "local"
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -470,10 +555,7 @@ private fun AiEngineSettingsCard(
             SettingHeader(
                 icon = Icons.Rounded.AutoAwesome,
                 title = stringResource(R.string.settings_ai_engine_title),
-                description = stringResource(
-                    if (isLocalFlavor) R.string.settings_ai_engine_subtitle_local
-                    else R.string.settings_ai_engine_subtitle
-                )
+                description = stringResource(R.string.settings_ai_engine_subtitle)
             )
 
             // Khu vực 4: Thông báo Gemini Nano Status Banner (Warning / Assist Banner)
@@ -522,52 +604,7 @@ private fun AiEngineSettingsCard(
                 }
             }
 
-            if (isLocalFlavor) {
-                // Local Privacy Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = AppTheme.shapes.corner14,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Shield,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings_ai_local_offline_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_ai_local_offline_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            } else {
+
                 // Khu vực 2: Khung nhập API Key (OutlinedTextField + supportingText link + Single Visibility Toggle)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -830,7 +867,6 @@ private fun AiEngineSettingsCard(
                         )
                     }
                 }
-            }
         }
     }
 }
@@ -882,6 +918,23 @@ private fun SettingHeader(
 }
 
 /**
+ * Tiêu đề nhóm cài đặt
+ */
+@Composable
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+    )
+}
+
+/**
  * Mục danh sách cấu hình (ListItem chuẩn Material 3) kết hợp Switch hoặc Action
  */
 @Composable
@@ -890,10 +943,19 @@ private fun SettingListItem(
     title: String,
     description: String,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit,
 ) {
     ListItem(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
+            ),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
             Box(

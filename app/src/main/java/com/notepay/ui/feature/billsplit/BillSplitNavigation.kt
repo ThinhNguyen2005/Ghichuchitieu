@@ -7,6 +7,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.notepay.ui.component.PredictiveBackDestination
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.navigation.Route
 
@@ -32,27 +33,31 @@ fun NavGraphBuilder.billSplitGraph(
 
         val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
         val showCreate by showCreateFlow.collectAsState()
-        BillSplitScreen(
-            onDebtorClick = { debtorName ->
-                navController.navigate(Route.DebtorDetail(debtorName).path)
-            },
-            onFeedback = showFeedback,
-            navigationBarOffset = navigationBarOffset,
-            initialShowCreate = showCreate,
-            onClearShowCreate = {
-                backStackEntry.savedStateHandle["showCreate"] = false
-            }
-        )
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            BillSplitScreen(
+                onDebtorClick = { debtorName ->
+                    navController.navigate(Route.DebtorDetail(debtorName).path)
+                },
+                onFeedback = showFeedback,
+                navigationBarOffset = navigationBarOffset,
+                initialShowCreate = showCreate,
+                onClearShowCreate = {
+                    backStackEntry.savedStateHandle["showCreate"] = false
+                }
+            )
+        }
     }
     composable(
         route = Route.DebtorDetail.ROUTE,
         arguments = listOf(navArgument(Route.DebtorDetail.ARG_NAME) { type = NavType.StringType }),
     ) { backStackEntry ->
         val debtorName = backStackEntry.arguments?.getString(Route.DebtorDetail.ARG_NAME).orEmpty()
-        DebtorDetailScreen(
-            debtorName = debtorName,
-            onBack = { navController.popBackStack() },
-            onFeedback = showFeedback,
-        )
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            DebtorDetailScreen(
+                debtorName = debtorName,
+                onBack = { navController.popBackStack() },
+                onFeedback = showFeedback,
+            )
+        }
     }
 }

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.preferencesDataStore
 import com.notepay.platform.OsCompatHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,7 +16,14 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "notepay_app_settings")
+private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "notepay_app_settings",
+    produceMigrations = { context ->
+        listOf(
+            SharedPreferencesMigration(context, "notepay_settings")
+        )
+    }
+)
 
 @Singleton
 class AppSettingsDataStore @Inject constructor(
@@ -25,16 +33,59 @@ class AppSettingsDataStore @Inject constructor(
 
     companion object {
         val KEY_LIQUID_GLASS_ENABLED = booleanPreferencesKey("liquid_glass_enabled")
+        val KEY_HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
         val KEY_DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
         val KEY_DAILY_REMINDER_HOUR = intPreferencesKey("daily_reminder_hour")
         val KEY_DAILY_REMINDER_MINUTE = intPreferencesKey("daily_reminder_minute")
+
+        val KEY_BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
+        val KEY_WEEKLY_DIGEST_ENABLED = booleanPreferencesKey("weekly_digest_enabled")
+        val KEY_LAST_NOTIFIED_BUDGET_MONTH = stringPreferencesKey("last_notified_budget_month")
+        val KEY_LAST_NOTIFIED_BUDGET_THRESHOLD = intPreferencesKey("last_notified_budget_threshold")
 
         val KEY_CURRENCY_CODE = stringPreferencesKey("currency_code")
         val KEY_CURRENCY_SYMBOL_POSITION = stringPreferencesKey("currency_symbol_position")
         val KEY_CURRENCY_THOUSAND_SEPARATOR = stringPreferencesKey("currency_thousand_separator")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_THEME_COLOR = stringPreferencesKey("theme_color")
 
         fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
+    }
+
+    val budgetAlertsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_BUDGET_ALERTS_ENABLED] ?: true
+    }
+
+    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_BUDGET_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    val weeklyDigestEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_WEEKLY_DIGEST_ENABLED] ?: true
+    }
+
+    suspend fun setWeeklyDigestEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_WEEKLY_DIGEST_ENABLED] = enabled
+        }
+    }
+
+    val lastNotifiedBudgetMonth: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[KEY_LAST_NOTIFIED_BUDGET_MONTH]
+    }
+
+    val lastNotifiedBudgetThreshold: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[KEY_LAST_NOTIFIED_BUDGET_THRESHOLD] ?: 0
+    }
+
+    suspend fun recordBudgetAlertNotification(monthKey: String, threshold: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_LAST_NOTIFIED_BUDGET_MONTH] = monthKey
+            preferences[KEY_LAST_NOTIFIED_BUDGET_THRESHOLD] = threshold
+        }
     }
 
     /**
@@ -49,6 +100,16 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setLiquidGlassEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_LIQUID_GLASS_ENABLED] = enabled
+        }
+    }
+
+    val hapticFeedbackEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HAPTIC_FEEDBACK_ENABLED] ?: true
+    }
+
+    suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HAPTIC_FEEDBACK_ENABLED] = enabled
         }
     }
 
@@ -131,6 +192,26 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setAppLanguage(language: String) {
         dataStore.edit { preferences ->
             preferences[KEY_APP_LANGUAGE] = language
+        }
+    }
+
+    val themeMode: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_THEME_MODE] ?: "system"
+    }
+
+    suspend fun setThemeMode(mode: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_THEME_MODE] = mode
+        }
+    }
+
+    val themeColor: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_THEME_COLOR] ?: "ledger"
+    }
+
+    suspend fun setThemeColor(color: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_THEME_COLOR] = color
         }
     }
 }

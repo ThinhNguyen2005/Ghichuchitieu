@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Paid
+import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -57,13 +58,14 @@ import com.notepay.ui.theme.AppTheme
 fun UtilitiesScreen(
     onNavigateToBillSplit: () -> Unit,
     onNavigateToSubscription: () -> Unit,
-    onNavigateToAssets: () -> Unit,
+    onNavigateToAssets: () -> Unit = {},
     onNavigateToCurrencySettings: () -> Unit,
     onNavigateToCategoryManagement: () -> Unit,
     onNavigateToAppearanceLanguage: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToAppSettings: () -> Unit,
+    onNavigateToDebtManagement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -119,19 +121,19 @@ fun UtilitiesScreen(
                         )
                         ItemDivider()
                         UtilityRowItem(
+                            icon = Icons.Rounded.Payments,
+                            iconTint = Color(0xFF34C759),
+                            title = stringResource(R.string.debt_nav_title),
+                            subtitle = stringResource(R.string.debt_utilities_subtitle),
+                            onClick = onNavigateToDebtManagement
+                        )
+                        ItemDivider()
+                        UtilityRowItem(
                             icon = Icons.Rounded.NotificationsActive,
                             iconTint = Color(0xFFFF9500),
                             title = stringResource(R.string.utilities_reminder_title),
                             subtitle = stringResource(R.string.utilities_subscriptions_subtitle),
                             onClick = onNavigateToSubscription
-                        )
-                        ItemDivider()
-                        UtilityRowItem(
-                            icon = Icons.Rounded.AccountBalanceWallet,
-                            iconTint = Color(0xFF34C759),
-                            title = stringResource(R.string.utilities_wallet_manage_title),
-                            subtitle = stringResource(R.string.utilities_wallet_manage_subtitle),
-                            onClick = onNavigateToAssets
                         )
                         ItemDivider()
                         UtilityRowItem(

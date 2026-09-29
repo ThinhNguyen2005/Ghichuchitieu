@@ -10,6 +10,7 @@ import com.notepay.ui.feature.home.AppSettingsScreen
 import com.notepay.ui.feature.settings.ai.AiSettingsScreen
 import com.notepay.ui.feature.settings.appearance.AppearanceLanguageScreen
 import com.notepay.ui.feature.settings.currency.CurrencySettingsScreen
+import com.notepay.ui.component.PredictiveBackDestination
 import com.notepay.ui.navigation.Route
 
 fun NavGraphBuilder.utilitiesGraph(
@@ -69,28 +70,45 @@ fun NavGraphBuilder.utilitiesGraph(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }
     composable(Route.CurrencySettings.path) {
-        CurrencySettingsScreen(onBack = { navController.popBackStack() })
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            CurrencySettingsScreen(onBack = { navController.popBackStack() })
+        }
     }
     composable(Route.CategoryManagement.path) {
-        CategoryManagementScreen(onBack = { navController.popBackStack() })
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            CategoryManagementScreen(onBack = { navController.popBackStack() })
+        }
     }
     composable(Route.AppearanceLanguage.path) {
-        AppearanceLanguageScreen(onBack = { navController.popBackStack() })
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            AppearanceLanguageScreen(onBack = { navController.popBackStack() })
+        }
     }
     composable(Route.AiSettings.path) {
-        AiSettingsScreen(onBack = { navController.popBackStack() })
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            AiSettingsScreen(onBack = { navController.popBackStack() })
+        }
     }
     composable(Route.BackupRestore.path) {
-        BackupRestoreScreen(onBack = { navController.popBackStack() })
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            BackupRestoreScreen(onBack = { navController.popBackStack() })
+        }
     }
     composable(Route.AppSettings.path) {
-        AppSettingsScreen(
-            onBack = { navController.popBackStack() },
-            onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
-        )
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            AppSettingsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
+            )
+        }
     }
 }

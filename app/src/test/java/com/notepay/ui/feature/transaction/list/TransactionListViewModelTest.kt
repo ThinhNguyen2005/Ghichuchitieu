@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.transaction.list
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.notepay.R
 import com.notepay.domain.TestData
@@ -86,22 +87,30 @@ class TransactionListViewModelTest {
     fun `delete transaction updates state and calling undo restores it`() = runTest {
         val repo = FakeTransactionRepository(listOf(t1, t2))
         val viewModel = createViewModel(transactionRepository = repo)
+        val feedbacks = mutableListOf<UiFeedback>()
+        val feedbackJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.feedback.collect { feedbacks.add(it) }
+        }
         val collectJob = launch(UnconfinedTestDispatcher()) {
             viewModel.state.collect {}
         }
 
         // Xóa t1
         viewModel.delete(t1)
+        testScheduler.advanceUntilIdle()
 
         assertThat(viewModel.state.value.pendingUndoTransaction).isEqualTo(t1)
         assertThat(repo.deletedIds).containsExactly(1L)
 
-        // Click hoàn tác (Undo)
-        viewModel.undoDelete()
+        // Click hoàn tác (Undo) qua callback trong feedback
+        feedbacks.first().onAction?.invoke()
+        testScheduler.advanceUntilIdle()
+
         assertThat(viewModel.state.value.pendingUndoTransaction).isNull()
         assertThat(repo.savedTransactions).contains(t1.copy(id = 0L))
 
         collectJob.cancel()
+        feedbackJob.cancel()
     }
 
     @Test
@@ -141,9 +150,10 @@ class TransactionListViewModelTest {
 
         viewModel.delete(t1)
         testScheduler.advanceUntilIdle()
+        val undoAction = feedbacks.first().onAction
         feedbacks.clear()
 
-        viewModel.undoDelete()
+        undoAction?.invoke()
         testScheduler.advanceUntilIdle()
 
         assertThat(feedbacks.any { it.type == FeedbackType.Success }).isTrue()
@@ -163,17 +173,28 @@ class TransactionListViewModelTest {
         val addUseCase = AddTransactionUseCase(transactionRepository, walletRepo, dispatcher)
 
         return TransactionListViewModel(
-            getUseCase,
-            deleteUseCase,
-            addUseCase,
-            walletRepo,
-            dispatcher,
+            getTransactions = getUseCase,
+            deleteTransaction = deleteUseCase,
+            addTransaction = addUseCase,
+            walletRepository = walletRepo,
+            ioDispatcher = dispatcher,
+            savedStateHandle = SavedStateHandle(),
         ) { resId ->
             when (resId) {
                 R.string.transaction_deleted -> "Đã xóa giao dịch"
                 R.string.feedback_undo -> "Hoàn tác"
                 R.string.feedback_transaction_restored -> "Đã khôi phục giao dịch"
-                else -> error("Unexpected string resource: $resId")
+                R.string.day_monday -> "Thứ 2"
+                R.string.day_tuesday -> "Thứ 3"
+                R.string.day_wednesday -> "Thứ 4"
+                R.string.day_thursday -> "Thứ 5"
+                R.string.day_friday -> "Thứ 6"
+                R.string.day_saturday -> "Thứ 7"
+                R.string.day_sunday -> "Chủ nhật"
+                R.string.date_today_format -> "Hôm nay, %1\$d Th%2\$d"
+                R.string.date_yesterday_format -> "Hôm qua, %1\$d Th%2\$d"
+                R.string.date_other_format -> "%1\$s, %2\$d Th%3\$d"
+                else -> "mock_string_$resId"
             }
         }
     }

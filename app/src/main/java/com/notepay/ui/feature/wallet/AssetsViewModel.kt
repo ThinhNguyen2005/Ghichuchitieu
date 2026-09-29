@@ -8,6 +8,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
 import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
@@ -28,6 +29,7 @@ import javax.inject.Inject
 class AssetsViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val transactionRepository: TransactionRepository,
+    private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
 ) : ViewModel() {
 
     private val _chartRange = MutableStateFlow(AssetChartRange.MONTH)
@@ -52,7 +54,8 @@ class AssetsViewModel @Inject constructor(
                 walletRepository.observeAll(),
                 transactionRepository.observeAll(),
                 _chartRange,
-            ) { wallets, transactions, chartRange ->
+                getDebtSummaryUseCase(),
+            ) { wallets, transactions, chartRange, debtSummary ->
                 val tz = TimeZone.currentSystemDefault()
                 val nowInstant = Clock.System.now()
                 val now = nowInstant.toLocalDateTime(tz)
@@ -183,6 +186,7 @@ class AssetsViewModel @Inject constructor(
                         allocationItems = allocationItems,
                         netWorthChangeInPeriod = Money(netWorthChangeCents),
                         netWorthChangePercentage = netWorthChangePercentage,
+                        debtSummary = debtSummary,
                     )
                 }
             }.collect {}
