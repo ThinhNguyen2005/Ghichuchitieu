@@ -3,7 +3,6 @@ package com.notepay.ui.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -49,9 +47,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.notepay.R
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.money.Money
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.theme.isAppDarkTheme
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.WalletUiHelper
 
