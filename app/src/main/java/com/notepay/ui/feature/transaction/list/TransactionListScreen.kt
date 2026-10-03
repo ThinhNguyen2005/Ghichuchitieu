@@ -77,7 +77,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet

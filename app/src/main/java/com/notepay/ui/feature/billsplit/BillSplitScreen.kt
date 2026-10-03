@@ -65,7 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar

@@ -1,6 +1,6 @@
 package com.notepay.ui.feature.wallet
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.usecase.debt.DebtSummary
 

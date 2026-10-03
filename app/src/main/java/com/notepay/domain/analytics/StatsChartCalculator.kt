@@ -1,6 +1,6 @@
 package com.notepay.domain.analytics
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10

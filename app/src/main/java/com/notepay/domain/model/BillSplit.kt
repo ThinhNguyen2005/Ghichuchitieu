@@ -3,6 +3,7 @@ package com.notepay.domain.model
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+import com.notepay.domain.money.Money
 data class BillSplit(
     val id: Long = 0L,
     val transactionId: Long,

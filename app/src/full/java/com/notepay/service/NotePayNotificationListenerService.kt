@@ -17,7 +17,7 @@ import com.notepay.data.preferences.LearnedCaptureDecision
 import com.notepay.data.preferences.NotificationCaptureStore
 import com.notepay.data.preferences.PendingBankNotification
 import com.notepay.di.IoDispatcher
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet

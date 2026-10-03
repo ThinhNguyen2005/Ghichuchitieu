@@ -1,7 +1,7 @@
 package com.notepay.domain.billsplit
 
 import com.notepay.domain.model.BillSplit
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import java.text.Normalizer
 import kotlin.time.Clock
 import kotlin.time.Instant

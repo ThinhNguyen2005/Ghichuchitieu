@@ -7,7 +7,7 @@ import com.notepay.domain.analytics.StatsAdviceSignal
 import com.notepay.domain.analytics.StatsAdviceType
 import com.notepay.domain.analytics.StatsEarlyWarning
 import com.notepay.domain.analytics.StatsForecastResult
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
 import java.util.Locale
 

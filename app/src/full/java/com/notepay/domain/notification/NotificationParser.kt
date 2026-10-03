@@ -1,6 +1,6 @@
 package com.notepay.domain.notification
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.TransactionNotePolicy
 

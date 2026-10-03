@@ -1227,4 +1227,15 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="ui_moneyformatter_format_totalinc">+${MoneyFormatter.format(totalIncome)} (TODO)</string>
     <string name="ui_moneyformatter_format_totalexp">-${MoneyFormatter.format(totalExpense)} (TODO)</string>
     <string name="ui_prefix_moneyformatter_format_n">$prefix${MoneyFormatter.format(net)} (TODO)</string>
+    <!-- Feedback: Wallet operations (AssetsViewModel) -->
+    <string name="feedback_wallet_set_active">Set as primary wallet</string>
+    <string name="feedback_wallet_switch_failed">Cannot switch wallet: %1$s</string>
+    <string name="feedback_transfer_same_wallet">Source and destination wallets must be different</string>
+    <string name="feedback_transfer_invalid_amount">Please enter a valid amount</string>
+    <string name="feedback_transfer_success">Transfer completed successfully!</string>
+    <string name="feedback_transfer_failed">Transfer error: %1$s</string>
+    <string name="transfer_note_default">Internal transfer</string>
+    <string name="transfer_note_to">Transfer to %1$s: %2$s</string>
+    <string name="transfer_note_from">Received from %1$s: %2$s</string>
+    <string name="transfer_wallet_other">other wallet</string>
 </resources>

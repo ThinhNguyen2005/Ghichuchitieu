@@ -1,6 +1,6 @@
 package com.notepay.ui.feature.transaction.components
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState

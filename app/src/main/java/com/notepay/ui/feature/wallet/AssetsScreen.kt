@@ -286,7 +286,7 @@ private fun AssetsHeader(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${if (isPositive) "+" else "stringResource(R.string.ui_string_format)%.1fstringResource(R.string.ui_changepercentage),
+                                        text = "${if (isPositive) "+" else ""}${String.format("%.1f", changePercentage)}%",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)

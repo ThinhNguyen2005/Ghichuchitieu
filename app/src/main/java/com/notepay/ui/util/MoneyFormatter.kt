@@ -1,6 +1,6 @@
 package com.notepay.ui.util
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale

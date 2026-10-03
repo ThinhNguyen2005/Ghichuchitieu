@@ -2,7 +2,7 @@ package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import kotlin.time.Instant

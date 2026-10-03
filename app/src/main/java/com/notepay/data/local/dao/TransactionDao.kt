@@ -64,4 +64,17 @@ interface TransactionDao {
         startMillis: Long,
         endMillis: Long
     ): List<TransactionEntity>
+
+    /** Returns only occurred_at timestamps for streak calculation (lightweight). */
+    @Query("SELECT occurred_at FROM transactions ORDER BY occurred_at DESC")
+    fun observeAllOccurredDates(): Flow<List<Long>>
+
+    /** Transactions since [sinceMillis] excluding internal transfers (for charts). */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE occurred_at >= :sinceMillis
+        AND is_internal_transfer = 0
+        ORDER BY occurred_at ASC
+    """)
+    fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<TransactionEntity>>
 }

@@ -3,6 +3,7 @@ package com.notepay.domain.model
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+import com.notepay.domain.money.Money
 /**
  * Domain model cho một giao dịch thu/chi.
  *

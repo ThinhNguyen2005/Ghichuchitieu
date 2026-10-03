@@ -1165,4 +1165,15 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="ui_moneyformatter_format_totalinc">+${MoneyFormatter.format(totalIncome)}</string>
     <string name="ui_moneyformatter_format_totalexp">-${MoneyFormatter.format(totalExpense)}</string>
     <string name="ui_prefix_moneyformatter_format_n">$prefix${MoneyFormatter.format(net)}</string>
+    <!-- Feedback: Wallet operations (AssetsViewModel) -->
+    <string name="feedback_wallet_set_active">Đã chọn làm ví chính</string>
+    <string name="feedback_wallet_switch_failed">Không thể đổi ví: %1$s</string>
+    <string name="feedback_transfer_same_wallet">Ví gửi và ví nhận phải khác nhau</string>
+    <string name="feedback_transfer_invalid_amount">Vui lòng nhập số tiền hợp lệ</string>
+    <string name="feedback_transfer_success">Chuyển tiền thành công!</string>
+    <string name="feedback_transfer_failed">Lỗi khi chuyển tiền: %1$s</string>
+    <string name="transfer_note_default">Chuyển tiền nội bộ</string>
+    <string name="transfer_note_to">Chuyển đến %1$s: %2$s</string>
+    <string name="transfer_note_from">Nhận từ %1$s: %2$s</string>
+    <string name="transfer_wallet_other">ví khác</string>
 </resources>

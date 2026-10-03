@@ -3,6 +3,7 @@ package com.notepay.domain.model
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+import com.notepay.domain.money.Money
 /**
  * Gói đăng ký / nhắc nhở gia hạn định kỳ.
  * Ví dụ: Spotify, Netflix, VPN...

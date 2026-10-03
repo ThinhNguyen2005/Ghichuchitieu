@@ -93,7 +93,7 @@ import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.ForecastConfidence
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton

@@ -70,7 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }

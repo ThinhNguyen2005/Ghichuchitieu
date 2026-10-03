@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.wallet
 
+import android.content.Context
 import com.notepay.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -34,6 +36,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AssetsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val walletRepository: WalletRepository,
     private val transactionRepository: TransactionRepository,
     private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
@@ -191,9 +194,9 @@ class AssetsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 walletRepository.setActive(walletId)
-                _feedback.tryEmit(UiFeedback(message = stringResource(R.string.ui_ch_n_l_m_v_ch_nh), type = FeedbackType.Success))
+                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_set_active), type = FeedbackType.Success))
             } catch (e: Exception) {
-                _feedback.tryEmit(UiFeedback(message = "Không thể đổi ví: ${e.message}", type = FeedbackType.Error))
+                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_switch_failed, e.message.orEmpty()), type = FeedbackType.Error))
             }
         }
     }
@@ -246,12 +249,12 @@ class AssetsViewModel @Inject constructor(
         val fromId = current.transferFromWalletId ?: return
         val toId = current.transferToWalletId ?: return
         if (fromId == toId) {
-            _feedback.tryEmit(UiFeedback(message = "Ví gửi và ví nhận phải khác nhau", type = FeedbackType.Error))
+            _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_same_wallet), type = FeedbackType.Error))
             return
         }
         val amountCents = current.transferAmountInput.toLongOrNull()?.let { it * 100 } ?: 0L
         if (amountCents <= 0L) {
-            _feedback.tryEmit(UiFeedback(message = "Vui lòng nhập số tiền hợp lệ", type = FeedbackType.Error))
+            _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_invalid_amount), type = FeedbackType.Error))
             return
         }
 
@@ -261,14 +264,15 @@ class AssetsViewModel @Inject constructor(
                 val fromWallet = current.wallets.firstOrNull { it.wallet.id == fromId }?.wallet
                 val toWallet = current.wallets.firstOrNull { it.wallet.id == toId }?.wallet
                 val now = Clock.System.now()
-                val noteText = current.transferNote.ifBlank { "Chuyển tiền nội bộ" }
+                val noteText = current.transferNote.ifBlank { context.getString(R.string.transfer_note_default) }
+                val otherWallet = context.getString(R.string.transfer_wallet_other)
 
                 transactionRepository.upsert(
                     Transaction(
                         amount = Money(amountCents),
                         type = TransactionType.EXPENSE,
                         category = Category.OTHER,
-                        note = "Chuyển đến ${toWallet?.name ?: "ví khác"}: $noteText",
+                        note = context.getString(R.string.transfer_note_to, toWallet?.name ?: otherWallet, noteText),
                         occurredAt = now,
                         walletId = fromId,
                         isInternalTransfer = true,
@@ -280,7 +284,7 @@ class AssetsViewModel @Inject constructor(
                         amount = Money(amountCents),
                         type = TransactionType.INCOME,
                         category = Category.OTHER,
-                        note = "Nhận từ ${fromWallet?.name ?: "ví khác"}: $noteText",
+                        note = context.getString(R.string.transfer_note_from, fromWallet?.name ?: otherWallet, noteText),
                         occurredAt = now,
                         walletId = toId,
                         isInternalTransfer = true,
@@ -288,10 +292,10 @@ class AssetsViewModel @Inject constructor(
                 )
 
                 _state.update { it.copy(isTransferSheetVisible = false, isTransferSubmitting = false) }
-                _feedback.tryEmit(UiFeedback(message = "Chuyển tiền thành công!", type = FeedbackType.Success))
+                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_success), type = FeedbackType.Success))
             } catch (e: Exception) {
                 _state.update { it.copy(isTransferSubmitting = false) }
-                _feedback.tryEmit(UiFeedback(message = "Lỗi khi chuyển tiền: ${e.message}", type = FeedbackType.Error))
+                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_failed, e.message.orEmpty()), type = FeedbackType.Error))
             }
         }
     }

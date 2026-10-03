@@ -2,7 +2,7 @@ package com.notepay.ui.feature.subscription
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType

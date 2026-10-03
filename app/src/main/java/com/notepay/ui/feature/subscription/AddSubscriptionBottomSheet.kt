@@ -74,7 +74,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.categoryIcon
