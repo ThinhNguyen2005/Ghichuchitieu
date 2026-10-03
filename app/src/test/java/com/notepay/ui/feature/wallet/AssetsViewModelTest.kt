@@ -3,7 +3,7 @@ package com.notepay.ui.feature.wallet
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
 import com.notepay.domain.TestData
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
@@ -130,7 +130,7 @@ class AssetsViewModelTest {
 
         override suspend fun upsert(wallet: Wallet): Long = wallet.id
 
-        override suspend fun delete(id: Long) {}
+            override suspend fun delete(id: Long) {}
 
         override suspend fun setActive(id: Long) {
             activeWalletId = id
@@ -140,6 +140,15 @@ class AssetsViewModelTest {
     private class FakeTransactionRepository(
         private val transactions: List<Transaction> = emptyList(),
     ) : TransactionRepository {
+
+    override fun observeByRange(startMillis: Long, endMillis: Long): kotlinx.coroutines.flow.Flow<List<com.notepay.domain.model.Transaction>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    override fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): kotlinx.coroutines.flow.Flow<List<com.notepay.domain.model.Transaction>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    override fun observeSumByTypeInRange(type: com.notepay.domain.model.TransactionType, startMillis: Long, endMillis: Long): kotlinx.coroutines.flow.Flow<com.notepay.domain.money.Money> = kotlinx.coroutines.flow.flowOf(com.notepay.domain.money.Money(0))
+    override fun observeSumByTypeAndWalletInRange(type: com.notepay.domain.model.TransactionType, walletId: Long, startMillis: Long, endMillis: Long): kotlinx.coroutines.flow.Flow<com.notepay.domain.money.Money> = kotlinx.coroutines.flow.flowOf(com.notepay.domain.money.Money(0))
+    override fun observeAllCreatedDates(): kotlinx.coroutines.flow.Flow<List<kotlinx.datetime.Instant>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    override fun observeWalletStats(monthStartMillis: Long, monthEndMillis: Long): kotlinx.coroutines.flow.Flow<List<com.notepay.domain.model.WalletStats>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    override fun observeRecentNonTransfers(sinceMillis: Long): kotlinx.coroutines.flow.Flow<List<com.notepay.domain.model.Transaction>> = kotlinx.coroutines.flow.flowOf(emptyList())
+
         private val txFlow = MutableStateFlow(transactions)
 
         override fun observeAll(): Flow<List<Transaction>> = txFlow
@@ -158,7 +167,7 @@ class AssetsViewModelTest {
 
         override suspend fun upsert(transaction: Transaction): Long = transaction.id
 
-        override suspend fun delete(id: Long) {}
+            override suspend fun delete(id: Long) {}
 
         override suspend fun findRecentSimilar(noteKeyword: String, fromMillis: Long, toMillis: Long): List<Transaction> = emptyList()
     }

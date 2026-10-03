@@ -2,7 +2,7 @@ package com.notepay.domain.debt
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.debt.Debt

@@ -84,7 +84,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.ui.component.WalletAppIcon
+import com.notepay.domain.money.Money
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.feature.debt.DebtSummaryCard
@@ -191,7 +192,7 @@ fun AssetsScreen(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "${state.wallets.size} ${stringResource(R.string.wallets_count_label)}",
+                            text = stringResource(R.string.ui_state_wallets_size_stringresou),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -285,7 +286,7 @@ private fun AssetsHeader(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${if (isPositive) "+" else ""}${String.format("%.1f", changePercentage)}%",
+                                        text = "${if (isPositive) "+" else "stringResource(R.string.ui_string_format)%.1fstringResource(R.string.ui_changepercentage),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
@@ -462,7 +463,7 @@ private fun AssetTrendChartCard(
                 val ranges = listOf(
                     AssetChartRange.WEEK to stringResource(R.string.assets_chart_range_7d),
                     AssetChartRange.MONTH to stringResource(R.string.assets_chart_range_30d),
-                    AssetChartRange.HALF_YEAR to stringResource(R.string.assets_chart_range_6m),
+                    AssetChartRange.HALF_YEAR to stringResource(R.string.subscription_repeat_six_months),
                     AssetChartRange.YEAR to stringResource(R.string.assets_chart_range_1y)
                 )
 
@@ -804,7 +805,7 @@ private fun AssetAllocationCard(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "$pct%",
+                                        text = stringResource(R.string.ui_pct),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -868,11 +869,11 @@ private fun WalletAssetCard(
                         .background(colorValue.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = null,
-                        tint = colorValue,
-                        modifier = Modifier.size(24.dp)
+                    WalletAppIcon(
+                        wallet = wallet,
+                        modifier = Modifier,
+                        iconSize = 24.dp,
+                        tint = colorValue
                     )
                 }
 
@@ -924,7 +925,7 @@ private fun WalletAssetCard(
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "·",
+                                text = stringResource(R.string.extracted_string),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -932,7 +933,7 @@ private fun WalletAssetCard(
                         }
 
                         Text(
-                            text = "${item.transactionCount} ${stringResource(R.string.transactions_count_label)}",
+                            text = stringResource(R.string.ui_item_transactioncount_stringre),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
@@ -976,7 +977,7 @@ private fun WalletAssetCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "+${MoneyFormatter.format(item.monthlyIncome)}",
+                            text = stringResource(R.string.ui_moneyformatter_format_item_mon),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF34C759)
@@ -992,7 +993,7 @@ private fun WalletAssetCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "-${MoneyFormatter.format(item.monthlyExpense)}",
+                            text = stringResource(R.string.ui_moneyformatter_format_item_mon),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFFF3B30)
@@ -1076,11 +1077,9 @@ private fun TransferBottomSheet(
     onNoteChange: (String) -> Unit,
     onConfirm: () -> Unit,
 ) {
-    ModalBottomSheet(
+    com.notepay.ui.component.BottomSheetGlass(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -1171,7 +1170,7 @@ private fun TransferBottomSheet(
                 onValueChange = onAmountChange,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                placeholder = { Text("0 ₫") },
+                placeholder = { Text(stringResource(R.string.ui_0)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(

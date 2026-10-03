@@ -24,7 +24,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val appSettingsDataStore: AppSettingsDataStore,
+    appSettingsDataStore: AppSettingsDataStore,
 ) : ViewModel() {
 
     private val _pendingRoute = MutableStateFlow<String?>(null)

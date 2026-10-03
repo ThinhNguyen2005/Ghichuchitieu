@@ -27,14 +27,14 @@ object WalletUiHelper {
 
     val iconList = listOf(
         Triple("cash", Icons.Rounded.Payments, R.string.icon_label_cash),
-        Triple("bank", Icons.Rounded.AccountBalance, R.string.icon_label_bank),
+        Triple("bank", Icons.Rounded.AccountBalance, R.string.transfer_bank),
         Triple("momo", Icons.Rounded.AccountBalanceWallet, R.string.icon_label_ewallet),
         Triple("card", Icons.Rounded.CreditCard, R.string.icon_label_credit_card),
         Triple("savings", Icons.Rounded.Savings, R.string.icon_label_savings),
         Triple("atm", Icons.Rounded.LocalAtm, R.string.icon_label_atm),
         Triple("business", Icons.Rounded.Storefront, R.string.icon_label_business),
         Triple("work", Icons.Rounded.Work, R.string.icon_label_work),
-        Triple("crypto", Icons.AutoMirrored.Rounded.TrendingUp, R.string.icon_label_crypto),
+        Triple("crypto", Icons.AutoMirrored.Rounded.TrendingUp, R.string.icon_label_investment),
         Triple("home", Icons.Rounded.Home, R.string.icon_label_home),
         Triple("car", Icons.Rounded.DirectionsCar, R.string.icon_label_car),
         Triple("shopping", Icons.Rounded.ShoppingBag, R.string.icon_label_shopping),

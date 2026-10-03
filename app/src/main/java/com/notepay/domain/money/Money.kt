@@ -17,6 +17,7 @@ import kotlin.math.roundToLong
  * thông báo lỗi, không làm crash app.
  */
 @JvmInline
+@Suppress("unused")
 value class Money(val amountInCents: Long) : Comparable<Money> {
 
     operator fun plus(other: Money): Money = Money(Math.addExact(amountInCents, other.amountInCents))
@@ -34,12 +35,40 @@ value class Money(val amountInCents: Long) : Comparable<Money> {
         return Money(result.roundToLong())
     }
 
+    /**
+     * Chú ý: Phép chia này dùng integer division (cắt phần dư về 0).
+     * Tuyệt đối KHÔNG DÙNG hàm này để chia hoá đơn (tránh mất tiền lẻ).
+     * Dùng [splitEvenly] nếu cần chia tiền và bảo toàn tổng số tiền.
+     */
     operator fun div(divisor: Long): Money {
         // Long.MIN_VALUE / -1 tràn; các trường hợp chia 0 để Long tự ném ArithmeticException.
         if (amountInCents == Long.MIN_VALUE && divisor == -1L) {
             throw ArithmeticException("Money overflow: $amountInCents / $divisor")
         }
         return Money(amountInCents / divisor)
+    }
+
+    /**
+     * Chia tiền thành [parts] phần bằng nhau một cách an toàn.
+     * Phần dư (vài cents lẻ) sẽ được cộng vào các phần đầu tiên để đảm bảo
+     * tổng các phần chính xác bằng tổng số tiền ban đầu.
+     * 
+     * @throws IllegalArgumentException nếu [parts] <= 0
+     */
+    fun splitEvenly(parts: Int): List<Money> {
+        require(parts > 0) { "Cannot split into $parts parts" }
+        val baseAmount = amountInCents / parts
+        val remainder = (amountInCents % parts).toInt()
+        val absRemainder = kotlin.math.abs(remainder)
+        val sign = if (amountInCents < 0) -1 else 1
+        
+        return List(parts) { index ->
+            if (index < absRemainder) {
+                Money(baseAmount + sign)
+            } else {
+                Money(baseAmount)
+            }
+        }
     }
 
     /** abs(Long.MIN_VALUE) vẫn âm nếu dùng kotlin.math.abs, nên chặn riêng trường hợp đó. */

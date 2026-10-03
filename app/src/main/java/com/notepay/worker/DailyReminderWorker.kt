@@ -1,8 +1,10 @@
 package com.notepay.worker
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.work.HiltWorker
@@ -19,7 +21,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
@@ -40,17 +45,24 @@ class DailyReminderWorker @AssistedInject constructor(
         val enabled = appSettingsDataStore.dailyReminderEnabled.first()
         if (!enabled) return Result.success()
 
-        val allTransactions = transactionRepository.observeAll().firstOrNull() ?: emptyList()
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val zone = TimeZone.currentSystemDefault()
+        val today = Clock.System.now().toLocalDateTime(zone).date
 
-        val hasTransactionToday = allTransactions.any { tx ->
-            tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault()).date == today
-        }
+        val todayStartMillis = LocalDateTime(today.year,
+            today.month.number, today.day, 0, 0).toInstant(zone).toEpochMilliseconds()
+        val todayEndMillis = LocalDateTime(
+            today.year,
+            today.month.number, today.day, 23, 59, 59, 999000000
+        ).toInstant(zone).toEpochMilliseconds()
+
+        val todayTransactions = transactionRepository.observeByRange(todayStartMillis, todayEndMillis).firstOrNull() ?: emptyList()
+        val hasTransactionToday = todayTransactions.isNotEmpty()
 
         // Nếu hôm nay chưa ghi chép, gửi thông báo nhắc nhở xoay vòng thông minh
         if (!hasTransactionToday) {
+            val allCreatedDates = transactionRepository.observeAllCreatedDates().firstOrNull() ?: emptyList()
             val streak = StreakTrackerHelper.calculateStreak(
-                transactionInstants = allTransactions.map { it.createdAt },
+                transactionInstants = allCreatedDates,
                 today = today,
             )
 
@@ -60,6 +72,7 @@ class DailyReminderWorker @AssistedInject constructor(
         return Result.success()
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private fun sendReminderNotification(streak: Int, dayOfMonth: Int) {
         if (!NotificationHelper.hasNotificationPermission(context)) return
         NotificationHelper.createNotificationChannels(context)

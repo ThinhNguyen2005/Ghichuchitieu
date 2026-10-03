@@ -191,6 +191,7 @@ dependencies {
 
     // Coroutines + DateTime
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.datetime)
     implementation(libs.zxing.core)
 

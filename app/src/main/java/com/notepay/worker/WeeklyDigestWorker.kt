@@ -6,7 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.notepay.R
 import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.platform.notification.NotificationHelper
@@ -34,10 +34,13 @@ class WeeklyDigestWorker @AssistedInject constructor(
         val enabled = appSettingsDataStore.weeklyDigestEnabled.first()
         if (!enabled) return Result.success()
 
-        val allTransactions = transactionRepository.observeAll().firstOrNull() ?: emptyList()
         val now = Clock.System.now()
         val sevenDaysAgo = now - 7.days
         val fourteenDaysAgo = now - 14.days
+
+        val allTransactions = transactionRepository
+            .observeByRange(fourteenDaysAgo.toEpochMilliseconds(), now.toEpochMilliseconds())
+            .firstOrNull() ?: emptyList()
 
         val thisWeekExpenses = allTransactions.filter { tx ->
             tx.type == TransactionType.EXPENSE && tx.occurredAt in sevenDaysAgo..now

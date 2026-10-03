@@ -621,7 +621,7 @@ fun DebtDetailScreen(
                                         val dateStr = PresentationDateFormatter.formatDate(payment.paidAt)
                                         val noteText = if (payment.note.isNotBlank()) " • ${payment.note}" else ""
                                         Text(
-                                            text = "$dateStr$noteText",
+                                            text = stringResource(R.string.ui_datestr_notetext),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,

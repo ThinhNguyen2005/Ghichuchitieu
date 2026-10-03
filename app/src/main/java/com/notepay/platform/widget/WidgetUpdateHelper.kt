@@ -8,7 +8,7 @@ import android.content.Intent
 import android.widget.RemoteViews
 import com.notepay.MainActivity
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope

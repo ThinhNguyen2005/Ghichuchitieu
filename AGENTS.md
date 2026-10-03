@@ -76,6 +76,13 @@ Tuyệt đối **KHÔNG BAO GIỜ viết text cứng (hardcoded strings)** vào 
 - `app/src/main/res/values-en/strings.xml` (English)
 Trong Compose, luôn sử dụng `stringResource(R.string.your_key)` hoặc `pluralStringResource(...)`. Bất kỳ khi nào tạo hoặc sửa đổi UI, bắt buộc phải đồng bộ song song cả 2 file tài nguyên trên, không được để sót bất kỳ chuỗi cứng nào trong code.
 
+**Bảo trì XML (String Deduplication):**
+Khi nhận được yêu cầu dọn dẹp, tối ưu hoá hoặc kiểm tra resource `strings.xml`, BẮT BUỘC sử dụng script `.agents/scripts/string_dedup.py` để xử lý thay vì sửa thủ công.
+- Kiểm tra báo cáo trùng lặp: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --check`
+- Dọn dẹp key trùng: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --fix`
+- Merge các key khác tên nhưng cùng value (yêu cầu chạy dry-run trước): `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --merge-values --source-dir app/src/main`
+Luôn kiểm tra và đảm bảo các file ngôn ngữ (`-en`) có đủ bản dịch trước khi merge.
+
 ## Testing Guidelines
 
 Use JUnit for unit tests and AndroidX test tooling for instrumentation tests. Name tests `ThingTest` and methods for behavior, e.g. `suggest_returnsFood_forRestaurantNote`. Add focused tests for money calculations, date ranges, Room migrations, and parsing/forecast edge cases. Run the relevant test target before opening a PR.

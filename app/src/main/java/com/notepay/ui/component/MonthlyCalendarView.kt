@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.util.MoneyFormatter
@@ -203,7 +203,6 @@ private fun CalendarCell(
     val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val isToday = day.date == today
     val isSelected = selectedDate == day.date
-    val hasData = !day.totalExpense.isZero() || !day.totalIncome.isZero()
 
     val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
@@ -266,7 +265,7 @@ private fun CalendarCell(
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
                     Text(
-                        text = "!",
+                        text = stringResource(R.string.extracted_string),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         fontWeight = FontWeight.Bold,
@@ -283,7 +282,7 @@ private fun CalendarCell(
             ) {
                 if (!day.totalIncome.isZero()) {
                     Text(
-                        text = "+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)}",
+                        text = stringResource(R.string.ui_moneyformatter_formatcompactvi),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -292,7 +291,7 @@ private fun CalendarCell(
                 }
                 if (!day.totalExpense.isZero()) {
                     Text(
-                        text = "-${MoneyFormatter.formatCompactVietnamese(day.totalExpense)}",
+                        text = stringResource(R.string.ui_moneyformatter_formatcompactvi),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,

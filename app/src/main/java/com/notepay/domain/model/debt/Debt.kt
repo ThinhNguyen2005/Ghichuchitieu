@@ -1,6 +1,6 @@
 package com.notepay.domain.model.debt
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone

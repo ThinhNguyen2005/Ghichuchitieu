@@ -99,7 +99,7 @@ fun DayDetailDialog(
             }
             Column {
                 Text(
-                    text = "$weekday, ${date.day}/${date.month.number}/${date.year}",
+                    text = stringResource(R.string.ui_weekday_date_day_date_month_nu),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )

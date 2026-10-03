@@ -170,7 +170,7 @@ fun DebtManagementScreen(
                     onClick = { viewModel.setTab(null) },
                     text = {
                         Text(
-                            text = stringResource(R.string.debt_tab_all),
+                            text = stringResource(R.string.transaction_list_filter_all),
                             fontWeight = if (uiState.selectedTab == null) FontWeight.Bold else FontWeight.Medium
                         )
                     }
@@ -180,7 +180,7 @@ fun DebtManagementScreen(
                     onClick = { viewModel.setTab(DebtType.LEND) },
                     text = {
                         Text(
-                            text = stringResource(R.string.debt_tab_lend),
+                            text = stringResource(R.string.debt_collect),
                             fontWeight = if (uiState.selectedTab == DebtType.LEND) FontWeight.Bold else FontWeight.Medium,
                             color = if (uiState.selectedTab == DebtType.LEND) Color(0xFF248A3D) else MaterialTheme.colorScheme.onSurfaceVariant
                         )

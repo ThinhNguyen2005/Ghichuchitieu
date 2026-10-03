@@ -2,7 +2,7 @@
 <resources>
     <!-- App -->
     <string name="app_name">NotePay</string>
-    <string name="app_settings_title">App settings</string>
+
 
     <!-- Bottom navigation labels -->
     <string name="nav_home">Home</string>
@@ -404,11 +404,7 @@
     <string name="icon_label_work">Work</string>
     <string name="icon_label_crypto">Crypto</string>
     <string name="icon_label_car">Vehicle</string>
-    <string name="navigation_glass_title">Navigation Liquid Glass</string>
-    <string name="navigation_glass_enabled">Glass effects apply only to the navigation bar.</string>
-    <string name="navigation_glass_disabled">Using a solid navigation bar.</string>
-    <string name="navigation_glass_block_android">Unavailable: Android 13 (API 33) or newer is required.</string>
-    <string name="navigation_glass_block_hardware">Unavailable: hardware acceleration is disabled for the app window.</string>
+
 
     <!-- Runtime feedback and presentation strings -->
     <string name="feedback_category_exists">This category already exists</string>
@@ -857,7 +853,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="wallet_fallback">Wallet</string>
     <string name="transaction_income_label">Income</string>
     <string name="transaction_expense_label">Spent</string>
-    <string name="settings_ai_engine_title">Artificial Intelligence (AI Engine)</string>
     <string name="settings_ai_engine_subtitle">Smart hierarchy: Gemini Nano -&gt; Cloud Gemini -&gt; Statistics</string>
     <string name="settings_ai_engine_subtitle_local">100% Offline: Gemini Nano on-device &amp; internal Statistical Advisor</string>
     <string name="settings_ai_local_offline_title">Local Version (100% Offline)</string>
@@ -888,8 +883,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System</string>
-    <string name="settings_theme_mode_title">Appearance Mode</string>
-    <string name="settings_theme_mode_desc">Customize Light, Dark, or System appearance</string>
+
     <string name="autocapture_title">Automatic notification capture</string>
     <string name="autocapture_enabled_description">Only process notifications from verified apps.</string>
     <string name="autocapture_disabled_description">Enable to let NotePay automatically record transactions from bank notifications.</string>
@@ -1113,6 +1107,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
 
     <!-- Notification Settings UI -->
     <string name="settings_notification_section_title">Notifications &amp; Reminders</string>
+    <string name="settings_notification_subtitle">Manage reminders and alerts</string>
     <string name="settings_notif_budget_alerts_title">Budget Alerts</string>
     <string name="settings_notif_budget_alerts_desc" formatted="false">Notify when spending reaches 80% or 100% of budget</string>
     <string name="settings_notif_weekly_digest_title">Weekly Financial Digest</string>
@@ -1202,4 +1197,34 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_tx_note_repay_lend_with_note">Collected debt from %1$s (%2$s)</string>
     <string name="debt_tx_note_repay_borrow">Repaid debt to %1$s</string>
     <string name="debt_tx_note_repay_borrow_with_note">Repaid debt to %1$s (%2$s)</string>
+    <string name="ui_weekday_date_day_date_month_nu">$weekday, ${date.day}/${date.month.number}/${date.year} (TODO)</string>
+    <string name="extracted_string">! (TODO)</string>
+    <string name="ui_moneyformatter_formatcompactvi">+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)} (TODO)</string>
+    <string name="ui_sign_moneyformatter_format_tra">$sign${MoneyFormatter.format(transaction.amount)} (TODO)</string>
+    <string name="ui_0">0 (TODO)</string>
+    <string name="ui_notepay">NotePay (TODO)</string>
+    <string name="ui_walletname_presentationdatefor">$walletName • ${PresentationDateFormatter.formatDayMonthTime(tx.occurredAt)} (TODO)</string>
+    <string name="ui_moneyformatter_format_tx_amoun">+${MoneyFormatter.format(tx.amount)} (TODO)</string>
+    <string name="ui_datestr_notetext">$dateStr$noteText (TODO)</string>
+    <string name="ui_debt_reminder">debt_reminder (TODO)</string>
+    <string name="ui_50">50% (TODO)</string>
+    <string name="ui_item_percentage_100_toint">${(item.percentage * 100).toInt()}% (TODO)</string>
+    <string name="ui_unitlabel">($unitLabel) (TODO)</string>
+    <string name="ui_formattedbalance">$formattedBalance ₫ (TODO)</string>
+    <string name="ui_state_wallets_size_stringresou">${state.wallets.size} ${stringResource(R.string.wallets_count_label)} (TODO)</string>
+    <string name="ui_string_format">}${String.format( (TODO)</string>
+    <string name="ui_changepercentage">, changePercentage)}% (TODO)</string>
+    <string name="ui_pct">$pct% (TODO)</string>
+    <string name="ui_item_transactioncount_stringre">${item.transactionCount} ${stringResource(R.string.transactions_count_label)} (TODO)</string>
+    <string name="ui_moneyformatter_format_item_mon">+${MoneyFormatter.format(item.monthlyIncome)} (TODO)</string>
+    <string name="ui_ch_n_l_m_v_ch_nh">Đã chọn làm ví chính (TODO)</string>
+    <string name="ui_version_appinfo">Version $appInfo (TODO)</string>
+    <string name="ui_samplepositive">+ $samplePositive (TODO)</string>
+    <string name="ui_samplenegative">- $sampleNegative (TODO)</string>
+    <string name="ui_remaining_k_t_c_n_l_i">$remaining ký tự còn lại (TODO)</string>
+    <string name="ui_000">000 (TODO)</string>
+    <string name="ui_state_note_length_transaction_">${state.note.length}/${Transaction.MAX_NOTE_LENGTH} (TODO)</string>
+    <string name="ui_moneyformatter_format_totalinc">+${MoneyFormatter.format(totalIncome)} (TODO)</string>
+    <string name="ui_moneyformatter_format_totalexp">-${MoneyFormatter.format(totalExpense)} (TODO)</string>
+    <string name="ui_prefix_moneyformatter_format_n">$prefix${MoneyFormatter.format(net)} (TODO)</string>
 </resources>

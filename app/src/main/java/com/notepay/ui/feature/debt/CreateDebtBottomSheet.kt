@@ -59,7 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.debt.DebtType
 import com.notepay.ui.theme.AppTheme
@@ -104,11 +104,9 @@ fun CreateDebtBottomSheet(
     val isNameValid = personName.isNotBlank()
     val canSave = isAmountValid && isNameValid
 
-    ModalBottomSheet(
+    com.notepay.ui.component.BottomSheetGlass(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier
     ) {
         Column(
@@ -211,7 +209,7 @@ fun CreateDebtBottomSheet(
                 shape = AppTheme.shapes.corner16,
                 trailingIcon = {
                     Text(
-                        text = "₫",
+                        text = stringResource(R.string.extracted_string),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -275,7 +273,7 @@ fun CreateDebtBottomSheet(
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text(stringResource(R.string.debt_note_label)) },
+                label = { Text(stringResource(R.string.transaction_field_note)) },
                 placeholder = { Text(stringResource(R.string.debt_note_hint)) },
                 maxLines = 3,
                 modifier = Modifier.fillMaxWidth(),

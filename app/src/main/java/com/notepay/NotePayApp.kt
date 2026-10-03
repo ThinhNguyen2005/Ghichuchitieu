@@ -23,6 +23,7 @@ class NotePayApp : Application(), Configuration.Provider {
         super.onCreate()
         SubscriptionReminderWorker.schedule(this)
         ReminderScheduler.scheduleDailyReminder(this)
+        com.notepay.worker.NotificationWatchdog.schedule(this)
     }
 }
 

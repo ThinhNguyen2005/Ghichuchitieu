@@ -64,7 +64,8 @@ fun UtilitiesScreen(
     onNavigateToAppearanceLanguage: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
-    onNavigateToAppSettings: () -> Unit,
+    onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onNavigateToDebtManagement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -179,7 +180,7 @@ fun UtilitiesScreen(
                         UtilityRowItem(
                             icon = Icons.Rounded.AutoAwesome,
                             iconTint = Color(0xFFFF9500),
-                            title = stringResource(R.string.settings_ai_engine_title),
+                            title = stringResource(R.string.ai_settings_title),
                             subtitle = stringResource(R.string.utilities_ai_engine_subtitle),
                             onClick = onNavigateToAiSettings
                         )
@@ -193,11 +194,19 @@ fun UtilitiesScreen(
                         )
                         ItemDivider()
                         UtilityRowItem(
+                            icon = Icons.Rounded.NotificationsActive,
+                            iconTint = Color(0xFFFF9500),
+                            title = stringResource(R.string.settings_notification_section_title),
+                            subtitle = stringResource(R.string.settings_notification_subtitle),
+                            onClick = onNavigateToNotificationSettings
+                        )
+                        ItemDivider()
+                        UtilityRowItem(
                             icon = Icons.Rounded.Info,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                             title = stringResource(R.string.utilities_app_info_title),
                             subtitle = stringResource(R.string.utilities_app_info_subtitle),
-                            onClick = onNavigateToAppSettings
+                            onClick = onNavigateToAbout
                         )
                     }
                 }

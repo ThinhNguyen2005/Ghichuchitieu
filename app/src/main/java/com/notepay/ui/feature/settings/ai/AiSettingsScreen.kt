@@ -264,7 +264,7 @@ fun AiSettingsScreen(
                                             }) {
                                                 Icon(
                                                     imageVector = Icons.Rounded.Clear,
-                                                    contentDescription = stringResource(R.string.ai_api_key_clear),
+                                                    contentDescription = stringResource(R.string.action_delete),
                                                 )
                                             }
                                         } else {
@@ -331,7 +331,7 @@ fun AiSettingsScreen(
                                         strokeWidth = 2.dp,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.ai_testing_connection))
+                                    Text(stringResource(R.string.settings_ai_api_key_testing))
                                 } else {
                                     Icon(
                                         imageVector = Icons.Rounded.AutoAwesome,
@@ -339,7 +339,7 @@ fun AiSettingsScreen(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.ai_test_connection))
+                                    Text(stringResource(R.string.settings_ai_api_key_test))
                                 }
                             }
                         }

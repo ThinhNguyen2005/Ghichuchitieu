@@ -28,7 +28,8 @@ sealed interface Route {
         }
     }
     data object AddDummy : Route { override val path = "add-dummy" }
-    data object AppSettings : Route { override val path = "app-settings" }
+    data object About : Route { override val path = "about" }
+    data object NotificationSettings : Route { override val path = "notification-settings" }
     data object BackupRestore : Route { override val path = "backup-restore" }
     data object CurrencySettings : Route { override val path = "currency-settings" }
     data object CategoryManagement : Route { override val path = "category-management" }

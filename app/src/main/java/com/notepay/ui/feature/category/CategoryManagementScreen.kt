@@ -365,7 +365,7 @@ private fun CategoryRow(
                 onClick = {},
                 label = {
                     Text(
-                        text = stringResource(R.string.category_badge_default),
+                        text = stringResource(R.string.wallet_default),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 },
@@ -426,7 +426,7 @@ private fun CategoryEditDialog(
                         name = it
                         if (isError && it.isNotBlank()) isError = false
                     },
-                    label = { Text(stringResource(R.string.category_field_name)) },
+                    label = { Text(stringResource(R.string.category_name_label)) },
                     isError = isError,
                     supportingText = if (isError) {
                         { Text(stringResource(R.string.category_field_name_error)) }
@@ -478,7 +478,7 @@ private fun CategoryEditDialog(
                 // Icon Picker
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = stringResource(R.string.category_field_icon),
+                        text = stringResource(R.string.wallet_field_icon),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

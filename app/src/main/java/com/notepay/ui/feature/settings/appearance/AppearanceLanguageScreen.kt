@@ -70,7 +70,7 @@ private data class ThemeColorOption(
 private val themeColorOptions = listOf(
     ThemeColorOption("ledger", R.string.appearance_color_ledger, Color(0xFFB5502E)),
     ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E)),
-    ThemeColorOption("dynamic", R.string.appearance_color_dynamic, Color(0xFF6750A4)),
+    ThemeColorOption("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
     ThemeColorOption("ocean", R.string.appearance_color_ocean, Color(0xFF007AFF)),
     ThemeColorOption("emerald", R.string.appearance_color_emerald, Color(0xFF34C759)),
     ThemeColorOption("amber", R.string.appearance_color_amber, Color(0xFFFF9500)),
@@ -102,7 +102,7 @@ fun AppearanceLanguageScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.appearance_language_title),
+                        text = stringResource(R.string.utilities_appearance_language_title),
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -170,9 +170,9 @@ fun AppearanceLanguageScreen(
                                 ) {
                                     Text(
                                         text = when (mode) {
-                                            "light" -> stringResource(R.string.appearance_theme_light)
-                                            "dark" -> stringResource(R.string.appearance_theme_dark)
-                                            else -> stringResource(R.string.appearance_theme_system)
+                                            "light" -> stringResource(R.string.theme_light)
+                                            "dark" -> stringResource(R.string.theme_dark)
+                                            else -> stringResource(R.string.theme_system)
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -188,7 +188,7 @@ fun AppearanceLanguageScreen(
             item {
                 SectionHeader(
                     icon = Icons.Rounded.Palette,
-                    title = stringResource(R.string.appearance_section_color),
+                    title = stringResource(R.string.settings_theme_title),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(

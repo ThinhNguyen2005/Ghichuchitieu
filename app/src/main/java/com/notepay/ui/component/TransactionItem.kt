@@ -1,7 +1,5 @@
 package com.notepay.ui.component
 
-import com.notepay.ui.theme.AppTheme
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -13,8 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -28,14 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -45,11 +41,12 @@ import java.util.Locale
 @Composable
 fun TransactionItem(
     transaction: Transaction,
+    modifier: Modifier = Modifier,
     walletName: String = "",
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     isSelected: Boolean = false,
-    modifier: Modifier = Modifier,
+
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
     val amountColor = if (isIncome) AppTheme.colors.success else AppTheme.colors.error
@@ -157,7 +154,7 @@ fun TransactionItem(
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
                     Text(
-                        text = "$sign${MoneyFormatter.format(transaction.amount)}",
+                        text = stringResource(R.string.ui_sign_moneyformatter_format_tra),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = amountColor,

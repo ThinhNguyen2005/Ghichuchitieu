@@ -11,7 +11,8 @@ import com.notepay.R
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettings
 import com.notepay.data.preferences.BudgetSettingsStore
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
@@ -37,6 +38,9 @@ import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toInstant
 import javax.inject.Inject
 
 @HiltViewModel
@@ -100,19 +104,46 @@ class HomeViewModel @Inject constructor(
         Triple(monthPair, activeWallet, isDismissed)
     }.flatMapLatest { (monthPair, activeWallet, isDismissed) ->
         val (year, month) = monthPair
-        val bgFlow = if (activeWallet != null) {
-            appSettingsDataStore.observeWalletBackground(activeWallet.id)
-        } else {
-            flowOf(null)
+        val zone = TimeZone.currentSystemDefault()
+        val firstDate = LocalDate(year, month, 1)
+        val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
+        val startMillis = LocalDateTime(firstDate.year, firstDate.month.number, firstDate.day, 0, 0)
+            .toInstant(zone).toEpochMilliseconds()
+        val endMillis = LocalDateTime(nextMonth.year, nextMonth.month.number, nextMonth.day, 0, 0)
+            .toInstant(zone).toEpochMilliseconds() - 1
+
+        val walletsSummaryFlow = walletRepo.observeAll().flatMapLatest { wallets ->
+            if (wallets.isEmpty()) flowOf(emptyList<WalletSummary>())
+            else {
+                val summaryFlows = wallets.map { wallet ->
+                    combine(
+                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.INCOME, wallet.id, 0L, Long.MAX_VALUE),
+                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.EXPENSE, wallet.id, 0L, Long.MAX_VALUE),
+                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.INCOME, wallet.id, startMillis, endMillis),
+                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.EXPENSE, wallet.id, startMillis, endMillis),
+                        appSettingsDataStore.observeWalletBackground(wallet.id)
+                    ) { totalInc, totalExp, monthInc, monthExp, bgUri ->
+                        WalletSummary(
+                            wallet = wallet,
+                            balance = wallet.initialBalance + totalInc - totalExp,
+                            monthlyIncome = monthInc,
+                            monthlyExpense = monthExp,
+                            backgroundUri = bgUri
+                        )
+                    }
+                }
+                combine(summaryFlows) { it.toList() }
+            }
         }
+
         combine(
             getMonthlySummary(year, month, activeWallet?.id),
-            walletRepo.observeAll(),
+            walletsSummaryFlow,
             subscriptionRepository.observeAll(),
-            transactionRepo.observeAll(),
-            bgFlow,
-        ) { summary, wallets, subscriptions, allTransactions, bgUri ->
-            val balance = activeWallet?.let { observeWalletBalance(it.id).first() }
+            transactionRepo.observeAllCreatedDates(),
+        ) { summary, walletsSummary, subscriptions, createdDates ->
+            
+            val wallets = walletsSummary.map { it.wallet }
             
             // Tính số lời nhắc sắp đến hạn
             val now = Clock.System.now()
@@ -122,7 +153,7 @@ class HomeViewModel @Inject constructor(
 
             // Tính chuỗi ngày ghi chép liên tiếp (Streak 🔥)
             val streak = StreakTrackerHelper.calculateStreak(
-                transactionInstants = allTransactions.map { it.createdAt },
+                transactionInstants = createdDates,
                 today = today.date
             )
 
@@ -168,18 +199,20 @@ class HomeViewModel @Inject constructor(
             null
         }
 
+            val activeSummary = walletsSummary.find { it.wallet.id == activeWallet?.id }
             HomeUiState(
                 activeWallet = activeWallet,
                 wallets = wallets,
-                currentBalance = balance ?: Money.ZERO,
-                monthlyIncome = summary.totalIncome,
-                monthlyExpense = summary.totalExpense,
+                walletsSummary = walletsSummary,
+                currentBalance = activeSummary?.balance ?: Money.ZERO,
+                monthlyIncome = activeSummary?.monthlyIncome ?: Money.ZERO,
+                monthlyExpense = activeSummary?.monthlyExpense ?: Money.ZERO,
                 recentTransactions = summary.transactions.take(5),
                 monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
                 isLoading = false,
                 budgetProjection = projection,
                 dueRemindersCount = dueCount,
-                walletBackgroundUri = bgUri,
+                walletBackgroundUri = activeSummary?.backgroundUri,
                 streakDays = streak,
                 isSmartInsightsDismissed = isDismissed,
             )

@@ -147,11 +147,9 @@ fun DebtRemindBottomSheet(
         } else null
     }
 
-    ModalBottomSheet(
+    com.notepay.ui.component.BottomSheetGlass(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
         Column(
@@ -330,7 +328,7 @@ fun DebtRemindBottomSheet(
                 Button(
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        val clip = ClipData.newPlainText("debt_reminder", reminderMessage)
+                        val clip = ClipData.newPlainText(stringResource(R.string.ui_debt_reminder), reminderMessage)
                         clipboard?.setPrimaryClip(clip)
                         Toast.makeText(
                             context,
@@ -381,7 +379,7 @@ fun DebtRemindBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.debt_action_share),
+                        text = stringResource(R.string.content_description_share),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

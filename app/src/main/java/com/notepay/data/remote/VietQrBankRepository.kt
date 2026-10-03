@@ -34,7 +34,7 @@ class VietQrBankRepository @Inject constructor(
             val result = parseBundledBanks(body)
             cached = result
             result
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             FALLBACK
         }
     }

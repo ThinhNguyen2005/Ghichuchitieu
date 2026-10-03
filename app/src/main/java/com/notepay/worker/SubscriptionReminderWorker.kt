@@ -88,7 +88,7 @@ class SubscriptionReminderWorker @AssistedInject constructor(
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            context.getString(R.string.notif_channel_subscription_name),
+            context.getString(R.string.utilities_reminder_title),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = context.getString(R.string.notif_channel_subscription_desc)

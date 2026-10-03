@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 
@@ -119,7 +119,7 @@ fun CurrencySettingsScreen(
 
             // Section 1: Chọn đơn vị tiền tệ chính
             item {
-                SectionHeader(title = stringResource(R.string.currency_primary_unit_title))
+                SectionHeader(title = stringResource(R.string.utilities_currency_title))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -354,7 +354,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "+ $samplePositive",
+                        text = stringResource(R.string.ui_samplepositive),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF34C759),
@@ -368,7 +368,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "- $sampleNegative",
+                        text = stringResource(R.string.ui_samplenegative),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,

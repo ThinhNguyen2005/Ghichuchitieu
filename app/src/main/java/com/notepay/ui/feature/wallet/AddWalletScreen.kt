@@ -308,7 +308,7 @@ private fun WalletLivePreviewCard(state: AddWalletUiState) {
                         color = Color.White.copy(alpha = 0.82f),
                     )
                     Text(
-                        text = "$formattedBalance ₫",
+                        text = stringResource(R.string.ui_formattedbalance),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
@@ -406,7 +406,7 @@ private fun BudgetAlertSection(
                         val periods = listOf(
                             BudgetPeriod.DAILY to stringResource(R.string.wallet_period_daily),
                             BudgetPeriod.WEEKLY to stringResource(R.string.wallet_period_weekly),
-                            BudgetPeriod.MONTHLY to stringResource(R.string.wallet_period_monthly),
+                            BudgetPeriod.MONTHLY to stringResource(R.string.subscription_repeat_monthly),
                         )
                         periods.forEach { (period, label) ->
                             val isSelected = budgetPeriod == period
