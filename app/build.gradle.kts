@@ -208,6 +208,7 @@ dependencies {
     ksp(libs.hilt.work.compiler)
 
     // Debug
+    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
@@ -222,6 +223,7 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
 
     // Instrumented
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

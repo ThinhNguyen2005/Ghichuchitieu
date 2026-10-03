@@ -1,9 +1,9 @@
 package com.notepay.domain.notification
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.money.Money
 import org.junit.Test
 
 class NotificationParserTest {

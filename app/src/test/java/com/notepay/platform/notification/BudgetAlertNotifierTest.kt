@@ -4,7 +4,7 @@ import android.content.Context
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.TestData
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import io.mockk.coEvery

@@ -42,11 +42,11 @@ fun CreateNewBottomSheet(
     }
 
     BottomSheetGlass(
+        visible = isVisible,
         onDismissRequest = {
             isVisible = false
             onDismissRequest()
         },
-        sheetState = sheetState,
     ) {
         Column(
             modifier = Modifier

@@ -105,8 +105,8 @@ fun CreateDebtBottomSheet(
     val canSave = isAmountValid && isNameValid
 
     com.notepay.ui.component.BottomSheetGlass(
+        visible = true,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
         modifier = modifier
     ) {
         Column(

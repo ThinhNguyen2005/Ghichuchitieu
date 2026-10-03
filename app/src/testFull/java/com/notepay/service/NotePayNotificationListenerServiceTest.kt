@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
@@ -33,6 +32,7 @@ import com.notepay.MainDispatcherRule
 
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.preferences.KnownBankApps
+import com.notepay.domain.money.Money
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

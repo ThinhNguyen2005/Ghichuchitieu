@@ -129,7 +129,7 @@ fun BalanceCard(
             // 1. Lớp Ảnh nền + Multi-layer Scrim Gradient
             if (hasCustomBg) {
                 val imageModel = remember(backgroundImageUri) {
-                    if (backgroundImageUri?.startsWith("/") == true) {
+                    if (backgroundImageUri.startsWith("/")) {
                         java.io.File(backgroundImageUri)
                     } else {
                         backgroundImageUri

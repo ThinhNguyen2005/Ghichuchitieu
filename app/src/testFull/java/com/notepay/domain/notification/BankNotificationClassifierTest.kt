@@ -5,8 +5,8 @@ import com.notepay.data.preferences.NotificationCaptureStore
 import com.notepay.data.preferences.LearnedCaptureDecision
 import com.notepay.data.preferences.LearnedCapturePolicy
 import com.notepay.data.preferences.KnownBankApps
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.money.Money
 import org.junit.Test
 
 class BankNotificationClassifierTest {

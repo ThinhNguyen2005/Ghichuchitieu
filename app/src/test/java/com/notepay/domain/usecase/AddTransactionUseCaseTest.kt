@@ -2,7 +2,6 @@ package com.notepay.domain.usecase
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.TestData
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.TestTransactionFactory
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository

@@ -213,7 +213,6 @@ fun AssetsScreen(
         if (state.isTransferSheetVisible) {
             TransferBottomSheet(
                 state = state,
-                sheetState = transferSheetState,
                 onDismiss = { viewModel.closeTransferSheet() },
                 onFromWalletChange = { viewModel.onTransferFromWalletChanged(it) },
                 onToWalletChange = { viewModel.onTransferToWalletChanged(it) },
@@ -1069,7 +1068,6 @@ private fun WalletAssetCard(
 @Composable
 private fun TransferBottomSheet(
     state: AssetsUiState,
-    sheetState: SheetState,
     onDismiss: () -> Unit,
     onFromWalletChange: (Long) -> Unit,
     onToWalletChange: (Long) -> Unit,
@@ -1078,8 +1076,8 @@ private fun TransferBottomSheet(
     onConfirm: () -> Unit,
 ) {
     com.notepay.ui.component.BottomSheetGlass(
+        visible = state.isTransferSheetVisible,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
     ) {
         Column(
             modifier = Modifier

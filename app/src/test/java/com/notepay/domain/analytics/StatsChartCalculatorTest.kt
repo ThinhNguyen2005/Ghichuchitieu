@@ -1,7 +1,7 @@
 package com.notepay.domain.analytics
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import org.junit.Test
 
 class StatsChartCalculatorTest {

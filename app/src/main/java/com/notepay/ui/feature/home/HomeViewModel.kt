@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -112,17 +113,21 @@ class HomeViewModel @Inject constructor(
         val endMillis = LocalDateTime(nextMonth.year, nextMonth.month.number, nextMonth.day, 0, 0)
             .toInstant(zone).toEpochMilliseconds() - 1
 
-        val walletsSummaryFlow = walletRepo.observeAll().flatMapLatest { wallets ->
+        val walletsSummaryFlow = combine(
+            walletRepo.observeAll(),
+            transactionRepo.observeWalletStats(startMillis, endMillis)
+        ) { wallets, stats ->
+            wallets to stats.associateBy { it.walletId }
+        }.flatMapLatest { (wallets, statsMap) ->
             if (wallets.isEmpty()) flowOf(emptyList<WalletSummary>())
             else {
                 val summaryFlows = wallets.map { wallet ->
-                    combine(
-                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.INCOME, wallet.id, 0L, Long.MAX_VALUE),
-                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.EXPENSE, wallet.id, 0L, Long.MAX_VALUE),
-                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.INCOME, wallet.id, startMillis, endMillis),
-                        transactionRepo.observeSumByTypeAndWalletInRange(TransactionType.EXPENSE, wallet.id, startMillis, endMillis),
-                        appSettingsDataStore.observeWalletBackground(wallet.id)
-                    ) { totalInc, totalExp, monthInc, monthExp, bgUri ->
+                    appSettingsDataStore.observeWalletBackground(wallet.id).map { bgUri ->
+                        val stat = statsMap[wallet.id]
+                        val totalInc = stat?.allTimeIncome ?: Money.ZERO
+                        val totalExp = stat?.allTimeExpense ?: Money.ZERO
+                        val monthInc = stat?.currentMonthIncome ?: Money.ZERO
+                        val monthExp = stat?.currentMonthExpense ?: Money.ZERO
                         WalletSummary(
                             wallet = wallet,
                             balance = wallet.initialBalance + totalInc - totalExp,

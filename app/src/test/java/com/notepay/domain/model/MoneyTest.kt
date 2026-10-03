@@ -1,6 +1,7 @@
 package com.notepay.domain.model
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.domain.money.Money
 import org.junit.Assert.assertThrows
 import org.junit.Test
 

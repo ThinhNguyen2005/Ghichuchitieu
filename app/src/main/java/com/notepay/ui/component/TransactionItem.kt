@@ -154,7 +154,7 @@ fun TransactionItem(
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
                     Text(
-                        text = stringResource(R.string.ui_sign_moneyformatter_format_tra),
+                        text = "$sign${MoneyFormatter.format(transaction.amount)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = amountColor,
