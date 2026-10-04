@@ -282,7 +282,10 @@ private fun CalendarCell(
             ) {
                 if (!day.totalIncome.isZero()) {
                     Text(
-                        text = stringResource(R.string.ui_moneyformatter_formatcompactvi),
+                        text = stringResource(
+                            R.string.amount_positive_format,
+                            MoneyFormatter.formatCompactVietnamese(day.totalIncome)
+                        ),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -291,7 +294,10 @@ private fun CalendarCell(
                 }
                 if (!day.totalExpense.isZero()) {
                     Text(
-                        text = stringResource(R.string.ui_moneyformatter_formatcompactvi),
+                        text = stringResource(
+                            R.string.amount_negative_format,
+                            MoneyFormatter.formatCompactVietnamese(day.totalExpense)
+                        ),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,

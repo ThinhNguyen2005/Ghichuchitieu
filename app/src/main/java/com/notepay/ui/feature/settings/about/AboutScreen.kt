@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.settings.about
 
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,12 +25,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.pm.PackageInfoCompat
 import com.notepay.R
+import com.notepay.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,10 +44,20 @@ fun AboutScreen(
     val context = LocalContext.current
     val appInfo = remember {
         try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "${pInfo.versionName} (${pInfo.versionCode})"
-        } catch (e: PackageManager.NameNotFoundException) {
-            "Unknown"
+            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.PackageInfoFlags.of(0)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            val versionCode = PackageInfoCompat.getLongVersionCode(pInfo)
+            val versionName = pInfo.versionName ?: "1.0"
+            "$versionName ($versionCode)"
+        } catch (_: Exception) {
+            "1.0 (1)"
         }
     }
 
@@ -85,9 +99,11 @@ fun AboutScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.mipmap.ic_launcher_round), // using default icon ref
-                contentDescription = null,
-                modifier = Modifier.size(96.dp)
+                painter = painterResource(id = R.drawable.ic_launcher_artwork),
+                contentDescription = stringResource(R.string.app_name),
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(AppTheme.shapes.corner24)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -98,7 +114,7 @@ fun AboutScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.ui_version_appinfo),
+                text = stringResource(R.string.ui_version_appinfo, appInfo),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

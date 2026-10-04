@@ -150,7 +150,6 @@ class TransactionRepositoryImplTest {
         override suspend fun upsert(entity: TransactionEntity): Long = 0L
         override suspend fun delete(id: Long) = Unit
 
-        // --- BỔ SUNG HÀM NÀY ĐỂ SỬA LỖI BIÊN DỊCH VÀ KHỚP VỚI INTERFACE MỚI ---
         override suspend fun findRecentSimilar(
             noteKeyword: String,
             startMillis: Long,

@@ -308,7 +308,7 @@ private fun WalletLivePreviewCard(state: AddWalletUiState) {
                         color = Color.White.copy(alpha = 0.82f),
                     )
                     Text(
-                        text = stringResource(R.string.ui_formattedbalance),
+                        text = stringResource(R.string.wallet_preview_balance_format, formattedBalance),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
