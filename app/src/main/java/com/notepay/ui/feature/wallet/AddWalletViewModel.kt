@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.data.remote.VietQrBankRepository
+import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
@@ -12,6 +14,7 @@ import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.util.WalletUiHelper
+import com.notepay.util.StringUtils.removeVietnameseAccents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,7 +30,7 @@ import kotlin.time.Clock
 @HiltViewModel
 class AddWalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
-    savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle, vietQrBankRepository: VietQrBankRepository,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -43,6 +46,7 @@ class AddWalletViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val allWallets = walletRepository.observeAll().firstOrNull().orEmpty()
+            val banks = vietQrBankRepository.getBanks()
             if (walletId != null && walletId > 0L) {
                 val wallet = walletRepository.getById(walletId)
                 if (wallet != null) {
@@ -64,6 +68,7 @@ class AddWalletViewModel @Inject constructor(
                             accountNumber = wallet.accountNumber ?: "",
                             accountName = wallet.accountName ?: "",
                             isEditMode = true,
+                            banks = banks
                         )
                     }
                 }
@@ -119,7 +124,8 @@ class AddWalletViewModel @Inject constructor(
 
     fun onAccountNumberChanged(accountNumber: String) {
         // Chỉ lưu chữ số hoặc chữ cái (bình thường là số)
-        val clean = accountNumber.filter { it.isLetterOrDigit() }
+        val clean = removeVietnameseAccents(accountNumber)
+            .filter { it.isLetterOrDigit() }
         _state.update { it.copy(accountNumber = clean) }
     }
 
@@ -127,6 +133,9 @@ class AddWalletViewModel @Inject constructor(
         _state.update { it.copy(accountName = accountName) }
     }
 
+    fun onBankSelected(bank: VietQrBank) {
+        _state.update { it.copy(bankBin = bank.bin) }
+    }
     fun save() {
         val current = _state.value
         if (!current.canSave) return
@@ -170,7 +179,7 @@ class AddWalletViewModel @Inject constructor(
                         type = FeedbackType.Success,
                     ),
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 val message = context.getString(
                     if (current.isEditMode) R.string.wallet_update_failed else R.string.wallet_create_failed,
                 )

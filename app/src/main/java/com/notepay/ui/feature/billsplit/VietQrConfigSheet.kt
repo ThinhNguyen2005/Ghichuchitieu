@@ -69,7 +69,7 @@ import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.theme.AppTheme
-import java.text.Normalizer
+import com.notepay.ui.util.VietQrGenerator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -354,7 +354,7 @@ fun VietQrConfigSheet(
 
                     OutlinedTextField(
                         value = accountName,
-                        onValueChange = { accountName = stripAccents(it) },
+                        onValueChange = { accountName = VietQrGenerator.formatAccountName(it) },
                         label = { Text(stringResource(R.string.transfer_account_name)) },
                         placeholder = { Text(stringResource(R.string.billsplit_account_name_placeholder)) },
                         leadingIcon = {
@@ -497,10 +497,3 @@ private fun BankLogo(logoUrl: String?, modifier: Modifier = Modifier) {
     }
 }
 
-private fun stripAccents(input: String): String {
-    val normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
-    val result = normalized.replace("\\p{InCombiningDiacriticalMarks}+".toRegex(), "")
-        .replace("Đ", "D")
-        .replace("đ", "d")
-    return result.filter { it.isLetter() || it.isWhitespace() }.uppercase()
-}

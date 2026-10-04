@@ -1246,4 +1246,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="transfer_note_to">Transfer to %1$s: %2$s</string>
     <string name="transfer_note_from">Received from %1$s: %2$s</string>
     <string name="transfer_wallet_other">other wallet</string>
+
+    <string name="wallet_field_vietqr">Receiving account (VietQR)</string>
+    <string name="wallet_vietqr_bank_error">Please select a bank</string>
+
 </resources>

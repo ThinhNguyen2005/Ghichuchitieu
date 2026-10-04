@@ -13,7 +13,7 @@ import java.util.EnumMap
 import java.util.Locale
 
 object VietQrGenerator {
-
+    private val MULTI_SPACE_REGEX = Regex("\\s+")
     /**
      * Tạo URL ảnh VietQR chuẩn chính thức qua VietQR API (img.vietqr.io).
      *
@@ -39,7 +39,7 @@ object VietQrGenerator {
 
         val queryParams = mutableListOf("amount=$majorAmount", "addInfo=$encodedMemo")
         if (!accountName.isNullOrBlank()) {
-            val cleanName = StringUtils.removeVietnameseAccents(accountName).uppercase(Locale.ROOT)
+            val cleanName = formatAccountName(accountName).uppercase(Locale.ROOT)
             queryParams.add("accountName=${URLEncoder.encode(cleanName, "UTF-8")}")
         }
 
@@ -85,7 +85,7 @@ object VietQrGenerator {
         sb.append("5802VN") // Country Code
 
         if (!accountName.isNullOrBlank()) {
-            val cleanName = StringUtils.removeVietnameseAccents(accountName).uppercase(Locale.ROOT)
+            val cleanName = formatAccountName(accountName).uppercase(Locale.ROOT)
             if (cleanName.isNotBlank()) {
                 sb.append("59").append(String.format(Locale.ROOT, "%02d", cleanName.length)).append(cleanName)
             }
@@ -145,5 +145,14 @@ object VietQrGenerator {
             }
         }
         return bmp
+    }
+
+    fun formatAccountName(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        return StringUtils.removeVietnameseAccents(raw)
+            .uppercase(Locale.ROOT)
+            .filter { it in 'A'..'Z' || it == ' ' }
+            .replace(MULTI_SPACE_REGEX, " ")
+            .trim()
     }
 }

@@ -166,6 +166,7 @@ dependencies {
 
     // Splash screen
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.material3)
 
     // Backdrop for Liquid Slider/Toggle
     implementation(libs.backdrop)

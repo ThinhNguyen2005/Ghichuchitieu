@@ -182,7 +182,7 @@
 
     <!-- Extractions -->
     <string name="transaction_deleted">Đã xóa giao dịch</string>
-    <string name="transaction_search_placeholder">Tìm giao dịch...</string>
+    <string name="transaction_search_placeholder">Tìm giao dịch…</string>
     <string name="action_search">Tìm kiếm</string>
     <string name="cd_switch_to_list">Chuyển sang danh sách</string>
     <string name="cd_switch_to_calendar">Chuyển sang lịch</string>
@@ -610,7 +610,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_amount_invalid">Số tiền không hợp lệ.</string>
     <string name="billsplit_original_bill">Hóa đơn gốc</string>
     <string name="billsplit_already_split">Đã phân chia</string>
-    <string name="billsplit_step_select">Bước 1/2 — Chọn hóa đơn cần chia.</string>
+    <string name="billsplit_step_select">Bước ½ — Chọn hóa đơn cần chia.</string>
     <string name="billsplit_step_manage">Bước 2/2 — Thêm người và chia số tiền.</string>
     <string name="billsplit_no_expense_title">Chưa có giao dịch chi tiêu</string>
     <string name="billsplit_no_expense_desc">Hãy tạo một giao dịch chi tiêu trước khi sử dụng tính năng chia hóa đơn.</string>
@@ -772,7 +772,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="assets_transfer_to_wallet">Đến ví:</string>
     <string name="assets_transfer_amount">Số tiền chuyển:</string>
     <string name="assets_transfer_note">Ghi chú (tùy chọn):</string>
-    <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền...</string>
+    <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền…</string>
     <string name="assets_transfer_confirm_btn">Xác nhận chuyển</string>
     <string name="assets_trend_chart_title">Xu hướng tài sản</string>
     <string name="assets_chart_range_7d">7 ngày</string>
@@ -799,7 +799,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="filter_classification">Phân loại</string>
     <string name="filter_category_expense">Danh mục Chi tiêu</string>
     <string name="filter_category_income">Danh mục Thu nhập</string>
-    <string name="filter_search_hint">Tìm ghi chú, danh mục, số tiền...</string>
+    <string name="filter_search_hint">Tìm ghi chú, danh mục, số tiền…</string>
     <string name="summary_income_header">THU NHẬP</string>
     <string name="summary_expense_header">CHI TIÊU</string>
     <string name="summary_export_file">Xuất file</string>
@@ -808,7 +808,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="utilities_title">Tiện ích</string>
     <string name="utilities_tools_title">Công cụ phụ trợ</string>
     <string name="utilities_bill_split_description">Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.</string>
-    <string name="utilities_subscription_description">Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm...), tự động thông báo trước ngày hết hạn.</string>
+    <string name="utilities_subscription_description">Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm…), tự động thông báo trước ngày hết hạn.</string>
     <string name="home_streak_format">🔥 %1$dd</string>
     <string name="wallet_fallback">Ví</string>
     <string name="transaction_income_label">Thu vào</string>
@@ -820,13 +820,13 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Đã sẵn sàng (100% Offline)</string>
     <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Không hỗ trợ trên thiết bị này</string>
     <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
-    <string name="settings_ai_api_key_placeholder">Dán API Key (AIzaSy...)</string>
+    <string name="settings_ai_api_key_placeholder">Dán API Key (AIzaSy…)</string>
     <string name="settings_ai_api_key_get_free">Lấy API Key miễn phí từ Google AI Studio</string>
     <string name="settings_ai_api_key_save">Lưu Key</string>
     <string name="settings_ai_api_key_saved">Đã lưu API Key</string>
     <string name="settings_ai_api_key_clear">Xóa Key</string>
     <string name="settings_ai_api_key_test">Kiểm tra kết nối</string>
-    <string name="settings_ai_api_key_testing">Đang kiểm tra kết nối...</string>
+    <string name="settings_ai_api_key_testing">Đang kiểm tra kết nối…</string>
     <string name="settings_ai_api_key_test_success">Kết nối thành công! Gemini phản hồi: %1$s</string>
     <string name="settings_ai_api_key_test_failed">Kết nối thất bại: %1$s</string>
     <string name="settings_ai_cloud_toggle_title">Bật Cloud Gemini AI</string>
@@ -1067,7 +1067,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_nav_desc">Theo dõi các khoản cho vay, nợ phải trả và nhắc nợ</string>
     <string name="debt_tab_borrow">Cần trả</string>
     <string name="debt_filter_unsettled_only">Chưa tất toán</string>
-    <string name="debt_search_hint">Tìm theo tên, ghi chú, SĐT...</string>
+    <string name="debt_search_hint">Tìm theo tên, ghi chú, SĐT…</string>
     <string name="debt_empty_title">Chưa có khoản nợ nào</string>
     <string name="debt_empty_desc">Ghi chép các khoản cho vay hoặc đi vay để luôn nắm rõ tài chính nhé!</string>
     <string name="debt_action_add">Tạo khoản nợ mới</string>
@@ -1075,12 +1075,12 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_type_lend_label">Cho vay (Cần thu)</string>
     <string name="debt_type_borrow_label">Đi vay (Cần trả)</string>
     <string name="debt_person_name_label">Người liên quan *</string>
-    <string name="debt_person_name_hint">Ví dụ: Anh Nam, Bạn Linh...</string>
+    <string name="debt_person_name_hint">Ví dụ: Anh Nam, Bạn Linh…</string>
     <string name="debt_phone_label">Số điện thoại (tùy chọn)</string>
     <string name="debt_amount_label">Số tiền *</string>
     <string name="debt_due_date_label">Hạn trả nợ (tùy chọn)</string>
     <string name="debt_due_date_hint">Chọn ngày hẹn trả</string>
-    <string name="debt_note_hint">Lý do mượn / chi tiết...</string>
+    <string name="debt_note_hint">Lý do mượn / chi tiết…</string>
     <string name="debt_wallet_label">Ví liên kết</string>
     <string name="debt_sync_wallet_label">Tự động cập nhật số dư ví</string>
     <string name="debt_sync_wallet_desc">Tự động trừ ví khi Cho vay hoặc cộng ví khi Đi vay</string>
@@ -1226,7 +1226,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="appearance_color_dynamic">Màu động Material You</string>
     <string name="ai_api_key_clear">Xóa</string>
     <string name="ai_test_connection">Kiểm tra kết nối</string>
-    <string name="ai_testing_connection">Đang kiểm tra...</string>
+    <string name="ai_testing_connection">Đang kiểm tra…</string>
     <string name="debt_tab_all">Tất cả</string>
     <string name="debt_tab_lend">Cần thu</string>
     <string name="debt_note_label">Ghi chú</string>
@@ -1234,4 +1234,9 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_summary_to_collect">Cần thu</string>
     <string name="debt_summary_to_pay">Cần trả</string>
     <string name="debt_action_share">Chia sẻ</string>
+
+
+    <string name="wallet_field_vietqr">Tài khoản nhận tiền (VietQR)</string>
+    <string name="wallet_vietqr_bank_error">Vui lòng chọn ngân hàng</string>
+
 </resources>

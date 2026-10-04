@@ -30,7 +30,11 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +46,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +56,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.domain.model.VietQrBank
 import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
@@ -192,7 +201,15 @@ fun AddWalletScreen(
                 onBudgetLimitChanged = viewModel::onBudgetLimitChanged,
                 currencyTransformation = currencyTransformation,
             )
-
+            BankQrSection(
+                banks = state.banks,
+                selectedBankBin = state.bankBin,
+                accountNumber = state.accountNumber,
+                accountName = state.accountName,
+                onBankSelected = viewModel::onBankSelected,
+                onAccountNumberChanged = viewModel::onAccountNumberChanged,
+                onAccountNameChanged = viewModel::onAccountNameChanged,
+            )
             // 5. Chọn Biểu tượng
             WalletIconPicker(
                 selectedIconKey = state.iconKey,
@@ -216,12 +233,9 @@ fun AddWalletScreen(
 private fun WalletLivePreviewCard(state: AddWalletUiState) {
     val walletColor = WalletUiHelper.getColor(state.colorKey)
     val iconVector = WalletUiHelper.getIcon(state.iconKey)
-    val displayName = if (state.name.isNotBlank()) {
-        state.name
-    } else {
+    val displayName = state.name.ifBlank {
         stringResource(R.string.wallet_preview_name_placeholder)
     }
-
     val balanceNumber = state.initialBalanceInput.toLongOrNull() ?: 0L
     val formattedBalance = remember(balanceNumber) {
         val formatter = DecimalFormat("#,###")
@@ -467,6 +481,129 @@ private fun BudgetAlertSection(
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BankQrSection(
+    banks: List<VietQrBank>,
+    selectedBankBin: String?,
+    accountNumber: String,
+    accountName: String,
+    onBankSelected: (VietQrBank) -> Unit,
+    onAccountNumberChanged: (String) -> Unit,
+    onAccountNameChanged: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedBank = remember(selectedBankBin, banks) {
+        banks.find { it.bin == selectedBankBin }
+    }
+    val hasBankInfo = !selectedBankBin.isNullOrBlank() || accountNumber.isNotBlank() || accountName.isNotBlank()
+    val isBankMissing = hasBankInfo && selectedBank == null
+
+    val dimensions = AppTheme.dimensions
+    val shapes = AppTheme.shapes
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shapes.corner16,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(dimensions.paddingMedium),
+            verticalArrangement = Arrangement.spacedBy(dimensions.spaceSmall + dimensions.spaceExtraSmall),
+        ) {
+            Text(
+                text = stringResource(R.string.wallet_field_vietqr),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            // 1. Dropdown chọn Ngân hàng
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+            ) {
+                OutlinedTextField(
+                    value = selectedBank?.let { "${it.shortName} - ${it.name}" }.orEmpty(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.billsplit_receiving_bank)) },
+                    placeholder = { Text(stringResource(R.string.billsplit_choose_bank)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    isError = isBankMissing,
+                    supportingText = if (isBankMissing) {
+                        {
+                            Text(
+                                text = stringResource(R.string.wallet_vietqr_bank_error),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    } else null,
+                    shape = shapes.corner12,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    banks.forEach { bank ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "${bank.shortName} - ${bank.name}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            onClick = {
+                                onBankSelected(bank)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            // 2. Ô nhập Số tài khoản
+            OutlinedTextField(
+                value = accountNumber,
+                onValueChange = onAccountNumberChanged,
+                label = { Text(stringResource(R.string.billsplit_account_number_label)) },
+                placeholder = { Text(stringResource(R.string.billsplit_account_number_placeholder)) },
+                singleLine = true,
+                shape = shapes.corner12,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // 3. Ô nhập Tên chủ tài khoản
+            OutlinedTextField(
+                value = accountName,
+                onValueChange = onAccountNameChanged,
+                label = { Text(stringResource(R.string.transfer_account_name)) },
+                placeholder = { Text(stringResource(R.string.billsplit_account_name_placeholder)) },
+                singleLine = true,
+                shape = shapes.corner12,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+
 @Composable
 private fun WalletIconPicker(
     selectedIconKey: String,
@@ -527,6 +664,7 @@ private fun WalletIconPicker(
     }
 }
 
+
 @Composable
 private fun WalletColorPicker(
     selectedColorKey: String,
@@ -566,7 +704,7 @@ private fun WalletColorPicker(
 
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Touch target >= 48dp (@android-pro rule)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable(
                             onClickLabel = contentDesc,
@@ -574,7 +712,6 @@ private fun WalletColorPicker(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Viền ngoài nhẹ khi màu đang được chọn
                     if (isSelected) {
                         Box(
                             modifier = Modifier
