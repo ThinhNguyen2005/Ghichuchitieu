@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -165,8 +166,8 @@ fun AddWalletScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // 1. Live Preview Card
-            WalletLivePreviewCard(state = state)
+//            // 1. Live Preview Card
+//            WalletLivePreviewCard(state = state)
 
             // 2. Tên ví
             OutlinedTextField(
@@ -180,16 +181,44 @@ fun AddWalletScreen(
             )
 
             // 3. Số dư ban đầu
+            val isInitialBalanceLocked = state.isEditMode && state.hasTransactions
+
             OutlinedTextField(
                 value = state.initialBalanceInput,
                 onValueChange = viewModel::onInitialBalanceChanged,
+                readOnly = isInitialBalanceLocked,
                 label = { Text(stringResource(R.string.wallet_field_initial_balance)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 visualTransformation = currencyTransformation,
                 shape = AppTheme.shapes.corner12,
                 singleLine = true,
+                trailingIcon = if (isInitialBalanceLocked) {
+                    {
+                        Icon(
+                            imageVector = Icons.Rounded.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else null,
+                supportingText = {
+                    if (isInitialBalanceLocked) {
+                        Text(
+                            text = stringResource(R.string.wallet_initial_balance_locked_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    } else if (state.isEditMode) {
+                        Text(
+                            text = stringResource(R.string.wallet_initial_balance_editable_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
             )
+
 
             // 4. Hạn mức cảnh báo ngân sách
             BudgetAlertSection(
@@ -229,109 +258,109 @@ fun AddWalletScreen(
     }
 }
 
-@Composable
-private fun WalletLivePreviewCard(state: AddWalletUiState) {
-    val walletColor = WalletUiHelper.getColor(state.colorKey)
-    val iconVector = WalletUiHelper.getIcon(state.iconKey)
-    val displayName = state.name.ifBlank {
-        stringResource(R.string.wallet_preview_name_placeholder)
-    }
-    val balanceNumber = state.initialBalanceInput.toLongOrNull() ?: 0L
-    val formattedBalance = remember(balanceNumber) {
-        val formatter = DecimalFormat("#,###")
-        formatter.format(balanceNumber).replace(",", ".")
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(148.dp),
-        shape = AppTheme.shapes.corner16,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            walletColor,
-                            walletColor.copy(alpha = 0.88f),
-                            walletColor.copy(alpha = 0.68f),
-                        ),
-                    ),
-                )
-                .padding(18.dp),
-        ) {
-            // Top row: Icon & Preview Badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.22f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.24f),
-                ) {
-                    Text(
-                        text = stringResource(R.string.wallet_preview_badge).uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    )
-                }
-            }
-
-            // Bottom content: Tên ví & Số dư
-            Column(
-                modifier = Modifier.align(Alignment.BottomStart),
-            ) {
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.assets_wallet_balance) + ":",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.82f),
-                    )
-                    Text(
-                        text = stringResource(R.string.wallet_preview_balance_format, formattedBalance),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                    )
-                }
-            }
-        }
-    }
-}
+//@Composable
+//private fun WalletLivePreviewCard(state: AddWalletUiState) {
+//    val walletColor = WalletUiHelper.getColor(state.colorKey)
+//    val iconVector = WalletUiHelper.getIcon(state.iconKey)
+//    val displayName = state.name.ifBlank {
+//        stringResource(R.string.wallet_preview_name_placeholder)
+//    }
+//    val balanceNumber = state.initialBalanceInput.toLongOrNull() ?: 0L
+//    val formattedBalance = remember(balanceNumber) {
+//        val formatter = DecimalFormat("#,###")
+//        formatter.format(balanceNumber).replace(",", ".")
+//    }
+//
+//    Card(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .height(148.dp),
+//        shape = AppTheme.shapes.corner16,
+//        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+//    ) {
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .background(
+//                    Brush.linearGradient(
+//                        colors = listOf(
+//                            walletColor,
+//                            walletColor.copy(alpha = 0.88f),
+//                            walletColor.copy(alpha = 0.68f),
+//                        ),
+//                    ),
+//                )
+//                .padding(18.dp),
+//        ) {
+//            // Top row: Icon & Preview Badge
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically,
+//            ) {
+//                Box(
+//                    modifier = Modifier
+//                        .size(42.dp)
+//                        .clip(CircleShape)
+//                        .background(Color.White.copy(alpha = 0.22f)),
+//                    contentAlignment = Alignment.Center,
+//                ) {
+//                    Icon(
+//                        imageVector = iconVector,
+//                        contentDescription = null,
+//                        tint = Color.White,
+//                        modifier = Modifier.size(24.dp),
+//                    )
+//                }
+//
+//                Surface(
+//                    shape = CircleShape,
+//                    color = Color.White.copy(alpha = 0.24f),
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.wallet_preview_badge).uppercase(),
+//                        style = MaterialTheme.typography.labelSmall,
+//                        fontWeight = FontWeight.Bold,
+//                        color = Color.White,
+//                        letterSpacing = 1.sp,
+//                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+//                    )
+//                }
+//            }
+//
+//            // Bottom content: Tên ví & Số dư
+//            Column(
+//                modifier = Modifier.align(Alignment.BottomStart),
+//            ) {
+//                Text(
+//                    text = displayName,
+//                    style = MaterialTheme.typography.titleMedium,
+//                    fontWeight = FontWeight.Bold,
+//                    color = Color.White,
+//                    maxLines = 1,
+//                    overflow = TextOverflow.Ellipsis,
+//                )
+//                Spacer(modifier = Modifier.height(2.dp))
+//                Row(
+//                    verticalAlignment = Alignment.Bottom,
+//                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.assets_wallet_balance) + ":",
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = Color.White.copy(alpha = 0.82f),
+//                    )
+//                    Text(
+//                        text = stringResource(R.string.wallet_preview_balance_format, formattedBalance),
+//                        style = MaterialTheme.typography.titleMedium,
+//                        fontWeight = FontWeight.SemiBold,
+//                        color = Color.White,
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
 
 @Composable
 private fun BudgetAlertSection(

@@ -84,8 +84,8 @@
     <string name="unit_million">triệu</string>
     <string name="unit_billion">tỷ</string>
     <string name="unit_trillion">nghìn tỷ</string>
-    <string name="approx_symbol">≈ %s</string>
-    <string name="magnitude_words_prefix">Đọc là: %s</string>
+    <string name="approx_symbol">≈ %1$s</string>
+    <string name="magnitude_words_prefix">Đọc là: %1$s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Tìm theo ghi chú</string>
@@ -143,6 +143,8 @@
     <string name="wallet_field_color">Màu sắc</string>
     <string name="wallet_field_budget">Hạn mức chi tiêu</string>
     <string name="wallet_budget_off">Tắt</string>
+    <string name="wallet_field_vietqr">Tài khoản nhận tiền (VietQR)</string>
+    <string name="wallet_vietqr_bank_error">Vui lòng chọn ngân hàng</string>
 
     <!-- Confirm delete dialog -->
     <string name="confirm_delete_transaction_title">Xóa giao dịch?</string>
@@ -234,7 +236,7 @@
     <plurals name="transaction_recorded_count">
         <item quantity="other">%1$d giao dịch đã ghi nhận</item>
     </plurals>
-    <string name="state_empty">Trống</string>
+    <string name="state_empty_note">Trống</string>
     <string name="stats_empty_state">Thêm giao dịch thu/chi trong thời gian này để phân tích cơ cấu tài chính.</string>
     <string name="stats_tab_expense_structure">Cơ cấu chi tiêu</string>
     <string name="stats_tab_income_structure">Cơ cấu thu nhập</string>
@@ -610,8 +612,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_amount_invalid">Số tiền không hợp lệ.</string>
     <string name="billsplit_original_bill">Hóa đơn gốc</string>
     <string name="billsplit_already_split">Đã phân chia</string>
-    <string name="billsplit_step_select">Bước ½ — Chọn hóa đơn cần chia.</string>
-    <string name="billsplit_step_manage">Bước 2/2 — Thêm người và chia số tiền.</string>
+    <string name="billsplit_step_select">Bước %1$d/%2$d — Chọn hóa đơn cần chia.</string>
+    <string name="billsplit_step_manage">Bước %2$d/%2$d — Thêm người và chia số tiền.</string>
     <string name="billsplit_no_expense_title">Chưa có giao dịch chi tiêu</string>
     <string name="billsplit_no_expense_desc">Hãy tạo một giao dịch chi tiêu trước khi sử dụng tính năng chia hóa đơn.</string>
     <string name="billsplit_recent_suggestions">Gợi ý gần đây</string>
@@ -1124,7 +1126,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_qr_not_configured">Chưa thiết lập số tài khoản ngân hàng trong ví.</string>
     <string name="debt_action_copy_message">Sao chép tin nhắn</string>
     <string name="debt_action_copy_done">Đã sao chép</string>
-    <string name="debt_chip_all">Tất cả (%s)</string>
+    <string name="debt_chip_all">Tất cả (%1$s)</string>
     <string name="error_no_dialer_app">Không tìm thấy ứng dụng thực hiện cuộc gọi</string>
     <string name="error_no_sms_app">Không tìm thấy ứng dụng gửi tin nhắn SMS</string>
     <string name="debt_tx_note_lend">Cho vay: %1$s</string>
@@ -1157,22 +1159,9 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="bullet_separator">·</string>
     <string name="assets_wallets_count_format">%1$d %2$s</string>
     <string name="assets_transactions_count_format">%1$d %2$s</string>
-    <string name="ui_state_wallets_size_stringresou">%1$d %2$s</string>
-    <string name="ui_string_format">}${String.format(</string>
-    <string name="ui_changepercentage">, changePercentage)}%</string>
-    <string name="ui_pct">%1$d%%</string>
-    <string name="ui_item_transactioncount_stringre">%1$d %2$s</string>
-    <string name="ui_moneyformatter_format_item_mon">+%1$s</string>
-    <string name="ui_ch_n_l_m_v_ch_nh">Đã chọn làm ví chính</string>
     <string name="ui_version_appinfo">Phiên bản %1$s</string>
     <string name="ui_samplepositive">+ $samplePositive</string>
     <string name="ui_samplenegative">- $sampleNegative</string>
-    <string name="ui_remaining_k_t_c_n_l_i">$remaining ký tự còn lại</string>
-    <string name="ui_000">000</string>
-    <string name="ui_state_note_length_transaction_">${state.note.length}/${Transaction.MAX_NOTE_LENGTH}</string>
-    <string name="ui_moneyformatter_format_totalinc">+${MoneyFormatter.format(totalIncome)}</string>
-    <string name="ui_moneyformatter_format_totalexp">-${MoneyFormatter.format(totalExpense)}</string>
-    <string name="ui_prefix_moneyformatter_format_n">$prefix${MoneyFormatter.format(net)}</string>
     <!-- Feedback: Wallet operations (AssetsViewModel) -->
     <string name="feedback_wallet_set_active">Đã chọn làm ví chính</string>
     <string name="feedback_wallet_switch_failed">Không thể đổi ví: %1$s</string>
@@ -1235,8 +1224,22 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_summary_to_pay">Cần trả</string>
     <string name="debt_action_share">Chia sẻ</string>
 
+    <string name="wallet_initial_balance_locked_hint">Ví đã có giao dịch. Số dư ban đầu được cố định để bảo toàn sổ cái.</string>
+    <string name="wallet_initial_balance_editable_hint">Ví chưa có giao dịch, bạn vẫn có thể sửa số dư ban đầu.</string>
+    <string name="wallet_current_balance_badge">Số dư hiện tại: %1$s</string>
 
-    <string name="wallet_field_vietqr">Tài khoản nhận tiền (VietQR)</string>
-    <string name="wallet_vietqr_bank_error">Vui lòng chọn ngân hàng</string>
+    <string name="notif_listener_service_label">NotePay Local Parse</string>
+    <string name="autocapture_save_success">Đã lưu giao dịch thành công! ✨</string>
+    <string name="autocapture_save_error">Lỗi: Không thể lưu giao dịch.</string>
+    <string name="autocapture_subscription_success">Đã thêm hóa đơn định kỳ thành công! 📅</string>
+    <string name="autocapture_subscription_error">Lỗi: Không thể thêm hóa đơn định kỳ.</string>
+    <string name="notif_transaction_pending_title">Xác nhận giao dịch ngân hàng</string>
+    <string name="notif_transaction_pending_content">%1$s • %2$s</string>
+    <string name="notif_transaction_pending_big_text">Số tiền: %1$s\nVí: %2$s\nNội dung: %3$s</string>
+    <string name="notif_transaction_confirm_action">Xác nhận</string>
+    <string name="notif_transaction_ignore_action">Bỏ qua</string>
+    <string name="autocapture_pending_confirmed">Đã xác nhận và lưu giao dịch.</string>
+    <string name="autocapture_pending_ignored">Đã bỏ qua thông báo giao dịch.</string>
 
 </resources>
+

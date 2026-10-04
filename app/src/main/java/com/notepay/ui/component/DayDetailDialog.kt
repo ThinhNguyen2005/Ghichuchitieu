@@ -120,7 +120,7 @@ fun DayDetailDialog(
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
                     EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
-                        title = stringResource(R.string.state_empty),
+                        title = stringResource(R.string.state_empty_note),
                         description = stringResource(R.string.day_detail_empty_desc)
                     )
                 }

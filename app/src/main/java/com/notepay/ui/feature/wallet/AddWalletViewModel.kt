@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.data.remote.VietQrBankRepository
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.feedback.FeedbackType
@@ -30,6 +32,7 @@ import kotlin.time.Clock
 @HiltViewModel
 class AddWalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
+    private val transactionRepository: TransactionRepository,
     savedStateHandle: SavedStateHandle, vietQrBankRepository: VietQrBankRepository,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -46,12 +49,30 @@ class AddWalletViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val allWallets = walletRepository.observeAll().firstOrNull().orEmpty()
-            val banks = vietQrBankRepository.getBanks()
+            val banks = runCatching { vietQrBankRepository.getBanks() }
+                .getOrDefault(emptyList())
+
             if (walletId != null && walletId > 0L) {
                 val wallet = walletRepository.getById(walletId)
                 if (wallet != null) {
                     loadedWallet = wallet
-                    val usedColors = allWallets.filter { it.id != wallet.id }.map { it.colorKey }.toSet()
+
+                    val txs = transactionRepository.observeByWallet(wallet.id)
+                        .firstOrNull().orEmpty()
+                    val incomeCents = txs
+                        .filter { it.type == TransactionType.INCOME }
+                        .sumOf { it.amount.amountInCents }
+                    val expenseCents = txs
+                        .filter { it.type == TransactionType.EXPENSE }
+                        .sumOf { it.amount.amountInCents }
+                    val currentBalance = Money(
+                        wallet.initialBalance.amountInCents + incomeCents - expenseCents
+                    )
+
+                    val usedColors = allWallets
+                        .filter { it.id != wallet.id }
+                        .map { it.colorKey }
+                        .toSet()
                     _state.update {
                         it.copy(
                             name = wallet.name,
@@ -67,8 +88,10 @@ class AddWalletViewModel @Inject constructor(
                             bankBin = wallet.bankBin,
                             accountNumber = wallet.accountNumber ?: "",
                             accountName = wallet.accountName ?: "",
+                            currentBalance = currentBalance,
+                            hasTransactions = txs.isNotEmpty(),
                             isEditMode = true,
-                            banks = banks
+                            banks = banks,
                         )
                     }
                 }
@@ -82,6 +105,7 @@ class AddWalletViewModel @Inject constructor(
                         usedColorKeys = usedColors,
                         isAutoColorAssigned = true,
                         isEditMode = false,
+                        banks = banks,
                     )
                 }
             }
@@ -143,7 +167,11 @@ class AddWalletViewModel @Inject constructor(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             try {
-                val initialBalanceCents = current.initialBalanceInput.toLongOrNull()?.let { it * 100 } ?: 0L
+                val initialBalanceCents = if (current.isEditMode && current.hasTransactions) {
+                    loadedWallet?.initialBalance?.amountInCents ?: 0L
+                } else {
+                    current.initialBalanceInput.toLongOrNull()?.let { it * 100 } ?: 0L
+                }
                 val budgetLimit = if (current.hasBudgetLimit) {
                     val rawLimit = current.budgetLimitInput.toLongOrNull() ?: 0L
                     val monthlyLimit = when (current.budgetPeriod) {
