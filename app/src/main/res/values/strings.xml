@@ -210,6 +210,9 @@
     <plurals name="date_days_ago">
         <item quantity="other">%1$d ngày trước</item>
     </plurals>
+    <plurals name="characters_remaining">
+        <item quantity="other">%1$d ký tự còn lại</item>
+    </plurals>
     <string name="day_detail_empty_desc">Không có giao dịch hoặc nhắc nhở nào trong ngày này.</string>
     <string name="subscription_reminders_title">Nhắc nhở</string>
     <plurals name="subscription_overdue">
@@ -1137,7 +1140,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="debt_tx_note_repay_lend_with_note">Thu nợ từ %1$s (%2$s)</string>
     <string name="debt_tx_note_repay_borrow">Trả nợ cho %1$s</string>
     <string name="debt_tx_note_repay_borrow_with_note">Trả nợ cho %1$s (%2$s)</string>
-    <string name="ui_weekday_date_day_date_month_nu">$weekday, ${date.day}/${date.month.number}/${date.year}</string>
+    <string name="day_detail_date_format">%1$s, %2$02d/%3$02d/%4$d</string>
     <string name="extracted_string">!</string>
     <string name="ui_moneyformatter_formatcompactvi">+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)}</string>
     <string name="ui_sign_moneyformatter_format_tra">$sign${MoneyFormatter.format(transaction.amount)}</string>

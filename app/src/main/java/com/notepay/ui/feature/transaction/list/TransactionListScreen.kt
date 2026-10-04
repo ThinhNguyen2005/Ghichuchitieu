@@ -443,7 +443,7 @@ private fun TransactionTopBar(
                     IconButton(onClick = { onQueryChange("") }) {
                         Icon(
                             imageVector = Icons.Rounded.Clear,
-                            contentDescription = "Clear",
+                            contentDescription = stringResource(R.string.cd_clear_search),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -746,7 +746,10 @@ private fun DateRangeBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 
@@ -837,7 +840,10 @@ private fun FilterBottomSheet(
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Rounded.Clear,
+                            contentDescription = stringResource(R.string.action_close)
+                        )
                     }
                 }
             }
@@ -1023,7 +1029,10 @@ private fun WalletPickerBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 

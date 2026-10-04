@@ -220,6 +220,10 @@
         <item quantity="one">%1$d day ago</item>
         <item quantity="other">%1$d days ago</item>
     </plurals>
+    <plurals name="characters_remaining">
+        <item quantity="one">%1$d character remaining</item>
+        <item quantity="other">%1$d characters remaining</item>
+    </plurals>
     <string name="day_detail_empty_desc">No transactions or reminders on this day.</string>
     <string name="subscription_reminders_title">Reminders</string>
     <plurals name="subscription_overdue">
@@ -1199,7 +1203,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_tx_note_repay_lend_with_note">Collected debt from %1$s (%2$s)</string>
     <string name="debt_tx_note_repay_borrow">Repaid debt to %1$s</string>
     <string name="debt_tx_note_repay_borrow_with_note">Repaid debt to %1$s (%2$s)</string>
-    <string name="ui_weekday_date_day_date_month_nu">$weekday, ${date.day}/${date.month.number}/${date.year} (TODO)</string>
+    <string name="day_detail_date_format">%1$s, %2$02d/%3$02d/%4$d</string>
     <string name="extracted_string">! (TODO)</string>
     <string name="ui_moneyformatter_formatcompactvi">+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)} (TODO)</string>
     <string name="ui_sign_moneyformatter_format_tra">$sign${MoneyFormatter.format(transaction.amount)} (TODO)</string>

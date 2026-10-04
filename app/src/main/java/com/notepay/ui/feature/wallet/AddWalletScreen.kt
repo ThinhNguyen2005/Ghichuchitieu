@@ -8,6 +8,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -384,7 +388,14 @@ private fun BudgetAlertSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(AppTheme.shapes.corner12)
+                    .toggleable(
+                        value = hasBudgetLimit,
+                        onValueChange = onHasBudgetLimitChanged,
+                        role = Role.Switch
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -422,7 +433,7 @@ private fun BudgetAlertSection(
                 }
                 Switch(
                     checked = hasBudgetLimit,
-                    onCheckedChange = onHasBudgetLimitChanged,
+                    onCheckedChange = null,
                 )
             }
 
@@ -439,6 +450,7 @@ private fun BudgetAlertSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .selectableGroup()
                             .background(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 AppTheme.shapes.corner12,
@@ -459,7 +471,11 @@ private fun BudgetAlertSection(
                                     .defaultMinSize(minHeight = 48.dp)
                                     .clip(AppTheme.shapes.corner8)
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                                    .clickable { onBudgetPeriodChanged(period) }
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { onBudgetPeriodChanged(period) },
+                                        role = Role.RadioButton,
+                                    )
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -647,6 +663,7 @@ private fun WalletIconPicker(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .selectableGroup()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -658,7 +675,11 @@ private fun WalletIconPicker(
                     modifier = Modifier
                         .defaultMinSize(minWidth = 56.dp, minHeight = 48.dp)
                         .clip(AppTheme.shapes.corner12)
-                        .clickable { onIconSelected(key) }
+                        .selectable(
+                            selected = isSelected,
+                            onClick = { onIconSelected(key) },
+                            role = Role.RadioButton,
+                        )
                         .padding(vertical = 4.dp),
                 ) {
                     Box(
@@ -673,7 +694,7 @@ private fun WalletIconPicker(
                     ) {
                         Icon(
                             imageVector = vector,
-                            contentDescription = label,
+                            contentDescription = null,
                             tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(26.dp),
                         )
@@ -721,6 +742,7 @@ private fun WalletColorPicker(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .selectableGroup()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -735,9 +757,10 @@ private fun WalletColorPicker(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .clickable(
-                            onClickLabel = contentDesc,
+                        .selectable(
+                            selected = isSelected,
                             onClick = { onColorSelected(key) },
+                            role = Role.RadioButton,
                         ),
                     contentAlignment = Alignment.Center,
                 ) {

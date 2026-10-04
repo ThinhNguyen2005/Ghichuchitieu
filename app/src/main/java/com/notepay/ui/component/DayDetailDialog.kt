@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,7 +100,13 @@ fun DayDetailDialog(
             }
             Column {
                 Text(
-                    text = stringResource(R.string.ui_weekday_date_day_date_month_nu),
+                    text = stringResource(
+                        R.string.day_detail_date_format,
+                        weekday,
+                        date.dayOfMonth,
+                        date.monthNumber,
+                        date.year,
+                    ),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -143,7 +150,9 @@ fun DayDetailDialog(
                         Card(
                             colors = CardDefaults.cardColors(containerColor = containerColor),
                             shape = AppTheme.shapes.corner12,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {},
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -173,7 +182,7 @@ fun DayDetailDialog(
                                     Text(
                                         MoneyFormatter.format(sub.amount),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isExpired) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isExpired) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium,
                                     )
                                     val dueLabel = when {
@@ -192,7 +201,7 @@ fun DayDetailDialog(
                                     Text(
                                         dueLabel,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (isExpired || daysLeft == 0L) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isExpired || daysLeft == 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -211,7 +220,10 @@ fun DayDetailDialog(
                     )
                     transactions.forEach { tx ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {}
+                                .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {

@@ -964,7 +964,10 @@ private fun TransferBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Close, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 
