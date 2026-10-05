@@ -51,6 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.notepay.R
 import com.notepay.ui.feedback.UiFeedback
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.notepay.ui.feature.auth.AuthViewModel
+import com.notepay.ui.feature.auth.GoogleSignInCard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,8 +66,11 @@ import java.util.Locale
 fun BackupRestoreScreen(
     onBack: () -> Unit,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
@@ -85,6 +94,12 @@ fun BackupRestoreScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback: UiFeedback ->
+            snackbarHostState.showSnackbar(feedback.message)
+        }
+    }
+
+    LaunchedEffect(authViewModel) {
+        authViewModel.feedback.collect { feedback: UiFeedback ->
             snackbarHostState.showSnackbar(feedback.message)
         }
     }
@@ -128,9 +143,17 @@ fun BackupRestoreScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Section: Tài khoản Google (Đăng nhập / Đồng bộ)
+            GoogleSignInCard(
+                uiState = authState,
+                onSignInClick = { authViewModel.signInWithGoogle(context) },
+                onSignOutClick = { authViewModel.signOut(context) }
+            )
+
             // Section: Sao lưu
             BackupCard(
                 icon = Icons.Rounded.Backup,

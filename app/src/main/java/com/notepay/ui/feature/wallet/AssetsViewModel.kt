@@ -29,9 +29,12 @@ import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 import javax.inject.Inject
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -63,10 +66,13 @@ class AssetsViewModel @Inject constructor(
         val nowInstant = Clock.System.now()
         val now = nowInstant.toLocalDateTime(tz)
         
-        val firstDate = LocalDate(now.year, now.monthNumber, 1)
-        val nextMonth = if (now.monthNumber == 12) LocalDate(now.year + 1, 1, 1) else LocalDate(now.year, now.monthNumber + 1, 1)
-        val monthStartMillis = LocalDateTime(firstDate.year, firstDate.monthNumber, firstDate.dayOfMonth, 0, 0).toInstant(tz).toEpochMilliseconds()
-        val monthEndMillis = LocalDateTime(nextMonth.year, nextMonth.monthNumber, nextMonth.dayOfMonth, 0, 0).toInstant(tz).toEpochMilliseconds() - 1
+        val firstDate = LocalDate(now.year, now.month.number, 1)
+        val nextMonth = if (now.month.number == 12) LocalDate(now.year + 1, 1, 1) else LocalDate(now.year,
+            now.month.number + 1, 1)
+        val monthStartMillis = LocalDateTime(firstDate.year,
+            firstDate.month.number, firstDate.day, 0, 0).toInstant(tz).toEpochMilliseconds()
+        val monthEndMillis = LocalDateTime(nextMonth.year,
+            nextMonth.month.number, nextMonth.day, 0, 0).toInstant(tz).toEpochMilliseconds() - 1
 
         viewModelScope.launch {
             _chartRange.flatMapLatest { chartRange ->
@@ -155,9 +161,9 @@ class AssetsViewModel @Inject constructor(
                         }
 
                         val balanceAtPoint = totalCents - incomeAfter + expenseAfter
-                        val pointInstant = kotlinx.datetime.Instant.fromEpochMilliseconds(pointMs)
+                        val pointInstant = Instant.fromEpochMilliseconds(pointMs)
                         val pointDate = pointInstant.toLocalDateTime(tz)
-                        val label = String.format("%02d/%02d", pointDate.dayOfMonth, pointDate.monthNumber)
+                        val label = String.format(Locale.getDefault(), "%02d/%02d", pointDate.day, pointDate.month.number)
 
                         AssetTrendPoint(
                             timestampMs = pointMs,

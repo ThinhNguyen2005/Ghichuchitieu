@@ -1257,5 +1257,39 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="notif_transaction_ignore_action">Ignore</string>
     <string name="autocapture_pending_confirmed">Transaction confirmed and saved.</string>
     <string name="autocapture_pending_ignored">Transaction notification ignored.</string>
+
+    <!-- Firebase Authentication & Google Sign-In -->
+    <string name="auth_section_title">Google Account</string>
+    <string name="auth_section_desc_unauthenticated">Sign in with Google to get ready for cloud sync and data backup.</string>
+    <string name="auth_sign_in_with_google">Sign in with Google</string>
+    <string name="auth_signing_in">Signing in…</string>
+    <string name="auth_signed_in_as">Signed in</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_signing_out">Signing out…</string>
+    <string name="auth_error_sign_in_failed">Sign in failed: %1$s</string>
+    <string name="auth_error_canceled">Sign in canceled.</string>
+    <string name="auth_error_no_credentials">No available Google account found on this device.</string>
+    <string name="auth_error_missing_client_id">Google Web Client ID not configured. Please set notepay.webClientId in gradle.properties.</string>
+    <string name="auth_avatar_description">User avatar</string>
+    <string name="auth_sign_out_confirm_title">Confirm Sign Out</string>
+    <string name="auth_sign_out_confirm_message">Are you sure you want to sign out of this Google account in NotePay?</string>
+    <string name="auth_sign_out_confirm_action">Sign out</string>
+    <string name="auth_account_email_fallback">No email</string>
+    <string name="auth_account_name_fallback">NotePay User</string>
+    <string name="auth_welcome_title">Welcome to NotePay</string>
+    <string name="auth_welcome_subtitle">Smart, intuitive, and secure personal finance tracking on your device.</string>
+    <string name="auth_welcome_skip_action">Maybe later • Explore app now</string>
+    <string name="auth_welcome_feature_privacy_title">Private &amp; Offline-first</string>
+    <string name="auth_welcome_feature_privacy_desc">All balances and transactions are stored securely on your device.</string>
+    <string name="auth_welcome_feature_smart_title">Smart Transaction Insights</string>
+    <string name="auth_welcome_feature_smart_desc">Automatically categorize expenses and provide actionable budget advice.</string>
+    <string name="auth_welcome_feature_cloud_title">Flexible Cloud Backup</string>
+    <string name="auth_welcome_feature_cloud_desc">Link your Google account to protect and restore data when changing devices.</string>
+    <string name="auth_card_unauthenticated_title">NotePay Account</string>
+    <string name="auth_card_unauthenticated_subtitle">Sign in with Google to sync your data</string>
+    <string name="auth_card_authenticated_subtitle">Google account linked</string>
+    <string name="auth_details_title">Account Details</string>
+    <string name="auth_details_status_connected">Connected</string>
+
 </resources>
 

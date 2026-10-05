@@ -3,6 +3,7 @@ package com.notepay.ui.navigation
 sealed interface Route {
     val path: String
 
+    data object Welcome : Route { override val path = "welcome" }
     data object Home : Route { override val path = "home" }
     data object AddTransaction : Route { override val path = "add-transaction" }
     data object TransactionList : Route { override val path = "list" }

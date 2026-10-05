@@ -49,8 +49,19 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_THEME_COLOR = stringPreferencesKey("theme_color")
+        val KEY_HAS_SEEN_WELCOME = booleanPreferencesKey("has_seen_welcome")
 
         fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
+    }
+
+    val hasSeenWelcome: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HAS_SEEN_WELCOME] ?: false
+    }
+
+    suspend fun setHasSeenWelcome(hasSeen: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HAS_SEEN_WELCOME] = hasSeen
+        }
     }
 
     val budgetAlertsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->

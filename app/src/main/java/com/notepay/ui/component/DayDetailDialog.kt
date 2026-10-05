@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -46,7 +45,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.ui.window.DialogProperties
 
@@ -103,8 +101,8 @@ fun DayDetailDialog(
                     text = stringResource(
                         R.string.day_detail_date_format,
                         weekday,
-                        date.dayOfMonth,
-                        date.monthNumber,
+                        date.day,
+                        date.month.number,
                         date.year,
                     ),
                     style = MaterialTheme.typography.titleLarge,

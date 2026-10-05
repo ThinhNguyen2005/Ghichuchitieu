@@ -31,3 +31,7 @@ local.properties
 /app/release/
 # Kotlin incremental compilation cache
 .kotlin/
+
+# Firebase configuration credentials — KHÔNG commit vào git.
+/app/google-services.json
+**/google-services.json

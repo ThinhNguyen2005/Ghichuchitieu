@@ -1244,5 +1244,38 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="autocapture_pending_confirmed">Đã xác nhận và lưu giao dịch.</string>
     <string name="autocapture_pending_ignored">Đã bỏ qua thông báo giao dịch.</string>
 
+    <!-- Firebase Authentication & Google Sign-In -->
+    <string name="auth_section_title">Tài khoản Google</string>
+    <string name="auth_section_desc_unauthenticated">Đăng nhập tài khoản Google để sẵn sàng đồng bộ sao lưu lên đám mây.</string>
+    <string name="auth_sign_in_with_google">Đăng nhập bằng Google</string>
+    <string name="auth_signing_in">Đang đăng nhập…</string>
+    <string name="auth_signed_in_as">Đã đăng nhập</string>
+    <string name="auth_sign_out">Đăng xuất</string>
+    <string name="auth_signing_out">Đang đăng xuất…</string>
+    <string name="auth_error_sign_in_failed">Đăng nhập thất bại: %1$s</string>
+    <string name="auth_error_canceled">Đã hủy đăng nhập.</string>
+    <string name="auth_error_no_credentials">Không tìm thấy tài khoản Google khả dụng trên thiết bị.</string>
+    <string name="auth_error_missing_client_id">Chưa cấu hình Google Web Client ID. Vui lòng cấu hình notepay.webClientId trong gradle.properties.</string>
+    <string name="auth_avatar_description">Ảnh đại diện người dùng</string>
+    <string name="auth_sign_out_confirm_title">Xác nhận đăng xuất</string>
+    <string name="auth_sign_out_confirm_message">Bạn có chắc chắn muốn đăng xuất tài khoản Google này khỏi NotePay?</string>
+    <string name="auth_sign_out_confirm_action">Đăng xuất</string>
+    <string name="auth_account_email_fallback">Không có email</string>
+    <string name="auth_account_name_fallback">Người dùng NotePay</string>
+    <string name="auth_welcome_title">Chào mừng đến với NotePay</string>
+    <string name="auth_welcome_subtitle">Quản lý chi tiêu thông minh, trực quan và hoàn toàn trên thiết bị của bạn.</string>
+    <string name="auth_welcome_skip_action">Để sau • Bắt đầu trải nghiệm ngay</string>
+    <string name="auth_welcome_feature_privacy_title">Dữ liệu riêng tư &amp; Offline</string>
+    <string name="auth_welcome_feature_privacy_desc">Toàn bộ số dư và giao dịch được lưu cục bộ an toàn trên máy bạn.</string>
+    <string name="auth_welcome_feature_smart_title">Nhận diện giao dịch thông minh</string>
+    <string name="auth_welcome_feature_smart_desc">Tự động phân loại chi tiêu và gợi ý ngân sách chi tiết.</string>
+    <string name="auth_welcome_feature_cloud_title">Đồng bộ sao lưu linh hoạt</string>
+    <string name="auth_welcome_feature_cloud_desc">Liên kết tài khoản Google để sẵn sàng bảo vệ dữ liệu khi đổi máy.</string>
+    <string name="auth_card_unauthenticated_title">Tài khoản NotePay</string>
+    <string name="auth_card_unauthenticated_subtitle">Đăng nhập Google để đồng bộ dữ liệu</string>
+    <string name="auth_card_authenticated_subtitle">Đã liên kết tài khoản Google</string>
+    <string name="auth_details_title">Thông tin tài khoản</string>
+    <string name="auth_details_status_connected">Đã kết nối</string>
+
 </resources>
 

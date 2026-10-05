@@ -70,6 +70,7 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.BalanceCard
+import com.notepay.ui.feature.transaction.components.WalletPickerSheet
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.GradientTopAppBar
@@ -96,7 +97,8 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
-    var showWalletSwitcher by remember { mutableStateOf(false) }
+    var showWalletPickerSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedWalletIdForBg by rememberSaveable { mutableStateOf<Long?>(null) }
     var isBudgetProjectionDismissed by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -138,7 +140,8 @@ fun HomeScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            state.activeWallet?.id?.let { walletId ->
+            val targetWalletId = selectedWalletIdForBg ?: state.activeWallet?.id
+            targetWalletId?.let { walletId ->
                 // 1. Copy ảnh từ URI tạm sang file nội bộ vĩnh viễn
                 val savedPath = com.notepay.ui.util.ImageStorageHelper.saveImageToInternalStorage(
                     context = context,
@@ -204,7 +207,7 @@ fun HomeScreen(
                     title = emptyWalletTitle,
                     description = emptyWalletDesc,
                     actionLabel = createWalletLabel,
-                    onClick = { showWalletSwitcher = true },
+                    onClick = onAddWallet,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -230,14 +233,14 @@ fun HomeScreen(
         ) {
             item {
                 BalanceCard(
-                    wallet = state.activeWallet,
-                    balance = state.currentBalance,
-                    income = state.monthlyIncome,
-                    expense = state.monthlyExpense,
-                    backgroundImageUri = state.walletBackgroundUri,
-                    onClick = { showWalletSwitcher = true },
-                    onEditWallet = onEditWallet,
-                    onChangeBackground = {
+                    walletsSummary = state.walletsSummary,
+                    activeWalletId = state.activeWallet?.id,
+                    onWalletChanged = { walletId -> viewModel.selectWallet(walletId) },
+                    onOpenWalletPicker = if (state.walletsSummary.size > 1) {
+                        { showWalletPickerSheet = true }
+                    } else null,
+                    onChangeBackground = { walletId ->
+                        selectedWalletIdForBg = walletId
                         photoPickerLauncher.launch(
                             androidx.activity.result.PickVisualMediaRequest(
                                 ActivityResultContracts.PickVisualMedia.ImageOnly
@@ -314,103 +317,15 @@ fun HomeScreen(
         }
     }
 
-    if (showWalletSwitcher) {
-        AlertDialog(
-            onDismissRequest = { showWalletSwitcher = false },
-            title = { Text(chooseWallet) },
-            text = {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(state.wallets, key = { it.id }) { wallet ->
-                        val isSelected = wallet.id == state.activeWallet?.id
-                        val iconVector = WalletUiHelper.getIcon(wallet.iconKey)
-                        val tintColor = WalletUiHelper.getColor(wallet.colorKey)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(AppTheme.shapes.corner12)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    else Color.Transparent
-                                )
-                                .clickable {
-                                    viewModel.selectWallet(wallet.id)
-                                    showWalletSwitcher = false
-                                }
-                                .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = iconVector,
-                                contentDescription = null,
-                                tint = tintColor,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = wallet.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = {
-                                    showWalletSwitcher = false
-                                    onEditWallet(wallet.id)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Edit,
-                                    contentDescription = editWalletLabel,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(AppTheme.shapes.corner12)
-                                .clickable {
-                                    showWalletSwitcher = false
-                                    onAddWallet()
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = addNewWalletLabel,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
+    if (showWalletPickerSheet) {
+        WalletPickerSheet(
+            wallets = state.wallets,
+            selectedWalletId = state.activeWallet?.id,
+            onWalletSelected = { walletId ->
+                viewModel.selectWallet(walletId)
+                showWalletPickerSheet = false
             },
-            confirmButton = {
-                TextButton(onClick = { showWalletSwitcher = false }) {
-                    Text(closeLabel)
-                }
-            }
+            onDismiss = { showWalletPickerSheet = false }
         )
     }
 
@@ -513,11 +428,18 @@ private fun BudgetProjectionCard(
 private fun HomeScreenPreview() {
     NotePayTheme {
         Column(Modifier.padding(16.dp)) {
+            val mockWallet = Wallet(id = 1L, name = "Tiền mặt", initialBalance = Money(1_500_000_00), iconKey = "cash", colorKey = "primary")
             BalanceCard(
-                wallet = Wallet(id = 1L, name = "Tiền mặt", initialBalance = Money(1_500_000_00), iconKey = "cash", colorKey = "primary"),
-                balance = Money(1_500_000_00),
-                income = Money(5_000_000_00),
-                expense = Money(3_500_000_00)
+                walletsSummary = listOf(
+                    com.notepay.ui.feature.home.WalletSummary(
+                        wallet = mockWallet,
+                        balance = Money(1_500_000_00),
+                        monthlyIncome = Money(5_000_000_00),
+                        monthlyExpense = Money(3_500_000_00)
+                    )
+                ),
+                activeWalletId = 1L,
+                onWalletChanged = {}
             )
         }
     }
