@@ -100,6 +100,7 @@ import com.notepay.ui.component.SwipeableTransactionItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -295,7 +296,7 @@ fun TransactionListScreen(
         }
 
         pendingDeleteTransaction?.let { tx ->
-            val itemName = tx.note.ifBlank { tx.category.displayName }
+            val itemName = tx.note.ifBlank { tx.category.localizedName() }
             ConfirmDeleteDialog(
                 title = stringResource(R.string.confirm_delete_transaction_title),
                 itemName = itemName,
@@ -931,7 +932,7 @@ private fun FilterBottomSheet(
                                     .background(Color(category.colorArgb))
                             )
                         },
-                        label = { Text(category.displayName, fontSize = 12.sp) }
+                        label = { Text(category.localizedName(), fontSize = 12.sp) }
                     )
                 }
             }
@@ -970,7 +971,7 @@ private fun FilterBottomSheet(
                                     .background(Color(category.colorArgb))
                             )
                         },
-                        label = { Text(category.displayName, fontSize = 12.sp) }
+                        label = { Text(category.localizedName(), fontSize = 12.sp) }
                     )
                 }
             }

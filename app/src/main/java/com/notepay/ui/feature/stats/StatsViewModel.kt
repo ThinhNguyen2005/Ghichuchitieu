@@ -58,6 +58,7 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import javax.inject.Inject
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -70,37 +71,30 @@ class StatsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    private val currentMonthYear = MutableStateFlow(MonthYear(now.year, now.month.ordinal + 1))
-    
+    private val _currentPeriod = MutableStateFlow(
+        periodFor(LocalDate(now.year, now.month, 1), StatsRange.MONTH)
+    )
+    val currentPeriod: StateFlow<StatsPeriod> = _currentPeriod.asStateFlow()
+
     private val _selectedCategory = MutableStateFlow<Category?>(null)
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
     private val _selectedWalletId = MutableStateFlow<Long?>(null)
     val selectedWalletId: StateFlow<Long?> = _selectedWalletId.asStateFlow()
 
-    private val _timeFilter = MutableStateFlow<TimeFilterType>(TimeFilterType.MONTH)
-    val timeFilter: StateFlow<TimeFilterType> = _timeFilter.asStateFlow()
-
-    private val _customDateRange = MutableStateFlow<Pair<Long, Long>?>(null)
-    val customDateRange: StateFlow<Pair<Long, Long>?> = _customDateRange.asStateFlow()
-
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
     private data class FilterState(
-        val monthYear: MonthYear,
+        val period: StatsPeriod,
         val selectedWalletId: Long?,
-        val timeFilter: TimeFilterType,
-        val customDateRange: Pair<Long, Long>?,
     )
 
     private val filterState = combine(
-        currentMonthYear,
-        _selectedWalletId,
-        _timeFilter,
-        _customDateRange,
-    ) { monthYear, selectedWalletId, timeFilter, customDateRange ->
-        FilterState(monthYear, selectedWalletId, timeFilter, customDateRange)
+        _currentPeriod,
+        _selectedWalletId
+    ) { period, walletId ->
+        FilterState(period, walletId)
     }.distinctUntilChanged()
 
     private val advicePrefs = context.getSharedPreferences("notepay_ai_feedback", Context.MODE_PRIVATE)
@@ -130,102 +124,63 @@ class StatsViewModel @Inject constructor(
         _adviceFeedbacks,
         filterState
     ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
-        val monthYear = filters.monthYear
         val selectedWalletId = filters.selectedWalletId
-        val timeFilter = filters.timeFilter
-        val customDateRange = filters.customDateRange
+        val period = filters.period
         
         val zone = TimeZone.currentSystemDefault()
         
-        // 1. Tính toán khoảng thời gian (start & end millis)
-        val (startMillis, endMillis) = when (timeFilter) {
-            TimeFilterType.MONTH -> {
-                getMonthRange(monthYear.year, monthYear.month)
+        // 1. Tạo date range label hiển thị trên UI từ period
+        val dateRangeLabel = when (period.range) {
+            StatsRange.MONTH -> {
+                val anchor = period.start ?: now.date
+                context.getString(R.string.stats_date_month_format, anchor.month.number, anchor.year)
             }
-            TimeFilterType.WEEK -> {
-                val todayDate = now.date
-                val daysToSubtract = todayDate.dayOfWeek.ordinal // Mon=0, Tue=1... Sun=6
-                val monday = todayDate.minus(DatePeriod(days = daysToSubtract))
-                val sunday = monday.plus(DatePeriod(days = 6))
-                
-                val start = LocalDateTime(monday.year, monday.month.number, monday.day, 0, 0)
-                    .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(sunday.year, sunday.month.number, sunday.day, 23, 59, 59, 999000000)
-                    .toInstant(zone).toEpochMilliseconds()
-                start to end
+            StatsRange.WEEK -> {
+                val s = period.start ?: now.date
+                val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
+                context.getString(R.string.stats_date_week_format, s.dayOfMonth, s.month.number, e.dayOfMonth, e.month.number)
             }
-            TimeFilterType.QUARTER -> {
-                val currentMonthNum = now.month.number
-                val startMonth = ((currentMonthNum - 1) / 3) * 3 + 1
-                val endMonth = startMonth + 2
-                val startLocalDate = LocalDate(now.year, startMonth, 1)
-                val endLocalDate = if (endMonth == 12) {
-                    LocalDate(now.year, 12, 31)
-                } else {
-                    val nextQuarterFirstDate = LocalDate(now.year, endMonth + 1, 1)
-                    nextQuarterFirstDate.minus(DatePeriod(days = 1))
-                }
-                val start = LocalDateTime(startLocalDate.year, startLocalDate.month.number, startLocalDate.day, 0, 0)
-                    .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(endLocalDate.year, endLocalDate.month.number, endLocalDate.day, 23, 59, 59, 999000000)
-                    .toInstant(zone).toEpochMilliseconds()
-                start to end
+            StatsRange.YEAR -> {
+                val anchor = period.start ?: now.date
+                context.getString(R.string.stats_date_year_format, anchor.year)
             }
-            TimeFilterType.YEAR -> {
-                val startLocalDate = LocalDate(now.year, 1, 1)
-                val endLocalDate = LocalDate(now.year, 12, 31)
-                val start = LocalDateTime(startLocalDate.year, startLocalDate.month.number, startLocalDate.day, 0, 0)
-                    .toInstant(zone).toEpochMilliseconds()
-                val end = LocalDateTime(endLocalDate.year, endLocalDate.month.number, endLocalDate.day, 23, 59, 59, 999000000)
-                    .toInstant(zone).toEpochMilliseconds()
-                start to end
-            }
-            TimeFilterType.CUSTOM -> {
-                val range = customDateRange
-                if (range != null) {
-                    range.first to range.second
-                } else {
-                    getMonthRange(now.year, now.month.number)
-                }
+            StatsRange.ALL -> context.getString(R.string.stats_date_all_time)
+            StatsRange.CUSTOM -> {
+                val s = period.start ?: now.date
+                val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
+                "${s.dayOfMonth}/${s.month.number}/${s.year} - ${e.dayOfMonth}/${e.month.number}/${e.year}"
             }
         }
 
-        // 2. Tạo date range label hiển thị trên UI
-        val dateRangeLabel = when (timeFilter) {
-            TimeFilterType.MONTH -> context.getString(R.string.stats_date_month_format, monthYear.month, monthYear.year)
-            TimeFilterType.WEEK -> {
-                val instantStart = Instant.fromEpochMilliseconds(startMillis)
-                val instantEnd = Instant.fromEpochMilliseconds(endMillis)
-                val dtStart = instantStart.toLocalDateTime(zone)
-                val dtEnd = instantEnd.toLocalDateTime(zone)
-                context.getString(
-                    R.string.stats_date_week_format,
-                    dtStart.day,
-                    dtStart.month.number,
-                    dtEnd.day,
-                    dtEnd.month.number,
-                )
-            }
-            TimeFilterType.QUARTER -> {
-                val q = (now.month.number - 1) / 3 + 1
-                context.getString(R.string.stats_date_quarter_format, q, now.year)
-            }
-            TimeFilterType.YEAR -> context.getString(R.string.stats_date_year_format, now.year)
-            TimeFilterType.CUSTOM -> {
-                context.getString(
-                    R.string.stats_date_range_format,
-                    formatEpochMillis(startMillis),
-                    formatEpochMillis(endMillis),
-                )
-            }
-        }
-
-        // 3. Lọc danh sách giao dịch
+        // 2. Lọc danh sách giao dịch theo period
         val filteredTxs = allTransactions.filter { tx ->
-            val txMillis = tx.occurredAt.toEpochMilliseconds()
-            val matchesTime = txMillis in startMillis..endMillis
+            val txDate = tx.occurredAt.toLocalDateTime(zone).date
+            val matchesTime = period.contains(txDate)
             val matchesWallet = selectedWalletId == null || tx.walletId == selectedWalletId
             matchesTime && matchesWallet
+        }
+
+        // 2.5 Tính toán so sánh với kỳ trước
+        val firstTxDate = allTransactions.minByOrNull { it.occurredAt }?.occurredAt?.toLocalDateTime(zone)?.date
+        val prevRange = com.notepay.domain.analytics.comparablePreviousRange(period, now.date)
+        val hasData = com.notepay.domain.analytics.hasComparableData(prevRange, firstTxDate)
+        
+        var previousExpense: Money? = null
+        var previousIncome: Money? = null
+        if (hasData && prevRange != null) {
+            var pExp = 0L
+            var pInc = 0L
+            allTransactions.forEach { tx ->
+                val txDate = tx.occurredAt.toLocalDateTime(zone).date
+                if (txDate in prevRange) {
+                    if (selectedWalletId == null || tx.walletId == selectedWalletId) {
+                        if (tx.type == com.notepay.domain.model.TransactionType.EXPENSE) pExp += tx.amount.amountInCents
+                        else if (tx.type == com.notepay.domain.model.TransactionType.INCOME) pInc += tx.amount.amountInCents
+                    }
+                }
+            }
+            previousExpense = Money(pExp)
+            previousIncome = Money(pInc)
         }
 
         // 4. Tính toán thu nhập, chi tiêu, breakdown
@@ -275,8 +230,7 @@ class StatsViewModel @Inject constructor(
         }
 
         // 7. Dự báo chi tiêu cuối tháng (Forecast)
-        val isViewingCurrentMonth = timeFilter == TimeFilterType.MONTH &&
-                monthYear.year == now.year && monthYear.month == now.month.number
+        val isViewingCurrentMonth = period.range == com.notepay.domain.analytics.StatsRange.MONTH && period.contains(now.date)
         
         val prediction = if (isViewingCurrentMonth) {
             val dailyExpenses = allTransactions.asSequence()
@@ -353,7 +307,7 @@ class StatsViewModel @Inject constructor(
                         val tx2 = sortedTx[i + 1]
                         val daysBetween = (tx2.occurredAt - tx1.occurredAt).inWholeDays
                         if (daysBetween in 27..33) {
-                            val possibleName = cleanSubscriptionName(tx2.note.ifBlank { tx2.category.displayName })
+                            val possibleName = cleanSubscriptionName(tx2.note.ifBlank { tx2.category.localizedName(context) })
                             
                             val alreadyRegistered = subscriptions.any { sub ->
                                 sub.isActive && (
@@ -419,7 +373,7 @@ class StatsViewModel @Inject constructor(
                 incomeThisMonthInCents = income.amountInCents,
                 categories = breakdown.map {
                     AdvisorCategorySummary(
-                        name = it.category.displayName,
+                        name = it.category.localizedName(context),
                         amountInCents = it.amount.amountInCents,
                         share = it.percentage.toDouble(),
                     )
@@ -436,8 +390,11 @@ class StatsViewModel @Inject constructor(
         }
 
         // Keep the trend chart deterministic and tied to the same wallet filter as this screen.
+        val anchor = period.start ?: now.date
+        val anchorYear = anchor.year
+        val anchorMonth = anchor.month.number
         val recentMonths = (2 downTo 0).map { offset ->
-            val absoluteMonth = monthYear.year * 12 + (monthYear.month - 1) - offset
+            val absoluteMonth = anchorYear * 12 + (anchorMonth - 1) - offset
             val trendYear = absoluteMonth / 12
             val trendMonth = absoluteMonth % 12 + 1
             val monthTransactions = allTransactions.asSequence().filter { transaction ->
@@ -461,25 +418,24 @@ class StatsViewModel @Inject constructor(
         }
 
         StatsUiState(
-            year = monthYear.year,
-            month = monthYear.month,
             totalIncome = income,
             totalExpense = expense,
             balance = income - expense,
+            previousExpense = previousExpense,
+            previousIncome = previousIncome,
+            currentPeriod = period,
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
             recentMonths = recentMonths,
             isLoading = false,
-            isCurrentMonth = monthYear.year == now.year && monthYear.month == now.month.ordinal + 1,
+            isCurrentMonth = period.range == com.notepay.domain.analytics.StatsRange.MONTH && period.contains(now.date),
+            isLatestPeriod = period.contains(now.date),
             selectedCategory = null,
             transactions = filteredTxs,
             hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
             selectedWallet = selectedWallet,
-            timeFilter = timeFilter,
             dateRangeLabel = dateRangeLabel,
-            customStartDateMillis = customDateRange?.first,
-            customEndDateMillis = customDateRange?.second,
             budgetLimit = limit,
             budgetSpent = walletExpenseInCurrentMonth,
             budgetPercentage = budgetPercentage,
@@ -493,7 +449,7 @@ class StatsViewModel @Inject constructor(
     .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = StatsUiState(year = now.year, month = now.month.ordinal + 1),
+        initialValue = StatsUiState(),
     )
 
     val state: StateFlow<StatsUiState> = combine(
@@ -574,37 +530,20 @@ class StatsViewModel @Inject constructor(
         _selectedWalletId.value = walletId
     }
 
-    fun selectTimeFilter(filter: TimeFilterType) {
-        _timeFilter.value = filter
+    fun previousPeriod() {
+        _currentPeriod.update { current ->
+            current.shift(-1) ?: current
+        }
         _selectedCategory.value = null
     }
 
-    fun selectCustomDateRange(startMillis: Long, endMillis: Long) {
-        _customDateRange.value = startMillis to endMillis
-        _timeFilter.value = TimeFilterType.CUSTOM
+    fun nextPeriod() {
+        val current = _currentPeriod.value
+        val next = current.shift(1) ?: return
+        val today = now.date
+        if (next.start != null && next.start > today) return
+        _currentPeriod.value = next
         _selectedCategory.value = null
-    }
-
-    fun onPreviousMonth() {
-        currentMonthYear.update { current ->
-            if (current.month == 1) {
-                MonthYear(current.year - 1, 12)
-            } else {
-                MonthYear(current.year, current.month - 1)
-            }
-        }
-    }
-
-    fun onNextMonth() {
-        val current = currentMonthYear.value
-        if (current.year == now.year && current.month == now.month.number) return
-        currentMonthYear.update { current ->
-            if (current.month == 12) {
-                MonthYear(current.year + 1, 1)
-            } else {
-                MonthYear(current.year, current.month + 1)
-            }
-        }
     }
 
     /** Select a historical trend bar without navigating away from the statistics screen. */
@@ -612,9 +551,18 @@ class StatsViewModel @Inject constructor(
         val candidate = MonthYear(year, month)
         val latest = MonthYear(now.year, now.month.number)
         if (candidate.year > latest.year || (candidate.year == latest.year && candidate.month > latest.month)) return
-        currentMonthYear.value = candidate
-        _timeFilter.value = TimeFilterType.MONTH
-        _customDateRange.value = null
+        _currentPeriod.value = periodFor(LocalDate(year, month, 1), StatsRange.MONTH)
+        _selectedCategory.value = null
+    }
+
+    fun selectRange(range: StatsRange) {
+        if (range == StatsRange.CUSTOM) return
+        _currentPeriod.value = periodFor(now.date, range)
+        _selectedCategory.value = null
+    }
+
+    fun selectCustomPeriod(start: LocalDate, endInclusive: LocalDate) {
+        _currentPeriod.value = customPeriod(start, endInclusive)
         _selectedCategory.value = null
     }
 

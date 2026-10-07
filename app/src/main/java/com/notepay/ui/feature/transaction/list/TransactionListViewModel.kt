@@ -96,7 +96,7 @@ class TransactionListViewModel internal constructor(
         walletRepository.observeAll()
     ) { transactions, currentFilters, action, wallets ->
         val walletsMap = wallets.associate { it.id to it.name }
-        val filtered = filterTransactions(transactions, currentFilters)
+        val filtered = filterTransactions(transactions, currentFilters, getString)
 
         // Calculate summary
         var incomeCents = 0L
@@ -300,6 +300,7 @@ private data class TransactionListActionState(
 private fun filterTransactions(
     transactions: List<Transaction>,
     filters: TransactionListFilters,
+    getString: (Int) -> String,
 ): List<Transaction> {
     val tz = TimeZone.currentSystemDefault()
     val now = Clock.System.now().toLocalDateTime(tz)
@@ -314,8 +315,10 @@ private fun filterTransactions(
 
         // 2. Query filter
         if (normalizedQuery.isNotBlank()) {
+            val locName = com.notepay.ui.util.categoryNameRes(tx.category.id)?.let(getString) ?: tx.category.displayName
             val matches = tx.note.lowercase().contains(normalizedQuery) ||
                 tx.category.displayName.lowercase().contains(normalizedQuery) ||
+                locName.lowercase().contains(normalizedQuery) ||
                 (tx.amount.amountInCents / 100).toString().contains(normalizedQuery)
             if (!matches) return@filter false
         }

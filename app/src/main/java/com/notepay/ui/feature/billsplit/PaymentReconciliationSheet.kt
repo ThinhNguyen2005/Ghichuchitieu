@@ -64,6 +64,7 @@ import com.notepay.domain.money.Money
 import com.notepay.ui.formatter.PresentationDateFormatter
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
+import com.notepay.ui.util.localizedName
 
 private enum class ReconciliationMethod {
     CASH, TRANSFER
@@ -268,7 +269,7 @@ fun PaymentReconciliationSheet(
                                     Spacer(Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = tx.category.displayName,
+                                            text = tx.category.localizedName(),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,

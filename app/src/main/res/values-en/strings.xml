@@ -1299,5 +1299,44 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="greeting_afternoon_generic">Good afternoon 🌤️</string>
     <string name="greeting_evening_generic">Good evening 🌙</string>
 
+    <string name="stats_date_all_time">All time</string>
+    <string name="stats_range_week">Week</string>
+    <string name="stats_range_month">Month</string>
+    <string name="stats_range_year">Year</string>
+    <string name="stats_range_all">All</string>
+    <string name="stats_trend_unavailable">Trend chart is currently being updated for this mode.</string>
+    <!-- Categories -->
+    <string name="category_food">Food &amp; dining</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_bill">Bills</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_health">Health</string>
+    <string name="category_education">Education</string>
+    <string name="category_coffee">Coffee</string>
+    <string name="category_beauty">Beauty</string>
+    <string name="category_pets">Pets</string>
+    <string name="category_sports">Sports</string>
+    <string name="category_family">Family</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_clothes">Clothing</string>
+    <string name="category_home">Home</string>
+    <string name="category_gas">Fuel</string>
+    <string name="category_repair">Repairs</string>
+    <string name="category_electricity">Electricity</string>
+    <string name="category_water">Water</string>
+    <string name="category_internet">Internet</string>
+    <string name="category_children">Children</string>
+    <string name="category_charity">Charity</string>
+    <string name="category_savings">Savings</string>
+    <string name="category_debt_loan">Debt &amp; loans</string>
+    <string name="category_insurance">Insurance</string>
+    <string name="category_tax">Taxes</string>
+    <string name="category_other">Other</string>
+    <string name="category_salary">Salary</string>
+    <string name="category_gift">Gifts</string>
+    <string name="category_investment">Investment</string>
+    <string name="category_bonus">Bonus</string>
+    <string name="category_income_other">Other income</string>
 </resources>
 

@@ -87,6 +87,7 @@ import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.WalletUiHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -375,7 +376,7 @@ fun HomeScreen(
     }
 
     pendingDeleteTransaction?.let { tx ->
-        val itemName = tx.note.ifBlank { tx.category.displayName }
+        val itemName = tx.note.ifBlank { tx.category.localizedName() }
         ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_transaction_title),
             itemName = itemName,

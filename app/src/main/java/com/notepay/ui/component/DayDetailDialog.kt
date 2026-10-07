@@ -47,6 +47,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.ui.window.DialogProperties
+import com.notepay.ui.util.localizedName
 
 /**
  * Dialog chi tiết một ngày, dùng chung cho:
@@ -233,7 +234,7 @@ fun DayDetailDialog(
                             Column(modifier = Modifier.weight(1f)) {
                                 val noteText = tx.note.trim()
                                 Text(
-                                    tx.category.displayName,
+                                    tx.category.localizedName(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,

@@ -59,6 +59,7 @@ import kotlinx.datetime.toLocalDateTime
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.rounded.Person
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,11 +136,12 @@ fun TransactionDetailScreen(
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
                         } else {
+                            val categoryName = tx.category.localizedName()
                             ActionsBlock(
                                 onEdit = { onEdit(tx.id) },
                                 onCreateBillSplit = { onCreateBillSplit(tx.id) },
                                 onCreateSubscription = {
-                                    val name = tx.note.ifBlank { tx.category.displayName }
+                                    val name = tx.note.ifBlank { categoryName }
                                     onCreateSubscription(name, tx.amount.amountInCents)
                                 },
                             )
@@ -171,7 +173,7 @@ private fun TransactionHeader(transaction: com.notepay.domain.model.Transaction)
         )
         
         Text(
-            text = transaction.category.displayName,
+            text = transaction.category.localizedName(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
@@ -266,7 +268,7 @@ private fun MetaCard(
                 )
                 Column {
                     Text(stringResource(R.string.detail_category), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(transaction.category.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(transaction.category.localizedName(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 

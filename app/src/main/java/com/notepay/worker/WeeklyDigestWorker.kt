@@ -11,6 +11,7 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.platform.notification.NotificationHelper
 import com.notepay.ui.util.MoneyFormatter
+import com.notepay.ui.util.localizedName
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -80,7 +81,7 @@ class WeeklyDigestWorker @AssistedInject constructor(
             val catTotal = Money(topCategoryGroup.value.sumOf { it.amount.amountInCents })
             context.getString(
                 R.string.notif_weekly_digest_top_category,
-                topCategoryGroup.key.displayName,
+                topCategoryGroup.key.localizedName(context),
                 MoneyFormatter.formatCompact(catTotal),
             )
         } else {

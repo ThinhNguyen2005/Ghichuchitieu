@@ -15,14 +15,6 @@ sealed interface StatsUiText {
     data class Composite(val parts: List<StatsUiText>) : StatsUiText
 }
 
-enum class TimeFilterType {
-    MONTH,
-    WEEK,
-    QUARTER,
-    YEAR,
-    CUSTOM,
-}
-
 data class BudgetForecast(
     val dailyAverage: Money,
     val projectedSpend: Money,
@@ -85,16 +77,18 @@ data class DetectedSubscription(
 
 @Immutable
 data class StatsUiState(
-    val year: Int = 0,
-    val month: Int = 0,
     val totalIncome: Money = Money.ZERO,
     val totalExpense: Money = Money.ZERO,
     val balance: Money = Money.ZERO,
+    val previousExpense: Money? = null,
+    val previousIncome: Money? = null,
+    val currentPeriod: com.notepay.domain.analytics.StatsPeriod? = null,
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
     val recentMonths: List<MonthlyTrendPoint> = emptyList(),
     val isLoading: Boolean = true,
     val isCurrentMonth: Boolean = false,
+    val isLatestPeriod: Boolean = false,
     val selectedCategory: Category? = null,
     val transactions: List<Transaction> = emptyList(),
     val hasAnyTransactions: Boolean = false,
@@ -102,10 +96,7 @@ data class StatsUiState(
     // Thuộc tính mới phục vụ bộ lọc & hạn mức
     val wallets: List<Wallet> = emptyList(),
     val selectedWallet: Wallet? = null,
-    val timeFilter: TimeFilterType = TimeFilterType.MONTH,
     val dateRangeLabel: String = "",
-    val customStartDateMillis: Long? = null,
-    val customEndDateMillis: Long? = null,
     val budgetLimit: Money? = null,
     val budgetSpent: Money = Money.ZERO,
     val budgetPercentage: Float = 0f,

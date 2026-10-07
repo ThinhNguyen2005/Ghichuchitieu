@@ -103,6 +103,7 @@ import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
 import com.notepay.ui.util.MoneyFormatter
 import java.util.Locale
 import kotlin.math.abs
+import com.notepay.ui.util.localizedName
 
 @Composable
 private fun StatsUiText.resolve(): String = when (this) {
@@ -140,6 +141,12 @@ fun StatsScreen(
         else -> StatsContentState.CONTENT
     }
 
+    LaunchedEffect(state.currentPeriod?.range) {
+        if (state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.MONTH) {
+            viewType = StatsViewType.PHAN_BO
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -151,10 +158,12 @@ fun StatsScreen(
                     )
                 },
                 actions = {
-                    StatsHeader(
-                        viewType = viewType,
-                        onViewTypeChanged = { viewType = it },
-                    )
+                    if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                        StatsHeader(
+                            viewType = viewType,
+                            onViewTypeChanged = { viewType = it },
+                        )
+                    }
                 },
             )
         },
@@ -179,8 +188,9 @@ fun StatsScreen(
                         state = state,
                         showAmounts = showAmounts,
                         viewType = viewType,
-                        onPreviousMonth = viewModel::onPreviousMonth,
-                        onNextMonth = viewModel::onNextMonth,
+                        onPreviousMonth = viewModel::previousPeriod,
+                        onNextMonth = viewModel::nextPeriod,
+                        onSelectRange = viewModel::selectRange,
                         onMonthSelected = { point ->
                             viewModel.selectMonth(point.year, point.month)
                         },
@@ -440,7 +450,7 @@ private fun StatsSupportingContent(
                     exit = fadeOut(animationSpec = tween(120)) + shrinkVertically(animationSpec = tween(180)),
                 ) {
                     Text(
-                        text = stringResource(R.string.stats_transaction_history_format, item.category.displayName),
+                        text = stringResource(R.string.stats_transaction_history_format, item.category.localizedName()),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
@@ -502,12 +512,13 @@ private fun CategoryBreakdownRow(
         String.format(Locale.US, "%.1f", item.percentage * 100f),
     )
     val selectedLabel = stringResource(R.string.stats_category_selected_cd)
+    val categoryName = item.category.localizedName()
     Card(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
                 contentDescription = buildString {
-                    append(item.category.displayName)
+                    append(categoryName)
                     append(", ")
                     append(MoneyFormatter.format(item.amount))
                     append(", ")
@@ -546,7 +557,7 @@ private fun CategoryBreakdownRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = item.category.displayName,
+                        text = item.category.localizedName(),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,

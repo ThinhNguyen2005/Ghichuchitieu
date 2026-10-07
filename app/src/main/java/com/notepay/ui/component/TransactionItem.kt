@@ -36,6 +36,7 @@ import com.notepay.ui.util.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -58,7 +59,7 @@ fun TransactionItem(
 
     val subtitleParts = listOfNotNull(
         timeStr,
-        transaction.category.displayName,
+        transaction.category.localizedName(),
         walletName.takeIf { it.isNotBlank() },
         if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else null
     )
@@ -146,7 +147,7 @@ fun TransactionItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = transaction.category.displayName,
+                        text = transaction.category.localizedName(),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,

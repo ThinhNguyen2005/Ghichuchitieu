@@ -71,6 +71,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,7 +218,7 @@ fun EditTransactionScreen(
                             Spacer(modifier = Modifier.width(4.dp))
                             com.notepay.ui.component.CategoryAvatar(category = suggestedCategory!!, size = 20.dp)
                             Text(
-                                text = suggestedCategory.displayName,
+                                text = suggestedCategory.localizedName(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = androidx.compose.ui.graphics.Color(suggestedCategory.colorArgb)

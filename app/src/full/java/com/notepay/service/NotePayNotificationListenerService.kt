@@ -29,6 +29,7 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.util.StringUtils
+import com.notepay.ui.util.localizedName
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -530,7 +531,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                         walletName = walletToUse.name,
                         amountCents = parsed.amount.amountInCents,
                         note = parsed.note,
-                        categoryName = category.displayName,
+                        categoryName = category.localizedName(this@NotePayNotificationListenerService),
                         categoryEmoji = emoji
                     )
 

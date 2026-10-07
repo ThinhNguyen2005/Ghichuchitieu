@@ -1285,5 +1285,44 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="greeting_afternoon_generic">Chào buổi chiều 🌤️</string>
     <string name="greeting_evening_generic">Chào buổi tối 🌙</string>
 
+    <string name="stats_date_all_time">Tất cả thời gian</string>
+    <string name="stats_range_week">Tuần</string>
+    <string name="stats_range_month">Tháng</string>
+    <string name="stats_range_year">Năm</string>
+    <string name="stats_range_all">Tất cả</string>
+    <string name="stats_trend_unavailable">Biểu đồ xu hướng đang được cập nhật cho chế độ này.</string>
+    <!-- Categories -->
+    <string name="category_food">Ăn uống</string>
+    <string name="category_transport">Di chuyển</string>
+    <string name="category_shopping">Mua sắm</string>
+    <string name="category_bill">Hóa đơn</string>
+    <string name="category_entertainment">Giải trí</string>
+    <string name="category_health">Sức khỏe</string>
+    <string name="category_education">Giáo dục</string>
+    <string name="category_coffee">Cà phê</string>
+    <string name="category_beauty">Làm đẹp</string>
+    <string name="category_pets">Thú cưng</string>
+    <string name="category_sports">Thể thao</string>
+    <string name="category_family">Gia đình</string>
+    <string name="category_travel">Du lịch</string>
+    <string name="category_clothes">Quần áo</string>
+    <string name="category_home">Nhà cửa</string>
+    <string name="category_gas">Xăng xe</string>
+    <string name="category_repair">Sửa chữa</string>
+    <string name="category_electricity">Tiền điện</string>
+    <string name="category_water">Tiền nước</string>
+    <string name="category_internet">Internet</string>
+    <string name="category_children">Con cái</string>
+    <string name="category_charity">Từ thiện</string>
+    <string name="category_savings">Tiết kiệm</string>
+    <string name="category_debt_loan">Nợ và vay</string>
+    <string name="category_insurance">Bảo hiểm</string>
+    <string name="category_tax">Thuế</string>
+    <string name="category_other">Khác</string>
+    <string name="category_salary">Lương</string>
+    <string name="category_gift">Quà tặng</string>
+    <string name="category_investment">Đầu tư</string>
+    <string name="category_bonus">Thưởng</string>
+    <string name="category_income_other">Thu nhập khác</string>
 </resources>
 
