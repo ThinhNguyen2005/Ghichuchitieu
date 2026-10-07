@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
             val glassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
             val targetRoute by viewModel.pendingRoute.collectAsStateWithLifecycle()
             val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
+            val authUser by viewModel.authUser.collectAsStateWithLifecycle()
 
             if (startDestination != null) {
                 NotePayTheme(
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
                     themeColor = themeColor,
                 ) {
                     NotePayNavHost(
+                        authUser = authUser,
                         startDestination = startDestination ?: Route.Home.path,
                         liquidGlassEnabled = glassEnabled,
                         pendingRoute = targetRoute,

@@ -1277,5 +1277,13 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="auth_details_title">Thông tin tài khoản</string>
     <string name="auth_details_status_connected">Đã kết nối</string>
 
+    <!-- Personalized Greetings -->
+    <string name="greeting_morning_with_name">Chào buổi sáng, %1$s ☀️</string>
+    <string name="greeting_afternoon_with_name">Chào buổi chiều, %1$s 🌤️</string>
+    <string name="greeting_evening_with_name">Chào buổi tối, %1$s 🌙</string>
+    <string name="greeting_morning_generic">Chào buổi sáng ☀️</string>
+    <string name="greeting_afternoon_generic">Chào buổi chiều 🌤️</string>
+    <string name="greeting_evening_generic">Chào buổi tối 🌙</string>
+
 </resources>
 

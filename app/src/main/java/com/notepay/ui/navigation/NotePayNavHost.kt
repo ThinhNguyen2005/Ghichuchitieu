@@ -62,13 +62,16 @@ import com.notepay.ui.feature.utilities.utilitiesGraph
 import com.notepay.ui.feature.wallet.walletGraph
 import com.notepay.ui.feedback.FeedbackDuration
 import com.notepay.ui.feedback.UiFeedback
+import com.notepay.domain.model.AuthUser
 import com.notepay.ui.feature.auth.AuthWelcomeScreen
+import com.notepay.ui.util.LocalAuthUser
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
+    authUser: AuthUser? = null,
     startDestination: String = Route.Home.path,
     liquidGlassEnabled: Boolean = false,
     pendingRoute: String? = null,
@@ -172,7 +175,10 @@ fun NotePayNavHost(
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
     ) { padding ->
-        CompositionLocalProvider(LocalNotePayBackdrop provides backdrop) {
+        CompositionLocalProvider(
+            LocalNotePayBackdrop provides backdrop,
+            LocalAuthUser provides authUser,
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

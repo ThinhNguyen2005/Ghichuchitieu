@@ -29,13 +29,22 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.asStateFlow
+import com.notepay.domain.analytics.StatsPeriod
+import com.notepay.domain.analytics.StatsRange
+import com.notepay.domain.analytics.periodFor
+import com.notepay.domain.analytics.customPeriod
+import com.notepay.domain.analytics.shift
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
@@ -83,7 +92,6 @@ class StatsViewModel @Inject constructor(
         val selectedWalletId: Long?,
         val timeFilter: TimeFilterType,
         val customDateRange: Pair<Long, Long>?,
-        val selectedCategory: Category?
     )
 
     private val filterState = combine(
@@ -91,10 +99,9 @@ class StatsViewModel @Inject constructor(
         _selectedWalletId,
         _timeFilter,
         _customDateRange,
-        _selectedCategory
-    ) { monthYear, selectedWalletId, timeFilter, customDateRange, selectedCategory ->
-        FilterState(monthYear, selectedWalletId, timeFilter, customDateRange, selectedCategory)
-    }
+    ) { monthYear, selectedWalletId, timeFilter, customDateRange ->
+        FilterState(monthYear, selectedWalletId, timeFilter, customDateRange)
+    }.distinctUntilChanged()
 
     private val advicePrefs = context.getSharedPreferences("notepay_ai_feedback", Context.MODE_PRIVATE)
     private val _adviceFeedbacks = MutableStateFlow<Map<String, Int>>(
@@ -127,7 +134,6 @@ class StatsViewModel @Inject constructor(
         val selectedWalletId = filters.selectedWalletId
         val timeFilter = filters.timeFilter
         val customDateRange = filters.customDateRange
-        val selectedCat = filters.selectedCategory
         
         val zone = TimeZone.currentSystemDefault()
         
@@ -465,7 +471,7 @@ class StatsViewModel @Inject constructor(
             recentMonths = recentMonths,
             isLoading = false,
             isCurrentMonth = monthYear.year == now.year && monthYear.month == now.month.ordinal + 1,
-            selectedCategory = selectedCat,
+            selectedCategory = null,
             transactions = filteredTxs,
             hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
@@ -482,18 +488,30 @@ class StatsViewModel @Inject constructor(
             aiAdvices = aiAdvices,
             detectedSubscriptions = detectedSubscriptions
         )
-    }.stateIn(
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = StatsUiState(year = now.year, month = now.month.ordinal + 1),
     )
 
-    val state: StateFlow<StatsUiState> = combine(baseState, _localAdvisor) { base, advisor ->
-        base.copy(localAdvisor = advisor)
+    val state: StateFlow<StatsUiState> = combine(
+        baseState,
+        _localAdvisor,
+        _selectedCategory
+    ) { base, advisor, selectedCategory ->
+        base.copy(
+            localAdvisor = advisor,
+            selectedCategory = selectedCategory
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = baseState.value.copy(localAdvisor = _localAdvisor.value),
+        initialValue = baseState.value.copy(
+            localAdvisor = _localAdvisor.value,
+            selectedCategory = _selectedCategory.value
+        ),
     )
 
     fun generateLocalAdvice() {

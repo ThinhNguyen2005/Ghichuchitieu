@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.stats
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
@@ -82,6 +83,7 @@ data class DetectedSubscription(
     val possibleNextDueDate: Long // epoch ms
 )
 
+@Immutable
 data class StatsUiState(
     val year: Int = 0,
     val month: Int = 0,

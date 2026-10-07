@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
 import com.notepay.platform.widget.WidgetConstants
 import com.notepay.ui.navigation.Route
@@ -48,6 +49,12 @@ class MainViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = null,
+    )
+
+    val authUser: StateFlow<AuthUser?> = authRepository.observeAuthState().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = authRepository.currentUser,
     )
 
     fun completeWelcome() {

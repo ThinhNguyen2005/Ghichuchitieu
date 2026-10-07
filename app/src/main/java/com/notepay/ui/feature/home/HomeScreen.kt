@@ -60,8 +60,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.notepay.ui.util.LocalAuthUser
+import com.notepay.ui.util.rememberUserGreeting
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -159,13 +164,22 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
+            val greeting = rememberUserGreeting()
+            val authUser = LocalAuthUser.current
+
             GradientTopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(stringResource(R.string.app_name))
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                         if (state.streakDays > 0) {
                             Surface(
                                 shape = AppTheme.shapes.corner8,
@@ -175,7 +189,7 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = stringResource(R.string.home_streak_format, state.streakDays),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -183,8 +197,39 @@ fun HomeScreen(
                         }
                     }
                 },
-                actions = {}
-
+                actions = {
+                    if (authUser != null) {
+                        if (!authUser.photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = authUser.photoUrl,
+                                contentDescription = stringResource(R.string.auth_avatar_description),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .padding(end = 12.dp)
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            val initial = authUser.displayName?.firstOrNull()?.uppercaseChar()?.toString()
+                                ?: authUser.email?.firstOrNull()?.uppercaseChar()?.toString()
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 12.dp)
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = initial ?: "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
             )
         },
     ) { padding ->
