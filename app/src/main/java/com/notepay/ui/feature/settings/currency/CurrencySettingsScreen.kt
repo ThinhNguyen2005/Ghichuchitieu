@@ -15,10 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Paid
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
@@ -142,11 +140,11 @@ fun CurrencySettingsScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(CircleShape)
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                         ),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -154,20 +152,21 @@ fun CurrencySettingsScreen(
                                         text = currency.symbol,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(16.dp))
+                                Spacer(modifier = Modifier.width(14.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = stringResource(currency.nameRes),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = currency.code,
                                         style = MaterialTheme.typography.bodySmall,
@@ -176,15 +175,11 @@ fun CurrencySettingsScreen(
                                 }
                                 RadioButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.selectCurrency(currency.code) },
+                                    onClick = null,
                                 )
                             }
                             if (index < supportedCurrencies.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 74.dp),
-                                    thickness = 0.5.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                )
+                                ItemDivider()
                             }
                         }
                     }
@@ -293,7 +288,7 @@ fun CurrencySettingsScreen(
 @Composable
 private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
     val symbol = supportedCurrencies.find { it.code == uiState.currencyCode }?.symbol ?: "₫"
-    val samplePositive = remember(uiState) {
+    val samplePositive = remember(uiState, symbol) {
         MoneyFormatter.formatCustom(
             money = Money(1_250_000_00L),
             currencySymbol = symbol,
@@ -301,7 +296,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
             thousandSeparator = uiState.thousandSeparator,
         )
     }
-    val sampleNegative = remember(uiState) {
+    val sampleNegative = remember(uiState, symbol) {
         MoneyFormatter.formatCustom(
             money = Money(450_000_00L),
             currencySymbol = symbol,
@@ -312,9 +307,9 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner24,
+        shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -336,7 +331,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
                 )
                 Text(
                     text = stringResource(R.string.currency_preview_title),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -354,7 +349,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.ui_samplepositive),
+                        text = stringResource(R.string.ui_samplepositive, samplePositive),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF34C759),
@@ -368,7 +363,7 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.ui_samplenegative),
+                        text = stringResource(R.string.ui_samplenegative, sampleNegative),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,
@@ -389,9 +384,18 @@ private fun CurrencyLivePreviewCard(uiState: CurrencyUiState) {
 private fun SectionHeader(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 4.dp),
+    )
+}
+
+@Composable
+private fun ItemDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 70.dp, end = 16.dp),
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
     )
 }

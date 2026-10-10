@@ -38,7 +38,7 @@ Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose,
   1. **Hiệu năng Compose:** Tuyệt đối không cấp phát đối tượng trong Draw/Canvas scope; hoãn đọc State biến thiên (anim/scroll) xuống Draw phase bằng `Modifier.graphicsLayer { ... }` hoặc `drawBehind`. Đảm bảo độ ổn định kiểu dữ liệu (@Immutable/@Stable).
   2. **Coroutines & Flow:** Không chạy tác vụ I/O trên Main thread (`Dispatchers.IO`); không nuốt `CancellationException` khi catch; dùng `collectAsStateWithLifecycle()` trên giao diện Compose.
   3. **Null-Safety & State:** Cấm dùng toán tử cưỡng chế `!!`; đóng gói chặt chẽ `private val _uiState = MutableStateFlow(...)` và phát ra `asStateFlow()`.
-  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline).
+  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline). Khi thiết kế, review hoặc audit giao diện, áp dụng bộ nguyên tắc và checklist tại `.agents/skills/ui-ux-playbook/SKILL.md` (`📚 Using skill: @ui-ux-playbook...`) để chuẩn hóa visual hierarchy, spacing (thang 4/8pt), typography và contrast.
   5. **Bảo mật & Cấu hình:** Không hardcode secret/token; đặt `android:exported="false"` cho components nội bộ; mã hóa dữ liệu nhạy cảm qua KeyStore.
 
 ## Strict Mentorship & Learning Protocol (Zero Direct Coding Policy)

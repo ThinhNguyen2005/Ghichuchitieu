@@ -1226,8 +1226,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="assets_wallets_count_format">%1$d %2$s</string>
     <string name="assets_transactions_count_format">%1$d %2$s</string>
     <string name="ui_version_appinfo">Version %1$s</string>
-    <string name="ui_samplepositive">+ $samplePositive (TODO)</string>
-    <string name="ui_samplenegative">- $sampleNegative (TODO)</string>
+    <string name="ui_samplepositive">+%1$s</string>
+    <string name="ui_samplenegative">-%1$s</string>
     <!-- Feedback: Wallet operations (AssetsViewModel) -->
     <string name="feedback_wallet_set_active">Set as primary wallet</string>
     <string name="feedback_wallet_switch_failed">Cannot switch wallet: %1$s</string>

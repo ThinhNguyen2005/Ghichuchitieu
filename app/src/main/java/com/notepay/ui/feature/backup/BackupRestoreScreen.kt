@@ -147,12 +147,6 @@ fun BackupRestoreScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Section: Tài khoản Google (Đăng nhập / Đồng bộ)
-            GoogleSignInCard(
-                uiState = authState,
-                onSignInClick = { authViewModel.signInWithGoogle(context) },
-                onSignOutClick = { authViewModel.signOut(context) }
-            )
 
             // Section: Sao lưu
             BackupCard(

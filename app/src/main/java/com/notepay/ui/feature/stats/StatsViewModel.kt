@@ -2,63 +2,59 @@ package com.notepay.ui.feature.stats
 
 import android.content.Context
 import androidx.core.content.edit
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.domain.repository.TransactionRepository
 import com.notepay.R
-import com.notepay.domain.repository.WalletRepository
-import com.notepay.domain.repository.SubscriptionRepository
-import com.notepay.domain.model.Category
-import com.notepay.domain.money.Money
-import com.notepay.domain.model.Transaction
-import com.notepay.domain.model.TransactionType
-import com.notepay.domain.model.Wallet
 import com.notepay.ai.OnDeviceBudgetAdvisor
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.CategoryExpenseShare
 import com.notepay.domain.analytics.DailyExpense
+import com.notepay.domain.analytics.SpendingForecastEngine
 import com.notepay.domain.analytics.StatsAdviceInput
 import com.notepay.domain.analytics.StatsInsightsCalculator
+import com.notepay.domain.analytics.StatsPeriod
+import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.analytics.StatsSummaryCalculator
-import com.notepay.domain.analytics.SpendingForecastEngine
+import com.notepay.domain.analytics.customPeriod
+import com.notepay.domain.analytics.periodFor
+import com.notepay.domain.analytics.shift
+import com.notepay.domain.model.Category
+import com.notepay.domain.model.TransactionType
+import com.notepay.domain.money.Money
+import com.notepay.domain.repository.SubscriptionRepository
+import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.formatter.PresentationDateFormatter
+import com.notepay.ui.util.localizedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.asStateFlow
-import com.notepay.domain.analytics.StatsPeriod
-import com.notepay.domain.analytics.StatsRange
-import com.notepay.domain.analytics.periodFor
-import com.notepay.domain.analytics.customPeriod
-import com.notepay.domain.analytics.shift
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.number
-import kotlinx.datetime.toInstant
-import kotlin.time.Instant
-import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
-import com.notepay.ui.util.localizedName
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -148,7 +144,7 @@ class StatsViewModel @Inject constructor(
             StatsRange.CUSTOM -> {
                 val s = period.start ?: now.date
                 val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
-                "${s.dayOfMonth}/${s.month.number}/${s.year} - ${e.dayOfMonth}/${e.month.number}/${e.year}"
+                "${s.day}/${s.month.number}/${s.year} - ${e.day}/${e.month.number}/${e.year}"
             }
         }
 
