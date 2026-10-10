@@ -114,9 +114,11 @@ class SubscriptionReminderWorker @AssistedInject constructor(
                     ExistingPeriodicWorkPolicy.KEEP,
                     request,
                 )
-            } catch (e: IllegalStateException) {
-                // WorkManager is not initialized (e.g., in Robolectric tests)
-                e.printStackTrace()
+            } catch (e: Exception) {
+                // WorkManager might not be initialized (e.g., in Robolectric tests or unsupported environments)
+                if (com.notepay.BuildConfig.DEBUG) {
+                    android.util.Log.w(WORK_NAME, "Failed to initialize or schedule WorkManager: ${e.message}")
+                }
             }
         }
     }

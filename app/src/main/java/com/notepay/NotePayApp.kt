@@ -27,14 +27,31 @@ class NotePayApp : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
+    private val isRunningInRobolectric: Boolean by lazy {
+        runCatching {
+            Class.forName("org.robolectric.Robolectric")
+            true
+        }.getOrDefault(false)
+    }
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     override fun onCreate() {
         super.onCreate()
-        applicationScope.launch {
-            delay(2_000L.milliseconds)
-            SubscriptionReminderWorker.schedule(applicationContext)
-            ReminderScheduler.scheduleDailyReminder(applicationContext)
-            NotificationWatchdog.schedule(applicationContext)
+        if (!isRunningInRobolectric) {
+            applicationScope.launch {
+                try {
+                    delay(2_000L.milliseconds)
+                    SubscriptionReminderWorker.schedule(applicationContext)
+                    ReminderScheduler.scheduleDailyReminder(applicationContext)
+                    NotificationWatchdog.schedule(applicationContext)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (e: Throwable) {
+                    if (BuildConfig.DEBUG) {
+                        android.util.Log.e("NotePayApp", "Failed to schedule background workers: ${e.message}", e)
+                    }
+                }
+            }
         }
         if (BuildConfig.DEBUG){
             StrictMode.setThreadPolicy(

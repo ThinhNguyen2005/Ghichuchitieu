@@ -134,7 +134,7 @@ class StatsViewModel @Inject constructor(
             StatsRange.WEEK -> {
                 val s = period.start ?: now.date
                 val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
-                context.getString(R.string.stats_date_week_format, s.dayOfMonth, s.month.number, e.dayOfMonth, e.month.number)
+                context.getString(R.string.stats_date_week_format, s.day, s.month.number, e.day, e.month.number)
             }
             StatsRange.YEAR -> {
                 val anchor = period.start ?: now.date
