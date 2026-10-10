@@ -1,8 +1,16 @@
 package com.notepay.ui.feature.home
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
+
+data class WalletSummary(
+    val wallet: Wallet,
+    val balance: Money,
+    val monthlyIncome: Money,
+    val monthlyExpense: Money,
+    val backgroundUri: String? = null
+)
 
 data class BudgetProjection(
     val dailyAverage: Money = Money.ZERO,
@@ -17,6 +25,7 @@ data class BudgetProjection(
 data class HomeUiState(
     val activeWallet: Wallet? = null,
     val wallets: List<Wallet> = emptyList(),
+    val walletsSummary: List<WalletSummary> = emptyList(),
     val currentBalance: Money = Money.ZERO,
     val monthlyIncome: Money = Money.ZERO,
     val monthlyExpense: Money = Money.ZERO,

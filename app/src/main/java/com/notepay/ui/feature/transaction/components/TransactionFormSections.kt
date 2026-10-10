@@ -1,6 +1,6 @@
 package com.notepay.ui.feature.transaction.components
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -54,6 +54,7 @@ import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.formatter.VietnameseMoneyWordsFormatter
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.util.localizedName
 
 @Composable
 fun TransactionTypeSelector(
@@ -261,7 +262,7 @@ fun TransactionSuggestionChipRow(
             CategoryAvatar(category = suggestedCategory, size = 18.dp)
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = suggestedCategory.displayName,
+                text = suggestedCategory.localizedName(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color(suggestedCategory.colorArgb),

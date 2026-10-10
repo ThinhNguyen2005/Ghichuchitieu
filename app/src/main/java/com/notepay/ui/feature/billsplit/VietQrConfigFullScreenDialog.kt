@@ -66,7 +66,8 @@ import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.ui.component.FirefliesBackground
 import com.notepay.ui.theme.AppTheme
-import java.text.Normalizer
+import com.notepay.ui.util.VietQrGenerator
+import com.notepay.util.StringUtils
 
 private enum class VietQrStep { SelectBank, EnterAccount }
 
@@ -120,7 +121,7 @@ fun VietQrConfigFullScreenDialog(
                             accountNumber = accountNumber,
                             onAccountNumberChange = { accountNumber = it.filter(Char::isDigit) },
                             accountName = accountName,
-                            onAccountNameChange = { accountName = normalizeAccountName(it) },
+                            onAccountNameChange = { accountName = VietQrGenerator.formatAccountName(it) },
                             onChangeBank = { playHaptic(); step = VietQrStep.SelectBank },
                             onSave = {
                                 val bank = selectedBank ?: return@AccountDetailsStep
@@ -179,12 +180,14 @@ private fun StepDot(number: String, label: String, active: Boolean, color: Color
 @Composable
 private fun BankSelectionStep(banks: List<VietQrBank>, selectedBank: VietQrBank?, onBankSelected: (VietQrBank) -> Unit) {
     var query by remember { mutableStateOf("") }
-    val normalizedQuery = remember(query) { normalizeSearch(query) }
+    val normalizedQuery = remember(query) {
+        StringUtils.removeVietnameseAccents(query).trim()
+    }
     val filteredBanks = remember(banks, normalizedQuery) {
-        if (normalizedQuery.isBlank()) banks else banks.filter { bank ->
-            normalizeSearch(bank.shortName).contains(normalizedQuery) ||
-                normalizeSearch(bank.name).contains(normalizedQuery) ||
-                normalizeSearch(bank.code).contains(normalizedQuery)
+        if (normalizedQuery.isEmpty()) banks else banks.filter { bank ->
+            StringUtils.removeVietnameseAccents(bank.shortName).contains(normalizedQuery, ignoreCase = true) ||
+                    StringUtils.removeVietnameseAccents(bank.name).contains(normalizedQuery, ignoreCase = true) ||
+                    StringUtils.removeVietnameseAccents(bank.code).contains(normalizedQuery, ignoreCase = true)
         }
     }
     Column(Modifier.fillMaxSize()) {
@@ -307,12 +310,3 @@ private fun BankLogo(logoUrl: String?, modifier: Modifier = Modifier) {
     } else AsyncImage(model = logoUrl, contentDescription = null, modifier = modifier.clip(AppTheme.shapes.corner12))
 }
 
-private fun normalizeSearch(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFD)
-    .replace("\\p{InCombiningDiacriticalMarks}+".toRegex(), "")
-    .replace('đ', 'd')
-    .replace('Đ', 'D')
-    .lowercase()
-
-private fun normalizeAccountName(value: String): String = normalizeSearch(value)
-    .filter { it.isLetter() || it.isWhitespace() }
-    .uppercase()

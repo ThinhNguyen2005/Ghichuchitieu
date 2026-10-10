@@ -29,9 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,9 +45,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.ui.window.DialogProperties
+import com.notepay.ui.util.localizedName
 
 /**
  * Dialog chi tiết một ngày, dùng chung cho:
@@ -99,7 +99,13 @@ fun DayDetailDialog(
             }
             Column {
                 Text(
-                    text = "$weekday, ${date.day}/${date.month.number}/${date.year}",
+                    text = stringResource(
+                        R.string.day_detail_date_format,
+                        weekday,
+                        date.day,
+                        date.month.number,
+                        date.year,
+                    ),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -120,7 +126,7 @@ fun DayDetailDialog(
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
                     EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
-                        title = stringResource(R.string.state_empty),
+                        title = stringResource(R.string.state_empty_note),
                         description = stringResource(R.string.day_detail_empty_desc)
                     )
                 }
@@ -143,7 +149,9 @@ fun DayDetailDialog(
                         Card(
                             colors = CardDefaults.cardColors(containerColor = containerColor),
                             shape = AppTheme.shapes.corner12,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {},
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -173,7 +181,7 @@ fun DayDetailDialog(
                                     Text(
                                         MoneyFormatter.format(sub.amount),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isExpired) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isExpired) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium,
                                     )
                                     val dueLabel = when {
@@ -192,7 +200,7 @@ fun DayDetailDialog(
                                     Text(
                                         dueLabel,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (isExpired || daysLeft == 0L) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isExpired || daysLeft == 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -211,7 +219,10 @@ fun DayDetailDialog(
                     )
                     transactions.forEach { tx ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {}
+                                .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -223,7 +234,7 @@ fun DayDetailDialog(
                             Column(modifier = Modifier.weight(1f)) {
                                 val noteText = tx.note.trim()
                                 Text(
-                                    tx.category.displayName,
+                                    tx.category.localizedName(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,

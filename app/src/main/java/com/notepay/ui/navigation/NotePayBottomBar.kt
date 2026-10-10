@@ -213,7 +213,7 @@ fun BoxScope.NotePayBottomBar(
     )
     val primaryColor = MaterialTheme.colorScheme.primary
     val isLightTheme = !isAppDarkTheme()
-    val containerColor = if (isLightTheme) Color.White.copy(alpha = 0.82f) else Color(0xFF1E1E1E).copy(alpha = 0.75f)
+    val containerColor = if (isLightTheme) Color.White.copy(alpha = 0.28f) else Color(0xFF1A1A1A).copy(alpha = 0.32f)
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -401,8 +401,17 @@ fun BoxScope.NotePayBottomBar(
                             shape = { CircleShape },
                             effects = {
                                 vibrancy()
-                                blur(24f.dp.toPx())
-                                lens(8.dp.toPx(), 8f.dp.toPx())
+                                blur(10f.dp.toPx())
+                                lens(18f.dp.toPx(), 18f.dp.toPx())
+                            },
+                            highlight = {
+                                Highlight.Default.copy(alpha = if (isLightTheme) 0.55f else 0.40f)
+                            },
+                            innerShadow = {
+                                InnerShadow(
+                                    radius = 3f.dp,
+                                    alpha = if (isLightTheme) 0.12f else 0.25f
+                                )
                             },
                             layerBlock = {
                                 val progress = dampedDragAnimation.pressProgress

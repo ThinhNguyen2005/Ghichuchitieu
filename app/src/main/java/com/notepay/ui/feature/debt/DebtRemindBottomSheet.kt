@@ -147,11 +147,9 @@ fun DebtRemindBottomSheet(
         } else null
     }
 
-    ModalBottomSheet(
+    com.notepay.ui.component.BottomSheetGlass(
+        visible = true,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
         Column(
@@ -322,6 +320,8 @@ fun DebtRemindBottomSheet(
             HorizontalDivider()
 
             // Action Buttons
+            val debtReminderTitle = stringResource(R.string.ui_debt_reminder)
+            val debtCopiedToast = context.getString(R.string.debt_copied_reminder)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -330,11 +330,11 @@ fun DebtRemindBottomSheet(
                 Button(
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        val clip = ClipData.newPlainText("debt_reminder", reminderMessage)
+                        val clip = ClipData.newPlainText(debtReminderTitle, reminderMessage)
                         clipboard?.setPrimaryClip(clip)
                         Toast.makeText(
                             context,
-                            context.getString(R.string.debt_copied_reminder),
+                            debtCopiedToast,
                             Toast.LENGTH_SHORT
                         ).show()
                     },
@@ -381,7 +381,7 @@ fun DebtRemindBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.debt_action_share),
+                        text = stringResource(R.string.content_description_share),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

@@ -51,9 +51,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import com.notepay.domain.model.AuthUser
+import com.notepay.ui.feature.auth.AccountDetailsBottomSheet
+import com.notepay.ui.feature.auth.AuthViewModel
 import com.notepay.R
 import com.notepay.ui.theme.AppTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UtilitiesScreen(
     onNavigateToBillSplit: () -> Unit,
@@ -64,10 +84,26 @@ fun UtilitiesScreen(
     onNavigateToAppearanceLanguage: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
-    onNavigateToAppSettings: () -> Unit,
+    onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onNavigateToDebtManagement: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    var showAccountDetails by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (showAccountDetails && authUiState.user != null) {
+        AccountDetailsBottomSheet(
+            user = authUiState.user!!,
+            sheetState = sheetState,
+            onDismissRequest = { showAccountDetails = false },
+            onSignOut = { authViewModel.signOut(context) }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -94,9 +130,19 @@ fun UtilitiesScreen(
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
-            // Mascot Header Card: "Chọn mèo của bạn"
+            // User Profile Header Card (Thay thế chọn mèo)
             item {
-                MascotBannerCard()
+                UserProfileHeaderCard(
+                    user = authUiState.user,
+                    isLoading = authUiState.isLoading,
+                    onCardClick = {
+                        if (authUiState.user != null) {
+                            showAccountDetails = true
+                        } else {
+                            authViewModel.signInWithGoogle(context)
+                        }
+                    }
+                )
             }
 
             // Section 1: CÀI ĐẶT SỔ
@@ -179,7 +225,7 @@ fun UtilitiesScreen(
                         UtilityRowItem(
                             icon = Icons.Rounded.AutoAwesome,
                             iconTint = Color(0xFFFF9500),
-                            title = stringResource(R.string.settings_ai_engine_title),
+                            title = stringResource(R.string.ai_settings_title),
                             subtitle = stringResource(R.string.utilities_ai_engine_subtitle),
                             onClick = onNavigateToAiSettings
                         )
@@ -193,11 +239,19 @@ fun UtilitiesScreen(
                         )
                         ItemDivider()
                         UtilityRowItem(
+                            icon = Icons.Rounded.NotificationsActive,
+                            iconTint = Color(0xFFFF9500),
+                            title = stringResource(R.string.settings_notification_section_title),
+                            subtitle = stringResource(R.string.settings_notification_subtitle),
+                            onClick = onNavigateToNotificationSettings
+                        )
+                        ItemDivider()
+                        UtilityRowItem(
                             icon = Icons.Rounded.Info,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                             title = stringResource(R.string.utilities_app_info_title),
                             subtitle = stringResource(R.string.utilities_app_info_subtitle),
-                            onClick = onNavigateToAppSettings
+                            onClick = onNavigateToAbout
                         )
                     }
                 }
@@ -211,61 +265,149 @@ fun UtilitiesScreen(
 }
 
 @Composable
-private fun MascotBannerCard() {
+private fun UserProfileHeaderCard(
+    user: AuthUser?,
+    isLoading: Boolean,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.corner24)
+            .clickable(onClick = onCardClick),
         shape = AppTheme.shapes.corner24,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(
+            containerColor = if (user != null) {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                        )
-                    )
-                )
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Avatar
+            if (user != null) {
+                if (!user.photoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = user.photoUrl,
+                        contentDescription = stringResource(R.string.auth_avatar_description),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    val initial = user.displayName?.firstOrNull()?.uppercaseChar()?.toString()
+                        ?: user.email?.firstOrNull()?.uppercaseChar()?.toString()
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (initial != null) {
+                            Text(
+                                text = initial,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
                 Box(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Pets,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // User Info
+            Column(modifier = Modifier.weight(1f)) {
+                val title = if (user != null) {
+                    user.displayName?.takeIf { it.isNotBlank() }
+                        ?: user.email
+                        ?: stringResource(R.string.auth_account_name_fallback)
+                } else {
+                    stringResource(R.string.auth_card_unauthenticated_title)
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.utilities_mascot_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.utilities_mascot_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                val subtitle = if (user != null) {
+                    user.email ?: stringResource(R.string.auth_card_authenticated_subtitle)
+                } else {
+                    stringResource(R.string.auth_card_unauthenticated_subtitle)
                 }
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Trailing action / icon
+            if (user != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.notepay.domain.notification
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 
 sealed interface NotificationCase {
     data class Expense(

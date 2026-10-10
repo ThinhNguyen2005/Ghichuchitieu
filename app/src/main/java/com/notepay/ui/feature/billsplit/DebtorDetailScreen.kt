@@ -39,7 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.BuildConfig
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.component.CategoryAvatar
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.GradientBottomActionBar

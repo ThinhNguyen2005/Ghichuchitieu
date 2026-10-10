@@ -2,7 +2,7 @@
 <resources>
     <!-- App -->
     <string name="app_name">NotePay</string>
-    <string name="app_settings_title">App settings</string>
+
 
     <!-- Bottom navigation labels -->
     <string name="nav_home">Home</string>
@@ -86,8 +86,8 @@
     <string name="unit_million">million</string>
     <string name="unit_billion">billion</string>
     <string name="unit_trillion">trillion</string>
-    <string name="approx_symbol">≈ %s</string>
-    <string name="magnitude_words_prefix">In words: %s</string>
+    <string name="approx_symbol">≈ %1$s</string>
+    <string name="magnitude_words_prefix">In words: %1$s</string>
 
     <!-- Transaction list screen -->
     <string name="transaction_list_search_hint">Search by note</string>
@@ -150,6 +150,8 @@
     <string name="wallet_field_color">Color</string>
     <string name="wallet_field_budget">Spending limit</string>
     <string name="wallet_budget_off">Off</string>
+    <string name="wallet_field_vietqr">Receiving account (VietQR)</string>
+    <string name="wallet_vietqr_bank_error">Please select a bank</string>
 
     <!-- Confirm delete dialog -->
     <string name="confirm_delete_transaction_title">Delete transaction?</string>
@@ -190,7 +192,7 @@
 
     <!-- Extractions -->
     <string name="transaction_deleted">Transaction deleted</string>
-    <string name="transaction_search_placeholder">Search transactions...</string>
+    <string name="transaction_search_placeholder">Search transactions…</string>
     <string name="action_search">Search</string>
     <string name="cd_switch_to_list">Switch to list</string>
     <string name="cd_switch_to_calendar">Switch to calendar</string>
@@ -217,6 +219,10 @@
     <plurals name="date_days_ago">
         <item quantity="one">%1$d day ago</item>
         <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <plurals name="characters_remaining">
+        <item quantity="one">%1$d character remaining</item>
+        <item quantity="other">%1$d characters remaining</item>
     </plurals>
     <string name="day_detail_empty_desc">No transactions or reminders on this day.</string>
     <string name="subscription_reminders_title">Reminders</string>
@@ -250,7 +256,7 @@
         <item quantity="one">%1$d transaction recorded</item>
         <item quantity="other">%1$d transactions recorded</item>
     </plurals>
-    <string name="state_empty">Empty</string>
+    <string name="state_empty_note">Empty</string>
     <string name="stats_empty_state">Add income/expense transactions during this period to analyze financial structure.</string>
     <string name="stats_tab_expense_structure">Expense structure</string>
     <string name="stats_tab_income_structure">Income structure</string>
@@ -404,11 +410,7 @@
     <string name="icon_label_work">Work</string>
     <string name="icon_label_crypto">Crypto</string>
     <string name="icon_label_car">Vehicle</string>
-    <string name="navigation_glass_title">Navigation Liquid Glass</string>
-    <string name="navigation_glass_enabled">Glass effects apply only to the navigation bar.</string>
-    <string name="navigation_glass_disabled">Using a solid navigation bar.</string>
-    <string name="navigation_glass_block_android">Unavailable: Android 13 (API 33) or newer is required.</string>
-    <string name="navigation_glass_block_hardware">Unavailable: hardware acceleration is disabled for the app window.</string>
+
 
     <!-- Runtime feedback and presentation strings -->
     <string name="feedback_category_exists">This category already exists</string>
@@ -639,8 +641,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="billsplit_amount_invalid">Invalid amount.</string>
     <string name="billsplit_original_bill">Original bill</string>
     <string name="billsplit_already_split">Already split</string>
-    <string name="billsplit_step_select">Step 1/2 — Choose the bill to split.</string>
-    <string name="billsplit_step_manage">Step 2/2 — Add people and split the amount.</string>
+    <string name="billsplit_step_select">Step %1$d/%2$d — Choose the bill to split.</string>
+    <string name="billsplit_step_manage">Step %2$d/%2$d — Add people and split the amount.</string>
     <string name="billsplit_no_expense_title">No expense transactions</string>
     <string name="billsplit_no_expense_desc">Create an expense transaction before using bill split.</string>
     <string name="billsplit_recent_suggestions">Recent suggestions</string>
@@ -811,7 +813,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="assets_transfer_to_wallet">To wallet:</string>
     <string name="assets_transfer_amount">Transfer amount:</string>
     <string name="assets_transfer_note">Note (optional):</string>
-    <string name="assets_transfer_note_hint">Enter transfer reason...</string>
+    <string name="assets_transfer_note_hint">Enter transfer reason…</string>
     <string name="assets_transfer_confirm_btn">Confirm transfer</string>
     <string name="assets_trend_chart_title">Asset Trend</string>
     <string name="assets_chart_range_7d">7D</string>
@@ -843,7 +845,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="filter_classification">Classification</string>
     <string name="filter_category_expense">Expense Categories</string>
     <string name="filter_category_income">Income Categories</string>
-    <string name="filter_search_hint">Search note, category, amount...</string>
+    <string name="filter_search_hint">Search note, category, amount…</string>
     <string name="summary_income_header">INCOME</string>
     <string name="summary_expense_header">EXPENSE</string>
     <string name="summary_export_file">Export file</string>
@@ -857,7 +859,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="wallet_fallback">Wallet</string>
     <string name="transaction_income_label">Income</string>
     <string name="transaction_expense_label">Spent</string>
-    <string name="settings_ai_engine_title">Artificial Intelligence (AI Engine)</string>
     <string name="settings_ai_engine_subtitle">Smart hierarchy: Gemini Nano -&gt; Cloud Gemini -&gt; Statistics</string>
     <string name="settings_ai_engine_subtitle_local">100% Offline: Gemini Nano on-device &amp; internal Statistical Advisor</string>
     <string name="settings_ai_local_offline_title">Local Version (100% Offline)</string>
@@ -865,13 +866,13 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Ready (100% Offline)</string>
     <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Unsupported on this device</string>
     <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
-    <string name="settings_ai_api_key_placeholder">Paste API Key (AIzaSy...)</string>
+    <string name="settings_ai_api_key_placeholder">Paste API Key (AIzaSy…)</string>
     <string name="settings_ai_api_key_get_free">Get free API Key from Google AI Studio</string>
     <string name="settings_ai_api_key_save">Save Key</string>
     <string name="settings_ai_api_key_saved">API Key saved</string>
     <string name="settings_ai_api_key_clear">Clear Key</string>
     <string name="settings_ai_api_key_test">Test Connection</string>
-    <string name="settings_ai_api_key_testing">Testing connection...</string>
+    <string name="settings_ai_api_key_testing">Testing connection…</string>
     <string name="settings_ai_api_key_test_success">Connection successful! Gemini replied: %1$s</string>
     <string name="settings_ai_api_key_test_failed">Connection failed: %1$s</string>
     <string name="settings_ai_cloud_toggle_title">Enable Cloud Gemini AI</string>
@@ -888,8 +889,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System</string>
-    <string name="settings_theme_mode_title">Appearance Mode</string>
-    <string name="settings_theme_mode_desc">Customize Light, Dark, or System appearance</string>
+
     <string name="autocapture_title">Automatic notification capture</string>
     <string name="autocapture_enabled_description">Only process notifications from verified apps.</string>
     <string name="autocapture_disabled_description">Enable to let NotePay automatically record transactions from bank notifications.</string>
@@ -1046,7 +1046,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="ai_api_key_paste">Paste</string>
     <string name="ai_api_key_clear">Clear</string>
     <string name="ai_test_connection">Test Connection</string>
-    <string name="ai_testing_connection">Testing connection...</string>
+    <string name="ai_testing_connection">Testing connection…</string>
     <string name="ai_test_success">Connection successful! API Key is active.</string>
     <string name="ai_test_failure">Connection failed. Please check your API key and network.</string>
     <string name="ai_test_empty_key">Please enter an API key before testing.</string>
@@ -1113,6 +1113,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
 
     <!-- Notification Settings UI -->
     <string name="settings_notification_section_title">Notifications &amp; Reminders</string>
+    <string name="settings_notification_subtitle">Manage reminders and alerts</string>
     <string name="settings_notif_budget_alerts_title">Budget Alerts</string>
     <string name="settings_notif_budget_alerts_desc" formatted="false">Notify when spending reaches 80% or 100% of budget</string>
     <string name="settings_notif_weekly_digest_title">Weekly Financial Digest</string>
@@ -1129,7 +1130,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_tab_lend">To Collect</string>
     <string name="debt_tab_borrow">To Pay</string>
     <string name="debt_filter_unsettled_only">Unsettled</string>
-    <string name="debt_search_hint">Search name, note, phone...</string>
+    <string name="debt_search_hint">Search name, note, phone…</string>
     <string name="debt_empty_title">No debts recorded</string>
     <string name="debt_empty_desc">Track money you lent or borrowed to always stay on top of finances!</string>
     <string name="debt_action_add">Add new debt</string>
@@ -1137,13 +1138,13 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_type_lend_label">Lend (To collect)</string>
     <string name="debt_type_borrow_label">Borrow (To pay)</string>
     <string name="debt_person_name_label">Person *</string>
-    <string name="debt_person_name_hint">E.g., Alex, Linh...</string>
+    <string name="debt_person_name_hint">E.g., Alex, Linh…</string>
     <string name="debt_phone_label">Phone number (optional)</string>
     <string name="debt_amount_label">Amount *</string>
     <string name="debt_due_date_label">Due date (optional)</string>
     <string name="debt_due_date_hint">Select repayment due date</string>
     <string name="debt_note_label">Note</string>
-    <string name="debt_note_hint">Reason / details...</string>
+    <string name="debt_note_hint">Reason / details…</string>
     <string name="debt_wallet_label">Linked wallet</string>
     <string name="debt_sync_wallet_label">Auto-update wallet balance</string>
     <string name="debt_sync_wallet_desc">Automatically deduct from wallet for Lend or add for Borrow</string>
@@ -1191,7 +1192,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_qr_not_configured">Bank account has not been configured in wallet.</string>
     <string name="debt_action_copy_message">Copy message</string>
     <string name="debt_action_copy_done">Copied</string>
-    <string name="debt_chip_all">All (%s)</string>
+    <string name="debt_chip_all">All (%1$s)</string>
     <string name="error_no_dialer_app">No phone dialer application found</string>
     <string name="error_no_sms_app">No SMS messaging application found</string>
     <string name="debt_tx_note_lend">Lent to: %1$s</string>
@@ -1202,4 +1203,140 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_tx_note_repay_lend_with_note">Collected debt from %1$s (%2$s)</string>
     <string name="debt_tx_note_repay_borrow">Repaid debt to %1$s</string>
     <string name="debt_tx_note_repay_borrow_with_note">Repaid debt to %1$s (%2$s)</string>
+    <string name="day_detail_date_format">%1$s, %2$02d/%3$02d/%4$d</string>
+    <string name="extracted_string">! (TODO)</string>
+    <string name="ui_moneyformatter_formatcompactvi">+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)} (TODO)</string>
+    <string name="ui_sign_moneyformatter_format_tra">$sign${MoneyFormatter.format(transaction.amount)} (TODO)</string>
+    <string name="ui_0">0 (TODO)</string>
+    <string name="ui_notepay">NotePay (TODO)</string>
+    <string name="ui_walletname_presentationdatefor">$walletName • ${PresentationDateFormatter.formatDayMonthTime(tx.occurredAt)} (TODO)</string>
+    <string name="ui_moneyformatter_format_tx_amoun">+${MoneyFormatter.format(tx.amount)} (TODO)</string>
+    <string name="ui_datestr_notetext">$dateStr$noteText (TODO)</string>
+    <string name="ui_debt_reminder">debt_reminder (TODO)</string>
+    <string name="ui_50">50% (TODO)</string>
+    <string name="ui_item_percentage_100_toint">${(item.percentage * 100).toInt()}% (TODO)</string>
+    <string name="ui_unitlabel">($unitLabel) (TODO)</string>
+    <string name="wallet_preview_balance_format">%1$s ₫</string>
+    <string name="percent_change_positive">+%1$s%%</string>
+    <string name="percent_change_negative">-%1$s%%</string>
+    <string name="amount_positive_format">+%1$s</string>
+    <string name="amount_negative_format">-%1$s</string>
+    <string name="percent_format">%1$d%%</string>
+    <string name="bullet_separator">·</string>
+    <string name="assets_wallets_count_format">%1$d %2$s</string>
+    <string name="assets_transactions_count_format">%1$d %2$s</string>
+    <string name="ui_version_appinfo">Version %1$s</string>
+    <string name="ui_samplepositive">+%1$s</string>
+    <string name="ui_samplenegative">-%1$s</string>
+    <!-- Feedback: Wallet operations (AssetsViewModel) -->
+    <string name="feedback_wallet_set_active">Set as primary wallet</string>
+    <string name="feedback_wallet_switch_failed">Cannot switch wallet: %1$s</string>
+    <string name="feedback_transfer_same_wallet">Source and destination wallets must be different</string>
+    <string name="feedback_transfer_invalid_amount">Please enter a valid amount</string>
+    <string name="feedback_transfer_success">Transfer completed successfully!</string>
+    <string name="feedback_transfer_failed">Transfer error: %1$s</string>
+    <string name="transfer_note_default">Internal transfer</string>
+    <string name="transfer_note_to">Transfer to %1$s: %2$s</string>
+    <string name="transfer_note_from">Received from %1$s: %2$s</string>
+    <string name="transfer_wallet_other">other wallet</string>
+
+
+    <string name="wallet_initial_balance_locked_hint">Wallet has transactions. Initial balance is locked to maintain ledger integrity.</string>
+    <string name="wallet_initial_balance_editable_hint">No transactions yet. You can still adjust the initial balance.</string>
+    <string name="wallet_current_balance_badge">Current balance: %1$s</string>
+
+    <string name="notif_listener_service_label">NotePay Local Parse</string>
+    <string name="autocapture_save_success">Transaction saved! ✨</string>
+    <string name="autocapture_save_error">Error: cannot save the transaction.</string>
+    <string name="autocapture_subscription_success">Subscription added! 📅</string>
+    <string name="autocapture_subscription_error">Error: cannot add the subscription.</string>
+    <string name="notif_transaction_pending_title">Confirm bank transaction</string>
+    <string name="notif_transaction_pending_content">%1$s • %2$s</string>
+    <string name="notif_transaction_pending_big_text">Amount: %1$s\nWallet: %2$s\nNote: %3$s</string>
+    <string name="notif_transaction_confirm_action">Confirm</string>
+    <string name="notif_transaction_ignore_action">Ignore</string>
+    <string name="autocapture_pending_confirmed">Transaction confirmed and saved.</string>
+    <string name="autocapture_pending_ignored">Transaction notification ignored.</string>
+
+    <!-- Firebase Authentication & Google Sign-In -->
+    <string name="auth_section_title">Google Account</string>
+    <string name="auth_section_desc_unauthenticated">Sign in with Google to get ready for cloud sync and data backup.</string>
+    <string name="auth_sign_in_with_google">Sign in with Google</string>
+    <string name="auth_signing_in">Signing in…</string>
+    <string name="auth_signed_in_as">Signed in</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_signing_out">Signing out…</string>
+    <string name="auth_error_sign_in_failed">Sign in failed: %1$s</string>
+    <string name="auth_error_canceled">Sign in canceled.</string>
+    <string name="auth_error_no_credentials">No available Google account found on this device.</string>
+    <string name="auth_error_missing_client_id">Google Web Client ID not configured. Please set notepay.webClientId in gradle.properties.</string>
+    <string name="auth_avatar_description">User avatar</string>
+    <string name="auth_sign_out_confirm_title">Confirm Sign Out</string>
+    <string name="auth_sign_out_confirm_message">Are you sure you want to sign out of this Google account in NotePay?</string>
+    <string name="auth_sign_out_confirm_action">Sign out</string>
+    <string name="auth_account_email_fallback">No email</string>
+    <string name="auth_account_name_fallback">NotePay User</string>
+    <string name="auth_welcome_title">Welcome to NotePay</string>
+    <string name="auth_welcome_subtitle">Smart, intuitive, and secure personal finance tracking on your device.</string>
+    <string name="auth_welcome_skip_action">Maybe later • Explore app now</string>
+    <string name="auth_welcome_feature_privacy_title">Private &amp; Offline-first</string>
+    <string name="auth_welcome_feature_privacy_desc">All balances and transactions are stored securely on your device.</string>
+    <string name="auth_welcome_feature_smart_title">Smart Transaction Insights</string>
+    <string name="auth_welcome_feature_smart_desc">Automatically categorize expenses and provide actionable budget advice.</string>
+    <string name="auth_welcome_feature_cloud_title">Flexible Cloud Backup</string>
+    <string name="auth_welcome_feature_cloud_desc">Link your Google account to protect and restore data when changing devices.</string>
+    <string name="auth_card_unauthenticated_title">NotePay Account</string>
+    <string name="auth_card_unauthenticated_subtitle">Sign in with Google to sync your data</string>
+    <string name="auth_card_authenticated_subtitle">Google account linked</string>
+    <string name="auth_details_title">Account Details</string>
+    <string name="auth_details_status_connected">Connected</string>
+
+    <!-- Personalized Greetings -->
+    <string name="greeting_morning_with_name">Good morning, %1$s ☀️</string>
+    <string name="greeting_afternoon_with_name">Good afternoon, %1$s 🌤️</string>
+    <string name="greeting_evening_with_name">Good evening, %1$s 🌙</string>
+    <string name="greeting_morning_generic">Good morning ☀️</string>
+    <string name="greeting_afternoon_generic">Good afternoon 🌤️</string>
+    <string name="greeting_evening_generic">Good evening 🌙</string>
+
+    <string name="stats_date_all_time">All time</string>
+    <string name="stats_range_week">Week</string>
+    <string name="stats_range_month">Month</string>
+    <string name="stats_range_year">Year</string>
+    <string name="stats_range_all">All</string>
+    <string name="stats_trend_unavailable">Trend chart is currently being updated for this mode.</string>
+    <!-- Categories -->
+    <string name="category_food">Food &amp; dining</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_bill">Bills</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_health">Health</string>
+    <string name="category_education">Education</string>
+    <string name="category_coffee">Coffee</string>
+    <string name="category_beauty">Beauty</string>
+    <string name="category_pets">Pets</string>
+    <string name="category_sports">Sports</string>
+    <string name="category_family">Family</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_clothes">Clothing</string>
+    <string name="category_home">Home</string>
+    <string name="category_gas">Fuel</string>
+    <string name="category_repair">Repairs</string>
+    <string name="category_electricity">Electricity</string>
+    <string name="category_water">Water</string>
+    <string name="category_internet">Internet</string>
+    <string name="category_children">Children</string>
+    <string name="category_charity">Charity</string>
+    <string name="category_savings">Savings</string>
+    <string name="category_debt_loan">Debt &amp; loans</string>
+    <string name="category_insurance">Insurance</string>
+    <string name="category_tax">Taxes</string>
+    <string name="category_other">Other</string>
+    <string name="category_salary">Salary</string>
+    <string name="category_gift">Gifts</string>
+    <string name="category_investment">Investment</string>
+    <string name="category_bonus">Bonus</string>
+    <string name="category_income_other">Other income</string>
 </resources>
+

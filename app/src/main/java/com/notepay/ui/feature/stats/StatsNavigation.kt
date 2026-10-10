@@ -23,7 +23,7 @@ fun NavGraphBuilder.statsScreen(
                     navController.navigate(Route.TransactionDetail(txId).path)
                 },
                 onConfigureLocalModel = {
-                    navController.navigate(Route.AppSettings.path)
+                    navController.navigate(Route.AiSettings.path)
                 },
             )
         }

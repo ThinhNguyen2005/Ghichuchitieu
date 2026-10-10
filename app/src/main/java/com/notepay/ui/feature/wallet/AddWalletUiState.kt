@@ -1,5 +1,8 @@
 package com.notepay.ui.feature.wallet
 
+import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.money.Money
+
 enum class BudgetPeriod {
     DAILY, WEEKLY, MONTHLY
 }
@@ -7,6 +10,8 @@ enum class BudgetPeriod {
 data class AddWalletUiState(
     val name: String = "",
     val initialBalanceInput: String = "",
+    val currentBalance: Money? = null,
+    val hasTransactions: Boolean = false,
     val hasBudgetLimit: Boolean = false,
     val budgetLimitInput: String = "",
     val budgetPeriod: BudgetPeriod = BudgetPeriod.MONTHLY,
@@ -20,6 +25,16 @@ data class AddWalletUiState(
     val accountName: String = "",
     val isSaving: Boolean = false,
     val isEditMode: Boolean = false,
+    val banks: List<VietQrBank> = emptyList()
+
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && !isSaving
+    val hasBankInfo: Boolean
+        get() = !bankBin.isNullOrBlank() || accountNumber.isNotBlank() || accountName.isNotBlank()
+    val isBankInfoComplete: Boolean
+        get() = !bankBin.isNullOrBlank() && accountNumber.isNotBlank() && accountName.isNotBlank()
+    val isBankInfoValid: Boolean
+        get() = !hasBankInfo || isBankInfoComplete
+    val canSave: Boolean
+        get() = name.isNotBlank() && isBankInfoValid && !isSaving
+
 }

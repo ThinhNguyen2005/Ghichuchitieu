@@ -5,9 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
-import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.RGBLuminanceSource
@@ -22,6 +22,11 @@ import javax.inject.Singleton
 import com.notepay.data.preferences.AiSettingsDataStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import com.notepay.di.DefaultDispatcher
+import androidx.core.graphics.scale
 
 /** Result is intentionally limited to a draft amount; the original image is never persisted. */
 data class LocalImageScanResult(
@@ -44,24 +49,25 @@ class LocalTransactionImageScanner @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val cloudAdvisor: CloudGeminiAdvisor,
     private val aiSettings: AiSettingsDataStore,
+    @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
 ) {
-    suspend fun scan(uri: Uri): LocalImageScanResult {
+    suspend fun scan(uri: Uri): LocalImageScanResult = withContext(defaultDispatcher) {
         val bitmap = decodeBitmap(uri)
-            ?: return LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
+            ?: return@withContext LocalImageScanResult(message = context.getString(R.string.image_scan_read_error))
         val vietQrAmount = bitmap.let(::extractVietQrAmount)
         if (vietQrAmount != null) {
-            return LocalImageScanResult(
+            return@withContext LocalImageScanResult(
                 amountInput = vietQrAmount.toString(),
                 message = context.getString(R.string.image_scan_vietqr_success),
                 source = LocalImageScanResult.Source.VIET_QR,
             )
         }
 
-        var recognizer: com.google.mlkit.vision.text.TextRecognizer? = null
-        return try {
+        var recognizer: TextRecognizer? = null
+        return@withContext try {
             recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             val image = InputImage.fromBitmap(bitmap, 0)
-            val text = Tasks.await(recognizer.process(image))
+            val text = recognizer.process(image).await()
             val reconstructedLines = reconstructHorizontalLines(text)
             val fullRawText = reconstructedLines.joinToString("\n")
             val payload = com.notepay.domain.ingestion.RawTransactionPayload(
@@ -78,11 +84,13 @@ class LocalTransactionImageScanner @Inject constructor(
                         source = LocalImageScanResult.Source.OCR,
                     )
                 }
+
                 is com.notepay.domain.ingestion.ParsedTransactionResult.Unrecognized -> {
                     // Try smart AI extraction if enabled and configured
-                    val aiExtraction = if (aiSettings.smartReceiptAiEnabled.first() && cloudAdvisor.isConfigured()) {
-                        cloudAdvisor.extractReceiptInfo(fullRawText)
-                    } else null
+                    val aiExtraction =
+                        if (aiSettings.smartReceiptAiEnabled.first() && cloudAdvisor.isConfigured()) {
+                            cloudAdvisor.extractReceiptInfo(fullRawText)
+                        } else null
 
                     if (aiExtraction?.amountInCents != null) {
                         val majorUnits = aiExtraction.amountInCents / 100L
@@ -119,36 +127,46 @@ class LocalTransactionImageScanner @Inject constructor(
         }
     }
 
-    private fun decodeBitmap(uri: Uri): Bitmap? { return try {
-        val resolver = context.contentResolver
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-        val width = bounds.outWidth
-        val height = bounds.outHeight
-        if (width <= 0 || height <= 0) return null
+    private fun decodeBitmap(uri: Uri): Bitmap? {
+        return try {
+            val resolver = context.contentResolver
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            val width = bounds.outWidth
+            val height = bounds.outHeight
+            if (width <= 0 || height <= 0) return null
 
-        var sampleSize = 1
-        while (width / sampleSize > MAX_IMAGE_SIDE || height / sampleSize > MAX_IMAGE_SIDE) {
-            sampleSize *= 2
+            var sampleSize = 1
+            while (width / sampleSize > MAX_IMAGE_SIDE || height / sampleSize > MAX_IMAGE_SIDE) {
+                sampleSize *= 2
+            }
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+        } catch (_: Throwable) {
+            null
         }
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.ARGB_8888
-        }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
-    } catch (_: Throwable) {
-        null
-    } catch (_: Throwable) {
-        null
-    } }
+    }
 
     private fun extractVietQrAmount(bitmap: Bitmap): Long? = try {
-        val pixels = IntArray(bitmap.width * bitmap.height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        val source = RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
+        val maxQrSide = 1024
+        val qrBitmap = if (bitmap.width > maxQrSide || bitmap.height > maxQrSide) {
+            val scale = maxQrSide.toFloat() / kotlin.math.max(bitmap.width, bitmap.height)
+            bitmap.scale((bitmap.width * scale).toInt(), (bitmap.height * scale).toInt())
+        } else {
+            bitmap
+        }
+        val pixels = IntArray(qrBitmap.width * qrBitmap.height)
+        qrBitmap.getPixels(pixels, 0, qrBitmap.width, 0, 0, qrBitmap.width, qrBitmap.height)
+        val source = RGBLuminanceSource(qrBitmap.width, qrBitmap.height, pixels)
         val payload = QRCodeReader()
             .decode(BinaryBitmap(HybridBinarizer(source)))
             .text
+        if (qrBitmap !== bitmap) {
+            qrBitmap.recycle()
+        }
         parseEmvAmount(payload)
     } catch (_: Throwable) {
         null
@@ -183,7 +201,7 @@ class LocalTransactionImageScanner @Inject constructor(
                 val hasCurrency = currencyPattern.containsMatchIn(raw)
                 val hasStructure = raw.any { it == '.' || it == ',' || it == ' ' }
                 val hasAmountContext = amountMarkers.any { it in normalizedLine }
-                if (value <= 0L || value > 9_999_999_999L || (!hasCurrency && !hasStructure && !hasAmountContext)) {
+                if (value !in 1..9_999_999_999L || (!hasCurrency && !hasStructure && !hasAmountContext)) {
                     return@mapNotNull null
                 }
                 var score = 0
@@ -212,9 +230,9 @@ class LocalTransactionImageScanner @Inject constructor(
 
         // Sắp xếp các dòng từ trên xuống dưới theo tọa độ y (top)
         val sortedByTop = linesWithRect.sortedBy { it.rect.top }
-        
+
         val rows = mutableListOf<MutableList<LineWithBoundingBox>>()
-        
+
         for (line in sortedByTop) {
             var placed = false
             for (row in rows) {
@@ -222,12 +240,12 @@ class LocalTransactionImageScanner @Inject constructor(
                 val repHeight = representative.rect.bottom - representative.rect.top
                 val lineHeight = line.rect.bottom - line.rect.top
                 val minHeight = kotlin.math.min(repHeight, lineHeight)
-                
+
                 val repCenter = (representative.rect.top + representative.rect.bottom) / 2
                 val lineCenter = (line.rect.top + line.rect.bottom) / 2
                 val centerDiff = kotlin.math.abs(repCenter - lineCenter)
                 val threshold = minHeight * 0.5f // Lệch tâm không quá 50% chiều cao dòng
-                
+
                 if (centerDiff < threshold) {
                     row.add(line)
                     placed = true
@@ -238,7 +256,7 @@ class LocalTransactionImageScanner @Inject constructor(
                 rows.add(mutableListOf(line))
             }
         }
-        
+
         // Với mỗi dòng hàng ngang được ghép, ta sắp xếp các chữ từ trái qua phải (trục x)
         return rows.map { row ->
             row.sortedBy { it.rect.left }
@@ -262,9 +280,21 @@ class LocalTransactionImageScanner @Inject constructor(
             """(?<!\d)(?:\d{1,3}(?:[.,\s]\d{3})+|\d{4,})(?:\s*(?:đ|vnđ|vnd))?(?!\d)""",
             RegexOption.IGNORE_CASE,
         )
-        val amountMarkers = setOf("số tiền", "so tien", "thanh toán", "thanh toan", "giao dịch", "giao dich", "chuyển khoản", "chuyen khoan", "tổng tiền", "tong tien", "amount")
-        val currencyMarkers = setOf("đ", "vnđ", "vnd")
+        val amountMarkers = setOf(
+            "số tiền",
+            "so tien",
+            "thanh toán",
+            "thanh toan",
+            "giao dịch",
+            "giao dich",
+            "chuyển khoản",
+            "chuyen khoan",
+            "tổng tiền",
+            "tong tien",
+            "amount"
+        )
         val balanceMarkers = setOf("số dư", "so du", "balance")
-        val accountMarkers = setOf("tài khoản", "tai khoan", "stk", "account", "mã giao dịch", "ma giao dich")
+        val accountMarkers =
+            setOf("tài khoản", "tai khoan", "stk", "account", "mã giao dịch", "ma giao dich")
     }
 }

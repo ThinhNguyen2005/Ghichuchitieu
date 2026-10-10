@@ -4,7 +4,7 @@ import android.content.Context
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.TestData
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import io.mockk.coEvery
@@ -15,11 +15,21 @@ import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 class BudgetAlertNotifierTest {
+
+    private val currentMonthKey: String
+        get() {
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            return "%d-%02d".format(now.year, now.month.number)
+        }
 
     private val appSettingsDataStore = mockk<AppSettingsDataStore>(relaxed = true)
     private val budgetSettingsStore = mockk<BudgetSettingsStore>(relaxed = true)
@@ -99,7 +109,7 @@ class BudgetAlertNotifierTest {
     @Test
     fun `checkAndNotify when spending reaches 100 percent sends exceeded alert and records 100`() = runTest {
         coEvery { appSettingsDataStore.budgetAlertsEnabled } returns flowOf(true)
-        coEvery { appSettingsDataStore.lastNotifiedBudgetMonth } returns flowOf("2026-09")
+        coEvery { appSettingsDataStore.lastNotifiedBudgetMonth } returns flowOf(currentMonthKey)
         coEvery { appSettingsDataStore.lastNotifiedBudgetThreshold } returns flowOf(80)
 
         val wallet = TestData.wallet(id = 1L, name = "Chính").copy(
@@ -138,7 +148,7 @@ class BudgetAlertNotifierTest {
     @Test
     fun `checkAndNotify when 80 percent already notified does not duplicate alert`() = runTest {
         coEvery { appSettingsDataStore.budgetAlertsEnabled } returns flowOf(true)
-        coEvery { appSettingsDataStore.lastNotifiedBudgetMonth } returns flowOf("2026-09")
+        coEvery { appSettingsDataStore.lastNotifiedBudgetMonth } returns flowOf(currentMonthKey)
         coEvery { appSettingsDataStore.lastNotifiedBudgetThreshold } returns flowOf(80)
 
         val wallet = TestData.wallet(id = 1L, name = "Chính").copy(

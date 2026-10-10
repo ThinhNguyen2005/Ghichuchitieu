@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 /**
  * Reclaims storage on user devices by removing legacy .litertlm models
@@ -25,9 +26,9 @@ class LegacyAiModelCleaner @Inject constructor(
                 legacyDir.deleteRecursively()
             }
             context.getSharedPreferences("notepay_local_ai_model", Context.MODE_PRIVATE)
-                .edit()
-                .clear()
-                .apply()
+                .edit {
+                    clear()
+                }
         } catch (_: Throwable) {
             // Best effort cleanup
         }

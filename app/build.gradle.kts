@@ -7,12 +7,22 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-
+// Áp dụng google-services plugin có điều kiện: chỉ kích hoạt khi có file google-services.json
+// để đảm bảo project luôn build thành công trên máy chưa cấu hình Firebase.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
 
 val signingProps = Properties().apply {
     val f = rootProject.file("app/signing.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+
+// Web Client ID lấy từ gradle.properties (notepay.webClientId) hoặc env var (NOTEPAY_WEB_CLIENT_ID)
+val resolvedWebClientId = providers.gradleProperty("notepay.webClientId")
+    .orElse(providers.environmentVariable("NOTEPAY_WEB_CLIENT_ID"))
+    .orElse("")
+    .get()
 
 // Release automation supplies these environment variables from the version tag.
 // They remain unset locally, so local builds keep the existing 1.0/1 defaults.
@@ -45,6 +55,7 @@ android {
         versionName = resolvedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+        buildConfigField("String", "WEB_CLIENT_ID", "\"$resolvedWebClientId\"")
     }
 
     signingConfigs {
@@ -119,7 +130,7 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             all {
-                it.jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xmx1024m")
+                it.jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xmx768m")
             }
         }
     }
@@ -137,10 +148,14 @@ android {
         }
     }
 }
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
+        freeCompilerArgs.addAll(
+            "-opt-in=kotlin.time.ExperimentalTime",
+            "-Xannotation-default-target=param-property"
+        )
     }
 }
 
@@ -166,6 +181,7 @@ dependencies {
 
     // Splash screen
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.material3)
 
     // Backdrop for Liquid Slider/Toggle
     implementation(libs.backdrop)
@@ -177,6 +193,15 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.firebase.crashlytics.buildtools)
+
+    // Firebase (BoM) & Authentication (không dùng artifact -ktx theo chuẩn mới)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+
+    // Credential Manager & Google ID (Đăng nhập Google hiện đại)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -191,6 +216,7 @@ dependencies {
 
     // Coroutines + DateTime
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.datetime)
     implementation(libs.zxing.core)
 
@@ -207,6 +233,7 @@ dependencies {
     ksp(libs.hilt.work.compiler)
 
     // Debug
+    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
@@ -221,6 +248,7 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
 
     // Instrumented
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

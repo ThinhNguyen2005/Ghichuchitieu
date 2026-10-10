@@ -3,6 +3,7 @@ package com.notepay.domain.model
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+import com.notepay.domain.money.Money
 /**
  * Ví tài chính. Phase 1 chỉ cho phép 1 ví active duy nhất.
  *

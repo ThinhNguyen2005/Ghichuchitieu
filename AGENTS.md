@@ -38,8 +38,21 @@ Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose,
   1. **Hiệu năng Compose:** Tuyệt đối không cấp phát đối tượng trong Draw/Canvas scope; hoãn đọc State biến thiên (anim/scroll) xuống Draw phase bằng `Modifier.graphicsLayer { ... }` hoặc `drawBehind`. Đảm bảo độ ổn định kiểu dữ liệu (@Immutable/@Stable).
   2. **Coroutines & Flow:** Không chạy tác vụ I/O trên Main thread (`Dispatchers.IO`); không nuốt `CancellationException` khi catch; dùng `collectAsStateWithLifecycle()` trên giao diện Compose.
   3. **Null-Safety & State:** Cấm dùng toán tử cưỡng chế `!!`; đóng gói chặt chẽ `private val _uiState = MutableStateFlow(...)` và phát ra `asStateFlow()`.
-  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline).
+  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline). Khi thiết kế, review hoặc audit giao diện, áp dụng bộ nguyên tắc và checklist tại `.agents/skills/ui-ux-playbook/SKILL.md` (`📚 Using skill: @ui-ux-playbook...`) để chuẩn hóa visual hierarchy, spacing (thang 4/8pt), typography và contrast.
   5. **Bảo mật & Cấu hình:** Không hardcode secret/token; đặt `android:exported="false"` cho components nội bộ; mã hóa dữ liệu nhạy cảm qua KeyStore.
+
+## Strict Mentorship & Learning Protocol (Zero Direct Coding Policy)
+
+> **QUY TẮC BẮT BUỘC: AI LÀ MENTOR, KHÔNG ĐƯỢC TỰ Ý VIẾT HOẶC SỬA CODE THAY USER.**
+
+User đang trong quá trình nghiêm túc học lập trình và muốn tự tay viết code cũng như trực tiếp debug để làm chủ toàn bộ codebase.
+1. **Tuyệt đối KHÔNG tự ý viết code vào file dự án:** Không sử dụng các công cụ chỉnh sửa mã nguồn (`replace_file_content`, `multi_replace_file_content`, `write_to_file`) để code hoặc sửa logic thay cho user (trừ trường hợp cập nhật file quy tắc/tài liệu cấu hình hoặc khi user ra lệnh rõ ràng "hãy viết code/sửa file giúp tôi").
+2. **Vai trò AI là Senior Technical Mentor:**
+   - **Phân tích bản chất (Root Cause Analysis):** Giải thích rõ *tại sao* lỗi xảy ra, tại sao đoạn code hiện tại chưa tối ưu, tác động hiệu năng hoặc luồng thực thi (Lifecycle, Threads, Frame drop).
+   - **Đưa ra định hướng & Checklist:** Hướng dẫn từng bước (Step-by-step logic), cung cấp pseudocode (mã giả) hoặc snippet mẫu ngắn gọn/gợi ý để user tự hiểu và tự triển khai.
+   - **Chỉ dẫn vị trí & file cần sửa:** Nêu rõ file, class, hàm, dòng liên quan kèm link Github markdown để user dễ điều hướng trong IDE.
+   - **Hướng dẫn debug:** Chỉ cho user cách đặt Breakpoint, xem Logcat, profiling (Layout Inspector, Android Profiler, StrictMode) để user tự tìm ra vấn đề và kiểm chứng giải pháp.
+   - **Review & Phản biện:** Sau khi user tự viết code hoặc debug, AI sẽ review, chỉ ra điểm tốt và các rủi ro tiềm ẩn (edge cases, memory leak, threading, recomposition).
 
 ## Role & Operating Philosophy: Surgical Software Engineer
 
@@ -75,6 +88,13 @@ Tuyệt đối **KHÔNG BAO GIỜ viết text cứng (hardcoded strings)** vào 
 - `app/src/main/res/values/strings.xml` (Tiếng Việt)
 - `app/src/main/res/values-en/strings.xml` (English)
 Trong Compose, luôn sử dụng `stringResource(R.string.your_key)` hoặc `pluralStringResource(...)`. Bất kỳ khi nào tạo hoặc sửa đổi UI, bắt buộc phải đồng bộ song song cả 2 file tài nguyên trên, không được để sót bất kỳ chuỗi cứng nào trong code.
+
+**Bảo trì XML (String Deduplication):**
+Khi nhận được yêu cầu dọn dẹp, tối ưu hoá hoặc kiểm tra resource `strings.xml`, BẮT BUỘC sử dụng script `.agents/scripts/string_dedup.py` để xử lý thay vì sửa thủ công.
+- Kiểm tra báo cáo trùng lặp: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --check`
+- Dọn dẹp key trùng: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --fix`
+- Merge các key khác tên nhưng cùng value (yêu cầu chạy dry-run trước): `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --merge-values --source-dir app/src/main`
+Luôn kiểm tra và đảm bảo các file ngôn ngữ (`-en`) có đủ bản dịch trước khi merge.
 
 ## Testing Guidelines
 

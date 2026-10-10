@@ -1,6 +1,6 @@
 package com.notepay.ui.feature.transaction
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 
 enum class AmountParseError {
     EMPTY,

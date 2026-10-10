@@ -54,6 +54,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }
@@ -87,6 +90,7 @@ internal fun StatsDashboard(
     viewType: StatsViewType,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     supportingContent: @Composable (StatsMetric) -> Unit,
@@ -94,10 +98,8 @@ internal fun StatsDashboard(
 ) {
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
-    val previousTotal = state.recentMonths.getOrNull(1)?.let {
-        if (metric == StatsMetric.CHI_TIEU) it.expense else it.income
-    } ?: Money.ZERO
-    val difference = total.amountInCents - previousTotal.amountInCents
+    val previousTotal = if (metric == StatsMetric.CHI_TIEU) state.previousExpense else state.previousIncome
+    val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
     val breakdown = if (metric == StatsMetric.CHI_TIEU) state.breakdown else state.incomeBreakdown
 
     LazyColumn(
@@ -115,6 +117,7 @@ internal fun StatsDashboard(
                     onMetricChanged = { metric = it },
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
+                    onSelectRange = onSelectRange,
                 ) {
                     AllocationChartContent(
                         breakdown = breakdown,
@@ -132,15 +135,26 @@ internal fun StatsDashboard(
                     onMetricChanged = { metric = it },
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
+                    onSelectRange = onSelectRange,
                 ) {
-                    TrendChartContent(
-                        points = state.recentMonths,
-                        metric = metric,
-                        isSelectedMonthCurrent = state.isCurrentMonth,
-                        forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
-                        showAmounts = showAmounts,
-                        onPointClick = onMonthSelected,
-                    )
+                    if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                        TrendChartContent(
+                            points = state.recentMonths,
+                            metric = metric,
+                            isSelectedMonthCurrent = state.isCurrentMonth,
+                            forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
+                            showAmounts = showAmounts,
+                            onPointClick = onMonthSelected,
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.stats_trend_unavailable),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -261,17 +275,18 @@ private fun OverviewCard(
     state: StatsUiState,
     metric: StatsMetric,
     showAmounts: Boolean,
-    difference: Long,
+    difference: Long?,
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
     chartContent: (@Composable () -> Unit)? = null,
 ) {
-    val previousExpense = state.recentMonths.getOrNull(1)?.expense ?: Money.ZERO
-    val previousIncome = state.recentMonths.getOrNull(1)?.income ?: Money.ZERO
+    val previousExpense = state.previousExpense
+    val previousIncome = state.previousIncome
 
-    val expenseDelta = state.totalExpense.amountInCents - previousExpense.amountInCents
-    val incomeDelta = state.totalIncome.amountInCents - previousIncome.amountInCents
+    val expenseDelta = if (previousExpense != null) state.totalExpense.amountInCents - previousExpense.amountInCents else null
+    val incomeDelta = if (previousIncome != null) state.totalIncome.amountInCents - previousIncome.amountInCents else null
 
     Card(
         shape = RoundedCornerShape(22.dp),
@@ -280,10 +295,38 @@ private fun OverviewCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            val ranges = listOf(
+                com.notepay.domain.analytics.StatsRange.WEEK to stringResource(R.string.stats_range_week),
+                com.notepay.domain.analytics.StatsRange.MONTH to stringResource(R.string.stats_range_month),
+                com.notepay.domain.analytics.StatsRange.YEAR to stringResource(R.string.stats_range_year),
+                com.notepay.domain.analytics.StatsRange.ALL to stringResource(R.string.stats_range_all)
+            )
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            ) {
+                for (index in ranges.indices) {
+                    val (range, label) = ranges[index]
+                    SegmentedButton(
+                        selected = state.currentPeriod?.range == range,
+                        onClick = { onSelectRange(range) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ranges.size),
+                        icon = {},
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                    }
+                }
+            }
+
             // Month navigation row
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
+                val hasArrows = state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.ALL && 
+                                state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.CUSTOM
+                if (hasArrows) {
+                    IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
+                    }
+                } else {
+                    Spacer(Modifier.size(48.dp))
                 }
                 Row(
                     modifier = Modifier.weight(1f),
@@ -293,13 +336,17 @@ private fun OverviewCard(
                     Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else stringResource(R.string.stats_month_year_format, state.month, state.year),
+                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else state.dateRangeLabel,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                IconButton(onClick = onNextMonth, enabled = !state.isCurrentMonth, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
+                if (hasArrows) {
+                    IconButton(onClick = onNextMonth, enabled = !state.isLatestPeriod, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
+                    }
+                } else {
+                    Spacer(Modifier.size(48.dp))
                 }
             }
 
@@ -332,67 +379,69 @@ private fun OverviewCard(
             }
 
             // Comparison alert banner below tabs
-            val isExpense = metric == StatsMetric.CHI_TIEU
-            val isDecrease = difference < 0
-            val isFlat = difference == 0L
-            val isGood = if (isExpense) isDecrease else !isDecrease && !isFlat
-
-            val bannerBg = when {
-                isFlat -> MaterialTheme.colorScheme.surfaceContainerHigh
-                isGood -> if (isAppDarkTheme()) Color(0xFF1B382B) else Color(0xFFE8F5E9)
-                else -> if (isAppDarkTheme()) Color(0xFF3E1B1B) else Color(0xFFFFEBEE)
-            }
-            val bannerContentColor = when {
-                isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-                isGood -> Color(0xFF2E7D32)
-                else -> MaterialTheme.colorScheme.error
-            }
-            val bannerIcon = when {
-                isFlat -> Icons.Rounded.Info
-                isGood -> Icons.Rounded.CheckCircle
-                else -> Icons.Rounded.Warning
-            }
-
-            val absFormatted = MoneyFormatter.format(Money(kotlin.math.abs(difference)))
-            val bannerText = when {
-                !showAmounts -> stringResource(R.string.stats_amounts_hidden)
-                isFlat -> stringResource(R.string.stats_stable_previous)
-                isExpense -> if (isDecrease) {
-                    stringResource(R.string.stats_banner_expense_decrease, absFormatted)
-                } else {
-                    stringResource(R.string.stats_banner_expense_increase, absFormatted)
+            if (difference != null) {
+                val isExpense = metric == StatsMetric.CHI_TIEU
+                val isDecrease = difference < 0
+                val isFlat = difference == 0L
+                val isGood = if (isExpense) isDecrease else !isDecrease && !isFlat
+    
+                val bannerBg = when {
+                    isFlat -> MaterialTheme.colorScheme.surfaceContainerHigh
+                    isGood -> if (isAppDarkTheme()) Color(0xFF1B382B) else Color(0xFFE8F5E9)
+                    else -> if (isAppDarkTheme()) Color(0xFF3E1B1B) else Color(0xFFFFEBEE)
                 }
-                else -> if (!isDecrease) {
-                    stringResource(R.string.stats_banner_income_increase, absFormatted)
-                } else {
-                    stringResource(R.string.stats_banner_income_decrease, absFormatted)
+                val bannerContentColor = when {
+                    isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
+                    isGood -> Color(0xFF2E7D32)
+                    else -> MaterialTheme.colorScheme.error
                 }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(AppTheme.shapes.corner12)
-                    .background(bannerBg)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    bannerIcon,
-                    contentDescription = null,
-                    tint = bannerContentColor,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    bannerText,
-                    color = bannerContentColor,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                val bannerIcon = when {
+                    isFlat -> Icons.Rounded.Info
+                    isGood -> Icons.Rounded.CheckCircle
+                    else -> Icons.Rounded.Warning
+                }
+    
+                val absFormatted = MoneyFormatter.format(Money(kotlin.math.abs(difference)))
+                val bannerText = when {
+                    !showAmounts -> stringResource(R.string.stats_amounts_hidden)
+                    isFlat -> stringResource(R.string.stats_stable_previous)
+                    isExpense -> if (isDecrease) {
+                        stringResource(R.string.stats_banner_expense_decrease, absFormatted)
+                    } else {
+                        stringResource(R.string.stats_banner_expense_increase, absFormatted)
+                    }
+                    else -> if (!isDecrease) {
+                        stringResource(R.string.stats_banner_income_increase, absFormatted)
+                    } else {
+                        stringResource(R.string.stats_banner_income_decrease, absFormatted)
+                    }
+                }
+    
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(AppTheme.shapes.corner12)
+                        .background(bannerBg)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        bannerIcon,
+                        contentDescription = null,
+                        tint = bannerContentColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        bannerText,
+                        color = bannerContentColor,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
 
             chartContent?.let { content ->
@@ -408,7 +457,7 @@ private fun MetricCard(
     title: String,
     amount: Money,
     showAmounts: Boolean,
-    delta: Long,
+    delta: Long?,
     positiveDeltaIsGood: Boolean,
     active: Boolean,
     icon: ImageVector,
@@ -431,8 +480,8 @@ private fun MetricCard(
         if (isDark) MaterialTheme.colorScheme.surfaceContainerLow else Color(0xFFFAFAFA)
     }
 
-    val isIncrease = delta > 0L
-    val isFlat = delta == 0L
+    val isIncrease = delta != null && delta > 0L
+    val isFlat = delta == null || delta == 0L
     val isGood = if (isFlat) true else if (positiveDeltaIsGood) isIncrease else !isIncrease
     val statusColor = when {
         isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -440,6 +489,7 @@ private fun MetricCard(
         else -> Color(0xFFE65100)
     }
     val statusIcon = when {
+        delta == null -> Icons.Rounded.Remove
         isFlat -> Icons.Rounded.Remove
         isIncrease -> Icons.Rounded.NorthEast
         else -> Icons.Rounded.SouthEast

@@ -1,7 +1,7 @@
 package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.WalletEntity
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import kotlin.time.Instant
 import javax.inject.Inject

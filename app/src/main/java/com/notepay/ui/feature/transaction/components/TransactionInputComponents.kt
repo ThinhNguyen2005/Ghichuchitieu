@@ -33,6 +33,7 @@ import com.notepay.ui.feature.transaction.AmountParser
 import com.notepay.ui.formatter.VietnameseMoneyWordsFormatter
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.sp
+import com.notepay.ui.util.localizedName
 
 /**
  * Helper định dạng nhãn cấp độ số tiền thông minh (Smart Magnitude):
@@ -311,7 +312,7 @@ private fun CategoryRow(
                     CategoryAvatar(category = category, size = 32.dp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = category.displayName,
+                        text = category.localizedName(),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,

@@ -4,6 +4,8 @@ import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.mapper.TransactionMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.WalletStats
+import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.platform.widget.WidgetUpdateHelper
@@ -33,6 +35,37 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override fun observeAll(): Flow<List<Transaction>> =
         combine(dao.observeAll(), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
+
+    override fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<Transaction>> =
+        combine(dao.observeByRange(startMillis, endMillis), categoryRepository.observeCategories()) { list, _ ->
+            list.map(mapper::toDomain)
+        }.flowOn(dispatcher)
+
+    override fun observeAllCreatedDates(): Flow<List<kotlin.time.Instant>> =
+        dao.observeAllOccurredDates().map { milliList ->
+            milliList.map { kotlin.time.Instant.fromEpochMilliseconds(it) }
+        }.flowOn(dispatcher)
+
+    override fun observeWalletStats(monthStartMillis: Long, monthEndMillis: Long): Flow<List<WalletStats>> =
+        combine(dao.observeAll(), categoryRepository.observeCategories()) { entities, _ ->
+            entities.groupBy { it.walletId }.map { (walletId, txs) ->
+                val incomeType = "INCOME"
+                val expenseType = "EXPENSE"
+                WalletStats(
+                    walletId = walletId,
+                    allTimeIncome = Money(txs.filter { it.type == incomeType }.sumOf { it.amountCents }),
+                    allTimeExpense = Money(txs.filter { it.type == expenseType }.sumOf { it.amountCents }),
+                    currentMonthIncome = Money(txs.filter { it.type == incomeType && it.occurredAt in monthStartMillis..monthEndMillis }.sumOf { it.amountCents }),
+                    currentMonthExpense = Money(txs.filter { it.type == expenseType && it.occurredAt in monthStartMillis..monthEndMillis }.sumOf { it.amountCents }),
+                    txCount = txs.size,
+                )
+            }
+        }.flowOn(dispatcher)
+
+    override fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<Transaction>> =
+        combine(dao.observeRecentNonTransfers(sinceMillis), categoryRepository.observeCategories()) { list, _ ->
             list.map(mapper::toDomain)
         }.flowOn(dispatcher)
 

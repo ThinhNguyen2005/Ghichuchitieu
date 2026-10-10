@@ -27,8 +27,6 @@ import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Card
@@ -52,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,11 +69,7 @@ private data class ThemeColorOption(
 private val themeColorOptions = listOf(
     ThemeColorOption("ledger", R.string.appearance_color_ledger, Color(0xFFB5502E)),
     ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E)),
-    ThemeColorOption("dynamic", R.string.appearance_color_dynamic, Color(0xFF6750A4)),
-    ThemeColorOption("ocean", R.string.appearance_color_ocean, Color(0xFF007AFF)),
-    ThemeColorOption("emerald", R.string.appearance_color_emerald, Color(0xFF34C759)),
-    ThemeColorOption("amber", R.string.appearance_color_amber, Color(0xFFFF9500)),
-    ThemeColorOption("rose", R.string.appearance_color_rose, Color(0xFFFF2D55)),
+    ThemeColorOption("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
 )
 
 private data class LanguageOption(
@@ -102,7 +97,7 @@ fun AppearanceLanguageScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.appearance_language_title),
+                        text = stringResource(R.string.utilities_appearance_language_title),
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -132,10 +127,7 @@ fun AppearanceLanguageScreen(
         ) {
             // Section 1: Chế độ giao diện (Theme Mode)
             item {
-                SectionHeader(
-                    icon = Icons.Rounded.LightMode,
-                    title = stringResource(R.string.appearance_section_theme),
-                )
+                SectionHeader(title = stringResource(R.string.appearance_section_theme))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -170,9 +162,9 @@ fun AppearanceLanguageScreen(
                                 ) {
                                     Text(
                                         text = when (mode) {
-                                            "light" -> stringResource(R.string.appearance_theme_light)
-                                            "dark" -> stringResource(R.string.appearance_theme_dark)
-                                            else -> stringResource(R.string.appearance_theme_system)
+                                            "light" -> stringResource(R.string.theme_light)
+                                            "dark" -> stringResource(R.string.theme_dark)
+                                            else -> stringResource(R.string.theme_system)
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -186,10 +178,7 @@ fun AppearanceLanguageScreen(
 
             // Section 2: Màu sắc chủ đề (Color Presets)
             item {
-                SectionHeader(
-                    icon = Icons.Rounded.Palette,
-                    title = stringResource(R.string.appearance_section_color),
-                )
+                SectionHeader(title = stringResource(R.string.settings_theme_title))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -201,7 +190,7 @@ fun AppearanceLanguageScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         items(themeColorOptions) { option ->
                             val isSelected = uiState.themeColor == option.id
@@ -220,7 +209,7 @@ fun AppearanceLanguageScreen(
                                         .then(
                                             if (isSelected) {
                                                 Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                                            } else Modifier
+                                            } else Modifier,
                                         ),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -238,7 +227,7 @@ fun AppearanceLanguageScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -250,10 +239,7 @@ fun AppearanceLanguageScreen(
 
             // Section 3: Hiệu ứng thị giác (Liquid Glass)
             item {
-                SectionHeader(
-                    icon = Icons.Rounded.WaterDrop,
-                    title = stringResource(R.string.appearance_section_glass),
-                )
+                SectionHeader(title = stringResource(R.string.appearance_section_glass))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -261,42 +247,25 @@ fun AppearanceLanguageScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 56.dp)
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.appearance_liquid_glass_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                    AppearanceSettingRow(
+                        icon = Icons.Rounded.WaterDrop,
+                        iconTint = Color(0xFF007AFF),
+                        title = stringResource(R.string.appearance_liquid_glass_title),
+                        subtitle = stringResource(R.string.appearance_liquid_glass_desc),
+                        trailing = {
+                            Switch(
+                                checked = uiState.liquidGlassEnabled,
+                                onCheckedChange = { viewModel.setLiquidGlassEnabled(it) },
+                                enabled = uiState.isLiquidGlassSupported,
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(R.string.appearance_liquid_glass_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = uiState.liquidGlassEnabled,
-                            onCheckedChange = { viewModel.setLiquidGlassEnabled(it) },
-                            enabled = uiState.isLiquidGlassSupported,
-                        )
-                    }
+                        },
+                    )
                 }
             }
 
             // Section 4: Phản hồi rung (Haptic Feedback)
             item {
-                SectionHeader(
-                    icon = Icons.Rounded.Vibration,
-                    title = stringResource(R.string.appearance_haptic_feedback_title),
-                )
+                SectionHeader(title = stringResource(R.string.appearance_haptic_feedback_title))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -304,41 +273,24 @@ fun AppearanceLanguageScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 56.dp)
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.appearance_haptic_feedback_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                    AppearanceSettingRow(
+                        icon = Icons.Rounded.Vibration,
+                        iconTint = Color(0xFFFF9500),
+                        title = stringResource(R.string.appearance_haptic_feedback_title),
+                        subtitle = stringResource(R.string.appearance_haptic_feedback_desc),
+                        trailing = {
+                            Switch(
+                                checked = uiState.hapticFeedbackEnabled,
+                                onCheckedChange = { viewModel.setHapticFeedbackEnabled(it) },
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(R.string.appearance_haptic_feedback_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = uiState.hapticFeedbackEnabled,
-                            onCheckedChange = { viewModel.setHapticFeedbackEnabled(it) },
-                        )
-                    }
+                        },
+                    )
                 }
             }
 
             // Section 5: Ngôn ngữ ứng dụng (Language)
             item {
-                SectionHeader(
-                    icon = Icons.Rounded.Translate,
-                    title = stringResource(R.string.appearance_section_language),
-                )
+                SectionHeader(title = stringResource(R.string.appearance_section_language))
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -357,29 +309,36 @@ fun AppearanceLanguageScreen(
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    text = option.flag,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    modifier = Modifier.padding(end = 14.dp),
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = option.flag,
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
                                 Text(
                                     text = stringResource(option.nameRes),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f),
                                 )
                                 RadioButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.setLanguage(option.code) },
+                                    onClick = null,
                                 )
                             }
                             if (index < languageOptions.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 56.dp),
-                                    thickness = 0.5.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                )
+                                ItemDivider()
                             }
                         }
                     }
@@ -390,26 +349,70 @@ fun AppearanceLanguageScreen(
 }
 
 @Composable
-private fun SectionHeader(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp),
+    )
+}
+
+@Composable
+private fun ItemDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 70.dp, end = 16.dp),
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+    )
+}
+
+@Composable
+private fun AppearanceSettingRow(
+    icon: ImageVector,
+    iconTint: Color,
     title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit,
 ) {
     Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(start = 4.dp),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconTint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        trailing()
     }
 }

@@ -7,5 +7,5 @@ interface RenewSubscriptionUseCase {
     suspend fun renewSubscription(
         subscriptionId: Long,
         timeZone: TimeZone = TimeZone.currentSystemDefault()
-    ): Result<SubscriptionDomainModel>
+    ): Result<com.notepay.domain.model.Subscription>
 }

@@ -49,4 +49,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDebtRepository(impl: com.notepay.data.repository.DebtRepositoryImpl): com.notepay.domain.repository.DebtRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: com.notepay.data.repository.AuthRepositoryImpl): com.notepay.domain.repository.AuthRepository
 }

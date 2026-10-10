@@ -34,7 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
@@ -136,7 +136,7 @@ fun DebtSummaryCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = stringResource(R.string.debt_summary_to_collect),
+                                text = stringResource(R.string.debt_collect),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = AppTheme.colors.success,
                                 fontWeight = FontWeight.SemiBold
@@ -170,7 +170,7 @@ fun DebtSummaryCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = stringResource(R.string.debt_summary_to_pay),
+                                text = stringResource(R.string.debt_tab_borrow),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = AppTheme.colors.warning,
                                 fontWeight = FontWeight.SemiBold

@@ -71,6 +71,7 @@ import com.notepay.domain.model.Category
 import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.component.customCategoryIconOptions
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.util.localizedName
 
 // ─── Nhóm danh mục (UI-only, không thuộc domain) ─────────────────────────────
 
@@ -121,11 +122,12 @@ fun CategoryGridPicker(
     var showAddDialog by remember { mutableStateOf(false) }
 
     // Tìm kiếm + lọc nhóm — derivedStateOf không gây recompose thừa khi state khác thay đổi
+    val context = androidx.compose.ui.platform.LocalContext.current
     val filtered by remember(query, selectedGroup, allVisible) {
         derivedStateOf {
             allVisible.filter { cat ->
                 val matchGroup = selectedGroup == CategoryGroup.ALL || cat.uiGroup() == selectedGroup
-                val matchQuery = query.isBlank() || cat.displayName.contains(query.trim(), ignoreCase = true)
+                val matchQuery = query.isBlank() || cat.localizedName(context).contains(query.trim(), ignoreCase = true)
                 matchGroup && matchQuery
             }
         }
@@ -362,7 +364,7 @@ private fun CategoryGridCell(
 
         // Tên danh mục — 1 dòng, căn giữa, không bao giờ bị cắt "..." do 4 cột rộng hơn
         Text(
-            text = category.displayName,
+            text = category.localizedName(),
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,

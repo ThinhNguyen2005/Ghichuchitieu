@@ -6,7 +6,6 @@ import android.service.notification.StatusBarNotification
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
@@ -37,6 +36,7 @@ import com.notepay.MainDispatcherRule
 
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.preferences.KnownBankApps
+import com.notepay.domain.money.Money
 
 /**
  * Unit tests cho cơ chế đối soát tự động (Auto-Reconciliation) khi nhận thông báo ngân hàng

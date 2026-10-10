@@ -18,14 +18,12 @@ class VietnamCurrencyVisualTransformation : VisualTransformation {
 
         val formatted = StringBuilder()
         val suffix = " đ"
-        
-        var groupCount = 0
-        for (i in originalText.indices.reversed()) {
+
+        for ((groupCount, i) in originalText.indices.reversed().withIndex()) {
             if (groupCount > 0 && groupCount % 3 == 0) {
                 formatted.insert(0, '.')
             }
             formatted.insert(0, originalText[i])
-            groupCount++
         }
         
         formatted.append(suffix)
@@ -38,10 +36,10 @@ class VietnamCurrencyVisualTransformation : VisualTransformation {
         var currentOriginalIdx = 0
         val suffixStartIdx = formattedString.length - suffix.length
 
-        for (i in 0 until formattedString.length) {
+        for ((i, element) in formattedString.withIndex()) {
             transformedToOriginal[i] = currentOriginalIdx
             if (i < suffixStartIdx) {
-                if (formattedString[i] != '.') {
+                if (element != '.') {
                     originalToTransformed[currentOriginalIdx] = i
                     currentOriginalIdx++
                 }

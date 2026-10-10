@@ -74,7 +74,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.ui.component.categoryIcon
@@ -85,6 +85,7 @@ import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,11 +237,12 @@ fun AddSubscriptionBottomSheet(
                     items(recentTransactions.take(5), key = { it.id }) { tx ->
                         val cat = tx.category
                         val noteText = tx.note.trim()
+                        val categoryName = cat.localizedName()
                         Card(
                             modifier = Modifier
                                 .clickable {
                                     playHaptic()
-                                    onNameChanged(tx.note.ifBlank { cat.displayName })
+                                    onNameChanged(tx.note.ifBlank { categoryName })
                                     onAmountChanged((tx.amount.amountInCents / 100).toString())
                                     onCategoryChanged(cat.id)
                                     onNextDueDateChanged(tx.occurredAt.toEpochMilliseconds())
@@ -262,7 +264,7 @@ fun AddSubscriptionBottomSheet(
                                 )
                                 Column {
                                     Text(
-                                        text = cat.displayName,
+                                        text = cat.localizedName(),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -358,7 +360,7 @@ fun AddSubscriptionBottomSheet(
                     Spacer(Modifier.size(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            selectedCategory.displayName,
+                            selectedCategory.localizedName(),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                         )
@@ -539,11 +541,12 @@ fun AddSubscriptionBottomSheet(
     }
 
     if (showRecentTxSheet) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         RecentTransactionsSheet(
             transactions = recentTransactions,
             onPicked = { tx ->
                 // Prefill: tên = note, số tiền = amount / 100 (cents→VND)
-                onNameChanged(tx.note.ifBlank { tx.category.displayName })
+                onNameChanged(tx.note.ifBlank { tx.category.localizedName(context) })
                 onAmountChanged((tx.amount.amountInCents / 100).toString())
                 onCategoryChanged(tx.category.id)
                 showRecentTxSheet = false
@@ -598,7 +601,7 @@ private fun CategoryPickerSheet(
                     )
                     Spacer(Modifier.size(12.dp))
                     Text(
-                        category.displayName,
+                        category.localizedName(),
                         modifier = Modifier.weight(1f),
                         fontWeight = if (category == current) FontWeight.Bold else FontWeight.Normal,
                         color = if (category == current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -672,7 +675,7 @@ private fun RecentTransactionsSheet(
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                cat.displayName,
+                                cat.localizedName(),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,

@@ -11,6 +11,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.ui.MainViewModel
 import com.notepay.ui.navigation.NotePayNavHost
+import com.notepay.ui.navigation.Route
 import com.notepay.ui.theme.NotePayTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,27 +21,38 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         enableEdgeToEdge()
 
         super.onCreate(savedInstanceState)
         viewModel.handleIncomingIntent(intent)
+
+        splashScreen.setKeepOnScreenCondition {
+            viewModel.startDestination.value == null
+        }
 
         setContent {
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
             val themeColor by viewModel.themeColor.collectAsStateWithLifecycle()
             val glassEnabled by viewModel.liquidGlassEnabled.collectAsStateWithLifecycle()
             val targetRoute by viewModel.pendingRoute.collectAsStateWithLifecycle()
+            val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
+            val authUser by viewModel.authUser.collectAsStateWithLifecycle()
 
-            NotePayTheme(
-                themeMode = themeMode,
-                themeColor = themeColor,
-            ) {
-                NotePayNavHost(
-                    liquidGlassEnabled = glassEnabled,
-                    pendingRoute = targetRoute,
-                    onRouteHandled = viewModel::onRouteHandled,
-                )
+            if (startDestination != null) {
+                NotePayTheme(
+                    themeMode = themeMode,
+                    themeColor = themeColor,
+                ) {
+                    NotePayNavHost(
+                        authUser = authUser,
+                        startDestination = startDestination ?: Route.Home.path,
+                        liquidGlassEnabled = glassEnabled,
+                        pendingRoute = targetRoute,
+                        onRouteHandled = viewModel::onRouteHandled,
+                        onCompleteWelcome = viewModel::completeWelcome,
+                    )
+                }
             }
         }
     }

@@ -88,7 +88,7 @@ class SubscriptionReminderWorker @AssistedInject constructor(
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            context.getString(R.string.notif_channel_subscription_name),
+            context.getString(R.string.utilities_reminder_title),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = context.getString(R.string.notif_channel_subscription_desc)
@@ -114,9 +114,11 @@ class SubscriptionReminderWorker @AssistedInject constructor(
                     ExistingPeriodicWorkPolicy.KEEP,
                     request,
                 )
-            } catch (e: IllegalStateException) {
-                // WorkManager is not initialized (e.g., in Robolectric tests)
-                e.printStackTrace()
+            } catch (e: Exception) {
+                // WorkManager might not be initialized (e.g., in Robolectric tests or unsupported environments)
+                if (com.notepay.BuildConfig.DEBUG) {
+                    android.util.Log.w(WORK_NAME, "Failed to initialize or schedule WorkManager: ${e.message}")
+                }
             }
         }
     }

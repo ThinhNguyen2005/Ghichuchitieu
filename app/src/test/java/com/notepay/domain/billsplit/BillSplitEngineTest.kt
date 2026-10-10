@@ -2,7 +2,7 @@ package com.notepay.domain.billsplit
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.BillSplit
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import kotlin.time.Clock
 import org.junit.Test
 

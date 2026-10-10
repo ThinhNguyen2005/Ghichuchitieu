@@ -49,9 +49,6 @@ fun MainTabPager(
                     }
                 },
                 onAddWallet = { navController.navigate(Route.AddWallet.path) },
-                onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
-                onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
-                onNavigateToAppSettings = { navController.navigate(Route.AppSettings.path) },
                 onTransactionClick = { txId ->
                     navController.navigate(Route.TransactionDetail(txId).path)
                 },
@@ -65,7 +62,7 @@ fun MainTabPager(
                     navController.navigate(Route.TransactionDetail(txId).path)
                 },
                 onConfigureLocalModel = {
-                    navController.navigate(Route.AppSettings.path)
+                    navController.navigate(Route.AiSettings.path)
                 },
             )
             2 -> AssetsScreen(
@@ -123,8 +120,13 @@ fun MainTabPager(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToAppSettings = {
-                    navController.navigate(Route.AppSettings.path) {
+                onNavigateToNotificationSettings = {
+                    navController.navigate(Route.NotificationSettings.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAbout = {
+                    navController.navigate(Route.About.path) {
                         launchSingleTop = true
                     }
                 },

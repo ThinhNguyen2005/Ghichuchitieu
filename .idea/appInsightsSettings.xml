@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.notepay.full.debug" />
+                  <option name="mobileSdkAppId" value="1:667503750189:android:882378aaeba061ee9f9ca4" />
+                  <option name="projectId" value="note-pay-5659d" />
+                  <option name="projectNumber" value="667503750189" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

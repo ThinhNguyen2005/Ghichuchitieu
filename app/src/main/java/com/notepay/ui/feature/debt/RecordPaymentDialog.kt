@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.debt.DebtType
 import com.notepay.domain.model.debt.DebtWithHistory
@@ -108,7 +108,7 @@ fun RecordPaymentDialog(
                     if (remainingMajor >= 2) {
                         SuggestionChip(
                             onClick = { amountText = (remainingMajor / 2).toString() },
-                            label = { Text("50%") }
+                            label = { Text(stringResource(R.string.ui_50)) }
                         )
                     }
                 }
@@ -130,7 +130,7 @@ fun RecordPaymentDialog(
                     shape = AppTheme.shapes.corner16,
                     trailingIcon = {
                         Text(
-                            text = "₫",
+                            text = stringResource(R.string.extracted_string),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -143,7 +143,7 @@ fun RecordPaymentDialog(
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.debt_note_label)) },
+                    label = { Text(stringResource(R.string.transaction_field_note)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppTheme.shapes.corner16,

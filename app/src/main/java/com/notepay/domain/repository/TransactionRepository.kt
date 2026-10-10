@@ -11,6 +11,18 @@ interface TransactionRepository {
     /** Observe tất cả giao dịch, mới nhất trước. */
     fun observeAll(): Flow<List<Transaction>>
 
+    /** Observe giao dịch trong khoảng thời gian [startMillis]..[endMillis]. */
+    fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<Transaction>>
+
+    /** Observe tất cả thời điểm tạo giao dịch (dùng cho tính streak). */
+    fun observeAllCreatedDates(): Flow<List<kotlin.time.Instant>>
+
+    /** Observe thống kê tổng hợp theo ví (income/expense all-time + tháng hiện tại). */
+    fun observeWalletStats(monthStartMillis: Long, monthEndMillis: Long): Flow<List<com.notepay.domain.model.WalletStats>>
+
+    /** Observe giao dịch gần đây không phải internal transfer (cho biểu đồ trend). */
+    fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<Transaction>>
+
     /** Observe giao dịch trong 1 tháng cụ thể (1-indexed). */
     fun observeByMonth(year: Int, month: Int): Flow<List<Transaction>>
 

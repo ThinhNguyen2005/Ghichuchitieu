@@ -3,7 +3,7 @@ package com.notepay.data.mapper
 import com.notepay.data.local.entity.DebtEntity
 import com.notepay.data.local.entity.DebtPaymentEntity
 import com.notepay.data.local.entity.DebtWithPayments
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.debt.Debt
 import com.notepay.domain.model.debt.DebtPayment
 import com.notepay.domain.model.debt.DebtType

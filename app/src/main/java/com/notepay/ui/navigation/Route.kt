@@ -3,6 +3,7 @@ package com.notepay.ui.navigation
 sealed interface Route {
     val path: String
 
+    data object Welcome : Route { override val path = "welcome" }
     data object Home : Route { override val path = "home" }
     data object AddTransaction : Route { override val path = "add-transaction" }
     data object TransactionList : Route { override val path = "list" }
@@ -28,7 +29,8 @@ sealed interface Route {
         }
     }
     data object AddDummy : Route { override val path = "add-dummy" }
-    data object AppSettings : Route { override val path = "app-settings" }
+    data object About : Route { override val path = "about" }
+    data object NotificationSettings : Route { override val path = "notification-settings" }
     data object BackupRestore : Route { override val path = "backup-restore" }
     data object CurrencySettings : Route { override val path = "currency-settings" }
     data object CategoryManagement : Route { override val path = "category-management" }

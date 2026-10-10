@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
@@ -64,6 +64,7 @@ import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import kotlin.math.abs
+import com.notepay.ui.util.localizedName
 
 private const val MAX_VND_INPUT_LENGTH = 15
 
@@ -886,7 +887,7 @@ private fun SelectedTransactionCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = category.displayName,
+                    text = category.localizedName(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -972,7 +973,7 @@ private fun TransactionPickerRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = category.displayName,
+                    text = category.localizedName(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,

@@ -2,7 +2,7 @@ package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.domain.model.BillSplit
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import javax.inject.Inject
 
 class BillSplitMapper @Inject constructor() {

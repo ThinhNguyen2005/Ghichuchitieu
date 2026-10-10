@@ -6,9 +6,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.notepay.ui.feature.backup.BackupRestoreScreen
 import com.notepay.ui.feature.category.CategoryManagementScreen
-import com.notepay.ui.feature.home.AppSettingsScreen
+import com.notepay.ui.feature.settings.about.AboutScreen
 import com.notepay.ui.feature.settings.ai.AiSettingsScreen
 import com.notepay.ui.feature.settings.appearance.AppearanceLanguageScreen
+import com.notepay.ui.feature.settings.notification.NotificationSettingsScreen
 import com.notepay.ui.feature.settings.currency.CurrencySettingsScreen
 import com.notepay.ui.component.PredictiveBackDestination
 import com.notepay.ui.navigation.Route
@@ -65,8 +66,13 @@ fun NavGraphBuilder.utilitiesGraph(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToAppSettings = {
-                    navController.navigate(Route.AppSettings.path) {
+                onNavigateToNotificationSettings = {
+                    navController.navigate(Route.NotificationSettings.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAbout = {
+                    navController.navigate(Route.About.path) {
                         launchSingleTop = true
                     }
                 },
@@ -103,12 +109,14 @@ fun NavGraphBuilder.utilitiesGraph(
             BackupRestoreScreen(onBack = { navController.popBackStack() })
         }
     }
-    composable(Route.AppSettings.path) {
+    composable(Route.NotificationSettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            AppSettingsScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToBackupRestore = { navController.navigate(Route.BackupRestore.path) },
-            )
+            NotificationSettingsScreen(onBack = { navController.popBackStack() })
+        }
+    }
+    composable(Route.About.path) {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            AboutScreen(onBack = { navController.popBackStack() })
         }
     }
 }

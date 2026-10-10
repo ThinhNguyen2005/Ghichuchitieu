@@ -21,9 +21,6 @@ fun NavGraphBuilder.homeScreen(
                 }
             },
             onAddWallet = { navController.navigate(Route.AddWallet.path) },
-            onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
-            onNavigateToReminders = { navController.navigate(Route.Subscription.path) },
-            onNavigateToAppSettings = { navController.navigate(Route.AppSettings.path) },
             onTransactionClick = { txId ->
                 navController.navigate(Route.TransactionDetail(txId).path)
             },

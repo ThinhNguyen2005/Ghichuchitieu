@@ -7,7 +7,7 @@ object StringUtils {
     private val DIACRITICAL_MARKS = Pattern.compile("\\p{InCombiningDiacriticalMarks}+")
 
     /**
-     * Loại bỏ dấu Tiếng Việt sử dụng java.text.Normalizer hiệu năng cao.
+     * Loại bỏ dấu Tiếng Việt sử dụng java.text.Normalizer
      * Tránh việc tạo nhiều chuỗi trung gian qua các hàm replace tuần tự.
      */
     fun removeVietnameseAccents(text: String?): String {

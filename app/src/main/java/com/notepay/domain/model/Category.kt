@@ -1,6 +1,5 @@
 package com.notepay.domain.model
 
-import com.notepay.domain.model.CategoryType
 /**
  * Danh mục giao dịch. Mỗi category có:
  *  - id: định danh duy nhất (tương thích với enum name trong database)
@@ -110,9 +109,6 @@ data class Category(
         fun getAll(): List<Category> {
             return defaultEntries + customCategories
         }
-
-        /** Tương thích với Category.entries cũ */
-        val entries: List<Category> get() = getAll()
 
         fun safeValueOf(name: String?): Category {
             if (name == null) return OTHER

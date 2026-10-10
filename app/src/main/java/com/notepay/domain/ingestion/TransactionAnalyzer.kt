@@ -1,6 +1,6 @@
 package com.notepay.domain.ingestion
 
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.money.CurrencyParserEngine

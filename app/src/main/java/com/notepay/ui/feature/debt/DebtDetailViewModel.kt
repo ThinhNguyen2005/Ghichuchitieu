@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.data.remote.VietQrBankRepository
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.debt.Debt
 import com.notepay.domain.model.debt.DebtPayment
 import com.notepay.domain.model.debt.DebtType

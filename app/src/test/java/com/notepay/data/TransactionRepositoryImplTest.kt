@@ -139,6 +139,8 @@ class TransactionRepositoryImplTest {
             flow.value = emptyList()
         }
         override fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = flow
+        override fun observeAllOccurredDates(): Flow<List<Long>> = flow.map { list -> list.map { it.occurredAt } }
+        override fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<TransactionEntity>> = flow.map { list -> list.filter { it.occurredAt >= sinceMillis } }
         override fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>> = flow
         override fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> =
             flow.map { entities -> entities.filter { it.walletId == walletId && it.occurredAt in startMillis..endMillis } }
@@ -148,7 +150,6 @@ class TransactionRepositoryImplTest {
         override suspend fun upsert(entity: TransactionEntity): Long = 0L
         override suspend fun delete(id: Long) = Unit
 
-        // --- BỔ SUNG HÀM NÀY ĐỂ SỬA LỖI BIÊN DỊCH VÀ KHỚP VỚI INTERFACE MỚI ---
         override suspend fun findRecentSimilar(
             noteKeyword: String,
             startMillis: Long,

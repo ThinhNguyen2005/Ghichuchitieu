@@ -67,6 +67,7 @@ import com.notepay.domain.model.Category
 import com.notepay.ui.component.categoryIcon
 import com.notepay.ui.component.customCategoryIconOptions
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.util.localizedName
 
 private val categoryPaletteColors = listOf(
     0xFFE57373L, 0xFFF06292L, 0xFFBA68C8L, 0xFF9575CDL,
@@ -273,7 +274,7 @@ fun CategoryManagementScreen(
     categoryToEdit?.let { category ->
         CategoryEditDialog(
             title = stringResource(R.string.category_dialog_edit_title),
-            initialName = category.displayName,
+            initialName = category.localizedName(),
             initialColor = category.colorArgb,
             initialIconId = category.iconId,
             onDismiss = { categoryToEdit = null },
@@ -295,7 +296,7 @@ fun CategoryManagementScreen(
             onDismissRequest = { categoryToDelete = null },
             title = { Text(stringResource(R.string.category_delete_dialog_title)) },
             text = {
-                Text(stringResource(R.string.category_delete_dialog_message, category.displayName))
+                Text(stringResource(R.string.category_delete_dialog_message, category.localizedName()))
             },
             confirmButton = {
                 TextButton(
@@ -352,7 +353,7 @@ private fun CategoryRow(
         }
         Spacer(modifier = Modifier.width(14.dp))
         Text(
-            text = category.displayName,
+            text = category.localizedName(),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
@@ -365,7 +366,7 @@ private fun CategoryRow(
                 onClick = {},
                 label = {
                     Text(
-                        text = stringResource(R.string.category_badge_default),
+                        text = stringResource(R.string.wallet_default),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 },
@@ -426,7 +427,7 @@ private fun CategoryEditDialog(
                         name = it
                         if (isError && it.isNotBlank()) isError = false
                     },
-                    label = { Text(stringResource(R.string.category_field_name)) },
+                    label = { Text(stringResource(R.string.category_name_label)) },
                     isError = isError,
                     supportingText = if (isError) {
                         { Text(stringResource(R.string.category_field_name_error)) }
@@ -478,7 +479,7 @@ private fun CategoryEditDialog(
                 // Icon Picker
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = stringResource(R.string.category_field_icon),
+                        text = stringResource(R.string.wallet_field_icon),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

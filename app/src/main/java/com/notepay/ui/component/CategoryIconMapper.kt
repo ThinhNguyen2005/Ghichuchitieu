@@ -39,6 +39,17 @@ import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.material.icons.rounded.MonitorHeart
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.FamilyRestroom
+import androidx.compose.material.icons.rounded.ElectricBolt
+import androidx.compose.material.icons.rounded.Handshake
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.CardGiftcard
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -92,54 +103,38 @@ fun categoryIcon(category: Category): ImageVector {
     }
 
     return when (category.id) {
-    // --- 1. ĂN UỐNG & GIẢI TRÍ ---
-    Category.FOOD.id -> Icons.Rounded.Restaurant
-    Category.COFFEE.id -> Icons.Rounded.Coffee
-    Category.ENTERTAINMENT.id -> Icons.Rounded.Movie
-    Category.SPORTS.id -> Icons.Rounded.FitnessCenter
-
-    // --- 2. MUA SẮM & LÀM ĐẸP ---
-    Category.SHOPPING.id -> Icons.Rounded.ShoppingCart
-    Category.CLOTHES.id -> Icons.Rounded.Checkroom       // Quần áo, thời trang
-    Category.BEAUTY.id -> Icons.Rounded.Spa
-
-    // --- 3. DI CHUYỂN & XE CỘ ---
-    Category.TRANSPORT.id -> Icons.Rounded.DirectionsBus // Xe công cộng, taxi
-    Category.GAS.id -> Icons.Rounded.LocalGasStation     // Xăng xe, dầu nhớt
-    Category.REPAIR.id -> Icons.Rounded.Build            // Sửa chữa, bảo dưỡng xe/đồ đạc
-
-    // --- 4. NHÀ CỬA & HÓA ĐƠN TIỆN ÍCH ---
-    Category.HOME.id -> Icons.Rounded.Home               // Tiền thuê nhà, sửa nhà
-    Category.BILL.id -> Icons.Rounded.Payments           // Hóa đơn chung
-    Category.ELECTRICITY.id -> Icons.Rounded.Lightbulb   // Tiền điện
-    Category.WATER.id -> Icons.Rounded.WaterDrop         // Tiền nước
-    Category.INTERNET.id -> Icons.Rounded.Wifi           // Internet, truyền hình, 4G
-
-    // --- 5. Y TẾ & GIÁO DỤC ---
-    Category.HEALTH.id -> Icons.Rounded.LocalHospital
-    Category.EDUCATION.id -> Icons.Rounded.School
-
-    // --- 6. GIA ĐÌNH, CON CÁI & THÚ CƯNG ---
-    Category.FAMILY.id -> Icons.Rounded.People
-    Category.CHILDREN.id -> Icons.Rounded.ChildCare       // Bỉm, sữa, đồ chơi cho con
-    Category.PETS.id -> Icons.Rounded.Pets
-
-    // --- 7. ĐỜI SỐNG & MỐI QUAN HỆ ---
-    Category.TRAVEL.id -> Icons.Rounded.Flight
-    Category.GIFT.id -> Icons.Rounded.Favorite           // Quà biếu, đám đình, hiếu hỷ
-    Category.CHARITY.id -> Icons.Rounded.VolunteerActivism // Từ thiện, quyên góp
-
-    // --- 8. THU NHẬP, ĐẦU TƯ & TÍCH LŨY ---
-    Category.SALARY.id -> Icons.Rounded.AttachMoney      // Lương cố định
-    Category.BONUS.id -> Icons.Rounded.Redeem            // Thưởng, phụ cấp, quà tặng tiền mặt
-    Category.INVESTMENT.id -> Icons.AutoMirrored.Rounded.TrendingUp // Chứng khoán, coin, bất động sản
-    Category.SAVINGS.id -> Icons.Rounded.Savings         // Tiền gửi tiết kiệm, heo đất
-    Category.DEBT_LOAN.id -> Icons.Rounded.AccountBalance // Trả nợ, vay mượn, ngân hàng
-    Category.INSURANCE.id -> Icons.Rounded.Shield        // Bảo hiểm (nhân thọ, y tế, xe)
-    Category.TAX.id -> Icons.AutoMirrored.Rounded.ReceiptLong         // Thuế, phí cầu đường, phạt hành chính
-
-    // --- CÁC KHOẢN KHÁC ---
-        else -> Icons.Rounded.LocalMall
+        "FOOD" -> Icons.Rounded.Restaurant
+        "TRANSPORT" -> Icons.Rounded.DirectionsBus
+        "SHOPPING" -> Icons.Rounded.ShoppingBag
+        "BILL" -> Icons.AutoMirrored.Rounded.ReceiptLong
+        "ENTERTAINMENT" -> Icons.Rounded.Movie
+        "HEALTH" -> Icons.Rounded.MonitorHeart
+        "EDUCATION" -> Icons.Rounded.School
+        "COFFEE" -> Icons.Rounded.LocalCafe
+        "BEAUTY" -> Icons.Rounded.Face
+        "PETS" -> Icons.Rounded.Pets
+        "SPORTS" -> Icons.Rounded.FitnessCenter
+        "FAMILY" -> Icons.Rounded.FamilyRestroom
+        "TRAVEL" -> Icons.Rounded.Flight
+        "CLOTHES" -> Icons.Rounded.Checkroom
+        "HOME" -> Icons.Rounded.Home
+        "GAS" -> Icons.Rounded.LocalGasStation
+        "REPAIR" -> Icons.Rounded.Build
+        "ELECTRICITY" -> Icons.Rounded.ElectricBolt
+        "WATER" -> Icons.Rounded.WaterDrop
+        "INTERNET" -> Icons.Rounded.Wifi
+        "CHILDREN" -> Icons.Rounded.ChildCare
+        "CHARITY" -> Icons.Rounded.VolunteerActivism
+        "SAVINGS" -> Icons.Rounded.Savings
+        "DEBT_LOAN" -> Icons.Rounded.Handshake
+        "INSURANCE" -> Icons.Rounded.Shield
+        "TAX" -> Icons.Rounded.AccountBalance
+        "OTHER", "INCOME_OTHER" -> Icons.Rounded.MoreHoriz
+        "SALARY" -> Icons.Rounded.Payments
+        "GIFT" -> Icons.Rounded.CardGiftcard
+        "INVESTMENT" -> Icons.AutoMirrored.Rounded.TrendingUp
+        "BONUS" -> Icons.Rounded.EmojiEvents
+        else -> Icons.Rounded.Category
     }
 }
 

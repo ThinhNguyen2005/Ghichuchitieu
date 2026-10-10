@@ -54,7 +54,7 @@ import com.notepay.domain.analytics.StatsChartCalculator
 import com.notepay.domain.analytics.TrendAxisScale
 import com.notepay.domain.analytics.TrendAxisUnit
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
 import kotlin.math.PI
 import kotlin.math.atan2

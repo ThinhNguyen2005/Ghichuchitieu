@@ -62,15 +62,21 @@ import com.notepay.ui.feature.utilities.utilitiesGraph
 import com.notepay.ui.feature.wallet.walletGraph
 import com.notepay.ui.feedback.FeedbackDuration
 import com.notepay.ui.feedback.UiFeedback
+import com.notepay.domain.model.AuthUser
+import com.notepay.ui.feature.auth.AuthWelcomeScreen
+import com.notepay.ui.util.LocalAuthUser
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NotePayNavHost(
     navController: NavHostController = rememberNavController(),
+    authUser: AuthUser? = null,
+    startDestination: String = Route.Home.path,
     liquidGlassEnabled: Boolean = false,
     pendingRoute: String? = null,
     onRouteHandled: () -> Unit = {},
+    onCompleteWelcome: () -> Unit = {},
 ) {
     val useNavigationGlass = liquidGlassEnabled && OsCompatHelper.liquidGlassCompatibility(
         isHardwareAccelerated = LocalView.current.isHardwareAccelerated,
@@ -169,7 +175,10 @@ fun NotePayNavHost(
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
     ) { padding ->
-        CompositionLocalProvider(LocalNotePayBackdrop provides backdrop) {
+        CompositionLocalProvider(
+            LocalNotePayBackdrop provides backdrop,
+            LocalAuthUser provides authUser,
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -183,7 +192,7 @@ fun NotePayNavHost(
                     SharedTransitionLayout {
                         NavHost(
                             navController = navController,
-                            startDestination = Route.Home.path,
+                            startDestination = startDestination,
                             modifier = Modifier.fillMaxSize(),
                             enterTransition = {
                                 val direction = tabTransitionDirection(
@@ -247,6 +256,16 @@ fun NotePayNavHost(
                                 }
                             },
                         ) {
+                            composable(Route.Welcome.path) {
+                                AuthWelcomeScreen(
+                                    onContinue = {
+                                        onCompleteWelcome()
+                                        navController.navigate(Route.Home.path) {
+                                            popUpTo(Route.Welcome.path) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
                             composable(Route.Home.path) {
                                 MainTabPager(
                                     pagerState = pagerState,

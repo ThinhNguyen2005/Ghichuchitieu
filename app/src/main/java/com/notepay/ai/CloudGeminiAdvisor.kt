@@ -18,6 +18,7 @@ import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 data class SmartReceiptExtractionResult(
     val amountInCents: Long? = null,
@@ -80,7 +81,7 @@ class CloudGeminiAdvisor @Inject constructor(
                         maxOutputTokens = 50
                     },
                 )
-                val text = withTimeout(TIMEOUT_MILLIS) {
+                val text = withTimeout(TIMEOUT_MILLIS.milliseconds) {
                     val response = model.generateContent("Chào bạn, hãy trả lời đúng 2 từ: Sẵn sàng.")
                     response.text.orEmpty().trim()
                 }
@@ -114,7 +115,7 @@ class CloudGeminiAdvisor @Inject constructor(
 
         for (modelName in modelsToTry) {
             try {
-                return@withContext withTimeout(TIMEOUT_MILLIS) {
+                return@withContext withTimeout(TIMEOUT_MILLIS.milliseconds) {
                     val model = GenerativeModel(
                         modelName = modelName,
                         apiKey = apiKey,
@@ -135,9 +136,6 @@ class CloudGeminiAdvisor @Inject constructor(
                         )
 
                     if (parsed != null) {
-                        if (modelName != modelsToTry.first()) {
-                            aiSettings.setCloudModelName(modelName)
-                        }
                         BudgetAdvisorResult(
                             title = parsed.title,
                             content = "${parsed.observation} ${parsed.action}",
@@ -158,13 +156,15 @@ class CloudGeminiAdvisor @Inject constructor(
     }
 
     suspend fun extractReceiptInfo(ocrText: String): SmartReceiptExtractionResult? = withContext(ioDispatcher) {
-        if (!isConfigured()) return@withContext null
-        val apiKey = aiSettings.geminiApiKey.first() ?: return@withContext null
+        val apiKey = aiSettings.geminiApiKey.first()
+        if (isOfflineFlavor || apiKey.isNullOrBlank() || !aiSettings.cloudAiEnabled.first()) {
+            return@withContext null
+        }
         val modelsToTry = getModelsToTry()
 
         for (modelName in modelsToTry) {
             try {
-                val result = withTimeout(TIMEOUT_MILLIS) {
+                val result = withTimeout(TIMEOUT_MILLIS.milliseconds) {
                     val model = GenerativeModel(
                         modelName = modelName,
                         apiKey = apiKey,
@@ -194,7 +194,7 @@ class CloudGeminiAdvisor @Inject constructor(
                     val merchantVal = json.optString("merchant").takeIf { it.isNotBlank() && it != "null" }
                     val noteVal = json.optString("note").takeIf { it.isNotBlank() && it != "null" }
 
-                    val amountCents = if (amountVal > 0) amountVal * 100L else null
+                    val amountCents = if (amountVal in 1..9_999_999_999L) amountVal * 100L else null
                     if (amountCents == null && merchantVal == null && noteVal == null) {
                         null
                     } else {
@@ -206,9 +206,6 @@ class CloudGeminiAdvisor @Inject constructor(
                     }
                 }
                 if (result != null) {
-                    if (modelName != modelsToTry.first()) {
-                        aiSettings.setCloudModelName(modelName)
-                    }
                     return@withContext result
                 }
             } catch (cancelled: CancellationException) {

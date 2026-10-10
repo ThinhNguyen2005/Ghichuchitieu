@@ -13,5 +13,5 @@ interface SaveSubscriptionUseCase {
         remindDaysBefore: Int,
         startDate: Instant,
         categoryId: Long?
-    ): Result<SubscriptionDomainModel>
+    ): Result<com.notepay.domain.model.Subscription>
 }

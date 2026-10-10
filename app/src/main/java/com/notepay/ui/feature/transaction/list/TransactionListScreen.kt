@@ -77,7 +77,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.domain.model.Money
+import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
@@ -100,6 +100,7 @@ import com.notepay.ui.component.SwipeableTransactionItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.notepay.ui.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -295,7 +296,7 @@ fun TransactionListScreen(
         }
 
         pendingDeleteTransaction?.let { tx ->
-            val itemName = tx.note.ifBlank { tx.category.displayName }
+            val itemName = tx.note.ifBlank { tx.category.localizedName() }
             ConfirmDeleteDialog(
                 title = stringResource(R.string.confirm_delete_transaction_title),
                 itemName = itemName,
@@ -443,7 +444,7 @@ private fun TransactionTopBar(
                     IconButton(onClick = { onQueryChange("") }) {
                         Icon(
                             imageVector = Icons.Rounded.Clear,
-                            contentDescription = "Clear",
+                            contentDescription = stringResource(R.string.cd_clear_search),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -746,7 +747,10 @@ private fun DateRangeBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 
@@ -837,7 +841,10 @@ private fun FilterBottomSheet(
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Rounded.Clear,
+                            contentDescription = stringResource(R.string.action_close)
+                        )
                     }
                 }
             }
@@ -925,7 +932,7 @@ private fun FilterBottomSheet(
                                     .background(Color(category.colorArgb))
                             )
                         },
-                        label = { Text(category.displayName, fontSize = 12.sp) }
+                        label = { Text(category.localizedName(), fontSize = 12.sp) }
                     )
                 }
             }
@@ -964,7 +971,7 @@ private fun FilterBottomSheet(
                                     .background(Color(category.colorArgb))
                             )
                         },
-                        label = { Text(category.displayName, fontSize = 12.sp) }
+                        label = { Text(category.localizedName(), fontSize = 12.sp) }
                     )
                 }
             }
@@ -1023,7 +1030,10 @@ private fun WalletPickerBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Clear, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 

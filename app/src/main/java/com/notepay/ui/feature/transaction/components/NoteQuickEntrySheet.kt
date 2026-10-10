@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -74,14 +75,17 @@ fun NoteQuickEntrySheet(
                         onNoteChanged(localNote)
                         onDismiss()
                     }) {
-                        Icon(Icons.Rounded.Check, contentDescription = null)
+                        Icon(
+                            Icons.Rounded.Check,
+                            contentDescription = stringResource(R.string.action_done)
+                        )
                     }
                 },
             )
 
             val remaining = Transaction.MAX_NOTE_LENGTH - localNote.length
             Text(
-                text = "$remaining ký tự còn lại",
+                text = pluralStringResource(R.plurals.characters_remaining, remaining, remaining),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (remaining < 20) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant,

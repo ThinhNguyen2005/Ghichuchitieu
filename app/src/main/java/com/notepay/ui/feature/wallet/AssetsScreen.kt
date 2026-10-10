@@ -4,7 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.CompareArrows
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Close
@@ -67,30 +69,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Money
+import com.notepay.ui.component.WalletAppIcon
+import com.notepay.domain.money.Money
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.feature.debt.DebtSummaryCard
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.WalletUiHelper
+import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,8 +112,6 @@ fun AssetsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transferSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    var activeScrubbedPoint by remember { mutableStateOf<AssetTrendPoint?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -140,27 +146,17 @@ fun AssetsScreen(
                     Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
                     AssetsHeader(
                         totalNetWorth = state.totalNetWorth,
-                        scrubbedPoint = activeScrubbedPoint,
                         changePercentage = state.netWorthChangePercentage,
                         onAddWallet = onAddWallet,
                         onTransferClick = { viewModel.openTransferSheet() }
                     )
                 }
 
-                // Biểu đồ xu hướng tài sản (Smooth Area Chart + Touch Scrubber)
+                // Biểu đồ phân bổ tài sản theo ví (Donut Chart chuẩn UX trang Thống kê)
                 item {
-                    AssetTrendChartCard(
-                        selectedRange = state.selectedChartRange,
-                        points = state.trendPoints,
-                        onRangeSelected = { viewModel.onChartRangeSelected(it) },
-                        onScrubPointChanged = { activeScrubbedPoint = it }
-                    )
-                }
-
-                // Biểu đồ tỷ trọng phân bổ tài sản
-                item {
-                    AssetAllocationCard(
-                        allocationItems = state.allocationItems
+                    WalletAllocationChartCard(
+                        allocationItems = state.allocationItems,
+                        totalNetWorth = state.totalNetWorth,
                     )
                 }
 
@@ -191,7 +187,11 @@ fun AssetsScreen(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "${state.wallets.size} ${stringResource(R.string.wallets_count_label)}",
+                            text = stringResource(
+                                R.string.assets_wallets_count_format,
+                                state.wallets.size,
+                                stringResource(R.string.wallets_count_label)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -212,7 +212,6 @@ fun AssetsScreen(
         if (state.isTransferSheetVisible) {
             TransferBottomSheet(
                 state = state,
-                sheetState = transferSheetState,
                 onDismiss = { viewModel.closeTransferSheet() },
                 onFromWalletChange = { viewModel.onTransferFromWalletChanged(it) },
                 onToWalletChange = { viewModel.onTransferToWalletChanged(it) },
@@ -227,7 +226,6 @@ fun AssetsScreen(
 @Composable
 private fun AssetsHeader(
     totalNetWorth: Money,
-    scrubbedPoint: AssetTrendPoint?,
     changePercentage: Float,
     onAddWallet: () -> Unit,
     onTransferClick: () -> Unit,
@@ -266,55 +264,57 @@ private fun AssetsHeader(
                         fontWeight = FontWeight.Medium
                     )
 
-                    if (scrubbedPoint == null) {
-                        if (changePercentage != 0f) {
-                            val isPositive = changePercentage >= 0f
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isPositive) Color(0xFF34C759).copy(alpha = 0.15f) else Color(0xFFFF3B30).copy(alpha = 0.15f)
+                    if (changePercentage != 0f) {
+                        val isPositive = changePercentage >= 0f
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isPositive) Color(0xFF34C759).copy(alpha = 0.15f) else Color(0xFFFF3B30).copy(alpha = 0.15f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
-                                        contentDescription = null,
-                                        tint = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "${if (isPositive) "+" else ""}${String.format("%.1f", changePercentage)}%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
+                                    contentDescription = null,
+                                    tint = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                val formattedPct = String.format(Locale.US, "%.1f", abs(changePercentage))
+                                Text(
+                                    text = stringResource(
+                                        if (isPositive) R.string.percent_change_positive else R.string.percent_change_negative,
+                                        formattedPct
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
+                                )
                             }
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Remove,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = stringResource(R.string.assets_balance_stable),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Remove,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(R.string.assets_balance_stable),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -322,9 +322,8 @@ private fun AssetsHeader(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                val displayedAmount = scrubbedPoint?.amount ?: totalNetWorth
                 Text(
-                    text = MoneyFormatter.format(displayedAmount),
+                    text = MoneyFormatter.format(totalNetWorth),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 32.sp,
@@ -332,16 +331,6 @@ private fun AssetsHeader(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
-                if (scrubbedPoint != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.assets_scrubber_at_date, scrubbedPoint.dateLabel),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -408,12 +397,14 @@ private fun AssetsHeader(
 }
 
 @Composable
-private fun AssetTrendChartCard(
-    selectedRange: AssetChartRange,
-    points: List<AssetTrendPoint>,
-    onRangeSelected: (AssetChartRange) -> Unit,
-    onScrubPointChanged: (AssetTrendPoint?) -> Unit,
+private fun WalletAllocationChartCard(
+    allocationItems: List<WalletAllocationItem>,
+    totalNetWorth: Money,
 ) {
+    var selectedItem by remember(allocationItems) {
+        mutableStateOf<WalletAllocationItem?>(null)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner24,
@@ -427,392 +418,174 @@ private fun AssetTrendChartCard(
                 .fillMaxWidth()
                 .padding(18.dp)
         ) {
-            // Tầng 1: Tiêu đề biểu đồ + Chú thích trạng thái nếu số dư ổn định
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.assets_trend_chart_title),
+                    text = stringResource(R.string.assets_allocation_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (points.isNotEmpty() && points.maxOf { it.amount.amountInCents } == points.minOf { it.amount.amountInCents }) {
-                    Text(
-                        text = stringResource(R.string.assets_trend_no_change_caption),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Tầng 2: Bộ chọn khoảng thời gian dàn đều full width (Modifier.weight(1f))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val ranges = listOf(
-                    AssetChartRange.WEEK to stringResource(R.string.assets_chart_range_7d),
-                    AssetChartRange.MONTH to stringResource(R.string.assets_chart_range_30d),
-                    AssetChartRange.HALF_YEAR to stringResource(R.string.assets_chart_range_6m),
-                    AssetChartRange.YEAR to stringResource(R.string.assets_chart_range_1y)
-                )
-
-                ranges.forEach { (range, label) ->
-                    val isSelected = selectedRange == range
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { onRangeSelected(range) }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
+                if (selectedItem != null) {
+                    TextButton(
+                        onClick = { selectedItem = null },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
                         Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            softWrap = false
+                            text = stringResource(R.string.wallet_all),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (points.size < 2) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.assets_trend_no_data),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-            } else {
-                SmoothTrendAreaChart(
-                    points = points,
-                    onScrubPoint = onScrubPointChanged
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SmoothTrendAreaChart(
-    points: List<AssetTrendPoint>,
-    onScrubPoint: (AssetTrendPoint?) -> Unit,
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val guidelineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-    var scrubIndex by remember { mutableStateOf<Int?>(null) }
-
-    val dateLabels = remember(points) {
-        listOf(
-            points.first().dateLabel,
-            points[points.size / 2].dateLabel,
-            points.last().dateLabel
-        )
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(points) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                val stepX = size.width / (points.size - 1)
-                                val idx = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                scrubIndex = idx
-                                onScrubPoint(points[idx])
-                            },
-                            onDrag = { change, _ ->
-                                change.consume()
-                                val stepX = size.width / (points.size - 1)
-                                val idx = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                scrubIndex = idx
-                                onScrubPoint(points[idx])
-                            },
-                            onDragEnd = {
-                                scrubIndex = null
-                                onScrubPoint(null)
-                            },
-                            onDragCancel = {
-                                scrubIndex = null
-                                onScrubPoint(null)
-                            }
-                        )
-                    }
-                    .pointerInput(points) {
-                        detectTapGestures(
-                            onPress = { offset ->
-                                val stepX = size.width / (points.size - 1)
-                                val idx = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                scrubIndex = idx
-                                onScrubPoint(points[idx])
-                                tryAwaitRelease()
-                                scrubIndex = null
-                                onScrubPoint(null)
-                            }
-                        )
-                    }
-            ) {
-                val minAmount = points.minOf { it.amount.amountInCents }
-                val maxAmount = points.maxOf { it.amount.amountInCents }
-                val rawDiff = maxAmount - minAmount
-
-                val paddingSide = 8.dp.toPx()
-                val paddingTop = 16.dp.toPx()
-                val paddingBottom = 16.dp.toPx()
-
-                val availableWidth = size.width - 2 * paddingSide
-                val availableHeight = size.height - paddingTop - paddingBottom
-                val stepX = availableWidth / (points.size - 1)
-
-                val coords = if (rawDiff == 0L) {
-                    // Khi số dư tài sản không đổi (phẳng lặng):
-                    // Vẽ đường nằm ngang chính giữa biểu đồ (50% chiều cao),
-                    // bên dưới được phủ dải Gradient mờ đầy đặn, không bị rơi xuống sát đáy
-                    points.mapIndexed { index, _ ->
-                        val x = paddingSide + index * stepX
-                        val y = paddingTop + availableHeight * 0.5f
-                        Offset(x, y)
-                    }
-                } else {
-                    // Khi có biến động: thêm khoảng đệm 15% biên độ trên/dưới
-                    // để đường cong Bézier luôn thanh thoát, không chạm sát trần/sát đáy
-                    val margin = (rawDiff * 0.15f).toLong().coerceAtLeast(1L)
-                    val effectiveMin = minAmount - margin
-                    val effectiveMax = maxAmount + margin
-                    val effectiveDiff = (effectiveMax - effectiveMin).toFloat()
-
-                    points.mapIndexed { index, pt ->
-                        val x = paddingSide + index * stepX
-                        val fraction = ((pt.amount.amountInCents - effectiveMin).toFloat() / effectiveDiff).coerceIn(0f, 1f)
-                        val y = paddingTop + (1f - fraction) * availableHeight
-                        Offset(x, y)
-                    }
-                }
-
-                // Đường cong Cubic Bézier
-                val curvePath = Path()
-                curvePath.moveTo(coords.first().x, coords.first().y)
-                for (i in 0 until coords.size - 1) {
-                    val p0 = coords[i]
-                    val p1 = coords[i + 1]
-                    val cx1 = p0.x + (p1.x - p0.x) / 2f
-                    val cy1 = p0.y
-                    val cx2 = p0.x + (p1.x - p0.x) / 2f
-                    val cy2 = p1.y
-                    curvePath.cubicTo(cx1, cy1, cx2, cy2, p1.x, p1.y)
-                }
-
-                // Vùng Gradient
-                val fillPath = Path()
-                fillPath.addPath(curvePath)
-                fillPath.lineTo(coords.last().x, size.height)
-                fillPath.lineTo(coords.first().x, size.height)
-                fillPath.close()
-
-                drawPath(
-                    path = fillPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.35f),
-                            primaryColor.copy(alpha = 0.0f)
-                        ),
-                        startY = if (rawDiff == 0L) coords.first().y else paddingTop,
-                        endY = size.height
-                    )
-                )
-
-                // Đường kẻ mượt mà
-                drawPath(
-                    path = curvePath,
-                    color = primaryColor,
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
-                )
-
-                // Scrubber line & indicator dot
-                val activeIdx = scrubIndex
-                if (activeIdx != null && activeIdx in coords.indices) {
-                    val targetCoord = coords[activeIdx]
-
-                    drawLine(
-                        color = guidelineColor,
-                        start = Offset(targetCoord.x, 0f),
-                        end = Offset(targetCoord.x, size.height),
-                        strokeWidth = 1.5.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
-                    )
-
-                    drawCircle(
-                        color = primaryColor.copy(alpha = 0.25f),
-                        radius = 10.dp.toPx(),
-                        center = targetCoord
-                    )
-
-                    drawCircle(
-                        color = primaryColor,
-                        radius = 5.dp.toPx(),
-                        center = targetCoord
-                    )
-
-                    drawCircle(
-                        color = Color.White,
-                        radius = 5.dp.toPx(),
-                        center = targetCoord,
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Nhãn ngày mốc (Đầu - Giữa - Cuối)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            dateLabels.forEach { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssetAllocationCard(
-    allocationItems: List<WalletAllocationItem>,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner20,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.assets_allocation_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
             if (allocationItems.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.assets_allocation_no_balance),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            } else {
-                // Segmented Progress Bar ngang bo tròn
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    allocationItems.forEach { item ->
-                        val color = WalletUiHelper.getColor(item.colorKey)
-                        Box(
-                            modifier = Modifier
-                                .weight(item.percentage.coerceAtLeast(0.01f))
-                                .fillMaxHeight()
-                                .background(color)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PieChart,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.assets_allocation_no_balance),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Legend grid hiển thị tỷ lệ từng ví
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(210.dp)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    allocationItems.chunked(2).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    // Donut Chart bên trái (Box cân bằng)
+                    Box(
+                        modifier = Modifier
+                            .weight(1.05f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(allocationItems) {
+                                    detectTapGestures { offset ->
+                                        val tapped = findWalletAllocationItem(
+                                            tap = offset,
+                                            width = size.width.toFloat(),
+                                            height = size.height.toFloat(),
+                                            strokePx = 34.dp.toPx(),
+                                            items = allocationItems
+                                        )
+                                        selectedItem = if (tapped?.walletId == selectedItem?.walletId) null else tapped
+                                    }
+                                }
                         ) {
-                            rowItems.forEach { item ->
-                                val color = WalletUiHelper.getColor(item.colorKey)
-                                val pct = (item.percentage * 100).roundToInt()
+                            val diameter = min(size.width, size.height) * 0.76f
+                            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                            var startAngle = 270f
 
+                            allocationItems.forEach { item ->
+                                val sweep = item.percentage * 360f
+                                val isSelected = item.walletId == selectedItem?.walletId
+                                val color = WalletUiHelper.getColor(item.colorKey)
+
+                                drawArc(
+                                    color = color,
+                                    startAngle = startAngle,
+                                    sweepAngle = sweep,
+                                    useCenter = false,
+                                    topLeft = topLeft,
+                                    size = Size(diameter, diameter),
+                                    style = Stroke(
+                                        width = if (isSelected) 38.dp.toPx() else 30.dp.toPx(),
+                                        cap = StrokeCap.Butt
+                                    )
+                                )
+                                startAngle += sweep
+                            }
+                        }
+
+                        WalletAllocationCenter(
+                            item = selectedItem,
+                            totalNetWorth = totalNetWorth
+                        )
+                    }
+
+                    // Danh sách Legend ví bên phải
+                    Column(
+                        modifier = Modifier
+                            .weight(0.95f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+                    ) {
+                        allocationItems.forEach { item ->
+                            val isSelected = item.walletId == selectedItem?.walletId
+                            val color = WalletUiHelper.getColor(item.colorKey)
+                            val pct = (item.percentage * 100).roundToInt()
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(AppTheme.shapes.corner12)
+                                    .clickable {
+                                        selectedItem = if (isSelected) null else item
+                                    },
+                                shape = AppTheme.shapes.corner12,
+                                color = color.copy(alpha = if (isSelected) 0.20f else 0.08f),
+                                border = if (isSelected) BorderStroke(1.dp, color.copy(alpha = 0.6f)) else null
+                            ) {
                                 Row(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(8.dp)
+                                            .size(9.dp)
                                             .clip(CircleShape)
                                             .background(color)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "$pct%",
+                                        text = item.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = stringResource(R.string.percent_format, pct),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
-                            if (rowItems.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -820,6 +593,91 @@ private fun AssetAllocationCard(
             }
         }
     }
+}
+
+@Composable
+private fun WalletAllocationCenter(
+    item: WalletAllocationItem?,
+    totalNetWorth: Money,
+) {
+    val tint = item?.let { WalletUiHelper.getColor(it.colorKey) } ?: MaterialTheme.colorScheme.primary
+    val bg = if (item != null) {
+        tint.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+    }
+
+    Surface(
+        shape = CircleShape,
+        color = bg
+    ) {
+        Column(
+            modifier = Modifier
+                .size(102.dp)
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = item?.name ?: stringResource(R.string.assets_total_balance),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (item != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = MoneyFormatter.format(item?.balance ?: totalNetWorth),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (item != null) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Surface(
+                    shape = AppTheme.shapes.capsule,
+                    color = tint.copy(alpha = 0.18f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.percent_format, (item.percentage * 100).roundToInt()),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = tint,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun findWalletAllocationItem(
+    tap: Offset,
+    width: Float,
+    height: Float,
+    strokePx: Float,
+    items: List<WalletAllocationItem>
+): WalletAllocationItem? {
+    if (items.isEmpty()) return null
+    val diameter = min(width, height) * 0.76f
+    val radius = diameter / 2f
+    val center = Offset(width / 2f, height / 2f)
+    val dx = tap.x - center.x
+    val dy = tap.y - center.y
+    val dist = sqrt(dx * dx + dy * dy)
+    if (dist !in (radius - strokePx * 0.75f)..(radius + strokePx * 0.75f)) return null
+    val angle = ((atan2(dy, dx) * 180f / PI.toFloat()) + 360f) % 360f
+    var start = 270f
+    items.forEach { item ->
+        val sweep = item.percentage * 360f
+        val end = (start + sweep) % 360f
+        if (if (start <= end) angle in start..end else angle >= start || angle <= end) return item
+        start = end
+    }
+    return null
 }
 
 @Composable
@@ -868,11 +726,11 @@ private fun WalletAssetCard(
                         .background(colorValue.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = null,
-                        tint = colorValue,
-                        modifier = Modifier.size(24.dp)
+                    WalletAppIcon(
+                        wallet = wallet,
+                        modifier = Modifier,
+                        iconSize = 24.dp,
+                        tint = colorValue
                     )
                 }
 
@@ -924,7 +782,7 @@ private fun WalletAssetCard(
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "·",
+                                text = stringResource(R.string.bullet_separator),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -932,7 +790,11 @@ private fun WalletAssetCard(
                         }
 
                         Text(
-                            text = "${item.transactionCount} ${stringResource(R.string.transactions_count_label)}",
+                            text = stringResource(
+                                R.string.assets_transactions_count_format,
+                                item.transactionCount,
+                                stringResource(R.string.transactions_count_label)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
@@ -976,7 +838,10 @@ private fun WalletAssetCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "+${MoneyFormatter.format(item.monthlyIncome)}",
+                            text = stringResource(
+                                R.string.amount_positive_format,
+                                MoneyFormatter.format(item.monthlyIncome)
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF34C759)
@@ -992,7 +857,10 @@ private fun WalletAssetCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "-${MoneyFormatter.format(item.monthlyExpense)}",
+                            text = stringResource(
+                                R.string.amount_negative_format,
+                                MoneyFormatter.format(item.monthlyExpense)
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFFF3B30)
@@ -1068,7 +936,6 @@ private fun WalletAssetCard(
 @Composable
 private fun TransferBottomSheet(
     state: AssetsUiState,
-    sheetState: SheetState,
     onDismiss: () -> Unit,
     onFromWalletChange: (Long) -> Unit,
     onToWalletChange: (Long) -> Unit,
@@ -1076,11 +943,9 @@ private fun TransferBottomSheet(
     onNoteChange: (String) -> Unit,
     onConfirm: () -> Unit,
 ) {
-    ModalBottomSheet(
+    com.notepay.ui.component.BottomSheetGlass(
+        visible = state.isTransferSheetVisible,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -1099,7 +964,10 @@ private fun TransferBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Rounded.Close, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
                 }
             }
 
@@ -1171,7 +1039,7 @@ private fun TransferBottomSheet(
                 onValueChange = onAmountChange,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                placeholder = { Text("0 ₫") },
+                placeholder = { Text(stringResource(R.string.ui_0)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
