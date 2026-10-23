@@ -3,23 +3,17 @@ package com.notepay.ui.feature.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.ai.CloudGeminiAdvisor
-import com.notepay.ai.GeminiNanoBudgetAdvisor
-import com.notepay.ai.LegacyAiModelCleaner
-import com.notepay.data.preferences.AiSettingsDataStore
 import com.notepay.R
+import com.notepay.ai.LegacyAiModelCleaner
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettings
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
-import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
-import com.notepay.platform.OsCompatHelper
 import com.notepay.domain.util.StreakTrackerHelper
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,21 +22,19 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
+import kotlin.time.Clock
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -50,13 +42,9 @@ class HomeViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
-    private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val budgetSettingsStore: BudgetSettingsStore,
     private val appSettingsDataStore: AppSettingsDataStore,
-    private val aiSettingsDataStore: AiSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
-    private val geminiNanoAdvisor: GeminiNanoBudgetAdvisor,
-    private val cloudGeminiAdvisor: CloudGeminiAdvisor,
     private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -119,7 +107,7 @@ class HomeViewModel @Inject constructor(
         ) { wallets, stats ->
             wallets to stats.associateBy { it.walletId }
         }.flatMapLatest { (wallets, statsMap) ->
-            if (wallets.isEmpty()) flowOf(emptyList<WalletSummary>())
+            if (wallets.isEmpty()) flowOf(emptyList())
             else {
                 val summaryFlows = wallets.map { wallet ->
                     appSettingsDataStore.observeWalletBackground(wallet.id).map { bgUri ->
@@ -252,38 +240,6 @@ class HomeViewModel @Inject constructor(
         initialValue = true,
     )
 
-    val geminiApiKey = aiSettingsDataStore.geminiApiKey.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = null,
-    )
-
-    val cloudAiEnabled = aiSettingsDataStore.cloudAiEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val smartReceiptAiEnabled = aiSettingsDataStore.smartReceiptAiEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val isGeminiNanoAvailable = flow {
-        emit(geminiNanoAdvisor.isGeminiNanoAvailable())
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = false,
-    )
-
-    val liquidGlassEnabled = appSettingsDataStore.liquidGlassEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = OsCompatHelper.supportsLiquidGlass(),
-    )
-
     val dailyReminderEnabled = appSettingsDataStore.dailyReminderEnabled.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -313,24 +269,6 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = 30,
     )
-
-    val themeMode = appSettingsDataStore.themeMode.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "system",
-    )
-
-    fun setThemeMode(mode: String) {
-        viewModelScope.launch {
-            appSettingsDataStore.setThemeMode(mode)
-        }
-    }
-
-    fun setLiquidGlassEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setLiquidGlassEnabled(enabled)
-        }
-    }
 
     fun setDailyReminderEnabled(context: Context, enabled: Boolean) {
         viewModelScope.launch {
@@ -380,28 +318,4 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setGeminiApiKey(key: String?) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setGeminiApiKey(key)
-        }
-    }
-
-    fun setCloudAiEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setCloudAiEnabled(enabled)
-        }
-    }
-
-    fun setSmartReceiptAiEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setSmartReceiptAiEnabled(enabled)
-        }
-    }
-
-    fun testGeminiApiKey(key: String, onResult: (Result<String>) -> Unit) {
-        viewModelScope.launch {
-            val result = cloudGeminiAdvisor.testConnection(key)
-            onResult(result)
-        }
-    }
 }

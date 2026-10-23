@@ -268,8 +268,6 @@ fun HomeScreen(
             // Tối đa 1 thẻ ở đầu trang: cảnh báo ngân sách (Caution/Danger) > Smart Insights > ngân sách Safe
             when {
                 budgetCardVisible && budgetStatus != BudgetStatus.Safe -> {
-                    checkNotNull(budgetProjection)
-                    checkNotNull(budgetLimit)
                     item(key = "budget_projection") {
                         BudgetProjectionCard(
                             projection = budgetProjection,
@@ -294,8 +292,6 @@ fun HomeScreen(
                     }
                 }
                 budgetCardVisible && budgetStatus == BudgetStatus.Safe -> {
-                    checkNotNull(budgetProjection)
-                    checkNotNull(budgetLimit)
                     item(key = "budget_projection") {
                         BudgetProjectionCard(
                             projection = budgetProjection,
