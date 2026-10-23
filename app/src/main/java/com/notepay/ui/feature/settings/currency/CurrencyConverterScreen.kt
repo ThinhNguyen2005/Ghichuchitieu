@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.settings.currency
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -105,7 +105,7 @@ fun CurrencyConverterScreen(
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Đổi sang", style = MaterialTheme.typography.labelLarge)
-                        androidx.compose.material3.Box {
+                        Box {
                             Button(onClick = { currencyMenuExpanded = true }) {
                                 Text(state.targetCurrency)
                             }
@@ -161,7 +161,7 @@ fun CurrencyConverterScreen(
                         )
                     }
                     if (state.rates == null && !state.isLoading) {
-                        Button(onClick = { viewModel.refreshRates() }) { Text("Thử lại") }
+                        Button(onClick = { viewModel.refreshRates(forceRefresh = true) }) { Text("Thử lại") }
                     }
                 }
             }
