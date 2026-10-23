@@ -47,11 +47,11 @@ class CurrencyConverterViewModel @Inject constructor(
         }
     }
 
-    fun refreshRates() {
+    fun refreshRates(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val snapshot = currencyRateRepository.getVndRates(forceRefresh = true)
+                val snapshot = currencyRateRepository.getVndRates(forceRefresh = forceRefresh)
                 _uiState.update { it.copy(rates = snapshot, isLoading = false, errorMessage = null) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
