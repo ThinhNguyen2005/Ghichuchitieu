@@ -11,6 +11,7 @@ import com.notepay.ui.feature.settings.ai.AiSettingsScreen
 import com.notepay.ui.feature.settings.appearance.AppearanceLanguageScreen
 import com.notepay.ui.feature.settings.notification.NotificationSettingsScreen
 import com.notepay.ui.feature.settings.currency.CurrencySettingsScreen
+import com.notepay.ui.feature.settings.currency.CurrencyConverterScreen
 import com.notepay.ui.component.PredictiveBackDestination
 import com.notepay.ui.navigation.Route
 
@@ -86,7 +87,17 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.CurrencySettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            CurrencySettingsScreen(onBack = { navController.popBackStack() })
+            CurrencySettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenConverter = {
+                    navController.navigate(Route.CurrencyConverter.path) { launchSingleTop = true }
+                },
+            )
+        }
+    }
+    composable(Route.CurrencyConverter.path) {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            CurrencyConverterScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.CategoryManagement.path) {
