@@ -65,7 +65,7 @@ fun CurrencyConverterScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refreshRates() }, enabled = !state.isLoading) {
+                    IconButton(onClick = { viewModel.refreshRates(forceRefresh = true) }, enabled = !state.isLoading) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Cập nhật tỷ giá")
                     }
                 },
