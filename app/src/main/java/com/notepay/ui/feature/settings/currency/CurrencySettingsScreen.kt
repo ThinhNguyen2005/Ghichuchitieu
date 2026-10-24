@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.Paid
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +73,7 @@ private val supportedCurrencies = listOf(
 @Composable
 fun CurrencySettingsScreen(
     onBack: () -> Unit,
+    onOpenConverter: () -> Unit = {},
     viewModel: CurrencySettingsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
@@ -113,6 +115,15 @@ fun CurrencySettingsScreen(
             // Live Preview Card
             item {
                 CurrencyLivePreviewCard(uiState = uiState)
+            }
+
+            item {
+                Button(
+                    onClick = onOpenConverter,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Mở công cụ quy đổi tiền tệ")
+                }
             }
 
             // Section 1: Chọn đơn vị tiền tệ chính
