@@ -47,6 +47,12 @@
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
+    <string name="home_total_balance_all">Tổng tài sản</string>
+    <string name="home_wallet_balance_format">Số dư %1$s</string>
+    <string name="home_all_wallets">Tất cả ví</string>
+    <string name="home_income_month">Thu</string>
+    <string name="home_expense_month">Chi</string>
+    <string name="home_add_wallet">Thêm ví</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
@@ -1324,5 +1330,21 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="category_investment">Đầu tư</string>
     <string name="category_bonus">Thưởng</string>
     <string name="category_income_other">Thu nhập khác</string>
+    <!-- Onboarding -->
+    <string name="onboarding_currency_title">Bắt đầu với tiền tệ của bạn</string>
+    <string name="onboarding_currency_subtitle">Chọn đơn vị tiền tệ và ngôn ngữ hiển thị. Bạn có thể đổi lại bất cứ lúc nào trong Cài đặt.</string>
+    <string name="onboarding_currency_section_currency">Tiền tệ</string>
+    <string name="onboarding_currency_section_language">Ngôn ngữ</string>
+    <string name="onboarding_wallet_title">Tạo ví đầu tiên</string>
+    <string name="onboarding_wallet_subtitle">Mọi giao dịch sẽ được ghi vào ví này. Bạn có thể thêm ví khác sau.</string>
+    <string name="onboarding_wallet_name_label">Tên ví</string>
+    <string name="onboarding_wallet_icon_label">Biểu tượng</string>
+    <string name="onboarding_reminder_title">Đừng quên ghi chép</string>
+    <string name="onboarding_reminder_subtitle">NotePay sẽ nhắc bạn ghi lại chi tiêu mỗi ngày vào giờ bạn chọn.</string>
+    <string name="onboarding_reminder_toggle">Nhắc nhở hằng ngày</string>
+    <string name="onboarding_reminder_time_label">Giờ nhắc</string>
+    <string name="onboarding_reminder_permission_denied">Chưa có quyền thông báo nên nhắc nhở đang tắt. Bật lại trong Cài đặt hệ thống.</string>
+    <string name="onboarding_action_continue">Tiếp tục</string>
+    <string name="onboarding_action_start">Bắt đầu sử dụng</string>
+    <string name="onboarding_action_skip">Bỏ qua</string>
 </resources>
-

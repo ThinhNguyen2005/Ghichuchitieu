@@ -3,23 +3,17 @@ package com.notepay.ui.feature.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.ai.CloudGeminiAdvisor
-import com.notepay.ai.GeminiNanoBudgetAdvisor
-import com.notepay.ai.LegacyAiModelCleaner
-import com.notepay.data.preferences.AiSettingsDataStore
 import com.notepay.R
+import com.notepay.ai.LegacyAiModelCleaner
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.data.preferences.BudgetSettings
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
-import com.notepay.domain.usecase.ObserveWalletBalanceUseCase
-import com.notepay.platform.OsCompatHelper
 import com.notepay.domain.util.StreakTrackerHelper
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,21 +22,19 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
+import kotlin.time.Clock
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -50,13 +42,9 @@ class HomeViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
-    private val observeWalletBalance: ObserveWalletBalanceUseCase,
     private val budgetSettingsStore: BudgetSettingsStore,
     private val appSettingsDataStore: AppSettingsDataStore,
-    private val aiSettingsDataStore: AiSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
-    private val geminiNanoAdvisor: GeminiNanoBudgetAdvisor,
-    private val cloudGeminiAdvisor: CloudGeminiAdvisor,
     private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -78,6 +66,7 @@ class HomeViewModel @Inject constructor(
     private val currentMonth = today.month.number
 
     private val _selectedMonth = MutableStateFlow(currentYear to currentMonth)
+    private val _selectedWalletFilterId = MutableStateFlow<Long?>(null)
     private val _isSmartInsightsDismissed = MutableStateFlow(false)
 
     fun dismissSmartInsights() {
@@ -96,15 +85,27 @@ class HomeViewModel @Inject constructor(
         return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
     }
 
+    private data class HomeFilterState(
+        val monthPair: Pair<Int, Int>,
+        val activeWallet: Wallet?,
+        val selectedFilterId: Long?,
+        val isDismissed: Boolean,
+    )
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = combine(
         _selectedMonth,
         walletRepo.observeActive(),
+        _selectedWalletFilterId,
         _isSmartInsightsDismissed,
-    ) { monthPair, activeWallet, isDismissed ->
-        Triple(monthPair, activeWallet, isDismissed)
-    }.flatMapLatest { (monthPair, activeWallet, isDismissed) ->
-        val (year, month) = monthPair
+    ) { monthPair, activeWallet, selectedFilterId, isDismissed ->
+        HomeFilterState(monthPair, activeWallet, selectedFilterId, isDismissed)
+    }.flatMapLatest { filter ->
+        val (year, month) = filter.monthPair
+        val activeWallet = filter.activeWallet
+        val selectedFilterId = filter.selectedFilterId
+        val isDismissed = filter.isDismissed
+
         val zone = TimeZone.currentSystemDefault()
         val firstDate = LocalDate(year, month, 1)
         val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
@@ -119,7 +120,7 @@ class HomeViewModel @Inject constructor(
         ) { wallets, stats ->
             wallets to stats.associateBy { it.walletId }
         }.flatMapLatest { (wallets, statsMap) ->
-            if (wallets.isEmpty()) flowOf(emptyList<WalletSummary>())
+            if (wallets.isEmpty()) flowOf(emptyList())
             else {
                 val summaryFlows = wallets.map { wallet ->
                     appSettingsDataStore.observeWalletBackground(wallet.id).map { bgUri ->
@@ -142,14 +143,19 @@ class HomeViewModel @Inject constructor(
         }
 
         combine(
-            getMonthlySummary(year, month, activeWallet?.id),
+            getMonthlySummary(year, month, selectedFilterId),
             walletsSummaryFlow,
             subscriptionRepository.observeAll(),
             transactionRepo.observeAllCreatedDates(),
         ) { summary, walletsSummary, subscriptions, createdDates ->
-            
             val wallets = walletsSummary.map { it.wallet }
-            
+
+            // Phòng thủ: nếu ví đang lọc bị xóa thì tự động fallback về null
+            val validFilterId = selectedFilterId?.takeIf { id -> wallets.any { it.id == id } }
+            if (selectedFilterId != null && validFilterId == null) {
+                _selectedWalletFilterId.value = null
+            }
+
             // Tính số lời nhắc sắp đến hạn
             val now = Clock.System.now()
             val dueCount = subscriptions.count { sub ->
@@ -162,50 +168,51 @@ class HomeViewModel @Inject constructor(
                 today = today.date
             )
 
-            val activeWalletExpense = summary.totalExpense
-        
-        val budgetLimit = activeWallet?.budgetLimit
-        val projection = if (activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
-            val spentCents = activeWalletExpense.amountInCents
-            val limitCents = budgetLimit.amountInCents
-            val currentDay = today.day.coerceIn(1, 31)
-            val daysInMonth = getDaysInMonth(today.year, today.month.number)
-            
-            val dailyAverageCents = spentCents.toFloat() / currentDay
-            val projectedSpendCents = dailyAverageCents * daysInMonth
-            val spentPercentage = (spentCents.toFloat() / limitCents).coerceIn(0f, 1f)
-            val isProjectedToExceed = projectedSpendCents > limitCents
-            
-            val exhaustionDateLabel = if (isProjectedToExceed && dailyAverageCents > 0) {
-                val exhaustionDay = (limitCents / dailyAverageCents).toInt().coerceIn(1, daysInMonth)
-                "%02d/%02d".format(exhaustionDay, today.month.number)
+            // Chỉ tính budgetProjection khi đang chọn một ví cụ thể có hạn mức
+            val targetWallet = validFilterId?.let { id -> wallets.find { it.id == id } }
+            val budgetLimit = targetWallet?.budgetLimit
+            val projection = if (targetWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
+                val spentCents = summary.totalExpense.amountInCents
+                val limitCents = budgetLimit.amountInCents
+                val currentDay = today.day.coerceIn(1, 31)
+                val daysInMonth = getDaysInMonth(today.year, today.month.number)
+
+                val dailyAverageCents = spentCents.toFloat() / currentDay
+                val projectedSpendCents = dailyAverageCents * daysInMonth
+                val spentPercentage = (spentCents.toFloat() / limitCents).coerceIn(0f, 1f)
+                val isProjectedToExceed = projectedSpendCents > limitCents
+
+                val exhaustionDateLabel = if (isProjectedToExceed && dailyAverageCents > 0) {
+                    val exhaustionDay = (limitCents / dailyAverageCents).toInt().coerceIn(1, daysInMonth)
+                    "%02d/%02d".format(exhaustionDay, today.month.number)
+                } else {
+                    null
+                }
+
+                val remainingBudget = limitCents - spentCents
+                val remainingDays = daysInMonth - currentDay
+                val safeDailyLimitCents = if (remainingBudget > 0 && remainingDays > 0) {
+                    remainingBudget / remainingDays
+                } else {
+                    0L
+                }
+
+                BudgetProjection(
+                    dailyAverage = Money(dailyAverageCents.toLong()),
+                    projectedSpend = Money(projectedSpendCents.toLong()),
+                    isProjectedToExceed = isProjectedToExceed,
+                    exhaustionDateLabel = exhaustionDateLabel,
+                    safeDailyLimit = Money(safeDailyLimitCents),
+                    spentPercentage = spentPercentage,
+                    spentThisWallet = summary.totalExpense
+                )
             } else {
                 null
             }
-            
-            val remainingBudget = limitCents - spentCents
-            val remainingDays = daysInMonth - currentDay
-            val safeDailyLimitCents = if (remainingBudget > 0 && remainingDays > 0) {
-                remainingBudget / remainingDays
-            } else {
-                0L
-            }
-            
-            BudgetProjection(
-                dailyAverage = Money(dailyAverageCents.toLong()),
-                projectedSpend = Money(projectedSpendCents.toLong()),
-                isProjectedToExceed = isProjectedToExceed,
-                exhaustionDateLabel = exhaustionDateLabel,
-                safeDailyLimit = Money(safeDailyLimitCents),
-                spentPercentage = spentPercentage,
-                spentThisWallet = activeWalletExpense
-            )
-        } else {
-            null
-        }
 
-            val activeSummary = walletsSummary.find { it.wallet.id == activeWallet?.id }
+            val activeSummary = walletsSummary.find { it.wallet.id == (validFilterId ?: activeWallet?.id) }
             HomeUiState(
+                selectedWalletId = validFilterId,
                 activeWallet = activeWallet,
                 wallets = wallets,
                 walletsSummary = walletsSummary,
@@ -228,9 +235,12 @@ class HomeViewModel @Inject constructor(
         initialValue = HomeUiState(),
     )
 
-    fun selectWallet(walletId: Long) {
-        viewModelScope.launch {
-            walletRepo.setActive(walletId)
+    fun selectWallet(walletId: Long?) {
+        _selectedWalletFilterId.value = walletId
+        if (walletId != null) {
+            viewModelScope.launch {
+                walletRepo.setActive(walletId)
+            }
         }
     }
 
@@ -250,38 +260,6 @@ class HomeViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = true,
-    )
-
-    val geminiApiKey = aiSettingsDataStore.geminiApiKey.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = null,
-    )
-
-    val cloudAiEnabled = aiSettingsDataStore.cloudAiEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val smartReceiptAiEnabled = aiSettingsDataStore.smartReceiptAiEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val isGeminiNanoAvailable = flow {
-        emit(geminiNanoAdvisor.isGeminiNanoAvailable())
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = false,
-    )
-
-    val liquidGlassEnabled = appSettingsDataStore.liquidGlassEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = OsCompatHelper.supportsLiquidGlass(),
     )
 
     val dailyReminderEnabled = appSettingsDataStore.dailyReminderEnabled.stateIn(
@@ -313,24 +291,6 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = 30,
     )
-
-    val themeMode = appSettingsDataStore.themeMode.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "system",
-    )
-
-    fun setThemeMode(mode: String) {
-        viewModelScope.launch {
-            appSettingsDataStore.setThemeMode(mode)
-        }
-    }
-
-    fun setLiquidGlassEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setLiquidGlassEnabled(enabled)
-        }
-    }
 
     fun setDailyReminderEnabled(context: Context, enabled: Boolean) {
         viewModelScope.launch {
@@ -380,28 +340,4 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setGeminiApiKey(key: String?) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setGeminiApiKey(key)
-        }
-    }
-
-    fun setCloudAiEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setCloudAiEnabled(enabled)
-        }
-    }
-
-    fun setSmartReceiptAiEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            aiSettingsDataStore.setSmartReceiptAiEnabled(enabled)
-        }
-    }
-
-    fun testGeminiApiKey(key: String, onResult: (Result<String>) -> Unit) {
-        viewModelScope.launch {
-            val result = cloudGeminiAdvisor.testConnection(key)
-            onResult(result)
-        }
-    }
 }

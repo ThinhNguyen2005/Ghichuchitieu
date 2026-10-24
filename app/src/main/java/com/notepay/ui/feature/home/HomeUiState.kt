@@ -23,6 +23,7 @@ data class BudgetProjection(
 )
 
 data class HomeUiState(
+    val selectedWalletId: Long? = null,
     val activeWallet: Wallet? = null,
     val wallets: List<Wallet> = emptyList(),
     val walletsSummary: List<WalletSummary> = emptyList(),
@@ -38,9 +39,21 @@ data class HomeUiState(
     val streakDays: Int = 0,
     val isSmartInsightsDismissed: Boolean = false,
 ) {
+    val selectedWalletSummary: WalletSummary?
+        get() = walletsSummary.find { it.wallet.id == selectedWalletId }
+
+    val totalBalance: Money
+        get() = Money(walletsSummary.sumOf { it.balance.amountInCents })
+
+    val totalMonthlyIncome: Money
+        get() = Money(walletsSummary.sumOf { it.monthlyIncome.amountInCents })
+
+    val totalMonthlyExpense: Money
+        get() = Money(walletsSummary.sumOf { it.monthlyExpense.amountInCents })
+
     val isBudgetExceeded: Boolean
         get() {
-            val limit = activeWallet?.budgetLimit ?: return false
+            val limit = selectedWalletSummary?.wallet?.budgetLimit ?: return false
             val spent = budgetProjection?.spentThisWallet?.amountInCents ?: monthlyExpense.amountInCents
             return spent > limit.amountInCents
         }

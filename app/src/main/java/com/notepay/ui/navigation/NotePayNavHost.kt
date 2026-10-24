@@ -54,6 +54,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.notepay.platform.OsCompatHelper
 import com.notepay.ui.component.LocalNotePayBackdrop
 import com.notepay.ui.feature.billsplit.billSplitGraph
+import com.notepay.ui.feature.onboarding.OnboardingRoute
 import com.notepay.ui.feature.stats.statsScreen
 import com.notepay.ui.feature.subscription.subscriptionScreen
 import com.notepay.ui.feature.transaction.transactionGraph
@@ -63,7 +64,6 @@ import com.notepay.ui.feature.wallet.walletGraph
 import com.notepay.ui.feedback.FeedbackDuration
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.domain.model.AuthUser
-import com.notepay.ui.feature.auth.AuthWelcomeScreen
 import com.notepay.ui.util.LocalAuthUser
 import kotlinx.coroutines.launch
 
@@ -257,9 +257,8 @@ fun NotePayNavHost(
                             },
                         ) {
                             composable(Route.Welcome.path) {
-                                AuthWelcomeScreen(
-                                    onContinue = {
-                                        onCompleteWelcome()
+                                OnboardingRoute(
+                                    onComplete = {
                                         navController.navigate(Route.Home.path) {
                                             popUpTo(Route.Welcome.path) { inclusive = true }
                                         }
