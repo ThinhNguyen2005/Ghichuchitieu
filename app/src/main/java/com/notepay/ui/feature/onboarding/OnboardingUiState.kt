@@ -1,87 +1,73 @@
-package com.smartreminder.ui.onboarding
+package com.notepay.ui.feature.onboarding
 
 import androidx.annotation.StringRes
-import com.smartreminder.R
-import com.smartreminder.domain.model.preferences.UserGoal
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.notepay.R
+import com.notepay.domain.model.Wallet
 
 enum class OnboardingStep(val stepIndex: Int) {
-    RHYTHM(0),
-    GOALS(1),
-    TIMELINE(2);
+    CURRENCY(0),
+    WALLET(1),
+    REMINDER(2);
 
     val nextStep: OnboardingStep?
         get() = when (this) {
-            RHYTHM -> GOALS
-            GOALS -> TIMELINE
-            TIMELINE -> null
+            CURRENCY -> WALLET
+            WALLET -> REMINDER
+            REMINDER -> null
         }
 
     val previousStep: OnboardingStep?
         get() = when (this) {
-            RHYTHM -> null
-            GOALS -> RHYTHM
-            TIMELINE -> GOALS
+            CURRENCY -> null
+            WALLET -> CURRENCY
+            REMINDER -> WALLET
         }
 }
 
-data class GoalOption(
-    val goal: UserGoal,
-    @get:StringRes val titleRes: Int,
-    @get:StringRes val descriptionRes: Int
+data class ChoiceOption(
+    val key: String,
+    @get:StringRes val labelRes: Int
 )
 
 data class OnboardingUiState(
-    val currentStep: OnboardingStep = OnboardingStep.RHYTHM,
-    val wakeUpTime: LocalTime = LocalTime.of(7, 0),
-    val sleepTime: LocalTime = LocalTime.of(23, 30),
-    val selectedGoals: Set<UserGoal> = setOf(UserGoal.TASKS, UserGoal.PLANNING),
-    val activeTimePicker: TimePickerTarget? = null,
+    val currentStep: OnboardingStep = OnboardingStep.CURRENCY,
+    val currencyCode: String = "VND",
+    val languageCode: String = "system",
+    val walletName: String = "",
+    val walletIconKey: String = Wallet.ICON_CASH,
+    val reminderEnabled: Boolean = true,
+    val reminderHour: Int = 20,
+    val reminderMinute: Int = 30,
+    val notificationDenied: Boolean = false,
     val isSaving: Boolean = false,
-    val saveError: Boolean = false
+    val saveError: Boolean = false,
+    val isCompleted: Boolean = false
 ) {
-    val wakeUpTimeFormatted: String
-        get() = wakeUpTime.format(TIME_FORMATTER)
-
-    val sleepTimeFormatted: String
-        get() = sleepTime.format(TIME_FORMATTER)
+    val canContinue: Boolean
+        get() = when (currentStep) {
+            OnboardingStep.CURRENCY -> true
+            OnboardingStep.WALLET -> walletName.isNotBlank()
+            OnboardingStep.REMINDER -> true
+        }
 
     companion object {
-        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH)
+        /** Mã tiền tệ hiển thị nguyên văn — không cần dịch. */
+        val CURRENCIES = listOf("VND", "USD", "EUR", "JPY")
 
-        val DEFAULT_GOALS = listOf(
-            GoalOption(
-                goal = UserGoal.TASKS,
-                titleRes = R.string.goal_tasks_title,
-                descriptionRes = R.string.goal_tasks_desc
-            ),
-            GoalOption(
-                goal = UserGoal.ROUTINES,
-                titleRes = R.string.goal_routines_title,
-                descriptionRes = R.string.goal_routines_desc
-            ),
-            GoalOption(
-                goal = UserGoal.PLANNING,
-                titleRes = R.string.goal_planning_title,
-                descriptionRes = R.string.goal_planning_desc
-            ),
-            GoalOption(
-                goal = UserGoal.STUDY,
-                titleRes = R.string.goal_study_title,
-                descriptionRes = R.string.goal_study_desc
-            ),
-            GoalOption(
-                goal = UserGoal.TEAMWORK,
-                titleRes = R.string.goal_teamwork_title,
-                descriptionRes = R.string.goal_teamwork_desc
-            )
+        val LANGUAGES = listOf(
+            ChoiceOption("vi", R.string.appearance_lang_vi),
+            ChoiceOption("en", R.string.appearance_lang_en),
+            ChoiceOption("system", R.string.appearance_lang_system)
         )
-    }
-}
 
-enum class TimePickerTarget {
-    WAKE_UP,
-    SLEEP
+        val WALLET_ICONS = listOf(
+            ChoiceOption(Wallet.ICON_CASH, R.string.icon_label_cash),
+            ChoiceOption(Wallet.ICON_BANK, R.string.transfer_bank),
+            ChoiceOption(Wallet.ICON_MOMO, R.string.icon_label_ewallet),
+            ChoiceOption(Wallet.ICON_CARD, R.string.icon_label_credit_card)
+        )
+
+        /** Giờ nhắc gợi ý; người dùng chọn nhanh thay vì mở dial. */
+        val REMINDER_PRESETS = listOf(19 to 0, 20 to 0, 20 to 30, 21 to 0, 22 to 0)
+    }
 }

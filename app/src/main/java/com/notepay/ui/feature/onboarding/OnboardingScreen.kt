@@ -1,5 +1,6 @@
-package com.smartreminder.ui.onboarding
+package com.notepay.ui.feature.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -31,21 +31,18 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.smartreminder.R
-import com.smartreminder.ui.onboarding.components.CuePrimaryButton
-import com.smartreminder.ui.onboarding.components.CueTimePickerBottomSheet
-import com.smartreminder.ui.onboarding.components.ProgressDotsIndicator
-import com.smartreminder.ui.onboarding.steps.Step1RhythmScreen
-import com.smartreminder.ui.onboarding.steps.Step2GoalsScreen
-import com.smartreminder.ui.onboarding.steps.Step3TimelineScreen
-import com.smartreminder.ui.theme.CueSpacing
-import com.smartreminder.ui.theme.CueTheme
-import com.smartreminder.ui.theme.SmartReminderTheme
+import com.notepay.R
+import com.notepay.ui.feature.onboarding.components.OnboardingPrimaryButton
+import com.notepay.ui.feature.onboarding.components.ProgressDotsIndicator
+import com.notepay.ui.feature.onboarding.steps.Step1CurrencyScreen
+import com.notepay.ui.feature.onboarding.steps.Step2WalletScreen
+import com.notepay.ui.feature.onboarding.steps.Step3ReminderScreen
+import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.theme.NotePayTheme
 
 /**
- * Stateless onboarding screen — receives [uiState] and dispatches [onAction].
- * All state management lives in [OnboardingViewModel]; this composable only renders.
- * PagerState is a local rendering mechanism, synced with [OnboardingUiState.currentStep].
+ * Onboarding stateless — nhận [uiState], phát [onAction].
+ * Pager chỉ là cơ chế render; ViewModel là nguồn sự thật cho bước hiện tại.
  */
 @Composable
 fun OnboardingScreen(
@@ -54,28 +51,28 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
-    val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val currentStep = uiState.currentStep
 
-    // Sync PagerState with ViewModel's currentStep (ViewModel is source of truth)
-    LaunchedEffect(uiState.currentStep) {
-        val targetPage = uiState.currentStep.stepIndex
-        if (pagerState.currentPage != targetPage) {
-            pagerState.animateScrollToPage(targetPage)
+    LaunchedEffect(currentStep) {
+        val target = currentStep.stepIndex
+        if (pagerState.currentPage != target) {
+            pagerState.animateScrollToPage(target)
         }
     }
 
-    val currentStep = uiState.currentStep
+    // Phím Back hệ thống lùi bước thay vì thoát app (trừ bước đầu).
+    BackHandler(enabled = currentStep.previousStep != null) {
+        currentStep.previousStep?.let { onAction(OnboardingAction.NavigateToStep(it)) }
+    }
 
     Scaffold(
-        containerColor = CueTheme.colors.background,
+        containerColor = AppTheme.colors.background,
         topBar = {
             OnboardingHeader(
-                currentStep = currentStep,
+                showBack = currentStep.previousStep != null,
                 onBack = {
-                    currentStep.previousStep?.let { prev ->
-                        onAction(OnboardingAction.NavigateToStep(prev))
-                    }
+                    currentStep.previousStep?.let { onAction(OnboardingAction.NavigateToStep(it)) }
                 },
                 onSkip = { onAction(OnboardingAction.Skip) }
             )
@@ -83,12 +80,12 @@ fun OnboardingScreen(
         bottomBar = {
             OnboardingFooter(
                 currentStep = currentStep,
-                isSaving = uiState.isSaving,
+                enabled = uiState.canContinue && !uiState.isSaving,
                 onContinue = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    val nextStep = currentStep.nextStep
-                    if (nextStep != null) {
-                        onAction(OnboardingAction.NavigateToStep(nextStep))
+                    val next = currentStep.nextStep
+                    if (next != null) {
+                        onAction(OnboardingAction.NavigateToStep(next))
                     } else {
                         onAction(OnboardingAction.Complete)
                     }
@@ -96,7 +93,10 @@ fun OnboardingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = CueSpacing.Xl, vertical = CueSpacing.Lg)
+                    .padding(
+                        horizontal = AppTheme.dimensions.spaceLarge,
+                        vertical = AppTheme.dimensions.spaceMedium
+                    )
             )
         },
         modifier = modifier.fillMaxSize()
@@ -109,53 +109,32 @@ fun OnboardingScreen(
                 .padding(innerPadding)
         ) { page ->
             when (page) {
-                0 -> {
-                    Step1RhythmScreen(
-                        uiState = uiState,
-                        onRequestTimePicker = { target ->
-                            onAction(OnboardingAction.OpenTimePicker(target))
-                        }
-                    )
-                }
-                1 -> {
-                    Step2GoalsScreen(
-                        uiState = uiState,
-                        onToggleGoal = { goal ->
-                            onAction(OnboardingAction.ToggleGoal(goal))
-                        }
-                    )
-                }
-                2 -> {
-                    Step3TimelineScreen()
-                }
+                0 -> Step1CurrencyScreen(
+                    uiState = uiState,
+                    onSelectCurrency = { onAction(OnboardingAction.SelectCurrency(it)) },
+                    onSelectLanguage = { onAction(OnboardingAction.SelectLanguage(it)) }
+                )
+                1 -> Step2WalletScreen(
+                    uiState = uiState,
+                    onNameChange = { onAction(OnboardingAction.UpdateWalletName(it)) },
+                    onSelectIcon = { onAction(OnboardingAction.SelectWalletIcon(it)) }
+                )
+                2 -> Step3ReminderScreen(
+                    uiState = uiState,
+                    onToggleReminder = { onAction(OnboardingAction.ToggleReminder(it)) },
+                    onSelectTime = { hour, minute ->
+                        onAction(OnboardingAction.UpdateReminderTime(hour, minute))
+                    },
+                    onNotificationDenied = { onAction(OnboardingAction.ReportNotificationDenied) }
+                )
             }
         }
-    }
-
-    // Time Picker Bottom Sheet
-    uiState.activeTimePicker?.let { target ->
-        val currentTime = when (target) {
-            TimePickerTarget.WAKE_UP -> uiState.wakeUpTime
-            TimePickerTarget.SLEEP -> uiState.sleepTime
-        }
-
-        CueTimePickerBottomSheet(
-            target = target,
-            currentTime = currentTime,
-            onTimeSelected = { newTime ->
-                when (target) {
-                    TimePickerTarget.WAKE_UP -> onAction(OnboardingAction.UpdateWakeTime(newTime))
-                    TimePickerTarget.SLEEP -> onAction(OnboardingAction.UpdateSleepTime(newTime))
-                }
-            },
-            onDismiss = { onAction(OnboardingAction.DismissTimePicker) }
-        )
     }
 }
 
 @Composable
 private fun OnboardingHeader(
-    currentStep: OnboardingStep,
+    showBack: Boolean,
     onBack: () -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
@@ -166,31 +145,27 @@ private fun OnboardingHeader(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .height(52.dp)
-            .padding(horizontal = CueSpacing.Md)
+            .height(56.dp)
+            .padding(horizontal = AppTheme.dimensions.spaceSmall)
     ) {
-        if (currentStep != OnboardingStep.RHYTHM) {
+        if (showBack) {
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.action_back),
-                    tint = CueTheme.colors.textPrimary
+                    tint = AppTheme.colors.textPrimary
                 )
             }
         } else {
             Spacer(modifier = Modifier.size(48.dp))
         }
 
-        if (currentStep == OnboardingStep.RHYTHM) {
-            TextButton(onClick = onSkip) {
-                Text(
-                    text = stringResource(R.string.action_skip),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = CueTheme.colors.accent
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.size(48.dp))
+        TextButton(onClick = onSkip) {
+            Text(
+                text = stringResource(R.string.onboarding_action_skip),
+                style = MaterialTheme.typography.labelLarge,
+                color = AppTheme.colors.textSecondary
+            )
         }
     }
 }
@@ -198,28 +173,25 @@ private fun OnboardingHeader(
 @Composable
 private fun OnboardingFooter(
     currentStep: OnboardingStep,
-    isSaving: Boolean,
+    enabled: Boolean,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CueSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceMedium),
         modifier = modifier
     ) {
         ProgressDotsIndicator(currentStep = currentStep)
 
-        val buttonText = when (currentStep) {
-            OnboardingStep.RHYTHM, OnboardingStep.GOALS -> stringResource(R.string.action_continue)
-            OnboardingStep.TIMELINE -> stringResource(R.string.action_start_using_cue)
-        }
-
-        CuePrimaryButton(
-            text = buttonText,
+        OnboardingPrimaryButton(
+            text = if (currentStep == OnboardingStep.REMINDER) {
+                stringResource(R.string.onboarding_action_start)
+            } else {
+                stringResource(R.string.onboarding_action_continue)
+            },
             onClick = onContinue,
-            enabled = !isSaving,
-            backgroundColor = CueTheme.colors.cta,
-            textColor = CueTheme.colors.onCta
+            enabled = enabled
         )
     }
 }
@@ -227,10 +199,7 @@ private fun OnboardingFooter(
 @Preview(showBackground = true)
 @Composable
 private fun OnboardingScreenPreview() {
-    SmartReminderTheme {
-        OnboardingScreen(
-            uiState = OnboardingUiState(),
-            onAction = {}
-        )
+    NotePayTheme {
+        OnboardingScreen(uiState = OnboardingUiState(), onAction = {})
     }
 }

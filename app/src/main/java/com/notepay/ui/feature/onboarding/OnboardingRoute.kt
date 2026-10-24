@@ -1,17 +1,25 @@
-package com.smartreminder.ui.onboarding
+package com.notepay.ui.feature.onboarding
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * Stateful route that bridges [OnboardingViewModel] to stateless [OnboardingScreen].
- * No onCompleted callback — navigation is purely reactive:
- * completeOnboarding() → DataStore → preferences Flow → AppViewModel → AppState.Main.
+ * Route stateful: nối [OnboardingViewModel] với [OnboardingScreen] stateless.
+ * Điều hướng chỉ xảy ra một lần khi ViewModel báo đã lưu xong toàn bộ dữ liệu.
  */
 @Composable
-fun OnboardingRoute(viewModel: OnboardingViewModel) {
+fun OnboardingRoute(
+    onComplete: () -> Unit,
+    viewModel: OnboardingViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.isCompleted) {
+        if (uiState.isCompleted) onComplete()
+    }
 
     OnboardingScreen(
         uiState = uiState,

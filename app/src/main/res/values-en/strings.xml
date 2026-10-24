@@ -48,6 +48,12 @@
     <string name="home_empty_transactions">No transactions yet. Tap Add to start.</string>
     <string name="home_choose_wallet">Choose wallet</string>
     <string name="home_add_new_wallet">Add new wallet</string>
+    <string name="home_total_balance_all">Total assets</string>
+    <string name="home_wallet_balance_format">%1$s balance</string>
+    <string name="home_all_wallets">All wallets</string>
+    <string name="home_income_month">Income</string>
+    <string name="home_expense_month">Expense</string>
+    <string name="home_add_wallet">Add wallet</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 You have overspent your wallet limit by %1$s!</string>
@@ -1338,5 +1344,21 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="category_investment">Investment</string>
     <string name="category_bonus">Bonus</string>
     <string name="category_income_other">Other income</string>
+    <!-- Onboarding -->
+    <string name="onboarding_currency_title">Start with your currency</string>
+    <string name="onboarding_currency_subtitle">Pick your currency and display language. You can change both later in Settings.</string>
+    <string name="onboarding_currency_section_currency">Currency</string>
+    <string name="onboarding_currency_section_language">Language</string>
+    <string name="onboarding_wallet_title">Create your first wallet</string>
+    <string name="onboarding_wallet_subtitle">Every transaction goes into this wallet. You can add more later.</string>
+    <string name="onboarding_wallet_name_label">Wallet name</string>
+    <string name="onboarding_wallet_icon_label">Icon</string>
+    <string name="onboarding_reminder_title">Never forget to log</string>
+    <string name="onboarding_reminder_subtitle">NotePay will remind you to record spending at the time you choose.</string>
+    <string name="onboarding_reminder_toggle">Daily reminder</string>
+    <string name="onboarding_reminder_time_label">Reminder time</string>
+    <string name="onboarding_reminder_permission_denied">Notifications are blocked, so reminders stay off. Re-enable them in system Settings.</string>
+    <string name="onboarding_action_continue">Continue</string>
+    <string name="onboarding_action_start">Get started</string>
+    <string name="onboarding_action_skip">Skip</string>
 </resources>
-

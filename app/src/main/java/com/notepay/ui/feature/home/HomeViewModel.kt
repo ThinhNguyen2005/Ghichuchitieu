@@ -66,6 +66,7 @@ class HomeViewModel @Inject constructor(
     private val currentMonth = today.month.number
 
     private val _selectedMonth = MutableStateFlow(currentYear to currentMonth)
+    private val _selectedWalletFilterId = MutableStateFlow<Long?>(null)
     private val _isSmartInsightsDismissed = MutableStateFlow(false)
 
     fun dismissSmartInsights() {
@@ -84,15 +85,27 @@ class HomeViewModel @Inject constructor(
         return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
     }
 
+    private data class HomeFilterState(
+        val monthPair: Pair<Int, Int>,
+        val activeWallet: Wallet?,
+        val selectedFilterId: Long?,
+        val isDismissed: Boolean,
+    )
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = combine(
         _selectedMonth,
         walletRepo.observeActive(),
+        _selectedWalletFilterId,
         _isSmartInsightsDismissed,
-    ) { monthPair, activeWallet, isDismissed ->
-        Triple(monthPair, activeWallet, isDismissed)
-    }.flatMapLatest { (monthPair, activeWallet, isDismissed) ->
-        val (year, month) = monthPair
+    ) { monthPair, activeWallet, selectedFilterId, isDismissed ->
+        HomeFilterState(monthPair, activeWallet, selectedFilterId, isDismissed)
+    }.flatMapLatest { filter ->
+        val (year, month) = filter.monthPair
+        val activeWallet = filter.activeWallet
+        val selectedFilterId = filter.selectedFilterId
+        val isDismissed = filter.isDismissed
+
         val zone = TimeZone.currentSystemDefault()
         val firstDate = LocalDate(year, month, 1)
         val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
@@ -130,14 +143,19 @@ class HomeViewModel @Inject constructor(
         }
 
         combine(
-            getMonthlySummary(year, month, activeWallet?.id),
+            getMonthlySummary(year, month, selectedFilterId),
             walletsSummaryFlow,
             subscriptionRepository.observeAll(),
             transactionRepo.observeAllCreatedDates(),
         ) { summary, walletsSummary, subscriptions, createdDates ->
-            
             val wallets = walletsSummary.map { it.wallet }
-            
+
+            // Phòng thủ: nếu ví đang lọc bị xóa thì tự động fallback về null
+            val validFilterId = selectedFilterId?.takeIf { id -> wallets.any { it.id == id } }
+            if (selectedFilterId != null && validFilterId == null) {
+                _selectedWalletFilterId.value = null
+            }
+
             // Tính số lời nhắc sắp đến hạn
             val now = Clock.System.now()
             val dueCount = subscriptions.count { sub ->
@@ -150,50 +168,51 @@ class HomeViewModel @Inject constructor(
                 today = today.date
             )
 
-            val activeWalletExpense = summary.totalExpense
-        
-        val budgetLimit = activeWallet?.budgetLimit
-        val projection = if (activeWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
-            val spentCents = activeWalletExpense.amountInCents
-            val limitCents = budgetLimit.amountInCents
-            val currentDay = today.day.coerceIn(1, 31)
-            val daysInMonth = getDaysInMonth(today.year, today.month.number)
-            
-            val dailyAverageCents = spentCents.toFloat() / currentDay
-            val projectedSpendCents = dailyAverageCents * daysInMonth
-            val spentPercentage = (spentCents.toFloat() / limitCents).coerceIn(0f, 1f)
-            val isProjectedToExceed = projectedSpendCents > limitCents
-            
-            val exhaustionDateLabel = if (isProjectedToExceed && dailyAverageCents > 0) {
-                val exhaustionDay = (limitCents / dailyAverageCents).toInt().coerceIn(1, daysInMonth)
-                "%02d/%02d".format(exhaustionDay, today.month.number)
+            // Chỉ tính budgetProjection khi đang chọn một ví cụ thể có hạn mức
+            val targetWallet = validFilterId?.let { id -> wallets.find { it.id == id } }
+            val budgetLimit = targetWallet?.budgetLimit
+            val projection = if (targetWallet != null && budgetLimit != null && budgetLimit.amountInCents > 0) {
+                val spentCents = summary.totalExpense.amountInCents
+                val limitCents = budgetLimit.amountInCents
+                val currentDay = today.day.coerceIn(1, 31)
+                val daysInMonth = getDaysInMonth(today.year, today.month.number)
+
+                val dailyAverageCents = spentCents.toFloat() / currentDay
+                val projectedSpendCents = dailyAverageCents * daysInMonth
+                val spentPercentage = (spentCents.toFloat() / limitCents).coerceIn(0f, 1f)
+                val isProjectedToExceed = projectedSpendCents > limitCents
+
+                val exhaustionDateLabel = if (isProjectedToExceed && dailyAverageCents > 0) {
+                    val exhaustionDay = (limitCents / dailyAverageCents).toInt().coerceIn(1, daysInMonth)
+                    "%02d/%02d".format(exhaustionDay, today.month.number)
+                } else {
+                    null
+                }
+
+                val remainingBudget = limitCents - spentCents
+                val remainingDays = daysInMonth - currentDay
+                val safeDailyLimitCents = if (remainingBudget > 0 && remainingDays > 0) {
+                    remainingBudget / remainingDays
+                } else {
+                    0L
+                }
+
+                BudgetProjection(
+                    dailyAverage = Money(dailyAverageCents.toLong()),
+                    projectedSpend = Money(projectedSpendCents.toLong()),
+                    isProjectedToExceed = isProjectedToExceed,
+                    exhaustionDateLabel = exhaustionDateLabel,
+                    safeDailyLimit = Money(safeDailyLimitCents),
+                    spentPercentage = spentPercentage,
+                    spentThisWallet = summary.totalExpense
+                )
             } else {
                 null
             }
-            
-            val remainingBudget = limitCents - spentCents
-            val remainingDays = daysInMonth - currentDay
-            val safeDailyLimitCents = if (remainingBudget > 0 && remainingDays > 0) {
-                remainingBudget / remainingDays
-            } else {
-                0L
-            }
-            
-            BudgetProjection(
-                dailyAverage = Money(dailyAverageCents.toLong()),
-                projectedSpend = Money(projectedSpendCents.toLong()),
-                isProjectedToExceed = isProjectedToExceed,
-                exhaustionDateLabel = exhaustionDateLabel,
-                safeDailyLimit = Money(safeDailyLimitCents),
-                spentPercentage = spentPercentage,
-                spentThisWallet = activeWalletExpense
-            )
-        } else {
-            null
-        }
 
-            val activeSummary = walletsSummary.find { it.wallet.id == activeWallet?.id }
+            val activeSummary = walletsSummary.find { it.wallet.id == (validFilterId ?: activeWallet?.id) }
             HomeUiState(
+                selectedWalletId = validFilterId,
                 activeWallet = activeWallet,
                 wallets = wallets,
                 walletsSummary = walletsSummary,
@@ -216,9 +235,12 @@ class HomeViewModel @Inject constructor(
         initialValue = HomeUiState(),
     )
 
-    fun selectWallet(walletId: Long) {
-        viewModelScope.launch {
-            walletRepo.setActive(walletId)
+    fun selectWallet(walletId: Long?) {
+        _selectedWalletFilterId.value = walletId
+        if (walletId != null) {
+            viewModelScope.launch {
+                walletRepo.setActive(walletId)
+            }
         }
     }
 
