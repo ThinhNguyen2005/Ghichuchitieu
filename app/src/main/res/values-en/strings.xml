@@ -1275,6 +1275,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="auth_error_sign_in_failed">Sign in failed: %1$s</string>
     <string name="auth_error_canceled">Sign in canceled.</string>
     <string name="auth_error_no_credentials">No available Google account found on this device.</string>
+    <string name="auth_error_account_reauth">The Google account on this device needs to be re-authenticated. Open Settings › Accounts, sign in to Google again, then retry.</string>
     <string name="auth_error_missing_client_id">Google Web Client ID not configured. Please set notepay.webClientId in gradle.properties.</string>
     <string name="auth_avatar_description">User avatar</string>
     <string name="auth_sign_out_confirm_title">Confirm Sign Out</string>

@@ -41,7 +41,27 @@ Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose,
   4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline). Khi thiết kế, review hoặc audit giao diện, áp dụng bộ nguyên tắc và checklist tại `.agents/skills/ui-ux-playbook/SKILL.md` (`📚 Using skill: @ui-ux-playbook...`) để chuẩn hóa visual hierarchy, spacing (thang 4/8pt), typography và contrast.
   5. **Bảo mật & Cấu hình:** Không hardcode secret/token; đặt `android:exported="false"` cho components nội bộ; mã hóa dữ liệu nhạy cảm qua KeyStore.
 
+## UI & Design System (DESIGN.md v4.0.0 — Sand & Ink)
 
+Read `DESIGN.md` before creating or changing any UI. It is the single source of truth for colour, type, shape and components.
+
+**Look**
+- Neutral page, white cards that sit flat, and ONE ink-black card per screen as the focal point (balance, budget, total assets).
+- Sand (`#F2D3A8`) is a highlight only: selected item, budget segment, badge. Never a large background.
+- Numbers: Inter with tabular figures (`tnum`). Italic serif (Instrument Serif) is only for section titles and short accent words, never for amounts or paragraphs.
+- Shapes: 28 / 24 / 20 / 16 / 12 and pill. No asymmetric corners. Shadows only on floating elements (nav bar, stacked bottom card); sheets use a 45% scrim.
+- Navigation: floating black pill bar with the active tab as a white pill. Keep text labels on tabs.
+
+**Rules for agents**
+1. Use theme tokens (`AppTheme.colors`, `AppTheme.shapes`, typography styles). No hard-coded hex colours, `dp` radii or `sp` sizes inside screens.
+2. Do not mix `AppTheme.colors.*` and `MaterialTheme.colorScheme.*` in the same screen; if a token is missing, add it to the theme.
+3. Spacing comes from the 4dp scale (4 / 8 / 16 / 24 / 32). Screen margin is 16dp; leave 120dp bottom clearance for the floating nav.
+4. Text is at least 12sp. Touch targets are at least 44dp (48dp for icon buttons). Icon-only buttons need `contentDescription`.
+5. Income and expense colours carry cash-flow meaning only. Status (safe / caution / over budget) always combines colour + icon + text.
+6. Text over images needs an overlay or blur; do not put photos behind dense data screens.
+7. Every text/background pair must keep a 4.5:1 contrast ratio in both light and dark themes.
+8. Keep the existing project rules: no nested `Scaffold` on main tab screens, and no hard-coded user-facing strings (add keys to both `values/strings.xml` and `values-en/strings.xml`).
+9. Before finishing a UI change, run through the checklist in DESIGN.md section 7 and the unit tests (`./gradlew.bat :app:testDebugUnitTest`).
 ## Role & Operating Philosophy: Surgical Software Engineer
 
 You are a senior, highly disciplined software engineer. You value architectural integrity, minimal code footprint, and single-source-of-truth principles. You reject redundant logic, speculative coding, and architectural pollution.

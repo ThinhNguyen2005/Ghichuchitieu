@@ -1,6 +1,6 @@
 # NotePay
 
-NotePay is a local-first Android expense manager written in Kotlin and Jetpack Compose. It records income and expenses, forecasts spending, manages debts and loans (Sổ nợ Vay & Cho vay) with VietQR payment sheets, supports bill splitting with a VietQR-compatible payment payload, and can optionally parse selected bank notifications on-device.
+NotePay is a local-first Android expense manager written in Kotlin and Jetpack Compose. It records income and expenses, forecasts spending, supports bill splitting with a VietQR-compatible payment payload, and can optionally parse selected bank notifications on-device.
 
 ## Privacy model
 
@@ -10,12 +10,24 @@ Financial data is stored in the app's local Room database. OCR, spending forecas
 
 Requirements: Android Studio, JDK 17, and an Android SDK with a device or emulator.
 
-```powershell
+```
 .\gradlew.bat :app:assembleDebug
 .\gradlew.bat :app:testDebugUnitTest
 ```
 
 Install the resulting debug build from Android Studio or with `:app:installDebug` while a device is connected.
+
+## Design
+
+NotePay's visual language is **Sand & Ink (Editorial)**, documented in [DESIGN.md](DESIGN.md) (v4.0.0). In short:
+
+- A neutral grey page with white cards, and **one ink-black card per screen** as the focal point for the most important number.
+- **Sand** (`#F2D3A8`) as the highlight colour for selected items, budget segments and badges.
+- Large Inter numerals (tabular figures) with **italic serif** (Instrument Serif) reserved for section titles and short accent words.
+- A floating black pill navigation bar; large rounded cards (28 / 24 / 20 / 16) that sit flat, with shadows only on floating elements.
+- Income and expense are the only colours that carry cash-flow meaning, and status is never conveyed by colour alone. Text/background pairs meet WCAG 4.5:1; light and dark themes are both specified.
+
+Read DESIGN.md before changing any UI, and use the theme tokens rather than hard-coded colours or sizes.
 
 ## Notification tracking
 
@@ -26,10 +38,6 @@ Only TPBank is currently enabled for automatic recording. Other apps shown in th
 ## QR and bill split
 
 The QR payload is generated locally in `ui/util/VietQrGenerator.kt`; it contains the receiving bank BIN, account number, amount, transfer memo, and CRC. Treat it as a payment instruction: verify recipient, amount, and memo in the banking app before confirming. NotePay is not affiliated with NAPAS, VietQR, or any bank.
-
-## Debt & loan tracking (Sổ Nợ)
-
-Track personal lending and borrowing (`LEND` and `BORROW`) with partial repayment history, automatic settlement calculation, due date badges, and optional wallet transaction synchronization. Generate dynamic VietQR remittance sheets and pre-formatted reminder messages directly from the debt detail screen. See [docs/DEBT_MANAGEMENT.md](docs/DEBT_MANAGEMENT.md) for architecture, schema details, and use cases.
 
 ## Contributing
 

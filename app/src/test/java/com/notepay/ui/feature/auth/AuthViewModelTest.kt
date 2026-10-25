@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.auth
 
 import android.content.Context
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
@@ -114,6 +115,15 @@ class AuthViewModelTest {
             assertThat(feedback.type).isEqualTo(FeedbackType.Error)
             assertThat(feedback.message).isEqualTo("Missing Web Client ID")
         }
+    }
+
+    @Test
+    fun `reauth error 16 is classified as account issue instead of user cancel`() {
+        val reauth = GetCredentialCancellationException("[16] Account reauth failed.")
+        val userCancel = GetCredentialCancellationException("[1] User canceled the operation.")
+
+        assertThat(reauth.isAccountReauthRequired()).isTrue()
+        assertThat(userCancel.isAccountReauthRequired()).isFalse()
     }
 
     @Test

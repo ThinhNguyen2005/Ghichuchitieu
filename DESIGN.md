@@ -1,160 +1,110 @@
 ---
-version: 3.0.0
-name: NotePay — Ledger Ink & Warm Paper
-description: Bộ design token mới cho NotePay — tách hẳn khỏi mặc định Material 3 (tím #6750A4, elevation dp, corner scale đồng nhất) và khỏi việc chỉ sao chép iOS monochrome. Xây dựng bản sắc riêng: giấy sổ tay ấm (ledger paper), mực đậm, accent đất nung, bóng đổ mềm dạng "paper lift", bo góc bất đối xứng.
+version: 4.0.0
+name: NotePay — Sand & Ink (Editorial)
+description: Bộ design token v4 cho NotePay. Phong cách biên tập (editorial) lấy cảm hứng từ các app ảnh lớn, chữ hiển thị lớn kết hợp serif nghiêng, thẻ mực đen làm điểm nhấn dữ liệu, màu cát làm điểm sáng, thanh điều hướng pill đen nổi. Thay thế v3 "Ledger Ink & Warm Paper".
 
 colors:
-  # ==== LIGHT MODE — "Warm Paper Ledger" (~75%) ====
-  background: "#F7F3EC"            # Giấy ngà ấm, không phải xám lạnh Material/Apple
-  surface: "#FFFDF8"                # Bề mặt card — trắng ngà, ấm hơn #FFFFFF thuần
-  surface-sunken: "#EFE8DC"         # Vùng lõm (input, ô nhập liệu chưa focus)
-  surface-raised: "#FFFFFF"         # Bề mặt nổi cao nhất (modal, sheet)
+  # ==== LIGHT ====
+  background: "#EFEFEF"            # nền trang, xám trung tính nhạt
+  surface: "#FFFFFF"               # thẻ nội dung
+  surface-field: "#F4F1EC"         # ô nhập liệu, dải thu/chi trong thẻ ví
+  ink: "#0B0B0B"                   # thẻ nhấn (số dư, ngân sách), nút chính, thanh điều hướng
+  ink-raised: "#262626"            # nút phụ nằm trong thẻ ink
+  sand: "#F2D3A8"                  # điểm sáng: mục đang chọn trong ink, đoạn thanh ngân sách, huy hiệu
+  graphite: "#3A3733"              # đoạn thanh phân bổ thứ hai
+  clay: "#C98A63"                  # màu nhận diện ví / avatar
 
-  text-primary: "#1F1B16"           # Mực đen ấm (không phải #000000 lạnh)
-  text-secondary: "#6B6255"         # Nâu xám ấm, ~4.8:1
-  text-muted: "#A69C8C"             # Placeholder / disabled
+  text-primary: "#111111"
+  text-secondary: "#5C5C5C"        # >= 5.8:1 trên background và surface
+  on-ink: "#FFFFFF"
+  on-ink-muted: "#BDBDBD"          # nhãn phụ trên thẻ ink
+  on-sand: "#111111"
+  border: "#BDBDBD"
+  border-soft: "#CFCFCF"
 
-  border: "#DCD3C2"                 # Viền giấy ấm
-  border-strong: "#C7BBA4"          # Viền nhấn (dashed divider ledger)
-  hairline: "rgba(31, 27, 22, 0.10)"
+  income: "#2F6B3A"
+  income-on-ink: "#8FD99B"
+  expense: "#A63B2E"
+  expense-on-ink: "#FF9C8C"
+  warning: "#8A5A00"
+  warning-container: "#FBF1DC"
 
-  # ==== LIGHT MODE — Accent thương hiệu (~15%) — KHÔNG phải tím M3, KHÔNG phải đen/trắng Apple ====
-  primary: "#B5502E"                 # Đất nung (terracotta ink) — màu chữ ký của NotePay
-  on-primary: "#FFF8F0"
-  primary-container: "#F3DFCF"       # Nền nhạt của accent, dùng cho badge/trạng thái nhẹ
-  on-primary-container: "#5C2413"
-
-  secondary: "#3E4A3E"               # Xanh rêu đậm — dùng cho icon phụ, tab phụ
-  on-secondary: "#F7F3EC"
-  secondary-container: "#DCE3D5"
-  on-secondary-container: "#1F2A1F"
-
-  cta: "#B5502E"                     # Nút hành động chính: pill đất nung, không phải đen tuyền
-  on-cta: "#FFF8F0"
-
-  # ==== DARK MODE — "Ink Night" (~75%) ====
-  dark-background: "#15130F"         # Đen ấm ngả nâu, không phải OLED #000000 thuần
-  dark-surface: "#211E18"
-  dark-surface-sunken: "#1A1712"
-  dark-surface-raised: "#2A261E"
-
-  dark-text-primary: "#F3ECDF"       # Trắng ngà, không trắng lạnh
-  dark-text-secondary: "#B7AC97"
-  dark-text-muted: "#7C7263"
-
-  dark-border: "#3A3327"
-  dark-border-strong: "#4E4433"
-  dark-hairline: "rgba(243, 236, 223, 0.09)"
-
-  # ==== DARK MODE — Accent (~15%) ====
-  dark-primary: "#E08A5C"            # Đất nung sáng hơn cho nền tối
-  dark-on-primary: "#2E1206"
-  dark-primary-container: "#4A2415"
-  dark-on-primary-container: "#F3DFCF"
-
-  dark-secondary: "#8FA485"
-  dark-on-secondary: "#12190F"
-  dark-secondary-container: "#2B3527"
-  dark-on-secondary-container: "#DCE3D5"
-
-  dark-cta: "#E08A5C"
-  dark-on-cta: "#2E1206"
-
-  # ==== Semantic tài chính (~10%) — desaturated, ấm, KHÁC hệ Apple #34C759/#FF3B30 ====
-  income: "#4C7A4A"                  # Xanh lá rêu đục, không phải xanh lá tươi hệ thống
-  income-container: "#E1EBDC"
-  dark-income: "#7FAE78"
-  dark-income-container: "#233021"
-
-  expense: "#A63B2E"                 # Đỏ gạch đất, cùng họ với primary — đồng bộ tông ấm
-  expense-container: "#F3DAD2"
-  dark-expense: "#D9705A"
-  dark-expense-container: "#3D1B14"
-
-  warning: "#B8862E"                 # Vàng đất (mù tạt), không phải vàng cam Apple
-  warning-container: "#F3E6C8"
-  dark-warning: "#D9AC5C"
-  dark-warning-container: "#3B2C0F"
+  # ==== DARK ====
+  dark-background: "#141414"
+  dark-surface: "#1D1D1D"
+  dark-card: "#242424"
+  dark-nav: "#2A2A2A"
+  dark-text-primary: "#F2F2F2"
+  dark-text-secondary: "#A8A8A8"
+  dark-border: "#3A3A3A"
+  dark-nav-active: "#F2F2F2"
+  dark-nav-active-text: "#111111"
+  dark-income: "#7FCB8C"
+  dark-expense: "#FF8F7E"
+  dark-warning: "#F2C26B"
+  dark-warning-container: "#3A2D12"
+  # sand giữ nguyên ở dark mode làm điểm sáng
 
 typography:
-  # Ghép chữ: Serif hiển thị (bản sắc "sổ ghi chép") + Sans nội dung + Mono cho số
-  display-large:
-    fontFamily: "Fraunces"          # Serif ấm, thay cho Inter mặc định — tạo cảm giác "sổ tay", khác hẳn font hệ thống
-    fontSize: 32px
-    fontWeight: 600
-    lineHeight: 1.18
-    letterSpacing: -0.01em
-  headline-large:
-    fontFamily: "Fraunces"
-    fontSize: 22px
-    fontWeight: 600
-    lineHeight: 1.25
-  title-large:
-    fontFamily: "Manrope"
-    fontSize: 19px
-    fontWeight: 700
-    lineHeight: 1.26
-  title-medium:
-    fontFamily: "Manrope"
-    fontSize: 17px
-    fontWeight: 700
-    lineHeight: 1.3
-  body-large:
-    fontFamily: "Manrope"
-    fontSize: 16px
+  display-serif:                   # tiêu đề mục và từ nhấn, chỉ dùng cho chữ, không dùng cho số tiền
+    fontFamily: "Instrument Serif"
+    fontStyle: italic
+    fontSize: 26px
     fontWeight: 400
-    lineHeight: 1.4
-  body-medium:
-    fontFamily: "Manrope"
+    lineHeight: 1.1
+  display-sans:
+    fontFamily: "Inter"
+    fontSize: 28px
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: -0.02em
+  amount-hero:
+    fontFamily: "Inter"
+    fontSize: 44px
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: -0.03em
+    fontFeatureSettings: "tnum"
+  amount-card:
+    fontFamily: "Inter"
+    fontSize: 20px
+    fontWeight: 600
+    fontFeatureSettings: "tnum"
+  amount-row:
+    fontFamily: "Inter"
+    fontSize: 15px
+    fontWeight: 600
+    fontFeatureSettings: "tnum"
+  title:
+    fontFamily: "Inter"
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 1.3
+  body:
+    fontFamily: "Inter"
     fontSize: 14px
     fontWeight: 400
     lineHeight: 1.4
   caption:
-    fontFamily: "Manrope"
+    fontFamily: "Inter"
     fontSize: 12px
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 1.35
   eyebrow:
-    fontFamily: "Manrope"
-    fontSize: 10.5px
-    fontWeight: 700
-    lineHeight: 1.3
+    fontFamily: "Inter"
+    fontSize: 11px
+    fontWeight: 600
     letterSpacing: 0.08em
     textTransform: uppercase
 
-  amount-hero:
-    fontFamily: "JetBrains Mono"
-    fontSize: 36px
-    fontWeight: 700
-    lineHeight: 1.15
-    letterSpacing: -0.015em
-  amount-card:
-    fontFamily: "JetBrains Mono"
-    fontSize: 24px
-    fontWeight: 700
-    lineHeight: 1.2
-  amount-row:
-    fontFamily: "JetBrains Mono"
-    fontSize: 15px
-    fontWeight: 600
-    lineHeight: 1.25
-  number-tabular:
-    fontFamily: "JetBrains Mono"
-    fontSize: 13px
-    fontWeight: 500
-    lineHeight: 1.3
-
-# Bo góc: KHÔNG dùng thang đều 4/8/12/16/28 kiểu Material, mà là hệ bất đối xứng
-# — mỗi surface có 1 góc "bẻ" khác các góc còn lại, gợi nhớ mép giấy gấp trong sổ tay
 radius:
-  chip: 10px
-  input: 14px
-  row: 16px
-  card: "18px 18px 18px 6px"        # 3 góc tròn đều, góc dưới-trái bẻ nhọn — chữ ký hình khối của NotePay
-  card-alt: "6px 18px 18px 18px"    # biến thể soi gương, dùng xen kẽ trong list để tạo nhịp điệu
-  sheet-top: "24px 24px 0 0"
+  xl: 28px                         # thẻ ink, thẻ nhóm giao dịch, thẻ ảnh
+  lg: 24px                         # thẻ phụ, cảnh báo, thẻ ví chi tiết
+  md: 20px                         # thẻ ví nhỏ
+  sm: 16px                         # ô nhập, dải thu/chi
+  xs: 12px                         # thanh phân bổ
+  sheet-top: "28px 28px 0 0"
   pill: 999px
-  avatar: 999px
 
 spacing:
   xs: 4px
@@ -162,172 +112,163 @@ spacing:
   md: 16px
   lg: 24px
   xl: 32px
-  xxl: 40px
 
-# Đổ bóng: bỏ hệ "elevation dp" phẳng của Material. Dùng bóng đổ mềm, lệch nhẹ,
-# mô phỏng ánh sáng chiếu chéo lên giấy — không dùng bóng màu, không dùng 0px phẳng tuyệt đối như bản iOS cũ
 elevation:
-  resting:
-    boxShadow: "0px 1px 2px rgba(31,27,22,0.06)"
-  raised:
-    boxShadow: "0px 4px 10px rgba(31,27,22,0.08), 0px 1px 2px rgba(31,27,22,0.05)"
-  floating:
-    boxShadow: "0px 10px 24px rgba(31,27,22,0.12), 0px 2px 6px rgba(31,27,22,0.06)"
-  pressed:
-    boxShadow: "0px 0px 0px rgba(31,27,22,0)"   # phẳng hẳn khi nhấn — phản hồi xúc giác qua bóng, không chỉ qua scale
+  flat: "none"                     # thẻ nằm phẳng trên nền xám, phân tầng bằng màu
+  floating: "0px 10px 24px rgba(0,0,0,0.20)"   # thanh điều hướng nổi
+  sheet-card: "0px 10px 24px rgba(0,0,0,0.14)" # thẻ xếp chồng ở đáy
+  scrim: "rgba(0,0,0,0.45)"        # nền mờ sau bottom sheet
 
 motion:
   fast: 130ms
   normal: 220ms
   emphasized: 300ms
   sheet-spring: 380ms
-  easing-standard: cubic-bezier(0.22, 1, 0.36, 1)   # "ease-out-quint" — nảy nhẹ như trang giấy lật, khác FastOutSlowIn của Material
+  easing-standard: cubic-bezier(0.22, 1, 0.36, 1)
   spring-bounce:
     dampingRatio: 0.7
     stiffness: 320.0
 
 components:
-  primary-action-button:
-    backgroundColor: "{colors.cta}"
-    textColor: "{colors.on-cta}"
-    radius: "{radius.pill}"
-    height: 52px
-    shadow: "{elevation.raised}"
-  liquid-navigation-bar:
-    backgroundColor: "{colors.surface-raised}"
-    indicatorColor: "{colors.primary}"
-    height: 62px
+  ink-balance-card:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.on-ink}"
+    radius: "{radius.xl}"
+    padding: "22px 20px"
+  segmented-bar:                   # ngân sách / phân bổ
+    height: 44px
+    radius: "{radius.xs}"
+    gap: 2px
+    segments: ["{colors.sand}", "{colors.graphite}", "hatched (phần còn lại)"]
+  floating-nav:
+    backgroundColor: "{colors.ink}"
+    activeBackground: "{colors.on-ink}"
+    activeText: "{colors.ink}"
+    height: 64px
     radius: "{radius.pill}"
     shadow: "{elevation.floating}"
-    border: "1px solid {colors.border}"
-  balance-hero-card:
+    bottomInset: 22px
+  primary-button:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.on-ink}"
+    radius: "{radius.pill}"
+    height: 56px
+  button-sand:                     # nút chính nằm trong thẻ ink
+    backgroundColor: "{colors.sand}"
+    textColor: "{colors.on-sand}"
+    radius: "{radius.pill}"
+    height: 48px
+  filter-chip:
+    selected: "surface + viền 1px {colors.border}, chữ {colors.text-primary}"
+    unselected: "trong suốt, chữ {colors.text-secondary}"
+    radius: "{radius.pill}"
+    minHeight: 48px
+  wallet-mini-card:
     backgroundColor: "{colors.surface}"
-    radius: "{radius.card}"
-    padding: "{spacing.lg}"
-    shadow: "{elevation.raised}"
-    border: "1px solid {colors.border}"
-    accentEdge: "3px solid {colors.primary}"   # dải mực mảnh bên trái card — chi tiết nhận diện riêng, không có ở Material/Apple
-  transaction-item-row:
+    radius: "{radius.md}"
+    size: "150px x 92px"
+  day-group-card:                  # nhóm giao dịch theo ngày, các dòng cách nhau bằng khoảng trắng
     backgroundColor: "{colors.surface}"
-    radius: "{radius.row}"
-    padding: "{spacing.md}"
-    swipeThreshold: 72px
-    divider: "dashed 1px {colors.border-strong}"  # đường kẻ đứt kiểu sổ ghi chép giữa các dòng, thay cho hairline đặc
-  amount-display-hero:
-    typography: "{typography.amount-hero}"
+    radius: "{radius.xl}"
+    header: "{typography.eyebrow}"
+  budget-alert-card:
+    backgroundColor: "{colors.warning-container}"
     textColor: "{colors.text-primary}"
-    currencySymbolColor: "{colors.text-muted}"
-  category-chip:
-    backgroundColor: "{colors.surface-sunken}"
-    textColor: "{colors.text-primary}"
-    radius: "{radius.chip}"
-    height: 34px
-    border: "1px solid {colors.border}"
-  ai-advisor-card:
-    backgroundColor: "{colors.primary-container}"
-    borderColor: "{colors.primary}"
-    textColor: "{colors.on-primary-container}"
-    radius: "{radius.card-alt}"
-    shadow: "{elevation.resting}"
+    radius: "{radius.lg}"
+    requires: "icon + chữ, không chỉ màu"
+  bottom-sheet:
+    backgroundColor: "{colors.surface}"
+    radius: "{radius.sheet-top}"
+    scrim: "{elevation.scrim}"
 ---
 
-# NotePay Design Specification v3: Ledger Ink & Warm Paper
+# NotePay Design Specification v4: Sand & Ink (Editorial)
 
-## 1. Vì sao tách khỏi Material 3 và bản iOS monochrome cũ
+## 1. Hướng đi
 
-**Vấn đề của bản cũ:**
-- Bảng màu B&W thuần (`#000000`/`#FFFFFF`) là công thức của Apple Human Interface Guidelines — không tạo bản sắc riêng, ai nhìn cũng thấy quen mắt "giống app Apple".
-- Xanh/đỏ income-expense (`#34C759`/`#FF3B30`) là màu hệ thống iOS mặc định, trùng với hàng nghìn app khác.
-- Thang bo góc 8/12/16/20/24 đều và đối xứng là công thức chuẩn của cả Material lẫn iOS — không có điểm nhận diện riêng.
-- `elevation: 0px` + border hairline là lối "phẳng hoá" điển hình của thiết kế hệ thống, không có chiều sâu vật lý.
+NotePay v4 chuyển từ ẩn dụ "sổ ghi chép giấy ấm" (v3) sang phong cách **biên tập hiện đại**: nền trung tính, **một thẻ mực đen** làm tâm điểm dữ liệu trên mỗi màn, **màu cát** làm điểm sáng, chữ hiển thị lớn kết hợp **serif nghiêng** cho tiêu đề, và **thanh điều hướng pill đen** nổi ở đáy.
 
-**Hướng đi mới — ẩn dụ "sổ ghi chép" (ledger):**
-Một app quản lý chi tiêu về bản chất là một cuốn sổ. NotePay v3 lấy giấy ấm, mực đất nung, và các chi tiết "viết tay" (góc bẻ, đường kẻ đứt, dải mực bên card) làm ngôn ngữ thị giác — thứ không thể nhầm với Material 3 hay bất kỳ app hệ thống nào.
-
-```text
-Nền giấy ấm (#F7F3EC) → Card giấy ngà (#FFFDF8), góc bẻ bất đối xứng
-                                  ↓
-Accent: Đất nung (#B5502E) — không đen/trắng, không tím Material
-                                  ↓
-Số liệu tài chính: Xanh rêu đục (income) / Đỏ gạch (expense) — cùng họ tông đất, không phải xanh-đỏ hệ thống
-```
-
----
+Lý do chuyển: dữ liệu tài chính cần số lớn, tương phản cao và phân cấp rõ. Thẻ mực đen với chữ trắng cho tương phản trên 19:1, giúp con số quan trọng nhất luôn là thứ đầu tiên được nhìn thấy.
 
 ## 2. Hệ màu
 
-### Canvas & Surface (~75%)
-| Token | Light | Dark |
-|---|---|---|
-| background | `#F7F3EC` giấy ngà ấm | `#15130F` đen ấm |
-| surface | `#FFFDF8` | `#211E18` |
-| text-primary | `#1F1B16` mực ấm | `#F3ECDF` |
-| text-secondary | `#6B6255` (~4.8:1) | `#B7AC97` |
-| border | `#DCD3C2` | `#3A3327` |
+| Vai trò | Light | Dark | Dùng cho |
+|---|---|---|---|
+| background | `#EFEFEF` | `#141414` | Nền trang |
+| surface | `#FFFFFF` | `#1D1D1D` | Thẻ nội dung |
+| ink | `#0B0B0B` | `#0B0B0B` | Thẻ nhấn, nút chính, nav |
+| sand | `#F2D3A8` | `#F2D3A8` | Điểm sáng, đoạn ngân sách, huy hiệu |
+| text-primary | `#111111` | `#F2F2F2` | Chữ chính |
+| text-secondary | `#5C5C5C` | `#A8A8A8` | Chữ phụ |
+| income | `#2F6B3A` | `#7FCB8C` | Thu nhập |
+| expense | `#A63B2E` | `#FF8F7E` | Chi tiêu |
+| warning | `#8A5A00` trên `#FBF1DC` | `#F2C26B` trên `#3A2D12` | Cảnh báo ngân sách |
 
-Điểm khác biệt cốt lõi: **không dùng xám lạnh** (`#F2F2F7`, `#1C1C1E` kiểu Apple) và **không dùng trắng/đen tuyệt đối làm nền** — mọi tông đều ngả vàng/nâu nhẹ để tạo cảm giác giấy thật.
+Tương phản đã kiểm tra (WCAG): chữ chính trên surface 18.9:1, chữ phụ trên background 5.8:1, trắng trên ink 19.7:1, `on-ink-muted` trên ink 10.5:1, income/expense trên surface 6.4:1, cảnh báo 5.3:1 (light) và 8.1:1 (dark). Mọi cặp đều đạt 4.5:1 trở lên.
 
-### Accent thương hiệu (~15%)
-- `primary` = `#B5502E` (đất nung) thay cho đen/trắng thuần hoặc tím Material `#6750A4`.
-- `secondary` = `#3E4A3E` (rêu đậm) cho các yếu tố phụ, không cạnh tranh với primary.
-- Nút CTA là pill đất nung, không phải pill đen/trắng — nhận diện được ngay cả khi chụp màn hình không có logo.
+**Quy tắc màu**
+- `income` và `expense` là hai màu **duy nhất** mang nghĩa dòng tiền, không dùng trang trí.
+- `sand` chỉ làm điểm sáng (mục chọn, đoạn thanh, huy hiệu), không dùng làm nền cả vùng lớn.
+- Chữ trên thẻ ink dùng biến thể `*-on-ink` (sáng hơn) để đủ tương phản.
+- Trạng thái (ngân sách an toàn/cảnh báo/vượt) luôn có **icon + chữ + màu**, không chỉ dựa vào màu.
 
-### Semantic tài chính (~10%)
-- Income `#4C7A4A`, Expense `#A63B2E` — đều được "hạ tông" (desaturate) và kéo về họ màu đất, để không chỏi với accent chính như cách xanh-lá-tươi/đỏ-tươi hệ thống thường chỏi với mọi bảng màu.
-- *Quy tắc nghiêm ngặt*: đây vẫn là 2 màu DUY NHẤT mang nghĩa cash-flow — không dùng trang trí ở nơi khác.
+## 3. Typography
 
----
+- **Inter** (400, 500, 600) cho toàn bộ giao diện và số tiền, bật `tnum` (số cùng độ rộng) cho mọi số liệu.
+- **Instrument Serif nghiêng** chỉ cho tiêu đề mục ("Giao dịch gần đây", "Ví của bạn") và từ nhấn trong tiêu đề lớn. **Không dùng cho số tiền.**
+- Cỡ chữ nhỏ nhất 12sp. Nhãn phụ trên thẻ ink dùng `on-ink-muted`, không dùng xám đậm.
+- Số dư chính: `amount-hero` 44px / 500 / letter-spacing -0.03em.
 
-## 3. Bo góc — hệ bất đối xứng thay cho thang đều
+## 4. Bo góc và khoảng cách
 
-Thay vì một thang bán kính áp đều cho mọi surface (kiểu Material `4/8/12/16/28`), NotePay v3 dùng **góc bẻ**: 3 góc bo tròn, 1 góc gần như vuông (6px), luân phiên xoay chiều giữa các thẻ liên tiếp trong danh sách.
+Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24 / 20 / 16 / 12` và `pill`.
+- Thẻ lớn (ink, nhóm giao dịch, ảnh): 28. Thẻ phụ và cảnh báo: 24. Thẻ ví nhỏ: 20. Ô nhập: 16. Thanh phân bổ: 12. Nút và chip: pill.
+- Khoảng cách theo thang 4: `4 / 8 / 16 / 24 / 32`. Lề màn hình 16. Chừa đáy 120 cho thanh điều hướng nổi.
 
-- `card`: `18px 18px 18px 6px` — góc dưới-trái bẻ nhọn.
-- `card-alt`: `6px 18px 18px 18px` — soi gương, dùng cho thẻ AI Advisor hoặc xen kẽ trong feed để tạo nhịp điệu thị giác, tránh cảm giác "dập khuôn hàng loạt".
+## 5. Chiều sâu
 
-Đây là chi tiết dễ nhận ra nhất khi so sánh cạnh-cạnh với bất kỳ app Material 3 hay iOS nào — không app nào khác có góc bẻ này trừ khi cố tình sao chép NotePay.
+- Thẻ nằm **phẳng** trên nền xám, phân tầng bằng màu (trắng trên xám, ink trên xám), không đổ bóng.
+- Chỉ phần tử nổi mới có bóng: thanh điều hướng (`floating`), thẻ xếp chồng ở đáy (`sheet-card`).
+- Bottom sheet dùng nền mờ `scrim` 45%, không dùng bóng.
 
----
+## 6. Thành phần chính
 
-## 4. Đổ bóng — "paper lift" thay cho elevation phẳng
-
-Bỏ hoàn toàn mô hình "elevation dp" của Material (nơi độ cao chỉ là một con số trừu tượng) và bỏ luôn `elevation: 0px` tuyệt đối của bản Apple cũ. Thay bằng bóng đổ vật lý, mô phỏng ánh sáng chiếu chéo:
-
-| Cấp | Dùng cho | Box-shadow |
-|---|---|---|
-| resting | chip, thẻ AI advisor | `0px 1px 2px rgba(31,27,22,0.06)` |
-| raised | balance card, button | `0px 4px 10px rgba(31,27,22,.08), 0px 1px 2px rgba(31,27,22,.05)` |
-| floating | nav bar, bottom sheet | `0px 10px 24px rgba(31,27,22,.12), 0px 2px 6px rgba(31,27,22,.06)` |
-| pressed | trạng thái nhấn | phẳng hẳn — bóng biến mất tức thời, tạo cảm giác "ấn xuống giấy" |
-
-Bóng luôn dùng màu mực ấm (`rgba(31,27,22,…)`) chứ không dùng đen thuần hay bóng có màu theo accent — giữ cảm giác tự nhiên như ánh sáng thật.
-
----
-
-## 5. Card & chi tiết nhận diện riêng
-
-- **Balance Hero Card**: có `accentEdge` — một dải mực đất nung dày 3px dọc theo cạnh trái card, như một dải bookmark. Chi tiết này không tồn tại ở bản Material lẫn bản iOS cũ.
-- **Transaction Row**: đường phân cách giữa các dòng đổi từ hairline đặc sang **nét đứt** (`dashed 1px`), gợi liên tưởng tới đường xé của biên lai giấy.
-- **Category Chip**: nền `surface-sunken` (giấy lõm nhẹ) + viền mảnh, thay vì fill xám phẳng kiểu Material system-fill.
-
----
-
-## 6. Typography — ghép chữ mới
-
-- **Fraunces** (serif ấm, có cá tính "viết tay hiện đại") cho tiêu đề lớn — thay cho Inter, vốn là lựa chọn an toàn/trung tính dùng trong hầu hết app hệ thống.
-- **Manrope** (sans hình học, thân thiện) cho nội dung — thay cho Inter ở phần body, giữ dễ đọc nhưng có nét bo tròn riêng hơn.
-- **JetBrains Mono** giữ lại cho số liệu tài chính — đây là lựa chọn đúng, không cần đổi vì tính đơn cách (tabular) là yêu cầu chức năng chứ không phải gu thẩm mỹ.
-
----
+- **Ink balance card**: số dư lớn, huy hiệu thay đổi %, hàng nút (nút sand cho hành động chính, nút `ink-raised` cho phụ). Mỗi màn chỉ có một thẻ ink làm tâm điểm.
+- **Segmented bar**: ngân sách hoặc phân bổ. Đoạn đầu `sand`, đoạn hai `graphite`, phần còn lại kẻ chéo. Nhãn phần trăm nằm trong đoạn nếu đủ rộng.
+- **Floating nav**: pill đen, mục đang chọn là pill trắng, chữ nhãn rõ (không chỉ icon).
+- **Day group card**: giao dịch gom theo ngày, tiêu đề nhóm dùng `eyebrow`, các dòng cách nhau bằng khoảng trắng, không dùng đường kẻ.
+- **Wallet card**: icon 48, tên, huy hiệu "Đang dùng" (sand), số giao dịch, dải thu/chi nền `surface-field`.
+- **Budget alert card**: nền `warning-container`, icon cảnh báo, lời khuyên có số tiền in đậm, nút đóng vùng chạm 48, thanh tiến độ.
+- **Hero photo card** (tùy chọn, màn chào hoặc giới thiệu): chữ trên ảnh phải có lớp phủ hoặc làm mờ nền. Không đặt ảnh trên màn dữ liệu dày (danh sách giao dịch, thống kê).
 
 ## 7. Nên và không nên
 
 ### Nên
-- Luân phiên `card` / `card-alt` trong danh sách để tránh lặp góc bẻ cùng chiều liên tục.
-- Dùng `accentEdge` chỉ trên các card "hero" hoặc card cần nhấn mạnh — không lạm dụng trên mọi surface.
-- Giữ nguyên tắc chỉ 2 màu income/expense mang ý nghĩa tài chính; mọi màu khác (kể cả accent chính) không được dùng để biểu thị lãi/lỗ.
+- Một thẻ ink làm tâm điểm cho mỗi màn, số lớn nhất là số quan trọng nhất.
+- Dùng serif nghiêng tiết chế: tối đa vài từ mỗi tiêu đề.
+- Giữ vùng chạm tối thiểu 48dp, nút icon có `contentDescription`.
+- Dùng một hệ màu duy nhất (`AppTheme.colors`), không trộn với `MaterialTheme.colorScheme` trong cùng màn.
 
 ### Không nên
-- Không quay lại xám lạnh hệ thống (`#F2F2F7`, `#E5E5EA`) hoặc đen/trắng tuyệt đối làm nền — phá vỡ cảm giác "giấy ấm".
-- Không dùng bo góc đối xứng đều ở mọi card — làm mất đi chi tiết nhận diện cốt lõi của phiên bản này.
-- Không thêm bóng màu theo accent (ví dụ bóng đất nung) — bóng chỉ dùng tông mực trung tính để giữ cảm giác vật lý tự nhiên.
+- Không dùng chữ serif cho số tiền hoặc đoạn văn dài.
+- Không dùng màu thu/chi để trang trí, không dùng màu đơn lẻ để báo trạng thái.
+- Không đặt chữ trực tiếp lên ảnh nếu không có lớp phủ.
+- Không thêm bóng đổ cho thẻ phẳng, không dùng gradient màu làm nền thẻ.
+
+## 8. Ánh xạ từ v3
+
+| v3 (Ledger Ink) | v4 (Sand & Ink) |
+|---|---|
+| Nền giấy `#F7F3EC` | `#EFEFEF` |
+| Thẻ `#FFFDF8` | `#FFFFFF` |
+| Mực chữ `#1F1B16` / phụ `#6B6255` | `#111111` / `#5C5C5C` |
+| Accent đất nung `#B5502E` (nút, nav) | Ink `#0B0B0B` (nút, nav) + sand `#F2D3A8` (điểm sáng) |
+| Income `#4C7A4A` | `#2F6B3A` |
+| Expense `#A63B2E` | giữ nguyên |
+| Bo góc bất đối xứng 18/6 | Bo đều 28 / 24 / 20 / 16 |
+| Đường kẻ đứt giữa dòng | Khoảng trắng, không đường kẻ |
+| Fraunces + Manrope + JetBrains Mono | Instrument Serif nghiêng + Inter (`tnum`) |
+| Nav trắng nổi, chỉ báo đất nung | Nav ink, mục chọn pill trắng |
+| Dải mực 3px bên trái thẻ hero | Thẻ ink nguyên khối |
+
+> **Trạng thái:** đây là đặc tả đích. Mã Compose (`AppColors.kt`, `AppTheme.shapes`) vẫn là v3 cho tới khi có yêu cầu chuyển đổi riêng; các token mới (ink, sand, graphite, corner28) chưa tồn tại trong code.

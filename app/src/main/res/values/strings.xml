@@ -1261,6 +1261,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="auth_error_sign_in_failed">Đăng nhập thất bại: %1$s</string>
     <string name="auth_error_canceled">Đã hủy đăng nhập.</string>
     <string name="auth_error_no_credentials">Không tìm thấy tài khoản Google khả dụng trên thiết bị.</string>
+    <string name="auth_error_account_reauth">Tài khoản Google trên thiết bị đang yêu cầu xác thực lại. Vui lòng vào Cài đặt › Tài khoản, đăng nhập lại Google rồi thử lại.</string>
     <string name="auth_error_missing_client_id">Chưa cấu hình Google Web Client ID. Vui lòng cấu hình notepay.webClientId trong gradle.properties.</string>
     <string name="auth_avatar_description">Ảnh đại diện người dùng</string>
     <string name="auth_sign_out_confirm_title">Xác nhận đăng xuất</string>

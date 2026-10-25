@@ -68,23 +68,16 @@ object LocaleHelper {
             // Nếu target là "vi" và ngôn ngữ hệ thống hiện tại cũng là "vi",
             // đồng thời appLocales đang trống -> Đang dùng vi-VN của hệ thống -> Đã khớp!
             val systemLocale = Locale.getDefault()
-            if (normalizeLanguageCode(systemLocale.language) == target && appLocales.isEmpty) {
-                return true
-            }
-
-            return false
+            return normalizeLanguageCode(systemLocale.language) == target && appLocales.isEmpty
         } else {
             if (target == LANG_SYSTEM) {
                 return true
             }
 
             @Suppress("DEPRECATION")
-            val currentLocale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val currentLocale =
                 context.resources.configuration.locales[0]
-            } else {
-                @Suppress("DEPRECATION")
-                context.resources.configuration.locale
-            } ?: Locale.getDefault()
+                    ?: Locale.getDefault()
 
             return normalizeLanguageCode(currentLocale.language) == target
         }
