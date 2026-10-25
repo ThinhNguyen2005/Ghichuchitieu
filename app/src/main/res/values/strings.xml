@@ -798,6 +798,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="tx_empty_title">Không tìm thấy giao dịch nào</string>
     <string name="tx_empty_subtitle">Hãy thử thay đổi tiêu chí lọc hoặc khoảng thời gian</string>
     <string name="tx_select_wallet_sheet_title">Chọn tài khoản / ví</string>
+    <string name="list_detail_placeholder_title">Chọn một mục để xem chi tiết</string>
+    <string name="list_detail_placeholder_desc">Danh sách bên trái vẫn giữ nguyên lựa chọn khi bạn xoay máy hoặc đổi kích thước cửa sổ.</string>
 
     <!-- Transaction screen filters and summary -->
     <string name="transactions_header_title">GIAO DỊCH</string>

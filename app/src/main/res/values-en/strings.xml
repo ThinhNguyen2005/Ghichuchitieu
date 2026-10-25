@@ -835,6 +835,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="tx_empty_title">No transactions found</string>
     <string name="tx_empty_subtitle">Try changing the filter criteria or time period</string>
     <string name="tx_select_wallet_sheet_title">Select account / wallet</string>
+    <string name="list_detail_placeholder_title">Select an item to view details</string>
+    <string name="list_detail_placeholder_desc">Your selection survives rotation and window resizing.</string>
 
     <!-- Transaction screen filters and summary -->
     <string name="transactions_header_title">TRANSACTIONS</string>

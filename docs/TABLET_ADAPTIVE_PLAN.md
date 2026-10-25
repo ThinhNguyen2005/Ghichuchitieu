@@ -3,7 +3,7 @@
 Tài liệu này ghi lại audit, quyết định kiến trúc và lộ trình P0–P5 để NotePay chạy
 đúng trên tablet và thiết bị gập, trong khi giao diện điện thoại không đổi.
 
-Trạng thái: **P0–P3 đã xong** · P4–P5 còn lại.
+Trạng thái: **P0–P4 đã xong** · P5 còn lại (BillSplit list-detail tạm hoãn).
 
 ---
 
@@ -13,7 +13,7 @@ Trạng thái: **P0–P3 đã xong** · P4–P5 còn lại.
 |---|---|---|---|
 | 1 | Navigation shell | **Option A — custom adaptive glass shell**: `<600dp` giữ `NotePayBottomBar`; `>=600dp` dùng `NotePayNavigationRail` là **pill dọc nổi, căn giữa chiều dọc, cao vừa đủ 4 tab (260dp)** | Giữ hiệu ứng Liquid Glass đặc trưng. Pill ngắn thay vì rail full-height để `Backdrop` không phải blur/lens toàn bộ chiều cao màn hình tablet (chi phí GPU tỉ lệ với diện tích bề mặt kính) |
 | 2 | Pager gesture trên tablet | **Tắt `userScrollEnabled` khi `>=600dp`** | Tránh tranh chấp cử chỉ với `SwipeableTransactionItem` và `WalletsCompactCarousel`; chuyển tab bằng cách chạm rail |
-| 3 | List-detail | **Transaction là pilot duy nhất ở P4** | Luồng `list → transaction-detail/{id}` có sẵn route riêng, ít rủi ro nhất; Debt/BillSplit nhân bản sau khi đã chuẩn hoá |
+| 3 | List-detail | **Tự dựng `Row` hai pane + `rememberSaveable`**, không dùng `ListDetailPaneScaffold`. Pilot Transactions, sau đó Debt; BillSplit hoãn | `ListDetailPaneScaffold` cần một `NavBackStackEntry` riêng cho mỗi pane, trong khi `transaction-detail/{id}` và `debt-detail/{id}` đã là route độc lập phục vụ deep-link/Home. Tự dựng `Row` cho phép giữ nguyên route cũ, không nhân bản UI, không đụng back stack |
 | 4 | Manifest | **Khai báo tường minh `android:resizeableActivity="true"`** | Tránh phụ thuộc giá trị mặc định của từng OEM/targetSdk; là điều kiện để multi-window hoạt động |
 | 5 | Tài liệu hoá | Chính file này | Theo dõi tiến độ P0–P5 |
 
@@ -82,10 +82,13 @@ material3Adaptive = "1.3.0"   # androidx.compose.material3.adaptive:adaptive
 window            = "1.5.1"   # androidx.window:window-core (hằng số breakpoint)
 ```
 
-`adaptive-layout` (cho `ListDetailPaneScaffold` ở P4) đã khai báo sẵn.
+`adaptive-layout` (cho `ListDetailPaneScaffold`) đã khai báo sẵn nhưng **P4 không dùng**: bố cục
+hai pane được dựng bằng `Row` + `weight`, vì mỗi pane sẽ cần một pane-scoped navigator riêng
+và như vậy phải nhân bản route chi tiết đang phục vụ deep-link.
 `adaptive-navigation` **chưa** thêm: phiên bản 2.10 của Navigation-Compose chưa cần
-artifact này, và nó kéo theo phụ thuộc Navigation3 — chỉ thêm ở P4 khi thực sự dùng
-pane-scoped navigator.
+artifact này, và nó kéo theo phụ thuộc Navigation3.
+
+> Có thể cân nhắc bỏ `adaptive-layout` ở P5 nếu không màn nào dùng tới.
 
 > Lần build đầu tiên sau khi thêm dependency phải **bỏ `--offline`** để Gradle tải AAR
 > về cache; các lần sau dùng `--offline` như bình thường.
@@ -114,6 +117,46 @@ Ba tab chính đổi bố cục khi đủ rộng; Compact/Medium **không đổi
 - `AssetsScreen` dùng `GridCells.Adaptive` thay vì `Fixed(2)` để bề rộng 600–660dp
   không bị ép thành hai cột chật; dưới ngưỡng đó grid tự rơi về 1 cột.
 
+### 2.6 List-detail hai pane (P4)
+
+Mẫu chung (Transactions và Debt dùng đúng cùng một khuôn):
+
+| Thành phần | Transactions | Debt |
+|---|---|---|
+| Pane trái | `TransactionListPane` (tìm kiếm, lịch, bộ lọc, danh sách) | `DebtListPane` (tìm kiếm, tab, chip lọc, danh sách) |
+| Pane phải | `TransactionDetailPane` → `TransactionDetailContent` | `DebtDetailPane` → `DebtDetailScreen(paneMode = true)` |
+| Chọn dòng | `selectedTransactionId` (Long?) | `selectedDebtId` (Long?) |
+| Tỉ lệ | 0.45 / 0.55 | 0.45 / 0.55 |
+
+- Route chi tiết **giữ nguyên** (`transaction-detail/{id}`, `debt-detail/{id}`): ở
+  Compact/Medium và khi nhảy từ Home vẫn `navController.navigate` như cũ. Ở Expanded
+  danh sách mới đổi `onClick` sang "chọn tại chỗ", không đụng back stack.
+- Lựa chọn dùng `rememberSaveable` → sống sót khi activity recreate vì resize cửa sổ
+  (manifest chỉ khai báo `locale|layoutDirection`).
+- `resolvedXxxId` kiểm tra lại id với danh sách đang hiển thị: bản ghi vừa bị xóa hoặc
+  rơi ra khỏi bộ lọc sẽ tự trả pane phải về `DetailPaneEmptyState`.
+- `BackHandler(enabled = isTwoPane && id != null)` đóng pane chi tiết trước khi thoát màn.
+- Pane phải dùng `Surface(corner24, surfaceSunken)`; nội dung bên trong vẫn là card
+  `surface` nên đọc đúng tầng.
+- Dòng đang chọn được đánh dấu bằng `isSelected` (viền 2dp `primary`) — thêm vào
+  `SwipeableTransactionItem` (đi xuyên xuống `TransactionItem`) và `DebtItemCard`.
+- **ViewModel dùng lại, không nhân bản**: hai ViewModel chi tiết đọc id từ nav args;
+  ở pane thì không có nav arg nên được bổ sung `select(id)`
+  (`TransactionDetailViewModel`: huỷ job cũ rồi observe lại;
+  `DebtDetailViewModel`: `MutableStateFlow` + `flatMapLatest`, `null` → `emptyFlow()`
+  để không nháy trạng thái "không tìm thấy").
+- Xóa ở pane phải **không** gọi `popBackStack()`: sự kiện `DebtDeleted` gọi `onBack`,
+  mà pane truyền `onBack = { selectedDebtId = null }`; Transactions xóa qua swipe nên
+  `onConfirm` chỉ cần kiểm tra id vừa xóa có trùng lựa chọn hay không.
+- `GradientTopAppBar` thêm tham số `topBarColor` (mặc định `colorScheme.background`)
+  để dải gradient trùng màu container thật khi thanh nằm trên `surfaceSunken`.
+- Bỏ `Scaffold` lồng ở cả hai màn: top bar tự lo inset status bar, `Box` ngoài tô nền,
+  FAB của Debt chuyển vào trong pane danh sách để không đè lên pane chi tiết.
+
+**BillSplit hoãn có chủ đích**: danh sách của nó là hub tạo nhóm chia tiền
+(`onDebtorClick(String)` — khóa theo **tên người**, không phải id) và "chi tiết" là bản
+tổng hợp theo tên; muốn list-detail sạch cần đổi khoá dữ liệu trước, nên để P5.
+
 ---
 
 ## 3. Bản đồ màn hình
@@ -136,8 +179,9 @@ NotePayNavHost (Scaffold gốc, insets, snackbar)
 | Stats | `LazyColumn` + slot `supportingContent` | giữ nguyên | lề bù ✅ | **panel phụ bên phải**: biểu đồ trái / insight phải ✅ | P3 ✅ |
 | Assets | grid thẻ ví + khối tổng quan | giữ nguyên (grid = 1 cột) | lề bù ✅ | `LazyVerticalGrid` adaptive, header/donut full span ✅ | P3 ✅ |
 | Utilities | `LazyColumn` card nhóm cài đặt | giữ nguyên | lề bù ✅ | giữ 1 cột (≥840đã đủ đọc) | — |
-| Transactions | list ↔ detail (route riêng) | push/pop như cũ | **2 pane** | `ListDetailPaneScaffold`, detail giữ back riêng | P4 |
-| Debt / BillSplit | list ↔ detail | push/pop | 2 pane | như Transactions | P4 |
+| Transactions | list ↔ detail (route riêng + pane) | push/pop như cũ | lề bù ✅ | **2 pane** 0.45/0.55, chọn tại chỗ, `BackHandler` ✅ | P4 ✅ |
+| Debt | list ↔ detail (route riêng + pane) | push/pop như cũ | lề bù ✅ | **2 pane** 0.45/0.55, FAB trong pane trái ✅ | P4 ✅ |
+| BillSplit | hub tạo nhóm → "chi tiết" theo tên người | push/pop | giữ nguyên | giữ nguyên (khoá dữ liệu theo tên) | P5 |
 | Form (add/edit transaction, wallet) | `ModalBottomSheet` / full-screen | giữ nguyên | `SideSheet`-style panel | panel cạnh nội dung | P5 |
 | Settings (7 màn) | `Column`/`LazyColumn` | giữ nguyên | `widthIn(max = 720dp)` căn giữa | như Medium | P5 |
 | Welcome / onboarding | wizard + footer | giữ nguyên | giữ nguyên | 2 pane: minh hoạ trái, bước phải | P5 |
@@ -177,12 +221,19 @@ NotePayNavHost (Scaffold gốc, insets, snackbar)
 - Kiểm chứng: `:app:compileFullDebugKotlin` + `:app:testFullDebugUnitTest` xanh.
 - Chưa kiểm được bằng mắt trên thiết bị thật (xem §6).
 
-### P4 — List-detail pilot (Transactions)
-- Chuyển `transactionGraph` sang `ListDetailPaneScaffold` ở `>=840dp`, giữ push/pop ở
-  Compact/Medium.
-- State chọn phải `rememberSaveable`: activity **recreate khi resize cửa sổ**
-  (`configChanges` chỉ khai báo `locale|layoutDirection`).
-- Sau khi ổn định: nhân bản cho Debt và BillSplit.
+### P4 — List-detail hai pane ✅
+- [x] Transactions: `Row` 0.45/0.55 ở Expanded; Compact/Medium giữ push/pop.
+- [x] `selectedTransactionId` / `selectedDebtId` bằng `rememberSaveable`.
+- [x] Highlight dòng đang chọn (`isSelected` ở `SwipeableTransactionItem` và `DebtItemCard`).
+- [x] Pane phải: `DetailPaneEmptyState` khi chưa chọn / bản ghi không còn tồn tại.
+- [x] `BackHandler` đóng pane trước khi thoát màn.
+- [x] Xóa trong pane chỉ bỏ lựa chọn — không `popBackStack()`.
+- [x] Bỏ `Scaffold` lồng ở `DebtManagementScreen`; `TransactionListScreen` vốn đã không có.
+- [x] Giữ nguyên route độc lập `transaction-detail/{id}` và `debt-detail/{id}` cho deep-link/Home.
+- [x] `select(id)` cho hai ViewModel chi tiết — dùng lại UI/VM, không nhân bản.
+- [x] BillSplit hoãn sang P5 (lý do ở §2.6).
+- Kiểm chứng: `:app:compileFullDebugKotlin` + `:app:testFullDebugUnitTest` xanh.
+- Chưa kiểm được bằng mắt trên thiết bị thật (xem §6).
 
 ### P5 — Form & settings
 - `AdaptiveSettingsContainer` (một wrapper `widthIn(720dp)` dùng cho 7 màn cài đặt)
@@ -202,8 +253,10 @@ NotePayNavHost (Scaffold gốc, insets, snackbar)
 - **Foldable**: `windowPosture` (đã có trong `WindowAdaptiveInfo`) cần cho case
   tabletop — tới P5 mới dùng, hiện `ProvideWindowLayout` chưa khai thác.
 - **State khi resize**: activity recreate → mọi lựa chọn pane phải `rememberSaveable`.
-- **`Scaffold` lồng nhau**: `StatsScreen` đã bỏ ở P3; còn `DebtManagementScreen`,
-  `TransactionListScreen` phải dọn cùng lúc với `ListDetailPaneScaffold` ở P4.
+- **`Scaffold` lồng nhau**: đã dọn xong ở P3 (`StatsScreen`) và P4
+  (`DebtManagementScreen`). `TransactionListScreen` vốn chỉ có `Box` + `Column`.
+  Các màn còn `Scaffold` (`TransactionDetailScreen`, `BillSplitScreen`, welcome, settings)
+  không đồng thời render hai pane nên giữ nguyên.
 - **Chi phí GPU của kính**: pill 260dp cao đã giảm mạnh diện tích blur so với rail
   full-height, nhưng vẫn cần đo lại trên tablet thật (profile GPU rendering) trước P4.
 - **Haptic/scale feedback** của rail hiện chỉ đổi màu + capsule; nếu muốn "nảy" như
@@ -225,6 +278,11 @@ NotePayNavHost (Scaffold gốc, insets, snackbar)
 #                            (172 = (1280 − 96 rail − 840) / 2)
 # 4. Kéo resize cửa sổ     → tab đang chọn và scroll position được giữ, grid tự đổi số cột
 # 5. Font scale 2.0×       → nhãn rail và thẻ ví không bị cắt chữ
+# 6. Tablet ngang 1280dp   → Giao dịch/Khoản nợ: chạm một dòng thì pane phải hiện chi tiết,
+#                            dòng đó có viền primary; bấm Back lần 1 chỉ đóng pane;
+#                            xóa bản ghi đang mở thì pane về trạng thái chờ, KHÔNG văng khỏi màn
+# 7. Co cửa sổ về 800dp     → lựa chọn pane bị bỏ, danh sách chiếm full width, chạm lại thì
+#                            điều hướng sang route chi tiết như điện thoại
 ```
 
 Nếu gặp lỗi `PersistentMap` / `Unresolved reference` hàng loạt với class của chính

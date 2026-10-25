@@ -1,6 +1,7 @@
 package com.notepay.ui.feature.debt
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,9 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,8 +34,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -42,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +59,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.debt.DebtType
+import com.notepay.ui.adaptive.LocalWindowLayout
+import com.notepay.ui.adaptive.WindowLayout
+import com.notepay.ui.component.DetailPaneEmptyState
 import com.notepay.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +77,26 @@ fun DebtManagementScreen(
 
     var showCreateSheet by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
+
+    // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
+    // xoay máy và resize cửa sổ nên dùng rememberSaveable thay vì remember.
+    val isTwoPane = LocalWindowLayout.current == WindowLayout.Expanded
+    var selectedDebtId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // Khoản nợ đang chọn có thể bị xóa hoặc rơi ra khỏi bộ lọc hiện tại — khi đó pane phải
+    // quay về trạng thái chờ thay vì cố hiển thị một bản ghi không còn tồn tại.
+    val resolvedDebtId = selectedDebtId?.let { id ->
+        if (uiState.isLoading) {
+            id
+        } else {
+            id.takeIf { candidate -> uiState.debts.any { it.debt.id == candidate } }
+        }
+    }
+
+    // Back đóng pane chi tiết trước khi thoát khỏi màn danh sách.
+    BackHandler(enabled = isTwoPane && resolvedDebtId != null) {
+        selectedDebtId = null
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -91,8 +118,18 @@ fun DebtManagementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
+    // Không còn Scaffold: màn này tự dựng top bar + FAB, nhờ vậy ở Expanded có thể chia
+    // danh sách và chi tiết thành hai pane mà không sinh thêm một lớp inset lồng nhau.
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
             TopAppBar(
                 title = {
                     Text(
@@ -120,187 +157,56 @@ fun DebtManagementScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCreateSheet = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = AppTheme.shapes.corner20,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = stringResource(R.string.debt_action_add)
-                )
-            }
-        },
-        modifier = modifier
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            // Thanh tìm kiếm
-            if (isSearchActive) {
-                OutlinedTextField(
-                    value = uiState.searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text(stringResource(R.string.debt_search_hint)) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    shape = AppTheme.shapes.corner16,
-                )
-            }
 
-            // Tabs: Tất cả / Cần thu / Cần trả
-            val tabs = listOf<DebtType?>(null, DebtType.LEND, DebtType.BORROW)
-            val selectedTabIndex = tabs.indexOf(uiState.selectedTab).coerceAtLeast(0)
-
-            SecondaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = MaterialTheme.colorScheme.background,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Tab(
-                    selected = uiState.selectedTab == null,
-                    onClick = { viewModel.setTab(null) },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.transaction_list_filter_all),
-                            fontWeight = if (uiState.selectedTab == null) FontWeight.Bold else FontWeight.Medium
-                        )
-                    }
-                )
-                Tab(
-                    selected = uiState.selectedTab == DebtType.LEND,
-                    onClick = { viewModel.setTab(DebtType.LEND) },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.debt_collect),
-                            fontWeight = if (uiState.selectedTab == DebtType.LEND) FontWeight.Bold else FontWeight.Medium,
-                            color = if (uiState.selectedTab == DebtType.LEND) Color(0xFF248A3D) else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-                Tab(
-                    selected = uiState.selectedTab == DebtType.BORROW,
-                    onClick = { viewModel.setTab(DebtType.BORROW) },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.debt_tab_borrow),
-                            fontWeight = if (uiState.selectedTab == DebtType.BORROW) FontWeight.Bold else FontWeight.Medium,
-                            color = if (uiState.selectedTab == DebtType.BORROW) Color(0xFFC97600) else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-            }
-
-            // Filter Chip "Chưa tất toán"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.End
+                    .weight(1f)
             ) {
-                FilterChip(
-                    selected = uiState.onlyUnsettled,
-                    onClick = { viewModel.setOnlyUnsettled(!uiState.onlyUnsettled) },
-                    label = { Text(stringResource(R.string.debt_filter_unsettled_only)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.FilterList,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                )
-            }
-
-            // Danh sách nội dung
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.debts.isEmpty()) {
+                // FAB đặt trong pane danh sách để ở chế độ hai pane không đè lên pane chi tiết.
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
+                        .weight(if (isTwoPane) 0.45f else 1f)
+                        .fillMaxHeight()
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    DebtListPane(
+                        uiState = uiState,
+                        isSearchActive = isSearchActive,
+                        selectedDebtId = resolvedDebtId,
+                        onSearchQueryChange = viewModel::setSearchQuery,
+                        onTabSelected = viewModel::setTab,
+                        onToggleUnsettled = { viewModel.setOnlyUnsettled(!uiState.onlyUnsettled) },
+                        onDebtClick = { debtId ->
+                            // Expanded: chọn tại chỗ thay vì đẩy route chi tiết lên back stack.
+                            if (isTwoPane) selectedDebtId = debtId else onDebtClick(debtId)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    FloatingActionButton(
+                        onClick = { showCreateSheet = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shape = AppTheme.shapes.corner20,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant, AppTheme.shapes.corner24),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Handshake,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.debt_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.debt_empty_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = stringResource(R.string.debt_action_add)
                         )
                     }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = 88.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Summary card on top
-                    if (uiState.summary != null) {
-                        item {
-                            DebtSummaryCard(
-                                summary = uiState.summary,
-                                onClick = {}
-                            )
-                        }
-                    }
 
-                    // Danh sách thẻ nợ
-                    items(
-                        items = uiState.debts,
-                        key = { it.debt.id }
-                    ) { item ->
-                        DebtItemCard(
-                            item = item,
-                            onClick = { onDebtClick(item.debt.id) }
-                        )
-                    }
+                if (isTwoPane) {
+                    DebtDetailPane(
+                        debtId = resolvedDebtId,
+                        onClosePane = { selectedDebtId = null },
+                        modifier = Modifier
+                            .weight(0.55f)
+                            .fillMaxHeight(),
+                    )
                 }
             }
         }
@@ -325,3 +231,211 @@ fun DebtManagementScreen(
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DebtListPane(
+    uiState: DebtUiState,
+    isSearchActive: Boolean,
+    selectedDebtId: Long?,
+    onSearchQueryChange: (String) -> Unit,
+    onTabSelected: (DebtType?) -> Unit,
+    onToggleUnsettled: () -> Unit,
+    onDebtClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        // Thanh tìm kiếm
+        if (isSearchActive) {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text(stringResource(R.string.debt_search_hint)) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = AppTheme.shapes.corner16,
+            )
+        }
+
+        // Tabs: Tất cả / Cần thu / Cần trả
+        val tabs = listOf<DebtType?>(null, DebtType.LEND, DebtType.BORROW)
+        val selectedTabIndex = tabs.indexOf(uiState.selectedTab).coerceAtLeast(0)
+
+        SecondaryTabRow(
+            selectedTabIndex = selectedTabIndex,
+            containerColor = MaterialTheme.colorScheme.background,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Tab(
+                selected = uiState.selectedTab == null,
+                onClick = { onTabSelected(null) },
+                text = {
+                    Text(
+                        text = stringResource(R.string.transaction_list_filter_all),
+                        fontWeight = if (uiState.selectedTab == null) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            )
+            Tab(
+                selected = uiState.selectedTab == DebtType.LEND,
+                onClick = { onTabSelected(DebtType.LEND) },
+                text = {
+                    Text(
+                        text = stringResource(R.string.debt_collect),
+                        fontWeight = if (uiState.selectedTab == DebtType.LEND) FontWeight.Bold else FontWeight.Medium,
+                        color = if (uiState.selectedTab == DebtType.LEND) Color(0xFF248A3D) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+            Tab(
+                selected = uiState.selectedTab == DebtType.BORROW,
+                onClick = { onTabSelected(DebtType.BORROW) },
+                text = {
+                    Text(
+                        text = stringResource(R.string.debt_tab_borrow),
+                        fontWeight = if (uiState.selectedTab == DebtType.BORROW) FontWeight.Bold else FontWeight.Medium,
+                        color = if (uiState.selectedTab == DebtType.BORROW) Color(0xFFC97600) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+
+        // Filter Chip "Chưa tất toán"
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            FilterChip(
+                selected = uiState.onlyUnsettled,
+                onClick = onToggleUnsettled,
+                label = { Text(stringResource(R.string.debt_filter_unsettled_only)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.FilterList,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            )
+        }
+
+        // Danh sách nội dung
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.debts.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, AppTheme.shapes.corner24),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Handshake,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.debt_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.debt_empty_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = 88.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Summary card on top
+                if (uiState.summary != null) {
+                    item {
+                        DebtSummaryCard(
+                            summary = uiState.summary,
+                            onClick = {}
+                        )
+                    }
+                }
+
+                // Danh sách thẻ nợ
+                items(
+                    items = uiState.debts,
+                    key = { it.debt.id }
+                ) { item ->
+                    DebtItemCard(
+                        item = item,
+                        onClick = { onDebtClick(item.debt.id) },
+                        isSelected = item.debt.id == selectedDebtId
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DebtDetailPane(
+    debtId: Long?,
+    onClosePane: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
+        shape = AppTheme.shapes.corner24,
+        color = AppTheme.colors.surfaceSunken,
+    ) {
+        if (debtId == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                DetailPaneEmptyState(icon = Icons.Rounded.Handshake)
+            }
+        } else {
+            // Dùng lại nguyên route chi tiết: cùng ViewModel, cùng UI, chỉ khác nguồn id.
+            DebtDetailScreen(
+                onBack = onClosePane,
+                debtId = debtId,
+                paneMode = true,
+            )
+        }
+    }
+}
+

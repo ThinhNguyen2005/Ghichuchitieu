@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -48,9 +49,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,6 +86,9 @@ import com.notepay.ui.util.MoneyFormatter
 fun DebtDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    // Pane phải truyền id đang chọn; route độc lập đã có id trong nav args nên để null.
+    debtId: Long? = null,
+    paneMode: Boolean = false,
     viewModel: DebtDetailViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -96,6 +100,10 @@ fun DebtDetailScreen(
     var paymentToDelete by remember { mutableStateOf<DebtPayment?>(null) }
 
     val qrSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(debtId) {
+        if (debtId != null) viewModel.select(debtId)
+    }
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -117,51 +125,55 @@ fun DebtDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            GradientTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.debt_detail_title),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
+    // Không dùng Scaffold: màn này chỉ gồm top bar + nội dung, và ở chế độ hai pane nó được
+    // lồng vào pane phải nên Scaffold nội bộ sẽ tạo thêm một lớp inset lồng nhau.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (paneMode) Color.Transparent else MaterialTheme.colorScheme.background),
+    ) {
+        GradientTopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.debt_detail_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            },
+            navigationIcon = {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
                     )
-                },
-                navigationIcon = {
+                }
+            },
+            actions = {
+                if (uiState.debtWithHistory != null) {
                     IconButton(
-                        onClick = onBack,
+                        onClick = { showDeleteDebtDialog = true },
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = stringResource(R.string.action_delete),
+                            tint = MaterialTheme.colorScheme.error,
                         )
                     }
-                },
-                actions = {
-                    if (uiState.debtWithHistory != null) {
-                        IconButton(
-                            onClick = { showDeleteDebtDialog = true },
-                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = stringResource(R.string.action_delete),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
                 }
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize(),
-    ) { innerPadding ->
+            },
+            // Pane phải đã nằm dưới top bar của màn danh sách nên không nhận lại inset status bar.
+            windowInsets = if (paneMode) WindowInsets(0, 0, 0, 0) else TopAppBarDefaults.windowInsets,
+            // Dải gradient phải trùng màu nền thật của thanh, nếu không sẽ lộ một vệt sáng ở pane.
+            topBarColor = if (paneMode) AppTheme.colors.surfaceSunken else MaterialTheme.colorScheme.background,
+        )
+
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
@@ -170,9 +182,7 @@ fun DebtDetailScreen(
             val item = uiState.debtWithHistory
             if (item == null) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -191,9 +201,7 @@ fun DebtDetailScreen(
                 )
 
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
@@ -650,23 +658,23 @@ fun DebtDetailScreen(
     }
 
     // Record Payment Dialog
-    if (showPaymentDialog && uiState.debtWithHistory != null) {
-        val debt = uiState.debtWithHistory!!.debt
+    val debtWithHistory = uiState.debtWithHistory
+    if (showPaymentDialog && debtWithHistory != null) {
         RecordPaymentDialog(
-            debtWithHistory = uiState.debtWithHistory!!,
+            debtWithHistory = debtWithHistory,
             wallets = uiState.wallets,
             onDismiss = { showPaymentDialog = false },
             onConfirm = { amount, walletId, note, syncWithWallet ->
-                viewModel.recordPayment(debt, amount, walletId, note, syncWithWallet)
+                viewModel.recordPayment(debtWithHistory.debt, amount, walletId, note, syncWithWallet)
                 showPaymentDialog = false
             }
         )
     }
 
     // VietQR Remind Bottom Sheet
-    if (showQrSheet && uiState.debtWithHistory != null) {
+    if (showQrSheet && debtWithHistory != null) {
         DebtRemindBottomSheet(
-            debtWithHistory = uiState.debtWithHistory!!,
+            debtWithHistory = debtWithHistory,
             wallets = uiState.wallets,
             banks = uiState.banks,
             sheetState = qrSheetState,

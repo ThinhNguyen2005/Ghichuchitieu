@@ -61,6 +61,7 @@ fun SwipeableTransactionItem(
     onDelete: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     hapticEnabled: Boolean = true,
+    isSelected: Boolean = false,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -235,6 +236,7 @@ fun SwipeableTransactionItem(
                 walletName = walletName,
                 onClick = onClick,
                 onLongClick = onDelete,
+                isSelected = isSelected,
                 modifier = Modifier.fillMaxWidth()
             )
         }

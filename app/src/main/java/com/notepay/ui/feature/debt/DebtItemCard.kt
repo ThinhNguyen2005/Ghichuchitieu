@@ -44,6 +44,7 @@ fun DebtItemCard(
     item: DebtWithHistory,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
 ) {
     val debt = item.debt
     val isLend = debt.type == DebtType.LEND
@@ -58,7 +59,14 @@ fun DebtItemCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            },
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(

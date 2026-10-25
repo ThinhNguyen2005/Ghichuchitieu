@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.transaction.list
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +74,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -81,7 +85,10 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.ui.adaptive.LocalWindowLayout
+import com.notepay.ui.adaptive.WindowLayout
 import com.notepay.ui.component.CategoryAvatar
+import com.notepay.ui.component.DetailPaneEmptyState
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
@@ -97,6 +104,8 @@ import com.notepay.ui.component.DayDetailDialog
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.MonthlyCalendarView
 import com.notepay.ui.component.SwipeableTransactionItem
+import com.notepay.ui.feature.transaction.detail.TransactionDetailContent
+import com.notepay.ui.feature.transaction.detail.TransactionDetailViewModel
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -108,6 +117,8 @@ fun TransactionListScreen(
     onBack: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = {},
+    onCreateBillSplit: (Long) -> Unit = {},
+    onCreateSubscription: (name: String, amountCents: Long) -> Unit = { _, _ -> },
     onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionListViewModel = hiltViewModel(),
 ) {
@@ -120,6 +131,26 @@ fun TransactionListScreen(
     var isSearchActive by remember { mutableStateOf(false) }
     var selectedDayForDetail by remember { mutableStateOf<LocalDate?>(null) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
+
+    // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
+    // xoay máy và resize cửa sổ nên dùng rememberSaveable thay vì remember.
+    val isTwoPane = LocalWindowLayout.current == WindowLayout.Expanded
+    var selectedTransactionId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // Giao dịch đang chọn có thể bị xóa hoặc rơi ra khỏi bộ lọc hiện tại — khi đó pane phải
+    // quay về trạng thái chờ thay vì cố hiển thị một bản ghi không còn tồn tại.
+    val resolvedTransactionId = selectedTransactionId?.let { id ->
+        if (state.isLoading) {
+            id
+        } else {
+            id.takeIf { candidate -> state.transactions.any { it.id == candidate } }
+        }
+    }
+
+    // Back đóng pane chi tiết trước khi thoát khỏi màn danh sách.
+    BackHandler(enabled = isTwoPane && resolvedTransactionId != null) {
+        selectedTransactionId = null
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -154,103 +185,54 @@ fun TransactionListScreen(
                 onOpenWalletPicker = { viewModel.openWalletPicker(true) }
             )
 
-            if (state.isCalendarView) {
-                // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
-                MonthlyCalendarView(
-                    year = state.calendarYear,
-                    month = state.calendarMonth,
-                    transactions = state.transactions,
-                    selectedDate = selectedDayForDetail,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                // Ở Compact/Medium pane này chiếm trọn bề rộng; ở Expanded chia 45/55.
+                TransactionListPane(
+                    state = state,
+                    selectedDay = selectedDayForDetail,
+                    selectedTransactionId = resolvedTransactionId,
+                    bottomPadding = if (isTwoPane) 24.dp else 100.dp,
                     onDayClick = { date -> selectedDayForDetail = date },
                     onPreviousMonth = viewModel::onPreviousMonth,
                     onNextMonth = viewModel::onNextMonth,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            } else {
-                // CHẾ ĐỘ DANH SÁCH: Thống kê và nhóm giao dịch theo ngày
-                // Dual Filter Buttons: [Khoảng thời gian v] [Bộ lọc]
-                FilterButtonsRow(
-                    currentPreset = state.selectedDateRangePreset,
-                    hasActiveFilters = state.selectedTransactionType != null ||
-                            state.isTransferOnly ||
-                            state.selectedCategoryIds.isNotEmpty(),
                     onOpenDateRange = { viewModel.openDateRangeSheet(true) },
-                    onOpenFilter = { viewModel.openFilterSheet(true) }
+                    onOpenFilter = { viewModel.openFilterSheet(true) },
+                    onTransactionClick = { txId ->
+                        // Expanded: chọn tại chỗ thay vì đẩy route chi tiết lên back stack.
+                        if (isTwoPane) selectedTransactionId = txId else onTransactionClick(txId)
+                    },
+                    onEditTransaction = onEditTransaction,
+                    onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                    hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    modifier = Modifier
+                        .weight(if (isTwoPane) 0.45f else 1f)
+                        .fillMaxHeight(),
                 )
 
-                // Summary Card (Thu Nhập / Chi Tiêu)
-                SummaryStatisticsCard(
-                    totalIncome = state.totalIncome,
-                    totalExpense = state.totalExpense,
-                    transactionCount = state.transactionCount,
-                    netBalance = state.netBalance,
-                )
-
-                // Transaction Day Groups
-                if (state.isLoading) {
-                    Box(
+                if (isTwoPane) {
+                    TransactionDetailPane(
+                        transactionId = resolvedTransactionId,
+                        onEdit = onEditTransaction,
+                        onCreateBillSplit = onCreateBillSplit,
+                        onCreateSubscription = onCreateSubscription,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                } else if (state.isEmpty) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.tx_empty_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = stringResource(R.string.tx_empty_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp, top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
-                            DayGroupSection(
-                                dayGroup = dayGroup,
-                                walletsMap = state.walletsMap,
-                                onTransactionClick = onTransactionClick,
-                                onEditTransaction = onEditTransaction,
-                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
-                                hapticFeedbackEnabled = hapticFeedbackEnabled,
-                            )
-                        }
-                    }
+                            .weight(0.55f)
+                            .fillMaxHeight(),
+                    )
                 }
             }
         }
 
         // Dialog chi tiết ngày (khi tap vào một ngày trên lịch)
-        if (selectedDayForDetail != null) {
+        val dayDetail = selectedDayForDetail
+        if (dayDetail != null) {
             DayDetailDialog(
-                date = selectedDayForDetail!!,
-                transactions = state.transactionsByDate[selectedDayForDetail!!] ?: emptyList(),
+                date = dayDetail,
+                transactions = state.transactionsByDate[dayDetail] ?: emptyList(),
                 onDismiss = { selectedDayForDetail = null }
             )
         }
@@ -302,11 +284,170 @@ fun TransactionListScreen(
                 itemName = itemName,
                 onConfirm = {
                     viewModel.delete(tx)
+                    // Xóa đúng giao dịch đang mở thì chỉ đóng pane chi tiết — không popBackStack().
+                    if (tx.id == selectedTransactionId) selectedTransactionId = null
                     pendingDeleteTransaction = null
                 },
                 onDismiss = {
                     pendingDeleteTransaction = null
                 }
+            )
+        }
+    }
+}
+
+/**
+ * Pane trái: tìm kiếm đã nằm ở top bar dùng chung, phần này chỉ chứa bộ lọc + danh sách
+ * (hoặc lịch). Tách khỏi [TransactionListScreen] để bố cục một cột và hai cột dùng chung
+ * đúng một bản triển khai.
+ */
+@Composable
+private fun TransactionListPane(
+    state: TransactionListUiState,
+    selectedDay: LocalDate?,
+    selectedTransactionId: Long?,
+    bottomPadding: Dp,
+    onDayClick: (LocalDate) -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onOpenDateRange: () -> Unit,
+    onOpenFilter: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
+    onEditTransaction: (Long) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit,
+    hapticFeedbackEnabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        if (state.isCalendarView) {
+            // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
+            MonthlyCalendarView(
+                year = state.calendarYear,
+                month = state.calendarMonth,
+                transactions = state.transactions,
+                selectedDate = selectedDay,
+                onDayClick = onDayClick,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+        } else {
+            // CHẾ ĐỘ DANH SÁCH: Thống kê và nhóm giao dịch theo ngày
+            // Dual Filter Buttons: [Khoảng thời gian v] [Bộ lọc]
+            FilterButtonsRow(
+                currentPreset = state.selectedDateRangePreset,
+                hasActiveFilters = state.selectedTransactionType != null ||
+                        state.isTransferOnly ||
+                        state.selectedCategoryIds.isNotEmpty(),
+                onOpenDateRange = onOpenDateRange,
+                onOpenFilter = onOpenFilter
+            )
+
+            // Summary Card (Thu Nhập / Chi Tiêu)
+            SummaryStatisticsCard(
+                totalIncome = state.totalIncome,
+                totalExpense = state.totalExpense,
+                transactionCount = state.transactionCount,
+                netBalance = state.netBalance,
+            )
+
+            // Transaction Day Groups
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            } else if (state.isEmpty) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tx_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.tx_empty_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = bottomPadding,
+                        top = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
+                        DayGroupSection(
+                            dayGroup = dayGroup,
+                            walletsMap = state.walletsMap,
+                            selectedTransactionId = selectedTransactionId,
+                            onTransactionClick = onTransactionClick,
+                            onEditTransaction = onEditTransaction,
+                            onDeleteTransaction = onDeleteTransaction,
+                            hapticFeedbackEnabled = hapticFeedbackEnabled,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Pane phải của bố cục hai pane. Tái dùng nguyên [TransactionDetailContent] của route
+ * độc lập nên không có bản sao nào của UI chi tiết.
+ */
+@Composable
+private fun TransactionDetailPane(
+    transactionId: Long?,
+    onEdit: (Long) -> Unit,
+    onCreateBillSplit: (Long) -> Unit,
+    onCreateSubscription: (name: String, amountCents: Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
+        shape = AppTheme.shapes.corner24,
+        color = AppTheme.colors.surfaceSunken,
+    ) {
+        if (transactionId == null) {
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                DetailPaneEmptyState()
+            }
+        } else {
+            val detailViewModel: TransactionDetailViewModel = hiltViewModel()
+            LaunchedEffect(transactionId) { detailViewModel.select(transactionId) }
+            val detailState by detailViewModel.state.collectAsStateWithLifecycle()
+            TransactionDetailContent(
+                state = detailState,
+                onEdit = onEdit,
+                onCreateBillSplit = onCreateBillSplit,
+                onCreateSubscription = onCreateSubscription,
             )
         }
     }
@@ -668,6 +809,7 @@ private fun SummaryStatisticsCard(
 private fun DayGroupSection(
     dayGroup: TransactionDayGroup,
     walletsMap: Map<Long, String>,
+    selectedTransactionId: Long?,
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
@@ -711,6 +853,7 @@ private fun DayGroupSection(
                 onEdit = { onEditTransaction(tx.id) },
                 onDelete = { onDeleteTransaction(tx) },
                 hapticEnabled = hapticFeedbackEnabled,
+                isSelected = tx.id == selectedTransactionId,
             )
         }
     }

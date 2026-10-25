@@ -84,68 +84,91 @@ fun TransactionDetailScreen(
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize()) {
-            when {
-                state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.transaction == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(state.error ?: stringResource(R.string.error_transaction_not_found))
-                }
-                else -> {
-                    val tx = state.transaction!!
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(
-                                start = 16.dp,
-                                top = padding.calculateTopPadding() + 16.dp,
-                                end = 16.dp,
-                                bottom = padding.calculateBottomPadding() + 24.dp
+        TransactionDetailContent(
+            state = state,
+            onEdit = onEdit,
+            onCreateBillSplit = onCreateBillSplit,
+            onCreateSubscription = onCreateSubscription,
+            contentPadding = padding,
+        )
+    }
+}
+
+/**
+ * Phần thân dùng chung cho route độc lập và pane phải của bố cục hai pane.
+ * Tách khỏi [TransactionDetailScreen] để pane không phải dựng top bar + Scaffold lần nữa.
+ */
+@Composable
+fun TransactionDetailContent(
+    state: TransactionDetailUiState,
+    onEdit: (Long) -> Unit,
+    onCreateBillSplit: (Long) -> Unit,
+    onCreateSubscription: (name: String, amountCents: Long) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+) {
+    val transaction = state.transaction
+    Box(modifier.fillMaxSize()) {
+        when {
+            state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            transaction == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text(state.error ?: stringResource(R.string.error_transaction_not_found))
+            }
+            else -> {
+                val tx = transaction
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(
+                            start = 16.dp,
+                            top = contentPadding.calculateTopPadding() + 16.dp,
+                            end = 16.dp,
+                            bottom = contentPadding.calculateBottomPadding() + 24.dp
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    TransactionHeader(transaction = tx)
+                    
+                    MetaCard(transaction = tx, walletName = state.walletName)
+
+                    if (state.isAutoCapture) {
+                        val isLightTheme = !isAppDarkTheme()
+                        val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = cardBg,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
                             ),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        TransactionHeader(transaction = tx)
-                        
-                        MetaCard(transaction = tx, walletName = state.walletName)
-
-                        if (state.isAutoCapture) {
-                            val isLightTheme = !isAppDarkTheme()
-                            val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
-
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = cardBg,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                shape = AppTheme.shapes.corner24,
-                            ) {
-                                ActionRow(
-                                    icon = Icons.Rounded.Edit,
-                                    title = stringResource(R.string.detail_edit_note_title),
-                                    onClick = { onEdit(tx.id) }
-                                )
-                            }
-                            
-                            Text(
-                                stringResource(R.string.detail_auto_edit_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                        } else {
-                            val categoryName = tx.category.localizedName()
-                            ActionsBlock(
-                                onEdit = { onEdit(tx.id) },
-                                onCreateBillSplit = { onCreateBillSplit(tx.id) },
-                                onCreateSubscription = {
-                                    val name = tx.note.ifBlank { categoryName }
-                                    onCreateSubscription(name, tx.amount.amountInCents)
-                                },
+                            shape = AppTheme.shapes.corner24,
+                        ) {
+                            ActionRow(
+                                icon = Icons.Rounded.Edit,
+                                title = stringResource(R.string.detail_edit_note_title),
+                                onClick = { onEdit(tx.id) }
                             )
                         }
+                        
+                        Text(
+                            stringResource(R.string.detail_auto_edit_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    } else {
+                        val categoryName = tx.category.localizedName()
+                        ActionsBlock(
+                            onEdit = { onEdit(tx.id) },
+                            onCreateBillSplit = { onCreateBillSplit(tx.id) },
+                            onCreateSubscription = {
+                                val name = tx.note.ifBlank { categoryName }
+                                onCreateSubscription(name, tx.amount.amountInCents)
+                            },
+                        )
                     }
                 }
             }
