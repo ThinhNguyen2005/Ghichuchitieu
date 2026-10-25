@@ -50,14 +50,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
-import com.notepay.ui.feature.home.HomeViewModel
 import com.notepay.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSettingsScreen(
     onBack: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel(),
+    viewModel: NotificationSettingsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -141,7 +140,7 @@ fun NotificationSettingsScreen(
                             trailing = {
                                 Switch(
                                     checked = weeklyDigestEnabled,
-                                    onCheckedChange = { viewModel.setWeeklyDigestEnabled(context, it) },
+                                    onCheckedChange = { viewModel.setWeeklyDigestEnabled(it) },
                                 )
                             },
                         )
@@ -157,7 +156,7 @@ fun NotificationSettingsScreen(
                             trailing = {
                                 Switch(
                                     checked = dailyReminderEnabled,
-                                    onCheckedChange = { viewModel.setDailyReminderEnabled(context, it) },
+                                    onCheckedChange = { viewModel.setDailyReminderEnabled(it) },
                                 )
                             },
                         )
@@ -174,7 +173,7 @@ fun NotificationSettingsScreen(
                                 onClick = {
                                     android.app.TimePickerDialog(
                                         context,
-                                        { _, hour, minute -> viewModel.updateReminderTime(context, hour, minute) },
+                                        { _, hour, minute -> viewModel.updateReminderTime(hour, minute) },
                                         reminderHour,
                                         reminderMinute,
                                         true,

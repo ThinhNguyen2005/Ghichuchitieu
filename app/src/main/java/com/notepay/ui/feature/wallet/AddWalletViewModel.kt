@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.data.remote.VietQrBankRepository
-import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
@@ -19,6 +18,7 @@ import com.notepay.ui.util.WalletUiHelper
 import com.notepay.util.StringUtils.removeVietnameseAccents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -26,6 +26,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.number
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 import kotlin.time.Clock
 
@@ -57,16 +64,17 @@ class AddWalletViewModel @Inject constructor(
                 if (wallet != null) {
                     loadedWallet = wallet
 
-                    val txs = transactionRepository.observeByWallet(wallet.id)
-                        .firstOrNull().orEmpty()
-                    val incomeCents = txs
-                        .filter { it.type == TransactionType.INCOME }
-                        .sumOf { it.amount.amountInCents }
-                    val expenseCents = txs
-                        .filter { it.type == TransactionType.EXPENSE }
-                        .sumOf { it.amount.amountInCents }
+                    // Số dư lấy từ phép gộp SQL (GROUP BY wallet_id) thay vì tải toàn bộ
+                    // giao dịch về RAM rồi cộng tay — cùng nguồn số liệu với Home và Assets.
+                    val monthRange = currentMonthRange()
+                    val stats = transactionRepository.observeWalletStats(
+                        monthStartMillis = monthRange.first,
+                        monthEndMillis = monthRange.last,
+                    ).firstOrNull()?.firstOrNull { it.walletId == wallet.id }
                     val currentBalance = Money(
-                        wallet.initialBalance.amountInCents + incomeCents - expenseCents
+                        wallet.initialBalance.amountInCents +
+                            (stats?.allTimeIncome?.amountInCents ?: 0L) -
+                            (stats?.allTimeExpense?.amountInCents ?: 0L)
                     )
 
                     val usedColors = allWallets
@@ -89,7 +97,7 @@ class AddWalletViewModel @Inject constructor(
                             accountNumber = wallet.accountNumber ?: "",
                             accountName = wallet.accountName ?: "",
                             currentBalance = currentBalance,
-                            hasTransactions = txs.isNotEmpty(),
+                            hasTransactions = (stats?.txCount ?: 0) > 0,
                             isEditMode = true,
                             banks = banks,
                         )
@@ -114,6 +122,16 @@ class AddWalletViewModel @Inject constructor(
 
     fun onNameChanged(name: String) {
         _state.update { it.copy(name = name) }
+    }
+
+    /** Khoảng [đầu tháng, cuối tháng] hiện tại (ms) dùng cho truy vấn thống kê ví. */
+    private fun currentMonthRange(): LongRange {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Clock.System.now().toLocalDateTime(tz)
+        val monthStart = LocalDate(today.year, today.month.number, 1)
+        val start = monthStart.atStartOfDayIn(tz).toEpochMilliseconds()
+        val end = monthStart.plus(1, DateTimeUnit.MONTH).atStartOfDayIn(tz).toEpochMilliseconds() - 1
+        return start..end
     }
 
     fun onInitialBalanceChanged(input: String) {
@@ -207,6 +225,8 @@ class AddWalletViewModel @Inject constructor(
                         type = FeedbackType.Success,
                     ),
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 val message = context.getString(
                     if (current.isEditMode) R.string.wallet_update_failed else R.string.wallet_create_failed,

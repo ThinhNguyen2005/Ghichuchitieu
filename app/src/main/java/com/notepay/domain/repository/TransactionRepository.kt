@@ -40,6 +40,12 @@ interface TransactionRepository {
     /** Insert hoặc update. Trả về row id. */
     suspend fun upsert(transaction: Transaction): Long
 
+    /**
+     * Ghi cặp giao dịch chuyển khoản nội bộ (trừ ví nguồn + cộng ví đích) trong
+     * MỘT transaction của database: hoặc cả hai cùng vào, hoặc không giao dịch nào.
+     */
+    suspend fun upsertTransferPair(outgoing: Transaction, incoming: Transaction)
+
     suspend fun delete(id: Long)
 
     /**

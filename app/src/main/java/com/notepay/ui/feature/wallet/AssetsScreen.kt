@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -88,6 +89,7 @@ import com.notepay.ui.feature.debt.DebtSummaryCard
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
+import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import com.notepay.ui.util.WalletUiHelper
 import java.util.Locale
 import kotlin.math.PI
@@ -263,9 +265,10 @@ private fun AssetsHeader(
 
                     if (changePercentage != 0f) {
                         val isPositive = changePercentage >= 0f
+                        val trendColor = if (isPositive) AppTheme.colors.success else AppTheme.colors.error
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isPositive) Color(0xFF34C759).copy(alpha = 0.15f) else Color(0xFFFF3B30).copy(alpha = 0.15f)
+                            color = trendColor.copy(alpha = 0.15f)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -274,7 +277,7 @@ private fun AssetsHeader(
                                 Icon(
                                     imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
                                     contentDescription = null,
-                                    tint = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                    tint = trendColor,
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -286,7 +289,7 @@ private fun AssetsHeader(
                                     ),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isPositive) Color(0xFF34C759) else Color(0xFFFF3B30)
+                                    color = trendColor
                                 )
                             }
                         }
@@ -317,7 +320,7 @@ private fun AssetsHeader(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = MoneyFormatter.format(totalNetWorth),
@@ -329,9 +332,9 @@ private fun AssetsHeader(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target 46dp)
+                // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target 48dp)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -341,8 +344,8 @@ private fun AssetsHeader(
                         modifier = Modifier
                             .weight(1f)
                             .defaultMinSize(minHeight = 48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -353,7 +356,7 @@ private fun AssetsHeader(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.assets_transfer_btn),
                             fontWeight = FontWeight.SemiBold,
@@ -367,8 +370,8 @@ private fun AssetsHeader(
                         modifier = Modifier
                             .weight(1f)
                             .defaultMinSize(minHeight = 48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -379,7 +382,7 @@ private fun AssetsHeader(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.assets_add_wallet_btn),
                             fontWeight = FontWeight.SemiBold,
@@ -413,7 +416,7 @@ private fun WalletAllocationChartCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -442,7 +445,7 @@ private fun WalletAllocationChartCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (allocationItems.isEmpty()) {
                 Box(
@@ -493,7 +496,7 @@ private fun WalletAllocationChartCard(
                                             tap = offset,
                                             width = size.width.toFloat(),
                                             height = size.height.toFloat(),
-                                            strokePx = 34.dp.toPx(),
+                                            strokePx = 36.dp.toPx(),
                                             items = allocationItems
                                         )
                                         selectedItem = if (tapped?.walletId == selectedItem?.walletId) null else tapped
@@ -517,7 +520,7 @@ private fun WalletAllocationChartCard(
                                     topLeft = topLeft,
                                     size = Size(diameter, diameter),
                                     style = Stroke(
-                                        width = if (isSelected) 38.dp.toPx() else 30.dp.toPx(),
+                                        width = if (isSelected) 40.dp.toPx() else 32.dp.toPx(),
                                         cap = StrokeCap.Butt
                                     )
                                 )
@@ -565,7 +568,7 @@ private fun WalletAllocationChartCard(
                                             .clip(CircleShape)
                                             .background(color)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = item.name,
                                         style = MaterialTheme.typography.labelMedium,
@@ -643,7 +646,7 @@ private fun WalletAllocationCenter(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = tint,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -718,7 +721,7 @@ private fun WalletAssetCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(colorValue.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
@@ -731,7 +734,7 @@ private fun WalletAssetCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
                 // Cột thông tin ví: Tên ví trên dòng riêng, dòng phụ chứa Badge "Ví chính" và số giao dịch
                 Column(
@@ -753,12 +756,12 @@ private fun WalletAssetCard(
                     ) {
                         if (wallet.isActive) {
                             Surface(
-                                shape = RoundedCornerShape(6.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
@@ -777,13 +780,13 @@ private fun WalletAssetCard(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.bullet_separator),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                         }
 
                         Text(
@@ -820,9 +823,9 @@ private fun WalletAssetCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -830,7 +833,7 @@ private fun WalletAssetCard(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                             contentDescription = null,
-                            tint = Color(0xFF34C759),
+                            tint = AppTheme.colors.success,
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -841,7 +844,7 @@ private fun WalletAssetCard(
                             ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF34C759)
+                            color = AppTheme.colors.success
                         )
                     }
 
@@ -849,7 +852,7 @@ private fun WalletAssetCard(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                             contentDescription = null,
-                            tint = Color(0xFFFF3B30),
+                            tint = AppTheme.colors.error,
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -860,16 +863,16 @@ private fun WalletAssetCard(
                             ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFFF3B30)
+                            color = AppTheme.colors.error
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Action Row: Đặt ví chính (trái) | Chỉnh sửa ví (phải)
-            // Hai hành động được tách biệt rõ ràng, mỗi bên có touch target ≥ 44dp
+            // Hai hành động được tách biệt rõ ràng, mỗi bên có touch target ≥ 48dp
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -880,7 +883,7 @@ private fun WalletAssetCard(
                 if (!wallet.isActive) {
                     TextButton(
                         onClick = onSetDefault,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 36.dp)
                     ) {
                         Icon(
@@ -889,7 +892,7 @@ private fun WalletAssetCard(
                             modifier = Modifier.size(13.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = stringResource(R.string.set_as_active_wallet),
                             style = MaterialTheme.typography.labelSmall,
@@ -907,7 +910,7 @@ private fun WalletAssetCard(
                 // ChevronRight loại bỏ (card toàn thẻ đã clickable rồi, chevron gây nhầm lẫn)
                 TextButton(
                     onClick = onEdit,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier.defaultMinSize(minHeight = 36.dp)
                 ) {
                     Icon(
@@ -916,7 +919,7 @@ private fun WalletAssetCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(13.dp)
                     )
-                    Spacer(modifier = Modifier.width(5.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.edit_wallet_title),
                         style = MaterialTheme.typography.labelSmall,
@@ -976,17 +979,25 @@ private fun TransferBottomSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
+            Spacer(modifier = Modifier.height(8.dp))
+            // LazyRow: cuộn ngang khi có nhiều ví, tránh tràn mép màn hình.
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 2.dp)
             ) {
-                state.wallets.forEach { item ->
+                items(items = state.wallets, key = { it.wallet.id }) { item ->
                     val isSelected = item.wallet.id == state.transferFromWalletId
                     FilterChip(
                         selected = isSelected,
                         onClick = { onFromWalletChange(item.wallet.id) },
-                        label = { Text(item.wallet.name) },
+                        label = {
+                            Text(
+                                text = item.wallet.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -995,7 +1006,7 @@ private fun TransferBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // To Wallet selection
             Text(
@@ -1003,17 +1014,24 @@ private fun TransferBottomSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 2.dp)
             ) {
-                state.wallets.forEach { item ->
+                items(items = state.wallets, key = { it.wallet.id }) { item ->
                     val isSelected = item.wallet.id == state.transferToWalletId
                     FilterChip(
                         selected = isSelected,
                         onClick = { onToWalletChange(item.wallet.id) },
-                        label = { Text(item.wallet.name) },
+                        label = {
+                            Text(
+                                text = item.wallet.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1022,7 +1040,7 @@ private fun TransferBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Amount input
             Text(
@@ -1030,7 +1048,7 @@ private fun TransferBottomSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = state.transferAmountInput,
                 onValueChange = onAmountChange,
@@ -1039,12 +1057,13 @@ private fun TransferBottomSheet(
                 placeholder = { Text(stringResource(R.string.ui_0)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
+                visualTransformation = remember { VietnamCurrencyVisualTransformation() },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary
                 )
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Note input
             Text(
@@ -1052,7 +1071,7 @@ private fun TransferBottomSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = state.transferNote,
                 onValueChange = onNoteChange,
@@ -1069,8 +1088,8 @@ private fun TransferBottomSheet(
                 enabled = !state.isTransferSubmitting && state.transferAmountInput.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp)
+                    .defaultMinSize(minHeight = 52.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 if (state.isTransferSubmitting) {
                     CircularProgressIndicator(

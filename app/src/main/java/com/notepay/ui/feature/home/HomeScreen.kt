@@ -5,7 +5,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,16 +26,22 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shadow
+import java.io.File
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,14 +79,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.Transaction
-import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
-import com.notepay.ui.component.BalanceCard
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.SmartInsightsCard
 import com.notepay.ui.component.SwipeableTransactionItem
-import com.notepay.ui.feature.transaction.components.WalletPickerSheet
 import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.theme.NotePayTheme
 import com.notepay.ui.util.ImageStorageHelper
@@ -93,18 +98,15 @@ import kotlin.time.Duration.Companion.milliseconds
 
 // ── Design tokens của màn Home (bội số của 4) ────────────────────────────────
 private val ScreenHorizontalPadding = 16.dp
-private val ItemSpacing = 12.dp          // khoảng cách giữa các item cùng nhóm
 private val ListBottomClearance = 112.dp // chừa chỗ cho thanh điều hướng nổi
 private val AvatarSize = 36.dp
 private val InsightsDismissDelay = 250.milliseconds
 
 private object HomeListKeys {
     const val HERO_ASSETS = "home_item_hero_assets"
-    const val SURFACE_HEADER = "home_item_surface_header"
     const val BUDGET_PROJECTION = "home_item_budget_projection"
     const val SMART_INSIGHTS = "home_item_smart_insights"
     const val RECENT_EMPTY = "home_item_recent_empty"
-    const val BOTTOM_FILLER = "home_item_bottom_filler"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,7 +120,6 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
-    var showWalletPickerSheet by rememberSaveable { mutableStateOf(false) }
     var selectedWalletIdForBg by rememberSaveable { mutableStateOf<Long?>(null) }
     // Tự động reset trạng thái ẩn khi người dùng đổi sang ví khác
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
@@ -217,7 +218,7 @@ fun HomeScreen(
                         modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Hero Balance & Cashflow Summary (Đồng bộ tức thì 0ms qua selectedWalletSummary)
                     HeroBalanceWithCashflow(
@@ -229,6 +230,16 @@ fun HomeScreen(
                         balance = displayBalance,
                         income = displayIncome,
                         expense = displayExpense,
+                        backgroundUri = state.selectedWalletSummary?.backgroundUri,
+                        isSpecificWallet = !isAllWallets,
+                        onChangeBackground = if (!isAllWallets) {
+                            {
+                                selectedWalletIdForBg = state.selectedWalletId
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        } else null,
                         modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
                     )
 
@@ -240,7 +251,13 @@ fun HomeScreen(
                         selectedWalletId = state.selectedWalletId,
                         totalBalanceAll = state.totalBalance,
                         onSelectWallet = { walletId -> viewModel.selectWallet(walletId) },
-                        onAddWallet = onAddWallet
+                        onAddWallet = onAddWallet,
+                        onChangeBackground = { walletId ->
+                            selectedWalletIdForBg = walletId
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -264,7 +281,7 @@ fun HomeScreen(
                                 text = recentLabel,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = AppTheme.colors.textPrimary
                             )
                             TextButton(onClick = onSeeAll) {
                                 Text(
@@ -282,21 +299,22 @@ fun HomeScreen(
             // 3. Thẻ dự báo ngân sách: Chỉ hiện khi chọn một ví cụ thể có đặt hạn mức
             val budgetProjection = state.budgetProjection
             val budgetLimit = state.selectedWalletSummary?.wallet?.budgetLimit
-            val budgetCardVisible = !isAllWallets &&
-                budgetProjection != null &&
-                !isBudgetProjectionDismissed &&
-                budgetLimit != null &&
-                budgetLimit.amountInCents > 0L
             val budgetStatus = budgetProjection?.let(::budgetStatusOf)
 
-            if (budgetCardVisible && budgetStatus != BudgetStatus.Safe) {
+            if (!isAllWallets &&
+                !isBudgetProjectionDismissed &&
+                budgetProjection != null &&
+                budgetLimit != null &&
+                budgetLimit.amountInCents > 0L &&
+                budgetStatus != BudgetStatus.Safe
+            ) {
                 item(key = HomeListKeys.BUDGET_PROJECTION) {
                     BudgetProjectionCard(
-                        projection = budgetProjection!!,
-                        budgetLimit = budgetLimit!!,
+                        projection = budgetProjection,
+                        budgetLimit = budgetLimit,
                         walletName = state.selectedWalletSummary?.wallet?.name.orEmpty(),
                         onDismiss = { isBudgetProjectionDismissed = true },
-                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                     )
                 }
             } else if (!state.isSmartInsightsDismissed && (budgetStatus == null || budgetStatus == BudgetStatus.Safe)) {
@@ -311,7 +329,7 @@ fun HomeScreen(
                                 viewModel.dismissSmartInsights()
                             }
                         },
-                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                     )
                 }
             }
@@ -345,19 +363,6 @@ fun HomeScreen(
                 }
             }
         }
-    }
-
-    if (showWalletPickerSheet) {
-        WalletPickerSheet(
-            wallets = state.wallets,
-            selectedWalletId = state.activeWallet?.id,
-            onWalletSelected = { walletId ->
-                viewAllWallets = false
-                viewModel.selectWallet(walletId)
-                showWalletPickerSheet = false
-            },
-            onDismiss = { showWalletPickerSheet = false }
-        )
     }
 
     pendingDeleteTransaction?.let { tx ->
@@ -434,94 +439,178 @@ private fun HomeGreetingBar(
 @Composable
 private fun HeroBalanceWithCashflow(
     label: String,
+    modifier: Modifier = Modifier,
     balance: Money,
     income: Money,
     expense: Money,
-    modifier: Modifier = Modifier,
+    backgroundUri: String? = null,
+    isSpecificWallet: Boolean = false,
+    onChangeBackground: (() -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+    val hasCustomBg = !backgroundUri.isNullOrBlank()
 
-        Spacer(modifier = Modifier.height(4.dp))
+    // Một layout duy nhất cho cả hai trạng thái: chỉ lớp nền (ảnh + scrim) và bảng màu
+    // nội dung thay đổi theo việc ví có ảnh nền tuỳ chỉnh hay không.
+    val contentColor = if (hasCustomBg) Color.White else MaterialTheme.colorScheme.onSurface
+    val labelColor = if (hasCustomBg) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val labelShadow = if (hasCustomBg) Shadow(Color.Black.copy(alpha = 0.8f), Offset(0f, 1.5f), 4f) else null
+    val balanceShadow = if (hasCustomBg) Shadow(Color.Black.copy(alpha = 0.9f), Offset(0f, 2f), 8f) else null
+    val capsuleColor = if (hasCustomBg) Color.Black.copy(alpha = 0.42f) else AppTheme.colors.surfaceSunken
+    val capsuleBorder = if (hasCustomBg) {
+        BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
+    } else {
+        BorderStroke(1.dp, AppTheme.colors.border.copy(alpha = 0.5f))
+    }
+    val dividerColor = if (hasCustomBg) Color.White.copy(alpha = 0.3f) else AppTheme.colors.border
+    val incomeTextColor = if (hasCustomBg) Color.White else AppTheme.colors.success
+    val expenseTextColor = if (hasCustomBg) Color.White else AppTheme.colors.error
 
-        AnimatedContent(
-            targetState = balance,
-            label = "BalanceAnimation"
-        ) { targetBalance ->
-            Text(
-                text = MoneyFormatter.format(targetBalance),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppTheme.shapes.corner24,
+        // Không có ảnh nền: dùng nền `surface` + shadow nhẹ như spec balance-hero-card.
+        colors = CardDefaults.cardColors(
+            containerColor = if (hasCustomBg) Color.Transparent else AppTheme.colors.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (hasCustomBg) 4.dp else 1.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (hasCustomBg) {
+                val imageModel = remember(backgroundUri) {
+                    if (backgroundUri.startsWith("/")) File(backgroundUri) else backgroundUri
+                }
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+                // Multi-layer Scrim Gradient bảo vệ độ tương phản WCAG AA
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.0f to Color.Black.copy(alpha = 0.55f),
+                                    0.30f to Color.Black.copy(alpha = 0.40f),
+                                    0.70f to Color.Black.copy(alpha = 0.70f),
+                                    1.0f to Color.Black.copy(alpha = 0.90f)
+                                )
+                            )
+                        )
+                )
+            }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Capsule dòng tiền (Thu / Chi tháng này)
-        Surface(
-            shape = AppTheme.shapes.corner12,
-            color = AppTheme.colors.surface,
-            border = BorderStroke(1.dp, AppTheme.colors.border.copy(alpha = 0.5f)),
-            tonalElevation = 1.dp
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             ) {
-                // Thu nhập
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                        contentDescription = stringResource(R.string.home_income_month),
-                        tint = AppTheme.colors.success,
-                        modifier = Modifier.size(16.dp)
-                    )
                     Text(
-                        text = "+${MoneyFormatter.format(income)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppTheme.colors.success
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium.copy(shadow = labelShadow),
+                        color = labelColor,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    if (isSpecificWallet && onChangeBackground != null) {
+                        // Vùng chạm 48dp: icon 20dp nằm giữa, đạt chuẩn Material touch target.
+                        IconButton(
+                            onClick = onChangeBackground,
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AddPhotoAlternate,
+                                contentDescription = stringResource(R.string.action_change_card_background),
+                                tint = contentColor,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                AnimatedContent(
+                    targetState = balance,
+                    label = "BalanceAnimation",
+                ) { targetBalance ->
+                    Text(
+                        text = MoneyFormatter.format(targetBalance),
+                        style = MaterialTheme.typography.headlineLarge.copy(shadow = balanceShadow),
+                        fontWeight = FontWeight.ExtraBold,
+                        color = contentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(12.dp)
-                        .background(AppTheme.colors.border)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Chi tiêu
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Capsule dòng tiền (Thu / Chi tháng này)
+                Surface(
+                    shape = AppTheme.shapes.corner12,
+                    color = capsuleColor,
+                    border = capsuleBorder,
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
-                        contentDescription = stringResource(R.string.home_expense_month),
-                        tint = AppTheme.colors.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "-${MoneyFormatter.format(expense)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppTheme.colors.error
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // Thu nhập
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                                contentDescription = stringResource(R.string.home_income_month),
+                                tint = AppTheme.colors.success,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "+${MoneyFormatter.format(income)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = incomeTextColor,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(12.dp)
+                                .background(dividerColor),
+                        )
+
+                        // Chi tiêu
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
+                                contentDescription = stringResource(R.string.home_expense_month),
+                                tint = AppTheme.colors.error,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "-${MoneyFormatter.format(expense)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = expenseTextColor,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -533,15 +622,17 @@ private fun HeroBalanceWithCashflow(
 private fun WalletsCompactCarousel(
     wallets: List<WalletSummary>,
     selectedWalletId: Long?,
+    modifier: Modifier = Modifier,
     totalBalanceAll: Money,
     onSelectWallet: (Long?) -> Unit,
     onAddWallet: () -> Unit,
-    modifier: Modifier = Modifier,
+    onChangeBackground: ((Long) -> Unit)? = null,
+
 ) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Thẻ đầu tiên: Tất cả ví
@@ -572,7 +663,9 @@ private fun WalletsCompactCarousel(
                 icon = icon,
                 iconTint = color,
                 isSelected = isSelected,
-                onClick = { onSelectWallet(summary.wallet.id) }
+                backgroundUri = summary.backgroundUri,
+                onClick = { onSelectWallet(summary.wallet.id) },
+                onLongClick = onChangeBackground?.let { cb -> { cb(summary.wallet.id) } }
             )
         }
 
@@ -590,12 +683,12 @@ private fun WalletsCompactCarousel(
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(AppTheme.colors.primaryContainer.copy(alpha = 0.5f), CircleShape),
+                            .background(AppTheme.colors.primary.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -605,10 +698,10 @@ private fun WalletsCompactCarousel(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.home_add_wallet),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
@@ -619,6 +712,7 @@ private fun WalletsCompactCarousel(
 }
 
 /** Từng thẻ ví nhỏ gọn 156dp x 92dp */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CompactWalletCard(
     name: String,
@@ -628,7 +722,16 @@ private fun CompactWalletCard(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    backgroundUri: String? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
+    val hasCustomBg = !backgroundUri.isNullOrBlank()
+    // Nhãn trợ năng cho thao tác nhấn giữ (đổi ảnh nền) để TalkBack đọc được ý nghĩa.
+    val longClickLabel = if (onLongClick != null) {
+        stringResource(R.string.action_change_card_background)
+    } else {
+        null
+    }
     val borderColor = if (isSelected) AppTheme.colors.primary else AppTheme.colors.border.copy(alpha = 0.5f)
     val borderWidth = if (isSelected) 1.5.dp else 1.dp
     val containerColor = if (isSelected) {
@@ -641,53 +744,90 @@ private fun CompactWalletCard(
         modifier = modifier
             .size(width = 156.dp, height = 92.dp)
             .clip(AppTheme.shapes.corner16)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = longClickLabel
+            ),
         shape = AppTheme.shapes.corner16,
-        color = containerColor,
+        color = if (hasCustomBg) Color.Transparent else containerColor,
         border = BorderStroke(borderWidth, borderColor),
         tonalElevation = if (isSelected) 3.dp else 1.dp
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (hasCustomBg) {
+                val imageModel = remember(backgroundUri) {
+                    if (backgroundUri.startsWith("/")) File(backgroundUri) else backgroundUri
+                }
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
-                        .background(iconTint.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.45f),
+                                    Color.Black.copy(alpha = 0.75f)
+                                )
+                            )
+                        )
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(16.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .background(
+                                if (hasCustomBg) Color.White.copy(alpha = 0.2f) else iconTint.copy(alpha = 0.15f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (hasCustomBg) Color.White else iconTint,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            shadow = if (hasCustomBg) Shadow(Color.Black.copy(alpha = 0.8f), Offset(0f, 1f), 3f) else null
+                        ),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (hasCustomBg) Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
                 Text(
-                    text = name,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = MoneyFormatter.format(balance),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        shadow = if (hasCustomBg) Shadow(Color.Black.copy(alpha = 0.85f), Offset(0f, 1.5f), 4f) else null
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = if (hasCustomBg) Color.White else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-
-            Text(
-                text = MoneyFormatter.format(balance),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
@@ -794,16 +934,20 @@ private fun BudgetProjectionCard(
     val willExceedFormat = stringResource(R.string.budget_will_exceed)
     val safeFormat = stringResource(R.string.budget_safe)
 
+    val spentCents = projection.spentThisWallet.amountInCents
+    val limitCents = budgetLimit.amountInCents
+    val isOverspent = spentCents > limitCents
+
     val (rawAdvice, highlightAmount) = when {
-        spentPercentage >= 1.0f -> {
-            val overspent = projection.spentThisWallet.amountInCents - budgetLimit.amountInCents
+        isOverspent -> {
+            val overspent = spentCents - limitCents
             val amountStr = MoneyFormatter.format(Money(overspent))
             overspentFormat.format(amountStr) to amountStr
         }
         projection.isProjectedToExceed -> {
             val amountStr = MoneyFormatter.format(projection.safeDailyLimit)
             willExceedFormat.format(
-                projection.exhaustionDateLabel,
+                projection.exhaustionDateLabel.orEmpty(),
                 amountStr
             ) to amountStr
         }
@@ -894,19 +1038,23 @@ private fun BudgetProjectionCard(
 @Composable
 private fun HomeScreenPreview() {
     NotePayTheme {
-        Column(Modifier.padding(16.dp)) {
-            val mockWallet = Wallet(id = 1L, name = "Tiền mặt", initialBalance = Money(1_500_000_00), iconKey = "cash", colorKey = "primary")
-            BalanceCard(
-                walletsSummary = listOf(
-                    WalletSummary(
-                        wallet = mockWallet,
-                        balance = Money(1_500_000_00),
-                        monthlyIncome = Money(5_000_000_00),
-                        monthlyExpense = Money(3_500_000_00)
-                    )
-                ),
-                activeWalletId = 1L,
-                onWalletChanged = {}
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            HeroBalanceWithCashflow(
+                label = "Tổng số dư tất cả ví",
+                balance = Money(15_000_000_00),
+                income = Money(5_000_000_00),
+                expense = Money(3_500_000_00)
+            )
+            CompactWalletCard(
+                name = "Tiền mặt",
+                balance = Money(1_500_000_00),
+                icon = Icons.Rounded.AccountBalance,
+                iconTint = AppTheme.colors.primary,
+                isSelected = true,
+                onClick = {}
             )
         }
     }

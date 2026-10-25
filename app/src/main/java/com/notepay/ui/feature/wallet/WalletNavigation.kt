@@ -13,12 +13,13 @@ import com.notepay.ui.navigation.Route
 fun NavGraphBuilder.walletGraph(
     navController: NavController,
     showFeedback: suspend (UiFeedback) -> Boolean,
-    onNavigateToTab: ((Int) -> Unit)? = null,
+    onNavigateToTab: ((Route) -> Unit)? = null,
 ) {
     composable(Route.Assets.path) {
         if (onNavigateToTab != null) {
             LaunchedEffect(Unit) {
-                onNavigateToTab(2)
+                // Graph này chính là tab Assets; host tự quy đổi route -> trang pager.
+                onNavigateToTab(Route.Assets)
                 navController.popBackStack(Route.Home.path, inclusive = false)
             }
         } else {

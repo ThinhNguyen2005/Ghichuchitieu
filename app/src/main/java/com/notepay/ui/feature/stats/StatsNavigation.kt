@@ -8,12 +8,13 @@ import com.notepay.ui.navigation.Route
 
 fun NavGraphBuilder.statsScreen(
     navController: NavController,
-    onNavigateToTab: ((Int) -> Unit)? = null,
+    onNavigateToTab: ((Route) -> Unit)? = null,
 ) {
     composable(Route.Stats.path) {
         if (onNavigateToTab != null) {
             LaunchedEffect(Unit) {
-                onNavigateToTab(1)
+                // Graph này chính là tab Stats; host tự quy đổi route -> trang pager.
+                onNavigateToTab(Route.Stats)
                 navController.popBackStack(Route.Home.path, inclusive = false)
             }
         } else {

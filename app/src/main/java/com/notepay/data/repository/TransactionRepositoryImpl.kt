@@ -1,6 +1,7 @@
 package com.notepay.data.repository
 
 import com.notepay.data.local.dao.TransactionDao
+import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.mapper.TransactionMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
@@ -9,12 +10,14 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.platform.widget.WidgetUpdateHelper
+import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -28,6 +31,7 @@ import javax.inject.Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
     private val mapper: TransactionMapper,
+    private val database: NotePayDatabase,
     private val categoryRepository: CategoryRepository,
     @param:ApplicationContext private val context: Context,
     @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
@@ -49,20 +53,20 @@ class TransactionRepositoryImpl @Inject constructor(
         }.flowOn(dispatcher)
 
     override fun observeWalletStats(monthStartMillis: Long, monthEndMillis: Long): Flow<List<WalletStats>> =
-        combine(dao.observeAll(), categoryRepository.observeCategories()) { entities, _ ->
-            entities.groupBy { it.walletId }.map { (walletId, txs) ->
-                val incomeType = "INCOME"
-                val expenseType = "EXPENSE"
-                WalletStats(
-                    walletId = walletId,
-                    allTimeIncome = Money(txs.filter { it.type == incomeType }.sumOf { it.amountCents }),
-                    allTimeExpense = Money(txs.filter { it.type == expenseType }.sumOf { it.amountCents }),
-                    currentMonthIncome = Money(txs.filter { it.type == incomeType && it.occurredAt in monthStartMillis..monthEndMillis }.sumOf { it.amountCents }),
-                    currentMonthExpense = Money(txs.filter { it.type == expenseType && it.occurredAt in monthStartMillis..monthEndMillis }.sumOf { it.amountCents }),
-                    txCount = txs.size,
-                )
+        dao.observeWalletStats(monthStartMillis, monthEndMillis)
+            .map { rows ->
+                rows.map { row ->
+                    WalletStats(
+                        walletId = row.walletId,
+                        allTimeIncome = Money(row.allTimeIncomeCents),
+                        allTimeExpense = Money(row.allTimeExpenseCents),
+                        currentMonthIncome = Money(row.monthIncomeCents),
+                        currentMonthExpense = Money(row.monthExpenseCents),
+                        txCount = row.txCount,
+                    )
+                }
             }
-        }.flowOn(dispatcher)
+            .flowOn(dispatcher)
 
     override fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<Transaction>> =
         combine(dao.observeRecentNonTransfers(sinceMillis), categoryRepository.observeCategories()) { list, _ ->
@@ -99,6 +103,15 @@ class TransactionRepositoryImpl @Inject constructor(
         WidgetUpdateHelper.notifyWidgetsDataChanged(context)
         return id
     }
+
+    override suspend fun upsertTransferPair(outgoing: Transaction, incoming: Transaction) =
+        withContext(dispatcher) {
+            database.withTransaction {
+                dao.upsert(mapper.toEntity(outgoing))
+                dao.upsert(mapper.toEntity(incoming))
+            }
+            WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+        }
 
     override suspend fun delete(id: Long) {
         dao.delete(id)
