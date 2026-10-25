@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -41,8 +43,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -52,6 +56,11 @@ import androidx.navigation.compose.composable
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.notepay.platform.OsCompatHelper
+import com.notepay.R
+import com.notepay.ui.adaptive.LocalWindowLayout
+import com.notepay.ui.adaptive.NotePayAdaptive
+import com.notepay.ui.adaptive.usesNavigationRail
+import com.notepay.ui.component.FloatingAddButton
 import com.notepay.ui.component.LocalNotePayBackdrop
 import com.notepay.ui.feature.billsplit.billSplitGraph
 import com.notepay.ui.feature.onboarding.OnboardingRoute
@@ -81,6 +90,9 @@ fun NotePayNavHost(
     val useNavigationGlass = liquidGlassEnabled && OsCompatHelper.liquidGlassCompatibility(
         isHardwareAccelerated = LocalView.current.isHardwareAccelerated,
     ).isSupported
+    // Tablet/foldable: đủ chỗ thì đổi bottom bar thành rail dọc, tắt vuốt ngang của pager.
+    val windowLayout = LocalWindowLayout.current
+    val useNavigationRail = windowLayout.usesNavigationRail
     val reducedMotion = rememberNotePayReducedMotion()
     val motionDistancePx = with(LocalDensity.current) {
         NotePayMotion.contentTranslation.roundToPx()
@@ -181,7 +193,7 @@ fun NotePayNavHost(
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.padding(bottom = 104.dp)
+                modifier = Modifier.padding(bottom = if (useNavigationRail) 16.dp else 104.dp)
             )
         },
         modifier = Modifier
@@ -284,6 +296,12 @@ fun NotePayNavHost(
                                     navController = navController,
                                     showFeedback = ::showFeedback,
                                     reducedMotion = reducedMotion,
+                                    userScrollEnabled = !useNavigationRail,
+                                    contentStartInset = if (useNavigationRail) {
+                                        NotePayAdaptive.navigationRailInset
+                                    } else {
+                                        0.dp
+                                    },
                                 )
                             }
                             transactionGraph(navController, ::showFeedback)
@@ -308,32 +326,47 @@ fun NotePayNavHost(
                 }
 
                 if (isMainTab) {
-                    NotePayBottomBar(
-                        currentRoute = currentRoute,
-                        selectedTabIndex = pagerState.targetPage,
-                        navigationBarOffsetProvider = { navigationBarOffsetState.floatValue },
-                        showQuickAddSheet = false,
-                        useNavigationGlass = useNavigationGlass,
-                        reducedMotion = reducedMotion,
-                        backdrop = backdrop,
-                        onTabSelected = { route ->
-                            val targetIndex = rootTabIndexForRoute(route.path)
-                            if (targetIndex != null && pagerState.currentPage != targetIndex) {
-                                coroutineScope.launch {
-                                    if (reducedMotion) {
-                                        pagerState.scrollToPage(targetIndex)
-                                    } else {
-                                        pagerState.animateScrollToPage(targetIndex)
-                                    }
+                    if (useNavigationRail) {
+                        NotePayNavigationRail(
+                            currentRoute = currentRoute,
+                            selectedTabIndex = pagerState.targetPage,
+                            useNavigationGlass = useNavigationGlass,
+                            reducedMotion = reducedMotion,
+                            backdrop = backdrop,
+                            onTabSelected = navigateToRootTab,
+                        )
+                        // Rail không có chỗ cho FAB nên nút Thêm nhanh về góc dưới - phải.
+                        FloatingAddButton(
+                            expanded = false,
+                            contentDescription = stringResource(R.string.quick_add_open_menu),
+                            onClick = {
+                                navController.navigate(Route.AddTransaction.path) {
+                                    launchSingleTop = true
                                 }
-                            }
-                        },
-                        onToggleQuickAdd = {
-                            navController.navigate(Route.AddTransaction.path) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .zIndex(2f)
+                                .padding(end = 24.dp, bottom = 24.dp)
+                                .navigationBarsPadding(),
+                        )
+                    } else {
+                        NotePayBottomBar(
+                            currentRoute = currentRoute,
+                            selectedTabIndex = pagerState.targetPage,
+                            navigationBarOffsetProvider = { navigationBarOffsetState.floatValue },
+                            showQuickAddSheet = false,
+                            useNavigationGlass = useNavigationGlass,
+                            reducedMotion = reducedMotion,
+                            backdrop = backdrop,
+                            onTabSelected = navigateToRootTab,
+                            onToggleQuickAdd = {
+                                navController.navigate(Route.AddTransaction.path) {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
                 }
 
             }

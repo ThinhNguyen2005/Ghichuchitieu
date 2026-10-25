@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,14 +54,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,7 +119,6 @@ private enum class StatsContentState {
     CONTENT,
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
@@ -147,27 +143,30 @@ fun StatsScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            GradientTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.stats_screen_title),
-                        fontWeight = FontWeight.ExtraBold,
+    // Không dùng Scaffold lồng nhau: root shell (NotePayNavHost) đã là Scaffold duy nhất.
+    // GradientTopAppBar tự xử lý inset status bar qua windowInsets của TopAppBar.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        GradientTopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.stats_screen_title),
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            },
+            actions = {
+                if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                    StatsHeader(
+                        viewType = viewType,
+                        onViewTypeChanged = { viewType = it },
                     )
-                },
-                actions = {
-                    if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
-                        StatsHeader(
-                            viewType = viewType,
-                            onViewTypeChanged = { viewType = it },
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+                }
+            },
+        )
+
         AnimatedContent(
             targetState = contentState,
             transitionSpec = {
@@ -176,9 +175,8 @@ fun StatsScreen(
             },
             label = "stats-content",
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding),
+                .weight(1f)
+                .fillMaxWidth(),
         ) { target ->
             when (target) {
                 StatsContentState.LOADING -> StatsLoadingState()

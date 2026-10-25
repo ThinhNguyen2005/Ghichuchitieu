@@ -183,6 +183,11 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.material3)
 
+    // Adaptive layout (tablet / foldable): WindowSizeClass + Posture
+    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.androidx.compose.material3.adaptive.layout)
+    implementation(libs.androidx.window.core)
+
     // Backdrop for Liquid Slider/Toggle
     implementation(libs.backdrop)
 

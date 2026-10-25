@@ -74,6 +74,10 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
+import com.notepay.ui.adaptive.LocalContentGutter
+import com.notepay.ui.adaptive.LocalWindowLayout
+import com.notepay.ui.adaptive.WindowLayout
+import com.notepay.ui.adaptive.usesNavigationRail
 import com.notepay.ui.util.MoneyFormatter
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }
@@ -97,68 +101,151 @@ internal fun StatsDashboard(
     modifier: Modifier = Modifier,
 ) {
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
+    // Tablet: lề bù để nội dung không vượt quá 840dp. Bằng 0dp trên điện thoại.
+    val contentGutter = LocalContentGutter.current
+    val windowLayout = LocalWindowLayout.current
+    // Compact/Medium có thanh điều hướng nổi ở đáy nên phải chừa chỗ; chế độ rail thì không.
+    val bottomClearance = if (windowLayout.usesNavigationRail) 24.dp else 120.dp
+
+    if (windowLayout == WindowLayout.Expanded) {
+        // Expanded: biểu đồ + bộ lọc thời gian bên trái, phân tích chi tiết/insights bên phải.
+        Row(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp + contentGutter, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(0.56f)
+                    .fillMaxHeight(),
+                contentPadding = PaddingValues(bottom = bottomClearance),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item(key = "stats-chart-mode") {
+                    StatsChartPane(
+                        state = state,
+                        metric = metric,
+                        viewType = viewType,
+                        showAmounts = showAmounts,
+                        onMetricChanged = { metric = it },
+                        onPreviousMonth = onPreviousMonth,
+                        onNextMonth = onNextMonth,
+                        onSelectRange = onSelectRange,
+                        onMonthSelected = onMonthSelected,
+                        onCategorySelected = onCategorySelected,
+                    )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(0.44f)
+                    .fillMaxHeight(),
+                contentPadding = PaddingValues(bottom = bottomClearance),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item(key = "stats-supporting") { supportingContent(metric) }
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp + contentGutter,
+                end = 16.dp + contentGutter,
+                top = 16.dp,
+                bottom = bottomClearance,
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item(key = "stats-chart-mode") {
+                StatsChartPane(
+                    state = state,
+                    metric = metric,
+                    viewType = viewType,
+                    showAmounts = showAmounts,
+                    onMetricChanged = { metric = it },
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onSelectRange = onSelectRange,
+                    onMonthSelected = onMonthSelected,
+                    onCategorySelected = onCategorySelected,
+                )
+            }
+            item { supportingContent(metric) }
+        }
+    }
+}
+
+/** Biểu đồ tổng quan + bộ lọc thời gian/kỳ dùng chung cho bố cục 1 cột và 2 cột. */
+@Composable
+private fun StatsChartPane(
+    state: StatsUiState,
+    metric: StatsMetric,
+    viewType: StatsViewType,
+    showAmounts: Boolean,
+    onMetricChanged: (StatsMetric) -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
+    onMonthSelected: (MonthlyTrendPoint) -> Unit,
+    onCategorySelected: (Category?) -> Unit,
+) {
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
     val previousTotal = if (metric == StatsMetric.CHI_TIEU) state.previousExpense else state.previousIncome
     val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
     val breakdown = if (metric == StatsMetric.CHI_TIEU) state.breakdown else state.incomeBreakdown
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item(key = "stats-chart-mode") {
-            when (viewType) {
-                StatsViewType.PHAN_BO -> OverviewCard(
-                    state = state,
+    when (viewType) {
+        StatsViewType.PHAN_BO -> OverviewCard(
+            state = state,
+            metric = metric,
+            showAmounts = showAmounts,
+            difference = difference,
+            onMetricChanged = onMetricChanged,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            onSelectRange = onSelectRange,
+        ) {
+            AllocationChartContent(
+                breakdown = breakdown,
+                total = total,
+                showAmounts = showAmounts,
+                selectedCategory = state.selectedCategory,
+                onCategorySelected = onCategorySelected,
+            )
+        }
+
+        StatsViewType.XU_HUONG -> OverviewCard(
+            state = state,
+            metric = metric,
+            showAmounts = showAmounts,
+            difference = difference,
+            onMetricChanged = onMetricChanged,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            onSelectRange = onSelectRange,
+        ) {
+            if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                TrendChartContent(
+                    points = state.recentMonths,
                     metric = metric,
+                    isSelectedMonthCurrent = state.isCurrentMonth,
+                    forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
                     showAmounts = showAmounts,
-                    difference = difference,
-                    onMetricChanged = { metric = it },
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onSelectRange = onSelectRange,
-                ) {
-                    AllocationChartContent(
-                        breakdown = breakdown,
-                        total = total,
-                        showAmounts = showAmounts,
-                        selectedCategory = state.selectedCategory,
-                        onCategorySelected = onCategorySelected,
+                    onPointClick = onMonthSelected,
+                )
+            } else {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.stats_trend_unavailable),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                StatsViewType.XU_HUONG -> OverviewCard(
-                    state = state,
-                    metric = metric,
-                    showAmounts = showAmounts,
-                    difference = difference,
-                    onMetricChanged = { metric = it },
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onSelectRange = onSelectRange,
-                ) {
-                    if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
-                        TrendChartContent(
-                            points = state.recentMonths,
-                            metric = metric,
-                            isSelectedMonthCurrent = state.isCurrentMonth,
-                            forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
-                            showAmounts = showAmounts,
-                            onPointClick = onMonthSelected,
-                        )
-                    } else {
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.stats_trend_unavailable),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
                 }
             }
         }
-        item { supportingContent(metric) }
     }
 }
 
