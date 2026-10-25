@@ -1,13 +1,16 @@
 package com.notepay.data
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.entity.TransactionEntity
+import com.notepay.data.local.model.WalletStatsProjection
 import com.notepay.data.mapper.TransactionMapper
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.data.repository.TransactionRepositoryImpl
 import com.notepay.domain.model.Category
 import com.notepay.MainDispatcherRule
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +55,7 @@ class TransactionRepositoryImplTest {
             dao = fakeDao,
             mapper = TransactionMapper(),
             categoryRepository = categoryRepository,
+            database = mockk<NotePayDatabase>(relaxed = true),
             context = context,
             dispatcher = mainDispatcherRule.testDispatcher
         )
@@ -144,6 +148,10 @@ class TransactionRepositoryImplTest {
         override fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>> = flow
         override fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> =
             flow.map { entities -> entities.filter { it.walletId == walletId && it.occurredAt in startMillis..endMillis } }
+        override fun observeWalletStats(
+            monthStartMillis: Long,
+            monthEndMillis: Long,
+        ): Flow<List<WalletStatsProjection>> = flow.map { emptyList() }
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
         override fun observeById(id: Long): Flow<TransactionEntity?> =
             flow.map { entities -> entities.find { it.id == id } }

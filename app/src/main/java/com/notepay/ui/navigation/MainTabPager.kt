@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -24,13 +25,15 @@ fun MainTabPager(
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
+    // Chỉ số trang lấy từ danh sách tab gốc duy nhất, không hardcode 0/1/2/3.
+    val homeTabIndex = remember { rootTabIndexForRoute(Route.Home.path) ?: 0 }
 
-    BackHandler(enabled = pagerState.currentPage != 0) {
+    BackHandler(enabled = pagerState.currentPage != homeTabIndex) {
         coroutineScope.launch {
             if (reducedMotion) {
-                pagerState.scrollToPage(0)
+                pagerState.scrollToPage(homeTabIndex)
             } else {
-                pagerState.animateScrollToPage(0)
+                pagerState.animateScrollToPage(homeTabIndex)
             }
         }
     }
@@ -90,9 +93,11 @@ fun MainTabPager(
                     }
                 },
                 onNavigateToAssets = {
-                    coroutineScope.launch {
-                        if (reducedMotion) pagerState.scrollToPage(2)
-                        else pagerState.animateScrollToPage(2)
+                    rootTabIndexForRoute(Route.Assets.path)?.let { assetsTabIndex ->
+                        coroutineScope.launch {
+                            if (reducedMotion) pagerState.scrollToPage(assetsTabIndex)
+                            else pagerState.animateScrollToPage(assetsTabIndex)
+                        }
                     }
                 },
                 onNavigateToCurrencySettings = {

@@ -749,9 +749,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_period_daily">Hàng ngày</string>
     <string name="wallet_period_weekly">Hàng tuần</string>
     <string name="wallet_budget_amount">Số tiền hạn mức</string>
-    <string name="wallet_monthly_budget_format">Quy đổi sang hàng tháng để cảnh báo: %1$s đ/tháng</string>
+    <string name="wallet_monthly_budget_format">Quy đổi sang hàng tháng để cảnh báo: %1$s/tháng</string>
     <string name="wallet_icon_title">Biểu tượng ví</string>
-    <string name="wallet_preview_badge">Xem trước</string>
     <string name="wallet_preview_name_placeholder">Tên ví mới</string>
     <string name="wallet_color_auto_hint">Màu sắc được tự động chọn để không trùng lặp với các ví khác</string>
     <string name="wallet_color_in_use">Đang dùng</string>
@@ -1159,7 +1158,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="ui_50">50%</string>
     <string name="ui_item_percentage_100_toint">${(item.percentage * 100).toInt()}%</string>
     <string name="ui_unitlabel">($unitLabel)</string>
-    <string name="wallet_preview_balance_format">%1$s ₫</string>
     <string name="percent_change_positive">+%1$s%%</string>
     <string name="percent_change_negative">-%1$s%%</string>
     <string name="amount_positive_format">+%1$s</string>

@@ -1,9 +1,11 @@
 package com.notepay.ui.feature.home
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 
+@Immutable
 data class WalletSummary(
     val wallet: Wallet,
     val balance: Money,
@@ -12,6 +14,7 @@ data class WalletSummary(
     val backgroundUri: String? = null
 )
 
+@Immutable
 data class BudgetProjection(
     val dailyAverage: Money = Money.ZERO,
     val projectedSpend: Money = Money.ZERO,
@@ -22,6 +25,7 @@ data class BudgetProjection(
     val spentThisWallet: Money = Money.ZERO,
 )
 
+@Immutable
 data class HomeUiState(
     val selectedWalletId: Long? = null,
     val activeWallet: Wallet? = null,
@@ -32,6 +36,8 @@ data class HomeUiState(
     val monthlyExpense: Money = Money.ZERO,
     val recentTransactions: List<Transaction> = emptyList(),
     val monthLabel: String = "",
+    val selectedMonth: Int = 1,
+    val selectedYear: Int = 2026,
     val isLoading: Boolean = true,
     val budgetProjection: BudgetProjection? = null,
     val dueRemindersCount: Int = 0,

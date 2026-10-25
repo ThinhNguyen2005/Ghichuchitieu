@@ -6,8 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.LegacyAiModelCleaner
 import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.data.preferences.BudgetSettings
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
@@ -15,7 +14,6 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.util.StreakTrackerHelper
-import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,10 +25,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
@@ -42,7 +42,6 @@ class HomeViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val getMonthlySummary: GetMonthlySummaryUseCase,
-    private val budgetSettingsStore: BudgetSettingsStore,
     private val appSettingsDataStore: AppSettingsDataStore,
     private val subscriptionRepository: SubscriptionRepository,
     private val legacyModelCleaner: LegacyAiModelCleaner,
@@ -61,28 +60,17 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    private val currentYear = today.year
-    private val currentMonth = today.month.number
+    private fun currentLocalDateTime(): LocalDateTime =
+        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
-    private val _selectedMonth = MutableStateFlow(currentYear to currentMonth)
+    private val _selectedMonth = MutableStateFlow(
+        currentLocalDateTime().let { it.year to it.month.number }
+    )
     private val _selectedWalletFilterId = MutableStateFlow<Long?>(null)
     private val _isSmartInsightsDismissed = MutableStateFlow(false)
 
     fun dismissSmartInsights() {
         _isSmartInsightsDismissed.value = true
-    }
-
-    private fun getDaysInMonth(year: Int, month: Int): Int {
-        return when (month) {
-            2 -> if (isLeapYear(year)) 29 else 28
-            4, 6, 9, 11 -> 30
-            else -> 31
-        }
-    }
-
-    private fun isLeapYear(year: Int): Boolean {
-        return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
     }
 
     private data class HomeFilterState(
@@ -148,13 +136,11 @@ class HomeViewModel @Inject constructor(
             subscriptionRepository.observeAll(),
             transactionRepo.observeAllCreatedDates(),
         ) { summary, walletsSummary, subscriptions, createdDates ->
+            val today = currentLocalDateTime()
             val wallets = walletsSummary.map { it.wallet }
 
-            // Phòng thủ: nếu ví đang lọc bị xóa thì tự động fallback về null
+            // Phòng thủ: nếu ví đang lọc bị xóa thì tự động fallback về null mà không gây side-effect phát lại luồng
             val validFilterId = selectedFilterId?.takeIf { id -> wallets.any { it.id == id } }
-            if (selectedFilterId != null && validFilterId == null) {
-                _selectedWalletFilterId.value = null
-            }
 
             // Tính số lời nhắc sắp đến hạn
             val now = Clock.System.now()
@@ -175,7 +161,10 @@ class HomeViewModel @Inject constructor(
                 val spentCents = summary.totalExpense.amountInCents
                 val limitCents = budgetLimit.amountInCents
                 val currentDay = today.day.coerceIn(1, 31)
-                val daysInMonth = getDaysInMonth(today.year, today.month.number)
+                // Số ngày của tháng hiện tại = khoảng cách tới ngày 1 của tháng kế tiếp.
+                val todayMonthStart = LocalDate(today.year, today.month.number, 1)
+                val daysInMonth = (todayMonthStart.plus(1, DateTimeUnit.MONTH).toEpochDays() -
+                    todayMonthStart.toEpochDays()).toInt()
 
                 val dailyAverageCents = spentCents.toFloat() / currentDay
                 val projectedSpendCents = dailyAverageCents * daysInMonth
@@ -221,6 +210,8 @@ class HomeViewModel @Inject constructor(
                 monthlyExpense = activeSummary?.monthlyExpense ?: Money.ZERO,
                 recentTransactions = summary.transactions.take(5),
                 monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
+                selectedMonth = summary.month,
+                selectedYear = summary.year,
                 isLoading = false,
                 budgetProjection = projection,
                 dueRemindersCount = dueCount,
@@ -236,12 +227,9 @@ class HomeViewModel @Inject constructor(
     )
 
     fun selectWallet(walletId: Long?) {
+        // Chỉ lọc giao dịch trên trang Home. Việc đặt ví mặc định (active wallet)
+        // thuộc về màn Assets để tránh side-effect ghi DB khi người dùng chỉ xem.
         _selectedWalletFilterId.value = walletId
-        if (walletId != null) {
-            viewModelScope.launch {
-                walletRepo.setActive(walletId)
-            }
-        }
     }
 
     fun setWalletBackground(walletId: Long, uri: String?) {
@@ -250,94 +238,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    val settings = budgetSettingsStore.settings.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = BudgetSettings(),
-    )
-
     val hapticFeedbackEnabled = appSettingsDataStore.hapticFeedbackEnabled.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = true,
     )
-
-    val dailyReminderEnabled = appSettingsDataStore.dailyReminderEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val budgetAlertsEnabled = appSettingsDataStore.budgetAlertsEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val weeklyDigestEnabled = appSettingsDataStore.weeklyDigestEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = true,
-    )
-
-    val reminderHour = appSettingsDataStore.reminderHour.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = 20,
-    )
-
-    val reminderMinute = appSettingsDataStore.reminderMinute.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = 30,
-    )
-
-    fun setDailyReminderEnabled(context: Context, enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setDailyReminderEnabled(enabled)
-            if (enabled) {
-                ReminderScheduler.scheduleDailyReminder(
-                    context,
-                    targetHour = reminderHour.value,
-                    targetMinute = reminderMinute.value,
-                )
-            } else {
-                ReminderScheduler.cancelDailyReminder(context)
-            }
-        }
-    }
-
-    fun setBudgetAlertsEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setBudgetAlertsEnabled(enabled)
-        }
-    }
-
-    fun setWeeklyDigestEnabled(context: Context, enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setWeeklyDigestEnabled(enabled)
-            if (enabled) {
-                ReminderScheduler.scheduleWeeklyDigest(context)
-            } else {
-                ReminderScheduler.cancelWeeklyDigest(context)
-            }
-        }
-    }
-
-    fun updateReminderTime(context: Context, hour: Int, minute: Int) {
-        viewModelScope.launch {
-            appSettingsDataStore.setReminderTime(hour, minute)
-            if (dailyReminderEnabled.value) {
-                ReminderScheduler.scheduleDailyReminder(context, hour, minute)
-            }
-        }
-    }
-
-    @Suppress("unused")
-    fun setMonthlyBudget(amountCents: Long) {
-        viewModelScope.launch {
-            budgetSettingsStore.setMonthlyBudget(amountCents)
-        }
-    }
-
 }

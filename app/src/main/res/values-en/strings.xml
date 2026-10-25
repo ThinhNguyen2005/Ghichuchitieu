@@ -784,9 +784,8 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="wallet_period_weekly">Weekly</string>
     <string name="wallet_period_monthly">Monthly</string>
     <string name="wallet_budget_amount">Limit amount</string>
-    <string name="wallet_monthly_budget_format">Converted monthly warning amount: %1$s VND/month</string>
+    <string name="wallet_monthly_budget_format">Converted monthly warning amount: %1$s/month</string>
     <string name="wallet_icon_title">Wallet icon</string>
-    <string name="wallet_preview_badge">Preview</string>
     <string name="wallet_preview_name_placeholder">New wallet name</string>
     <string name="wallet_color_auto_hint">Color is automatically chosen to avoid collision with other wallets</string>
     <string name="wallet_color_in_use">In use</string>
@@ -1222,7 +1221,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="ui_50">50% (TODO)</string>
     <string name="ui_item_percentage_100_toint">${(item.percentage * 100).toInt()}% (TODO)</string>
     <string name="ui_unitlabel">($unitLabel) (TODO)</string>
-    <string name="wallet_preview_balance_format">%1$s ₫</string>
     <string name="percent_change_positive">+%1$s%%</string>
     <string name="percent_change_negative">-%1$s%%</string>
     <string name="amount_positive_format">+%1$s</string>

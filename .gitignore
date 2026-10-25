@@ -28,9 +28,14 @@ local.properties
 /app/*.jks
 
 # Agent folders
+/.qoder
 /app/release/
 # Kotlin incremental compilation cache
 .kotlin/
+
+# Rác sinh ra khi tiến trình JVM/Gradle chết giữa lúc build — không commit.
+hs_err_pid*.log
+replay_pid*.log
 
 # Firebase configuration credentials — KHÔNG commit vào git.
 /app/google-services.json

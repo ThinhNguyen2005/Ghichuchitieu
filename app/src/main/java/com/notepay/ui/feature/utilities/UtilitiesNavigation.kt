@@ -17,12 +17,13 @@ import com.notepay.ui.navigation.Route
 
 fun NavGraphBuilder.utilitiesGraph(
     navController: NavController,
-    onNavigateToTab: ((Int) -> Unit)? = null,
+    onNavigateToTab: ((Route) -> Unit)? = null,
 ) {
     composable(Route.Utilities.path) {
         if (onNavigateToTab != null) {
             LaunchedEffect(Unit) {
-                onNavigateToTab(3)
+                // Graph này chính là tab Utilities; host tự quy đổi route -> trang pager.
+                onNavigateToTab(Route.Utilities)
                 navController.popBackStack(Route.Home.path, inclusive = false)
             }
         } else {

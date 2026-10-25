@@ -57,6 +57,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -68,15 +70,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.money.Money
 import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.GradientTopAppBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.feedback.FeedbackType
 import com.notepay.ui.feedback.UiFeedback
 import com.notepay.ui.theme.AppTheme
+import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import com.notepay.ui.util.WalletUiHelper
-import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,9 +169,6 @@ fun AddWalletScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-//            // 1. Live Preview Card
-//            WalletLivePreviewCard(state = state)
-
             // 2. Tên ví
             OutlinedTextField(
                 value = state.name,
@@ -258,110 +258,6 @@ fun AddWalletScreen(
     }
 }
 
-//@Composable
-//private fun WalletLivePreviewCard(state: AddWalletUiState) {
-//    val walletColor = WalletUiHelper.getColor(state.colorKey)
-//    val iconVector = WalletUiHelper.getIcon(state.iconKey)
-//    val displayName = state.name.ifBlank {
-//        stringResource(R.string.wallet_preview_name_placeholder)
-//    }
-//    val balanceNumber = state.initialBalanceInput.toLongOrNull() ?: 0L
-//    val formattedBalance = remember(balanceNumber) {
-//        val formatter = DecimalFormat("#,###")
-//        formatter.format(balanceNumber).replace(",", ".")
-//    }
-//
-//    Card(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .height(148.dp),
-//        shape = AppTheme.shapes.corner16,
-//        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-//    ) {
-//        Box(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .background(
-//                    Brush.linearGradient(
-//                        colors = listOf(
-//                            walletColor,
-//                            walletColor.copy(alpha = 0.88f),
-//                            walletColor.copy(alpha = 0.68f),
-//                        ),
-//                    ),
-//                )
-//                .padding(18.dp),
-//        ) {
-//            // Top row: Icon & Preview Badge
-//            Row(
-//                modifier = Modifier.fillMaxWidth(),
-//                horizontalArrangement = Arrangement.SpaceBetween,
-//                verticalAlignment = Alignment.CenterVertically,
-//            ) {
-//                Box(
-//                    modifier = Modifier
-//                        .size(42.dp)
-//                        .clip(CircleShape)
-//                        .background(Color.White.copy(alpha = 0.22f)),
-//                    contentAlignment = Alignment.Center,
-//                ) {
-//                    Icon(
-//                        imageVector = iconVector,
-//                        contentDescription = null,
-//                        tint = Color.White,
-//                        modifier = Modifier.size(24.dp),
-//                    )
-//                }
-//
-//                Surface(
-//                    shape = CircleShape,
-//                    color = Color.White.copy(alpha = 0.24f),
-//                ) {
-//                    Text(
-//                        text = stringResource(R.string.wallet_preview_badge).uppercase(),
-//                        style = MaterialTheme.typography.labelSmall,
-//                        fontWeight = FontWeight.Bold,
-//                        color = Color.White,
-//                        letterSpacing = 1.sp,
-//                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-//                    )
-//                }
-//            }
-//
-//            // Bottom content: Tên ví & Số dư
-//            Column(
-//                modifier = Modifier.align(Alignment.BottomStart),
-//            ) {
-//                Text(
-//                    text = displayName,
-//                    style = MaterialTheme.typography.titleMedium,
-//                    fontWeight = FontWeight.Bold,
-//                    color = Color.White,
-//                    maxLines = 1,
-//                    overflow = TextOverflow.Ellipsis,
-//                )
-//                Spacer(modifier = Modifier.height(2.dp))
-//                Row(
-//                    verticalAlignment = Alignment.Bottom,
-//                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-//                ) {
-//                    Text(
-//                        text = stringResource(R.string.assets_wallet_balance) + ":",
-//                        style = MaterialTheme.typography.bodySmall,
-//                        color = Color.White.copy(alpha = 0.82f),
-//                    )
-//                    Text(
-//                        text = stringResource(R.string.wallet_preview_balance_format, formattedBalance),
-//                        style = MaterialTheme.typography.titleMedium,
-//                        fontWeight = FontWeight.SemiBold,
-//                        color = Color.White,
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
-
 @Composable
 private fun BudgetAlertSection(
     hasBudgetLimit: Boolean,
@@ -380,7 +276,7 @@ private fun BudgetAlertSection(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -397,12 +293,12 @@ private fun BudgetAlertSection(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center,
@@ -505,8 +401,7 @@ private fun BudgetAlertSection(
                             BudgetPeriod.MONTHLY -> rawLimit
                         }
                         val formattedMonthly = remember(monthlyEquivalent) {
-                            val formatter = DecimalFormat("#,###")
-                            formatter.format(monthlyEquivalent).replace(",", ".")
+                            MoneyFormatter.format(Money(monthlyEquivalent * 100L))
                         }
                         Text(
                             text = stringResource(R.string.wallet_monthly_budget_format, formattedMonthly),
@@ -661,7 +556,7 @@ private fun WalletIconPicker(
                 .fillMaxWidth()
                 .selectableGroup()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             WalletUiHelper.iconList.forEach { (key, vector, labelRes) ->
                 val isSelected = selectedIconKey == key
@@ -718,7 +613,7 @@ private fun WalletColorPicker(
     isAutoColorAssigned: Boolean,
     onColorSelected: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.wallet_field_color),
             style = MaterialTheme.typography.titleMedium,
@@ -740,7 +635,7 @@ private fun WalletColorPicker(
                 .fillMaxWidth()
                 .selectableGroup()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             val inUseLabel = stringResource(R.string.wallet_color_in_use)
 
@@ -753,6 +648,7 @@ private fun WalletColorPicker(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
+                        .semantics { contentDescription = contentDesc }
                         .selectable(
                             selected = isSelected,
                             onClick = { onColorSelected(key) },

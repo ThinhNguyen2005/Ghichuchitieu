@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.wallet
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.usecase.debt.DebtSummary
@@ -11,12 +12,14 @@ enum class AssetChartRange {
     YEAR
 }
 
+@Immutable
 data class AssetTrendPoint(
     val timestampMs: Long,
     val dateLabel: String,
     val amount: Money,
 )
 
+@Immutable
 data class WalletAllocationItem(
     val walletId: Long,
     val name: String,
@@ -26,6 +29,7 @@ data class WalletAllocationItem(
     val percentage: Float, // 0.0f - 1.0f
 )
 
+@Immutable
 data class WalletAssetItem(
     val wallet: Wallet,
     val balance: Money,
@@ -34,6 +38,7 @@ data class WalletAssetItem(
     val transactionCount: Int,
 )
 
+@Immutable
 data class AssetsUiState(
     val totalNetWorth: Money = Money.ZERO,
     val wallets: List<WalletAssetItem> = emptyList(),
@@ -50,4 +55,18 @@ data class AssetsUiState(
     val transferNote: String = "",
     val isTransferSubmitting: Boolean = false,
     val debtSummary: DebtSummary? = null,
+)
+
+/**
+ * Trạng thái tức thời của form chuyển khoản nội bộ. Tách khỏi [AssetsUiState] để
+ * ViewModel có thể ghép nó với luồng dữ liệu Room mà không phải restart luồng query.
+ */
+@Immutable
+data class TransferFormState(
+    val isVisible: Boolean = false,
+    val fromWalletId: Long? = null,
+    val toWalletId: Long? = null,
+    val amountInput: String = "",
+    val note: String = "",
+    val isSubmitting: Boolean = false,
 )

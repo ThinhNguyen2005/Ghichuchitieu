@@ -163,6 +163,19 @@ fun NotePayNavHost(
         return actionPerformed
     }
 
+    // Quy đổi route gốc -> trang pager. Toạ độ tab chỉ tồn tại trong `rootTabRoutes`
+    // (NotePayMotion.kt) nên các nav graph con không phải hardcode 0/1/2/3.
+    val navigateToRootTab: (Route) -> Unit = remember(coroutineScope, reducedMotion, pagerState) {
+        { route ->
+            rootTabIndexForRoute(route.path)?.let { pageIndex ->
+                coroutineScope.launch {
+                    if (reducedMotion) pagerState.scrollToPage(pageIndex)
+                    else pagerState.animateScrollToPage(pageIndex)
+                }
+            }
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = {
@@ -276,33 +289,18 @@ fun NotePayNavHost(
                             transactionGraph(navController, ::showFeedback)
                             statsScreen(
                                 navController = navController,
-                                onNavigateToTab = { tabIndex ->
-                                    coroutineScope.launch {
-                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
-                                        else pagerState.animateScrollToPage(tabIndex)
-                                    }
-                                },
+                                onNavigateToTab = navigateToRootTab,
                             )
                             billSplitGraph(navController, ::showFeedback)
                             subscriptionScreen(navController)
                             walletGraph(
                                 navController = navController,
                                 showFeedback = ::showFeedback,
-                                onNavigateToTab = { tabIndex ->
-                                    coroutineScope.launch {
-                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
-                                        else pagerState.animateScrollToPage(tabIndex)
-                                    }
-                                },
+                                onNavigateToTab = navigateToRootTab,
                             )
                             utilitiesGraph(
                                 navController = navController,
-                                onNavigateToTab = { tabIndex ->
-                                    coroutineScope.launch {
-                                        if (reducedMotion) pagerState.scrollToPage(tabIndex)
-                                        else pagerState.animateScrollToPage(tabIndex)
-                                    }
-                                },
+                                onNavigateToTab = navigateToRootTab,
                             )
                             debtGraph(navController)
                         }
@@ -319,14 +317,8 @@ fun NotePayNavHost(
                         reducedMotion = reducedMotion,
                         backdrop = backdrop,
                         onTabSelected = { route ->
-                            val targetIndex = when (route) {
-                                Route.Home -> 0
-                                Route.Stats -> 1
-                                Route.Assets -> 2
-                                Route.Utilities -> 3
-                                else -> 0
-                            }
-                            if (pagerState.currentPage != targetIndex) {
+                            val targetIndex = rootTabIndexForRoute(route.path)
+                            if (targetIndex != null && pagerState.currentPage != targetIndex) {
                                 coroutineScope.launch {
                                     if (reducedMotion) {
                                         pagerState.scrollToPage(targetIndex)

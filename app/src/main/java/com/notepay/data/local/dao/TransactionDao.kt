@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import com.notepay.data.local.entity.TransactionEntity
+import com.notepay.data.local.model.WalletStatsProjection
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -77,4 +78,25 @@ interface TransactionDao {
         ORDER BY occurred_at ASC
     """)
     fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<TransactionEntity>>
+
+    /**
+     * Tổng hợp thu/chi theo từng ví do SQLite tính (GROUP BY + SUM).
+     * Trả về đúng một dòng/ví thay vì nạp toàn bộ giao dịch lên RAM để cộng tay.
+     */
+    @Query("""
+        SELECT wallet_id AS walletId,
+            COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount_cents ELSE 0 END), 0) AS allTimeIncomeCents,
+            COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount_cents ELSE 0 END), 0) AS allTimeExpenseCents,
+            COALESCE(SUM(CASE WHEN type = 'INCOME' AND occurred_at BETWEEN :monthStartMillis AND :monthEndMillis
+                THEN amount_cents ELSE 0 END), 0) AS monthIncomeCents,
+            COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND occurred_at BETWEEN :monthStartMillis AND :monthEndMillis
+                THEN amount_cents ELSE 0 END), 0) AS monthExpenseCents,
+            COUNT(*) AS txCount
+        FROM transactions
+        GROUP BY wallet_id
+    """)
+    fun observeWalletStats(
+        monthStartMillis: Long,
+        monthEndMillis: Long,
+    ): Flow<List<WalletStatsProjection>>
 }
