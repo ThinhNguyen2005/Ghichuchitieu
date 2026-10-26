@@ -10,11 +10,24 @@ import com.notepay.domain.analytics.BudgetAdvisorResult
 import com.notepay.domain.analytics.AdvisorAvailability
 
 sealed interface StatsUiText {
+    @Immutable
     data class Resource(val resId: Int, val args: List<Any> = emptyList()) : StatsUiText
+
+    @Immutable
     data class Plain(val value: String) : StatsUiText
+
+    @Immutable
     data class Composite(val parts: List<StatsUiText>) : StatsUiText
 }
 
+/** Số tháng người dùng chọn cho biểu đồ xu hướng (chip 3T / 6T / 12T). */
+enum class TrendWindow(val months: Int) {
+    THREE_MONTHS(3),
+    SIX_MONTHS(6),
+    TWELVE_MONTHS(12),
+}
+
+@Immutable
 data class BudgetForecast(
     val dailyAverage: Money,
     val projectedSpend: Money,
@@ -29,19 +42,22 @@ data class BudgetForecast(
 
 enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
 
+@Immutable
 data class LocalAdvisorUiState(
     val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
     val result: BudgetAdvisorResult? = null,
     val availability: AdvisorAvailability = AdvisorAvailability.CHECKING,
 )
 
+@Immutable
 data class CategoryBreakdownItem(
     val category: Category,
     val amount: Money,
     val percentage: Float,
 )
 
-/** A real calendar-month total used by the three-month trend chart. */
+/** A real calendar-month total used by the trend chart. */
+@Immutable
 data class MonthlyTrendPoint(
     val year: Int,
     val month: Int,
@@ -49,6 +65,7 @@ data class MonthlyTrendPoint(
     val income: Money,
 )
 
+@Immutable
 data class DynamicDailyBudgetData(
     val dailyBudget: Money,
     val spentToday: Money,
@@ -58,6 +75,7 @@ data class DynamicDailyBudgetData(
     val earlyWarning: StatsUiText? = null
 )
 
+@Immutable
 data class AiAdviceItem(
     val id: String,
     val type: String, // "warning", "info", "success"
@@ -67,6 +85,7 @@ data class AiAdviceItem(
     val feedback: Int = 0 // 0: none, 1: thumb up, -1: thumb down
 )
 
+@Immutable
 data class DetectedSubscription(
     val name: String,
     val amount: Money,
@@ -86,6 +105,7 @@ data class StatsUiState(
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
     val recentMonths: List<MonthlyTrendPoint> = emptyList(),
+    val trendWindow: TrendWindow = TrendWindow.SIX_MONTHS,
     val isLoading: Boolean = true,
     val isCurrentMonth: Boolean = false,
     val isLatestPeriod: Boolean = false,

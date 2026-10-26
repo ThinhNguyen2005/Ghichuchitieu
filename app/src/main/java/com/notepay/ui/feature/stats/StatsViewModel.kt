@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -81,16 +82,20 @@ class StatsViewModel @Inject constructor(
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
+    private val _trendWindow = MutableStateFlow(TrendWindow.SIX_MONTHS)
+
     private data class FilterState(
         val period: StatsPeriod,
         val selectedWalletId: Long?,
+        val trendWindow: TrendWindow,
     )
 
     private val filterState = combine(
         _currentPeriod,
-        _selectedWalletId
-    ) { period, walletId ->
-        FilterState(period, walletId)
+        _selectedWalletId,
+        _trendWindow,
+    ) { period, walletId, window ->
+        FilterState(period, walletId, window)
     }.distinctUntilChanged()
 
     private val advicePrefs = context.getSharedPreferences("notepay_ai_feedback", Context.MODE_PRIVATE)
@@ -122,7 +127,7 @@ class StatsViewModel @Inject constructor(
     ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
         val selectedWalletId = filters.selectedWalletId
         val period = filters.period
-        
+
         val zone = TimeZone.currentSystemDefault()
         
         // 1. Tạo date range label hiển thị trên UI từ period
@@ -241,7 +246,7 @@ class StatsViewModel @Inject constructor(
             SpendingForecastEngine.forecast(
                 expenses = dailyExpenses,
                 today = now.date,
-                daysInMonth = getDaysInMonth(now.year, now.month.number),
+                daysInMonth = monthLength(now.year, now.month.number),
                 budgetLimitInCents = limit?.amountInCents,
             )
         } else null
@@ -254,7 +259,7 @@ class StatsViewModel @Inject constructor(
         }
 
         // 8. Tính toán Dynamic Daily Budget
-        val daysInMonth = getDaysInMonth(now.year, now.month.number)
+        val daysInMonth = monthLength(now.year, now.month.number)
         val currentDay = now.day.coerceIn(1, daysInMonth)
 
         val todayStart = LocalDateTime(now.year, now.month.number, currentDay, 0, 0)
@@ -389,7 +394,7 @@ class StatsViewModel @Inject constructor(
         val anchor = period.start ?: now.date
         val anchorYear = anchor.year
         val anchorMonth = anchor.month.number
-        val recentMonths = (2 downTo 0).map { offset ->
+        val recentMonths = ((filters.trendWindow.months - 1) downTo 0).map { offset ->
             val absoluteMonth = anchorYear * 12 + (anchorMonth - 1) - offset
             val trendYear = absoluteMonth / 12
             val trendMonth = absoluteMonth % 12 + 1
@@ -423,6 +428,7 @@ class StatsViewModel @Inject constructor(
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
             recentMonths = recentMonths,
+            trendWindow = filters.trendWindow,
             isLoading = false,
             isCurrentMonth = period.range == com.notepay.domain.analytics.StatsRange.MONTH && period.contains(now.date),
             isLatestPeriod = period.contains(now.date),
@@ -557,6 +563,11 @@ class StatsViewModel @Inject constructor(
         _selectedCategory.value = null
     }
 
+    /** Đổi số tháng hiển thị trên biểu đồ xu hướng (3T / 6T / 12T). */
+    fun selectTrendWindow(window: TrendWindow) {
+        _trendWindow.value = window
+    }
+
     fun selectCustomPeriod(start: LocalDate, endInclusive: LocalDate) {
         _currentPeriod.value = customPeriod(start, endInclusive)
         _selectedCategory.value = null
@@ -581,12 +592,9 @@ class StatsViewModel @Inject constructor(
         return PresentationDateFormatter.formatDate(Instant.fromEpochMilliseconds(millis))
     }
 
-    private fun getDaysInMonth(year: Int, month: Int): Int {
-        return when (month) {
-            2 -> if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) 29 else 28
-            4, 6, 9, 11 -> 30
-            else -> 31
-        }
+    private fun monthLength(year: Int, month: Int): Int {
+        val monthStart = LocalDate(year, month, 1)
+        return (monthStart.plus(1, DateTimeUnit.MONTH).toEpochDays() - monthStart.toEpochDays()).toInt()
     }
 
     private fun cleanSubscriptionName(note: String): String {

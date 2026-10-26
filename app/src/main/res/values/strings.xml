@@ -337,8 +337,6 @@
     <string name="stats_decrease_amount_format">Giảm %1$s</string>
     <string name="stats_no_data">Chưa có dữ liệu</string>
     <string name="stats_no_transactions_month">Chưa phát sinh giao dịch trong tháng này</string>
-    <string name="stats_million_unit">(Triệu)</string>
-    <string name="stats_thousand_unit">(Nghìn)</string>
     <string name="stats_banner_expense_decrease">Giảm mạnh %1$s so với cùng kỳ tháng trước</string>
     <string name="stats_banner_expense_increase">Tăng %1$s so với cùng kỳ tháng trước</string>
     <string name="stats_banner_income_decrease">Giảm %1$s so với cùng kỳ tháng trước</string>
@@ -348,6 +346,12 @@
     <string name="stats_forecast_reached">Đã đạt dự báo cuối tháng</string>
     <string name="stats_forecast_exceeded">Đã vượt dự báo cuối tháng</string>
     <string name="stats_month_label_format">T%1$d</string>
+    <string name="stats_trend_point_cd_format">Tháng %1$d: %2$s</string>
+    <string name="stats_trend_average_label">Trung bình / tháng</string>
+    <string name="stats_trend_window_short_format">%1$dT</string>
+    <string name="stats_trend_window_cd_format">Xem xu hướng %1$d tháng</string>
+    <string name="stats_allocation_chart_cd_format">Biểu đồ phân bổ: %1$s</string>
+    <string name="stats_allocation_chart_empty_cd">Biểu đồ phân bổ: chưa có dữ liệu</string>
     <string name="stats_advisor_title">Trợ lý chi tiêu</string>
     <string name="stats_advisor_privacy">Riêng tư · Trên thiết bị</string>
 
@@ -874,8 +878,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_account_step">Tài khoản</string>
     <string name="stats_category_percentage_cd">%1$s phần trăm</string>
     <string name="stats_category_selected_cd">đang mở</string>
-    <string name="stats_unit_thousands">Nghìn</string>
-    <string name="stats_unit_millions">Triệu</string>
     <string name="subscription_service_electricity">Tiền điện</string>
     <string name="subscription_service_water">Tiền nước</string>
     <string name="subscription_service_rent">Tiền nhà</string>

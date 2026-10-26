@@ -358,8 +358,6 @@
     <string name="stats_decrease_amount_format">Down %1$s</string>
     <string name="stats_no_data">No data yet</string>
     <string name="stats_no_transactions_month">No transactions this month</string>
-    <string name="stats_million_unit">(Million)</string>
-    <string name="stats_thousand_unit">(Thousands)</string>
     <string name="stats_advisor_title">Spending advisor</string>
     <string name="stats_advisor_privacy">Private · On-device</string>
     <string name="stats_allocation_no_data">No category allocation yet</string>
@@ -368,6 +366,12 @@
     <string name="stats_forecast_reached">End-of-month forecast reached</string>
     <string name="stats_forecast_exceeded">End-of-month forecast exceeded</string>
     <string name="stats_month_label_format">M%1$d</string>
+    <string name="stats_trend_point_cd_format">Month %1$d: %2$s</string>
+    <string name="stats_trend_average_label">Monthly average</string>
+    <string name="stats_trend_window_short_format">%1$dM</string>
+    <string name="stats_trend_window_cd_format">Show %1$d-month trend</string>
+    <string name="stats_allocation_chart_cd_format">Allocation chart: %1$s</string>
+    <string name="stats_allocation_chart_empty_cd">Allocation chart: no data yet</string>
     <string name="stats_banner_expense_increase">Up %1$s vs. the same period last month</string>
     <string name="stats_banner_expense_decrease">Down sharply %1$s vs. the same period last month</string>
     <string name="stats_banner_income_increase">Up %1$s vs. the same period last month</string>
@@ -915,8 +919,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="billsplit_account_step">Account</string>
     <string name="stats_category_percentage_cd">%1$s percent</string>
     <string name="stats_category_selected_cd">expanded</string>
-    <string name="stats_unit_thousands">Thousand</string>
-    <string name="stats_unit_millions">Million</string>
     <string name="subscription_service_electricity">Electricity bill</string>
     <string name="subscription_service_water">Water bill</string>
     <string name="subscription_service_rent">Rent</string>

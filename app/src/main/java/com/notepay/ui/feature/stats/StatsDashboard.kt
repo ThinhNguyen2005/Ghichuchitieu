@@ -14,7 +14,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,10 +24,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -67,6 +68,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -92,6 +96,7 @@ internal fun StatsDashboard(
     onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
+    onTrendWindowSelected: (TrendWindow) -> Unit,
     supportingContent: @Composable (StatsMetric) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -129,6 +134,7 @@ internal fun StatsDashboard(
                         onSelectRange = onSelectRange,
                         onMonthSelected = onMonthSelected,
                         onCategorySelected = onCategorySelected,
+                        onTrendWindowSelected = onTrendWindowSelected,
                     )
                 }
             }
@@ -166,6 +172,7 @@ internal fun StatsDashboard(
                     onSelectRange = onSelectRange,
                     onMonthSelected = onMonthSelected,
                     onCategorySelected = onCategorySelected,
+                    onTrendWindowSelected = onTrendWindowSelected,
                 )
             }
             item { supportingContent(metric) }
@@ -186,6 +193,7 @@ private fun StatsChartPane(
     onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
+    onTrendWindowSelected: (TrendWindow) -> Unit,
 ) {
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
     val previousTotal = if (metric == StatsMetric.CHI_TIEU) state.previousExpense else state.previousIncome
@@ -229,6 +237,8 @@ private fun StatsChartPane(
                     isSelectedMonthCurrent = state.isCurrentMonth,
                     forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
                     showAmounts = showAmounts,
+                    trendWindow = state.trendWindow,
+                    onTrendWindowSelected = onTrendWindowSelected,
                     onPointClick = onMonthSelected,
                 )
             } else {
@@ -256,9 +266,9 @@ internal fun StatsHeader(
 }
 
 /**
- * MoMo-style View Mode Filter Toggle:
- * Unselected option displays ONLY the icon (compact).
- * Selected option expands to show [Icon] + [Text] in signature MoMo pink accent color on soft pink tint background.
+ * Bộ chuyển chế độ xem (Phân bổ / Xu hướng):
+ * Tab chưa chọn chỉ hiển thị icon, tab đang chọn mở rộng thành [Icon] + [Text] trên nền token Sand.
+ * Mỗi tab dùng [Role.Tab], trạng thái selected và vùng chạm tối thiểu 48dp.
  */
 @Composable
 private fun ViewModeToggle(
@@ -283,30 +293,38 @@ private fun ViewModeToggle(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             val isPhanBo = viewType == StatsViewType.PHAN_BO
+            val allocationLabel = stringResource(R.string.stats_view_allocation)
 
             // 1. Tab Phân bổ
             Surface(
                 modifier = Modifier
                     .clip(AppTheme.shapes.corner12)
-                    .clickable { onChanged(StatsViewType.PHAN_BO) },
+                    .semantics { contentDescription = allocationLabel }
+                    .selectable(
+                        selected = isPhanBo,
+                        role = Role.Tab,
+                        onClick = { onChanged(StatsViewType.PHAN_BO) },
+                    ),
                 shape = AppTheme.shapes.corner12,
                 color = if (isPhanBo) selectedColor else Color.Transparent,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = if (isPhanBo) 10.dp else 8.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = if (isPhanBo) 12.dp else 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         Icons.Rounded.PieChart,
-                        contentDescription = stringResource(R.string.stats_view_allocation),
+                        contentDescription = null,
                         tint = if (isPhanBo) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     if (isPhanBo) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            stringResource(R.string.stats_view_allocation),
+                            allocationLabel,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = selectedContentColor,
@@ -318,28 +336,36 @@ private fun ViewModeToggle(
 
             // 2. Tab Xu hướng
             val isXuHuong = viewType == StatsViewType.XU_HUONG
+            val trendLabel = stringResource(R.string.stats_view_trend)
             Surface(
                 modifier = Modifier
                     .clip(AppTheme.shapes.corner12)
-                    .clickable { onChanged(StatsViewType.XU_HUONG) },
+                    .semantics { contentDescription = trendLabel }
+                    .selectable(
+                        selected = isXuHuong,
+                        role = Role.Tab,
+                        onClick = { onChanged(StatsViewType.XU_HUONG) },
+                    ),
                 shape = AppTheme.shapes.corner12,
                 color = if (isXuHuong) selectedColor else Color.Transparent,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = if (isXuHuong) 10.dp else 8.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = if (isXuHuong) 12.dp else 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         Icons.Rounded.BarChart,
-                        contentDescription = stringResource(R.string.stats_view_trend),
+                        contentDescription = null,
                         tint = if (isXuHuong) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     if (isXuHuong) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            stringResource(R.string.stats_view_trend),
+                            trendLabel,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = selectedContentColor,
@@ -371,12 +397,12 @@ private fun OverviewCard(
     val incomeDelta = if (previousIncome != null) state.totalIncome.amountInCents - previousIncome.amountInCents else null
 
     Card(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val ranges = listOf(
                 com.notepay.domain.analytics.StatsRange.WEEK to stringResource(R.string.stats_range_week),
                 com.notepay.domain.analytics.StatsRange.MONTH to stringResource(R.string.stats_range_month),
@@ -415,8 +441,8 @@ private fun OverviewCard(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else state.dateRangeLabel,
                         style = MaterialTheme.typography.titleMedium,
@@ -433,7 +459,7 @@ private fun OverviewCard(
             }
 
             // 2 Metric Cards: Chi tiêu | Thu nhập
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 MetricCard(
                     title = stringResource(R.string.stats_expense),
                     amount = state.totalExpense,
@@ -504,7 +530,7 @@ private fun OverviewCard(
                         .fillMaxWidth()
                         .clip(AppTheme.shapes.corner12)
                         .background(bannerBg)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -575,11 +601,20 @@ private fun MetricCard(
         isIncrease -> Icons.Rounded.NorthEast
         else -> Icons.Rounded.SouthEast
     }
+    val trendLabel = when {
+        isFlat -> stringResource(R.string.stats_unchanged)
+        isIncrease -> stringResource(R.string.stats_increase)
+        else -> stringResource(R.string.stats_decrease)
+    }
 
     Surface(
         modifier = modifier
             .clip(shape)
-            .clickable(onClick = onClick),
+            .selectable(
+                selected = active,
+                role = Role.Tab,
+                onClick = onClick,
+            ),
         shape = shape,
         color = containerColor,
         border = BorderStroke(
@@ -588,15 +623,15 @@ private fun MetricCard(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(17.dp))
-                Spacer(Modifier.width(5.dp))
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
                 Text(
                     title,
                     style = MaterialTheme.typography.labelLarge,
@@ -616,7 +651,7 @@ private fun MetricCard(
                 ) {
                     Icon(
                         imageVector = statusIcon,
-                        contentDescription = null,
+                        contentDescription = trendLabel,
                         tint = statusColor,
                         modifier = Modifier.size(12.dp),
                     )
