@@ -64,12 +64,13 @@ private data class ThemeColorOption(
     val id: String,
     val nameRes: Int,
     val previewColor: Color,
+    val onPreviewColor: Color,
 )
 
 private val themeColorOptions = listOf(
-    ThemeColorOption("ledger", R.string.appearance_color_ledger, Color(0xFFB5502E)),
-    ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E)),
-    ThemeColorOption("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4)),
+    ThemeColorOption("sand", R.string.appearance_color_sand, Color(0xFFF2D3A8), Color(0xFF111111)),
+    ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E), Color(0xFFFFFFFF)),
+    ThemeColorOption("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4), Color(0xFFFFFFFF)),
 )
 
 private data class LanguageOption(
@@ -206,6 +207,12 @@ fun AppearanceLanguageScreen(
                                         .size(44.dp)
                                         .clip(CircleShape)
                                         .background(option.previewColor)
+                                        // Viền mảnh luôn hiện: swatch sáng như màu cát sẽ biến mất trên thẻ trắng.
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                            CircleShape,
+                                        )
                                         .then(
                                             if (isSelected) {
                                                 Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
@@ -217,7 +224,7 @@ fun AppearanceLanguageScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Check,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = option.onPreviewColor,
                                             modifier = Modifier.size(18.dp),
                                         )
                                     }

@@ -235,7 +235,7 @@ private fun StatusBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(AppTheme.shapes.corner8)
+            .clip(AppTheme.shapes.corner12)
             .background(containerColor)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center

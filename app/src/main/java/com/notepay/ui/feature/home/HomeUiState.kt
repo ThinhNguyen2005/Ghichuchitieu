@@ -11,7 +11,6 @@ data class WalletSummary(
     val balance: Money,
     val monthlyIncome: Money,
     val monthlyExpense: Money,
-    val backgroundUri: String? = null
 )
 
 @Immutable
@@ -41,7 +40,6 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val budgetProjection: BudgetProjection? = null,
     val dueRemindersCount: Int = 0,
-    val walletBackgroundUri: String? = null,
     val streakDays: Int = 0,
     val isSmartInsightsDismissed: Boolean = false,
 ) {

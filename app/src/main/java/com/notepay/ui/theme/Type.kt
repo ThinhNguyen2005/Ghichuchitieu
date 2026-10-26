@@ -44,55 +44,55 @@ internal val NotePayTypography = Typography(
         lineHeight = 24.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 19.sp,
         fontWeight = FontWeight.Bold,
         lineHeight = 24.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
         lineHeight = 22.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 15.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 20.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 16.sp,
         fontWeight = FontWeight.Normal,
         lineHeight = 22.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 14.sp,
         fontWeight = FontWeight.Normal,
         lineHeight = 20.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 12.sp,
         fontWeight = FontWeight.Normal,
         lineHeight = 16.sp
     ),
     labelLarge = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 14.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 20.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 12.sp,
         fontWeight = FontWeight.Medium,
         lineHeight = 16.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = ManropeFontFamily,
+        fontFamily = InterFontFamily,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         lineHeight = 14.sp,

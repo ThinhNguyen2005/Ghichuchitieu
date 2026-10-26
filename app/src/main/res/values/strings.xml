@@ -47,9 +47,14 @@
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_choose_wallet">Chọn ví tài chính</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
-    <string name="home_total_balance_all">Tổng tài sản</string>
+    <string name="home_total_balance_all">Tổng số dư tất cả ví</string>
     <string name="home_wallet_balance_format">Số dư %1$s</string>
     <string name="home_all_wallets">Tất cả ví</string>
+    <string name="home_select_wallet">Chọn ví</string>
+    <string name="home_day_today">HÔM NAY</string>
+    <string name="home_day_yesterday">HÔM QUA</string>
+    <!-- %1$d = ngày, %2$s = tên tháng viết tắt (bản tiếng Anh), %3$d = số tháng (bản tiếng Việt) -->
+    <string name="home_day_other">%1$d THÁNG %3$d</string>
     <string name="home_income_month">Thu</string>
     <string name="home_expense_month">Chi</string>
     <string name="home_add_wallet">Thêm ví</string>
@@ -467,7 +472,6 @@
 
     <!-- Common UI labels not covered by the original resource set -->
     <string name="action_change_wallet">Đổi ví</string>
-    <string name="action_change_card_background">Đổi ảnh nền thẻ</string>
     <string name="balance_available">Số dư khả dụng</string>
     <string name="budget_spending_exceeded">Đã vượt hạn mức chi tiêu</string>
     <string name="budget_monthly_limit">Hạn mức chi tiêu tháng</string>
@@ -972,7 +976,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
 
     <!-- Appearance & Language screen -->
     <string name="appearance_section_theme">Chế độ giao diện</string>
-    <string name="appearance_color_ledger">Giấy ngà &amp; Mực ấm</string>
+    <string name="appearance_color_sand">Cát &amp; Mực</string>
     <string name="appearance_color_ios">Đơn sắc iOS</string>
     <string name="appearance_color_ocean">Xanh biển</string>
     <string name="appearance_color_emerald">Ngọc lục bảo</string>

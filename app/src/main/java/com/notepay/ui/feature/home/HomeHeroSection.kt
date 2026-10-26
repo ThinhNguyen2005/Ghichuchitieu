@@ -1,5 +1,6 @@
 package com.notepay.ui.feature.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.R
@@ -35,64 +39,111 @@ import com.notepay.ui.util.LocalAuthUser
 import com.notepay.ui.util.rememberUserGreeting
 
 // ── Design tokens của khối hero (bội số của 4) ───────────────────────────────
-// `internal` vì HomeScreen và carousel ví dùng chung lề ngang này.
+// `internal` vì HomeScreen và feed giao dịch dùng chung lề ngang này.
 internal val ScreenHorizontalPadding = 16.dp
 private val AvatarSize = 36.dp
 
 /**
  * Khối hero dùng chung cho bố cục 1 cột (Compact/Medium) và cột trái của bố cục 2 cột
- * (Expanded): lời chào + số dư hero + carousel ví.
+ * (Expanded): nền trang trí phía trên, lời chào, bộ chọn ví trên thanh trên cùng và thẻ
+ * số dư ink.
+ *
+ * Chọn / đổi ví nằm ở thanh trên cùng thay vì một dãy thẻ ví riêng, để trang chính gọn
+ * và tập trung vào con số tổng.
  */
 @Composable
 internal fun HomeHeroBlock(
     streakDays: Int,
+    walletLabel: String,
     balanceLabel: String,
     balance: Money,
     income: Money,
     expense: Money,
-    backgroundUri: String?,
-    isSpecificWallet: Boolean,
-    onChangeBackground: (() -> Unit)?,
-    wallets: List<WalletSummary>,
-    selectedWalletId: Long?,
-    totalBalanceAll: Money,
-    onSelectWallet: (Long?) -> Unit,
-    onAddWallet: () -> Unit,
-    onChangeWalletBackground: (Long) -> Unit,
+    onOpenWalletPicker: () -> Unit,
+    topInset: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        HomeGreetingBar(
-            greeting = rememberUserGreeting(),
-            streakDays = streakDays,
-            authUser = LocalAuthUser.current,
-            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-        )
+    Box(modifier = modifier.fillMaxWidth()) {
+        HomeTopBackdrop(modifier = Modifier.matchParentSize())
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Nền trang trí phải phủ cả vùng status bar nên inset được bù bằng khoảng đệm
+            // bên trong, không dùng statusBarsPadding() ở ngoài.
+            if (topInset > 0.dp) {
+                Spacer(modifier = Modifier.height(topInset))
+            }
 
-        HeroBalanceCard(
-            label = balanceLabel,
-            balance = balance,
-            income = income,
-            expense = expense,
-            backgroundUri = backgroundUri,
-            isSpecificWallet = isSpecificWallet,
-            onChangeBackground = onChangeBackground,
-            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-        )
+            HomeGreetingBar(
+                greeting = rememberUserGreeting(),
+                streakDays = streakDays,
+                authUser = LocalAuthUser.current,
+                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
+            )
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // Carousel Thẻ Ví Nhỏ Gọn (Thẻ "Tất cả ví" + từng ví + nút Thêm)
-        WalletsCompactCarousel(
-            wallets = wallets,
-            selectedWalletId = selectedWalletId,
-            totalBalanceAll = totalBalanceAll,
-            onSelectWallet = onSelectWallet,
-            onAddWallet = onAddWallet,
-            onChangeBackground = onChangeWalletBackground
-        )
+            WalletSelectorChip(
+                label = walletLabel,
+                onClick = onOpenWalletPicker,
+                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            HeroBalanceCard(
+                label = balanceLabel,
+                balance = balance,
+                income = income,
+                expense = expense,
+                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/** Nút chọn ví trên thanh trên cùng: mở bottom sheet chọn ví hoặc quay về "Tất cả ví". */
+@Composable
+private fun WalletSelectorChip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = AppTheme.shapes.corner12,
+        color = AppTheme.colors.surface.copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, AppTheme.colors.hairline),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AccountBalanceWallet,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = stringResource(R.string.home_select_wallet),
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -124,7 +175,7 @@ private fun HomeGreetingBar(
             )
             if (streakDays > 0) {
                 Surface(
-                    shape = AppTheme.shapes.corner8,
+                    shape = AppTheme.shapes.corner12,
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {

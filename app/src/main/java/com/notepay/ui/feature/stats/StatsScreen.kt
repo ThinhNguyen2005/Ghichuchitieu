@@ -324,7 +324,7 @@ private fun StatsEmptyState(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
-                shape = AppTheme.shapes.corner14,
+                shape = AppTheme.shapes.corner16,
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -692,7 +692,7 @@ private fun BudgetProgressBar(
                 }
 
                 Surface(
-                    shape = AppTheme.shapes.corner10,
+                    shape = AppTheme.shapes.corner12,
                     color = statusColor.copy(alpha = 0.12f),
                 ) {
                     Text(
@@ -827,7 +827,7 @@ private fun SpendingPredictionCard(
                 }
 
                 Surface(
-                    shape = AppTheme.shapes.corner10,
+                    shape = AppTheme.shapes.corner12,
                     color = riskContainerColor,
                 ) {
                     Text(

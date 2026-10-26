@@ -15,7 +15,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,10 +81,6 @@ import com.notepay.ui.util.MoneyFormatter
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }
 enum class StatsMetric { CHI_TIEU, THU_NHAP }
-
-// Signature MoMo Pink colors
-private val MoMoPink = Color(0xFFE91E63)
-private val MoMoPinkLightBorder = Color(0xFFF48FB1)
 
 @Composable
 internal fun StatsDashboard(
@@ -271,14 +266,14 @@ private fun ViewModeToggle(
     onChanged: (StatsViewType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = isAppDarkTheme()
-    val momoPinkBg = if (isDark) Color(0xFF3D1426) else Color(0xFFFFF0F5)
-    val cardBg = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else Color.White
+    val trackColor = MaterialTheme.colorScheme.surfaceContainer
+    val selectedColor = MaterialTheme.colorScheme.surface
+    val selectedContentColor = MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = modifier,
-        shape = AppTheme.shapes.corner14,
-        color = cardBg,
+        shape = AppTheme.shapes.corner16,
+        color = trackColor,
         shadowElevation = 1.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     ) {
@@ -292,10 +287,10 @@ private fun ViewModeToggle(
             // 1. Tab Phân bổ
             Surface(
                 modifier = Modifier
-                    .clip(AppTheme.shapes.corner10)
+                    .clip(AppTheme.shapes.corner12)
                     .clickable { onChanged(StatsViewType.PHAN_BO) },
-                shape = AppTheme.shapes.corner10,
-                color = if (isPhanBo) momoPinkBg else Color.Transparent,
+                shape = AppTheme.shapes.corner12,
+                color = if (isPhanBo) selectedColor else Color.Transparent,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = if (isPhanBo) 10.dp else 8.dp, vertical = 6.dp),
@@ -305,7 +300,7 @@ private fun ViewModeToggle(
                     Icon(
                         Icons.Rounded.PieChart,
                         contentDescription = stringResource(R.string.stats_view_allocation),
-                        tint = if (isPhanBo) MoMoPink else MaterialTheme.colorScheme.onSurface,
+                        tint = if (isPhanBo) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
                     if (isPhanBo) {
@@ -314,7 +309,7 @@ private fun ViewModeToggle(
                             stringResource(R.string.stats_view_allocation),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MoMoPink,
+                            color = selectedContentColor,
                             maxLines = 1,
                         )
                     }
@@ -325,10 +320,10 @@ private fun ViewModeToggle(
             val isXuHuong = viewType == StatsViewType.XU_HUONG
             Surface(
                 modifier = Modifier
-                    .clip(AppTheme.shapes.corner10)
+                    .clip(AppTheme.shapes.corner12)
                     .clickable { onChanged(StatsViewType.XU_HUONG) },
-                shape = AppTheme.shapes.corner10,
-                color = if (isXuHuong) momoPinkBg else Color.Transparent,
+                shape = AppTheme.shapes.corner12,
+                color = if (isXuHuong) selectedColor else Color.Transparent,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = if (isXuHuong) 10.dp else 8.dp, vertical = 6.dp),
@@ -338,7 +333,7 @@ private fun ViewModeToggle(
                     Icon(
                         Icons.Rounded.BarChart,
                         contentDescription = stringResource(R.string.stats_view_trend),
-                        tint = if (isXuHuong) MoMoPink else MaterialTheme.colorScheme.onSurface,
+                        tint = if (isXuHuong) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
                     if (isXuHuong) {
@@ -347,7 +342,7 @@ private fun ViewModeToggle(
                             stringResource(R.string.stats_view_trend),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MoMoPink,
+                            color = selectedContentColor,
                             maxLines = 1,
                         )
                     }
@@ -447,7 +442,7 @@ private fun OverviewCard(
                     positiveDeltaIsGood = false,
                     active = metric == StatsMetric.CHI_TIEU,
                     icon = Icons.AutoMirrored.Rounded.TrendingDown,
-                    tint = MoMoPink,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onMetricChanged(StatsMetric.CHI_TIEU) },
                     modifier = Modifier.weight(1f),
                 )
@@ -459,7 +454,7 @@ private fun OverviewCard(
                     positiveDeltaIsGood = true,
                     active = metric == StatsMetric.THU_NHAP,
                     icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                    tint = MoMoPink,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onMetricChanged(StatsMetric.THU_NHAP) },
                     modifier = Modifier.weight(1f),
                 )
@@ -474,12 +469,12 @@ private fun OverviewCard(
     
                 val bannerBg = when {
                     isFlat -> MaterialTheme.colorScheme.surfaceContainerHigh
-                    isGood -> if (isAppDarkTheme()) Color(0xFF1B382B) else Color(0xFFE8F5E9)
-                    else -> if (isAppDarkTheme()) Color(0xFF3E1B1B) else Color(0xFFFFEBEE)
+                    isGood -> MaterialTheme.colorScheme.secondaryContainer
+                    else -> MaterialTheme.colorScheme.errorContainer
                 }
                 val bannerContentColor = when {
                     isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-                    isGood -> Color(0xFF2E7D32)
+                    isGood -> AppTheme.colors.success
                     else -> MaterialTheme.colorScheme.error
                 }
                 val bannerIcon = when {
@@ -560,11 +555,10 @@ private fun MetricCard(
         MaterialTheme.typography.titleMedium
     }
 
-    val isDark = isAppDarkTheme()
     val containerColor = if (active) {
-        if (isDark) Color(0xFF2A1B24) else Color.White
+        MaterialTheme.colorScheme.surface
     } else {
-        if (isDark) MaterialTheme.colorScheme.surfaceContainerLow else Color(0xFFFAFAFA)
+        MaterialTheme.colorScheme.surfaceContainer
     }
 
     val isIncrease = delta != null && delta > 0L
@@ -572,8 +566,8 @@ private fun MetricCard(
     val isGood = if (isFlat) true else if (positiveDeltaIsGood) isIncrease else !isIncrease
     val statusColor = when {
         isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-        isGood -> Color(0xFF2E7D32)
-        else -> Color(0xFFE65100)
+        isGood -> AppTheme.colors.success
+        else -> AppTheme.colors.error
     }
     val statusIcon = when {
         delta == null -> Icons.Rounded.Remove
@@ -590,7 +584,7 @@ private fun MetricCard(
         color = containerColor,
         border = BorderStroke(
             width = if (active) 1.5.dp else 1.dp,
-            color = if (active) MoMoPinkLightBorder else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
         ),
     ) {
         Column(

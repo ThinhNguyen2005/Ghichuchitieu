@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 data class AppearanceLanguageUiState(
     val themeMode: String = "system",
-    val themeColor: String = "ledger",
+    val themeColor: String = "sand",
     val liquidGlassEnabled: Boolean = false,
     val isLiquidGlassSupported: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,

@@ -585,7 +585,7 @@ private fun CategoryPickerSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(AppTheme.shapes.corner10)
+                        .clip(AppTheme.shapes.corner12)
                         .background(
                             if (category == current) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else Color.Transparent
@@ -661,7 +661,7 @@ private fun RecentTransactionsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                            .clip(AppTheme.shapes.corner10)
+                            .clip(AppTheme.shapes.corner12)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { onPicked(tx) }
                             .padding(12.dp),

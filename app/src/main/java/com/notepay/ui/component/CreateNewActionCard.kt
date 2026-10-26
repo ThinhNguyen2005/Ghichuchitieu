@@ -91,7 +91,7 @@ fun CreateNewActionCard(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(accentColor.copy(alpha = if (com.notepay.ui.theme.isAppDarkTheme()) 0.26f else 0.14f), AppTheme.shapes.corner14),
+                .background(accentColor.copy(alpha = if (com.notepay.ui.theme.isAppDarkTheme()) 0.26f else 0.14f), AppTheme.shapes.corner16),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = null, tint = accentColor)

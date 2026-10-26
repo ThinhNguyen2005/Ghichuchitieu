@@ -1,7 +1,5 @@
 package com.notepay.ui.feature.home
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -10,12 +8,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,7 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -38,7 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,7 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -71,9 +69,8 @@ import com.notepay.ui.adaptive.WindowLayout
 import com.notepay.ui.component.ConfirmDeleteDialog
 import com.notepay.ui.component.EmptyStateWithAction
 import com.notepay.ui.component.SmartInsightsCard
-import com.notepay.ui.component.SwipeableTransactionItem
+import com.notepay.ui.feature.transaction.components.WalletPickerSheet
 import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.ImageStorageHelper
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.localizedName
 import kotlinx.coroutines.delay
@@ -87,8 +84,12 @@ private val InsightsDismissDelay = 250.milliseconds
 private object HomeListKeys {
     const val HERO_ASSETS = "home_item_hero_assets"
     const val INSIGHT = "home_item_insight"
+    const val RECENT_HEADER = "home_item_recent_header"
     const val RECENT_EMPTY = "home_item_recent_empty"
 }
+
+/** Tiền tố key cho từng nhóm ngày trong LazyColumn (key phải duy nhất toàn danh sách). */
+private const val HomeDayKeyPrefix = "home_day_"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,14 +102,13 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
-    var selectedWalletIdForBg by rememberSaveable { mutableStateOf<Long?>(null) }
     // Tự động reset trạng thái ẩn khi người dùng đổi sang ví khác
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
+    var isWalletPickerOpen by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val context = LocalContext.current
     // Tablet: lề bù để nội dung một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
     // Expanded: chuyển sang 2 cột — hero bên trái, danh sách giao dịch bên phải.
@@ -124,60 +124,29 @@ fun HomeScreen(
 
     // Tra tên ví O(1) thay vì find{} cho từng dòng giao dịch.
     val walletNames = remember(state.wallets) { state.wallets.associate { it.id to it.name } }
+    // Gom giao dịch gần đây theo ngày để hiển thị thành từng thẻ nhóm như sổ tay.
+    val dayGroups = rememberHomeDayGroups(state.recentTransactions)
 
     val isAllWallets = state.selectedWalletId == null
-    val displayBalance = state.selectedWalletSummary?.balance ?: state.totalBalance
-    val displayIncome = state.selectedWalletSummary?.monthlyIncome ?: state.totalMonthlyIncome
-    val displayExpense = state.selectedWalletSummary?.monthlyExpense ?: state.totalMonthlyExpense
+    val selectedWallet = state.selectedWalletSummary
+    val displayBalance = selectedWallet?.balance ?: state.totalBalance
+    val displayIncome = selectedWallet?.monthlyIncome ?: state.totalMonthlyIncome
+    val displayExpense = selectedWallet?.monthlyExpense ?: state.totalMonthlyExpense
     val balanceLabel = if (isAllWallets) {
         stringResource(R.string.home_total_balance_all)
     } else {
         stringResource(
             R.string.home_wallet_balance_format,
-            state.selectedWalletSummary?.wallet?.name.orEmpty(),
+            selectedWallet?.wallet?.name.orEmpty(),
         )
     }
+    val walletChipLabel = selectedWallet?.wallet?.name ?: stringResource(R.string.home_all_wallets)
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            val targetWalletId = selectedWalletIdForBg ?: state.activeWallet?.id
-            targetWalletId?.let { walletId ->
-                val savedPath = ImageStorageHelper.saveImageToInternalStorage(
-                    context = context,
-                    sourceUri = uri,
-                    walletId = walletId
-                )
-                if (savedPath != null) {
-                    viewModel.setWalletBackground(walletId, savedPath)
-                }
-            }
-        }
-    }
-
-    // Hai callback đổi ảnh nền dùng chung cho cả bố cục 1 cột và 2 cột.
-    val onChangeBalanceBackground: (() -> Unit)? = if (!isAllWallets) {
-        {
-            selectedWalletIdForBg = state.selectedWalletId
-            photoPickerLauncher.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
-        }
-    } else null
-    val onPickWalletBackground: (Long) -> Unit = { walletId ->
-        selectedWalletIdForBg = walletId
-        photoPickerLauncher.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        )
-    }
-
-    // 1. KỸ THUẬT ĐẢO NỀN: Nền gốc là Surface (Tầng dưới) -> Đáy không bao giờ bị hở Sunken
-    // Ở Expanded, nền gốc là Sunken để panel giao dịch (surface, bo góc) nổi lên trên.
+    // Toàn trang dùng nền `background` của app; thẻ trắng (nhóm giao dịch) nổi lên trên.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isTwoPane) AppTheme.colors.surfaceSunken else AppTheme.colors.surface)
+            .background(AppTheme.colors.background)
     ) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -213,30 +182,23 @@ fun HomeScreen(
                     .fillMaxSize()
                     .padding(horizontal = contentGutter)
             ) {
-                // Cột trái: lời chào, số dư hero, carousel ví, thẻ gợi ý ngân sách.
+                // Cột trái: nền trang trí, lời chào, bộ chọn ví, số dư và thẻ gợi ý.
                 Column(
                     modifier = Modifier
                         .weight(0.45f)
                         .fillMaxHeight()
-                        .statusBarsPadding()
                         .verticalScroll(rememberScrollState())
                         .padding(top = 12.dp, bottom = 24.dp)
                 ) {
                     HomeHeroBlock(
                         streakDays = state.streakDays,
+                        walletLabel = walletChipLabel,
                         balanceLabel = balanceLabel,
                         balance = displayBalance,
                         income = displayIncome,
                         expense = displayExpense,
-                        backgroundUri = state.selectedWalletSummary?.backgroundUri,
-                        isSpecificWallet = !isAllWallets,
-                        onChangeBackground = onChangeBalanceBackground,
-                        wallets = state.walletsSummary,
-                        selectedWalletId = state.selectedWalletId,
-                        totalBalanceAll = state.totalBalance,
-                        onSelectWallet = viewModel::selectWallet,
-                        onAddWallet = onAddWallet,
-                        onChangeWalletBackground = onPickWalletBackground
+                        onOpenWalletPicker = { isWalletPickerOpen = true },
+                        topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -244,8 +206,8 @@ fun HomeScreen(
                     HomeInsightCard(
                         streakDays = state.streakDays,
                         budgetProjection = state.budgetProjection,
-                        budgetLimit = state.selectedWalletSummary?.wallet?.budgetLimit,
-                        walletName = state.selectedWalletSummary?.wallet?.name.orEmpty(),
+                        budgetLimit = selectedWallet?.wallet?.budgetLimit,
+                        walletName = selectedWallet?.wallet?.name.orEmpty(),
                         budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
                         isAllWallets = isAllWallets,
                         isBudgetCardDismissed = isBudgetProjectionDismissed,
@@ -262,72 +224,49 @@ fun HomeScreen(
                     )
                 }
 
-                // Cột phải: panel nổi (surface bo góc) chứa danh sách giao dịch gần đây.
-                Surface(
+                // Cột phải: feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
+                Column(
                     modifier = Modifier
                         .weight(0.55f)
                         .fillMaxHeight()
                         .statusBarsPadding()
-                        .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
-                    shape = AppTheme.shapes.corner24,
-                    color = AppTheme.colors.surface
+                        .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Row(
+                    RecentTransactionsHeader(
+                        title = recentLabel,
+                        seeAllLabel = seeAllLabel,
+                        onSeeAll = onSeeAll,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+
+                    if (dayGroups.isEmpty()) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 20.dp, top = 4.dp, end = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = recentLabel,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = AppTheme.colors.textPrimary
-                            )
-                            TextButton(onClick = onSeeAll) {
-                                Text(
-                                    text = seeAllLabel,
-                                    color = AppTheme.colors.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                            EmptyStateWithAction(title = emptyTx)
                         }
-
-                        if (state.recentTransactions.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 32.dp, horizontal = ScreenHorizontalPadding),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                EmptyStateWithAction(title = emptyTx)
-                            }
-                        } else {
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    start = ScreenHorizontalPadding,
-                                    end = ScreenHorizontalPadding,
-                                    bottom = 24.dp
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 24.dp)
+                        ) {
+                            items(
+                                items = dayGroups,
+                                key = { HomeDayKeyPrefix + it.key }
+                            ) { group ->
+                                HomeDaySection(
+                                    group = group,
+                                    walletNames = walletNames,
+                                    hapticEnabled = hapticFeedbackEnabled,
+                                    onTransactionClick = onTransactionClick,
+                                    onEditTransaction = onEditTransaction,
+                                    onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                                    modifier = Modifier.padding(start = 4.dp)
                                 )
-                            ) {
-                                items(
-                                    items = state.recentTransactions,
-                                    key = { it.id }
-                                ) { tx ->
-                                    SwipeableTransactionItem(
-                                        transaction = tx,
-                                        walletName = walletNames[tx.walletId].orEmpty(),
-                                        onClick = { onTransactionClick(tx.id) },
-                                        onEdit = { onEditTransaction(tx.id) },
-                                        onDelete = { pendingDeleteTransaction = tx },
-                                        hapticEnabled = hapticFeedbackEnabled,
-                                        modifier = Modifier.padding(vertical = 4.dp)
-                                    )
-                                }
                             }
                         }
                     }
@@ -346,75 +285,28 @@ fun HomeScreen(
                 bottom = ListBottomClearance,
             ),
         ) {
-            // ==================== TẦNG TRÊN: HERO ASSETS ====================
+            // ==================== KHỐI HERO + NỀN TRANG TRÍ ====================
             item(key = HomeListKeys.HERO_ASSETS) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(AppTheme.colors.surfaceSunken)
-                        .statusBarsPadding()
-                        .padding(top = 12.dp)
-                ) {
-                    HomeHeroBlock(
-                        streakDays = state.streakDays,
-                        balanceLabel = balanceLabel,
-                        balance = displayBalance,
-                        income = displayIncome,
-                        expense = displayExpense,
-                        backgroundUri = state.selectedWalletSummary?.backgroundUri,
-                        isSpecificWallet = !isAllWallets,
-                        onChangeBackground = onChangeBalanceBackground,
-                        wallets = state.walletsSummary,
-                        selectedWalletId = state.selectedWalletId,
-                        totalBalanceAll = state.totalBalance,
-                        onSelectWallet = viewModel::selectWallet,
-                        onAddWallet = onAddWallet,
-                        onChangeWalletBackground = onPickWalletBackground
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // 2. Mép bo cong 24dp chuyển tiếp Sunken -> Surface nằm ngay cuối khối Hero
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = AppTheme.colors.surface,
-                                shape = AppTheme.shapes.sheetTop // Bo đúng 2 góc trên 24dp, 2 góc dưới 0dp!
-                            )
-                            .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding, top = 20.dp, bottom = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = recentLabel,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = AppTheme.colors.textPrimary
-                            )
-                            TextButton(onClick = onSeeAll) {
-                                Text(
-                                    text = seeAllLabel,
-                                    color = AppTheme.colors.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
+                HomeHeroBlock(
+                    streakDays = state.streakDays,
+                    walletLabel = walletChipLabel,
+                    balanceLabel = balanceLabel,
+                    balance = displayBalance,
+                    income = displayIncome,
+                    expense = displayExpense,
+                    onOpenWalletPicker = { isWalletPickerOpen = true },
+                    topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                    modifier = Modifier.padding(top = 12.dp)
+                )
             }
 
-            // ==================== TẦNG DƯỚI: NỀN SURFACE TỰ NHIÊN ====================
             // 3. Thẻ dự báo ngân sách hoặc gợi ý thông minh (dùng chung với bố cục 2 cột).
             item(key = HomeListKeys.INSIGHT) {
                 HomeInsightCard(
                     streakDays = state.streakDays,
                     budgetProjection = state.budgetProjection,
-                    budgetLimit = state.selectedWalletSummary?.wallet?.budgetLimit,
-                    walletName = state.selectedWalletSummary?.wallet?.name.orEmpty(),
+                    budgetLimit = selectedWallet?.wallet?.budgetLimit,
+                    walletName = selectedWallet?.wallet?.name.orEmpty(),
                     budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
                     isAllWallets = isAllWallets,
                     isBudgetCardDismissed = isBudgetProjectionDismissed,
@@ -431,8 +323,17 @@ fun HomeScreen(
                 )
             }
 
-            // 4. Danh sách giao dịch gần đây - Nền tự nhiên là Surface
-            if (state.recentTransactions.isEmpty()) {
+            // 4. Feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
+            item(key = HomeListKeys.RECENT_HEADER) {
+                RecentTransactionsHeader(
+                    title = recentLabel,
+                    seeAllLabel = seeAllLabel,
+                    onSeeAll = onSeeAll,
+                    modifier = Modifier.padding(start = ScreenHorizontalPadding, end = 4.dp, top = 8.dp)
+                )
+            }
+
+            if (dayGroups.isEmpty()) {
                 item(key = HomeListKeys.RECENT_EMPTY) {
                     Box(
                         modifier = Modifier
@@ -445,21 +346,31 @@ fun HomeScreen(
                 }
             } else {
                 items(
-                    items = state.recentTransactions,
-                    key = { it.id }
-                ) { tx ->
-                    SwipeableTransactionItem(
-                        transaction = tx,
-                        walletName = walletNames[tx.walletId].orEmpty(),
-                        onClick = { onTransactionClick(tx.id) },
-                        onEdit = { onEditTransaction(tx.id) },
-                        onDelete = { pendingDeleteTransaction = tx },
+                    items = dayGroups,
+                    key = { HomeDayKeyPrefix + it.key }
+                ) { group ->
+                    HomeDaySection(
+                        group = group,
+                        walletNames = walletNames,
                         hapticEnabled = hapticFeedbackEnabled,
-                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 4.dp)
+                        onTransactionClick = onTransactionClick,
+                        onEditTransaction = onEditTransaction,
+                        onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
                     )
                 }
             }
         }
+    }
+
+    if (isWalletPickerOpen) {
+        WalletPickerSheet(
+            wallets = state.wallets,
+            selectedWalletId = state.selectedWalletId,
+            onWalletSelected = viewModel::selectWallet,
+            onAllWalletsSelected = { viewModel.selectWallet(null) },
+            onDismiss = { isWalletPickerOpen = false }
+        )
     }
 
     pendingDeleteTransaction?.let { tx ->
@@ -475,6 +386,37 @@ fun HomeScreen(
                 pendingDeleteTransaction = null
             }
         )
+    }
+}
+
+/** Tiêu đề mục feed giao dịch: tên mục kiểu serif + lối tắt "Xem tất cả". */
+@Composable
+private fun RecentTransactionsHeader(
+    title: String,
+    seeAllLabel: String,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = AppTheme.typography.displaySerif,
+            color = AppTheme.colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        TextButton(onClick = onSeeAll) {
+            Text(
+                text = seeAllLabel,
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 

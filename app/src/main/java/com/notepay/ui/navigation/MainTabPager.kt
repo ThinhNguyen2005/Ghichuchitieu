@@ -48,7 +48,7 @@ fun MainTabPager(
         beyondViewportPageCount = 1,
         key = { page -> bottomTabs.getOrNull(page)?.route?.path ?: page },
         // Tablet: rail dùng để chuyển tab, tắt vuốt ngang để không tranh cử chỉ với
-        // SwipeableTransactionItem / WalletsCompactCarousel.
+        // thao tác vuốt lộ nút Sửa/Xóa trên dòng giao dịch.
         userScrollEnabled = userScrollEnabled,
         modifier = modifier
             .fillMaxSize()

@@ -48,9 +48,14 @@
     <string name="home_empty_transactions">No transactions yet. Tap Add to start.</string>
     <string name="home_choose_wallet">Choose wallet</string>
     <string name="home_add_new_wallet">Add new wallet</string>
-    <string name="home_total_balance_all">Total assets</string>
+    <string name="home_total_balance_all">Total balance (all wallets)</string>
     <string name="home_wallet_balance_format">%1$s balance</string>
     <string name="home_all_wallets">All wallets</string>
+    <string name="home_select_wallet">Select wallet</string>
+    <string name="home_day_today">TODAY</string>
+    <string name="home_day_yesterday">YESTERDAY</string>
+    <!-- %1$d = day, %2$s = short month name, %3$d = month number -->
+    <string name="home_day_other">%2$s %1$d</string>
     <string name="home_income_month">Income</string>
     <string name="home_expense_month">Expense</string>
     <string name="home_add_wallet">Add wallet</string>
@@ -492,7 +497,6 @@
 
     <!-- Common UI labels not covered by the original resource set -->
     <string name="action_change_wallet">Change wallet</string>
-    <string name="action_change_card_background">Change card background</string>
     <string name="balance_available">Available balance</string>
     <string name="budget_spending_exceeded">Spending limit exceeded</string>
     <string name="budget_monthly_limit">Monthly spending limit</string>
@@ -1022,7 +1026,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="appearance_theme_dark">Dark</string>
     <string name="appearance_theme_system">System</string>
     <string name="appearance_section_color">Theme Accent Color</string>
-    <string name="appearance_color_ledger">Warm Paper &amp; Ink</string>
+    <string name="appearance_color_sand">Sand &amp; Ink</string>
     <string name="appearance_color_ios">iOS Monochrome</string>
     <string name="appearance_color_dynamic">Dynamic Material You</string>
     <string name="appearance_color_ocean">Ocean Blue</string>

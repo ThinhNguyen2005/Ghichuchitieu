@@ -162,7 +162,7 @@ fun BillSplitScreen(
                         Box(
                             modifier = Modifier
                                 .height(48.dp)
-                                .clip(AppTheme.shapes.corner8)
+                                .clip(AppTheme.shapes.corner12)
                                 .clickable(
                                     enabled = state.activeWallet != null,
                                     onClick = {

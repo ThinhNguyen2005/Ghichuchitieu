@@ -416,7 +416,7 @@ fun DebtDetailScreen(
                                     if (badgeText.isNotBlank()) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(AppTheme.shapes.corner8)
+                                                .clip(AppTheme.shapes.corner12)
                                                 .background(badgeBg)
                                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                                         ) {
