@@ -43,25 +43,26 @@ Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose,
 
 ## UI & Design System (DESIGN.md v4.0.0 — Sand & Ink)
 
-Read `DESIGN.md` before creating or changing any UI. It is the single source of truth for colour, type, shape and components.
+Read `DESIGN.md` before creating or changing any UI. It is the target spec for colour, type, shape and components.
+
+**Status:** the theme (`AppColors.kt`, `AppShapes.kt`) already provides the v4 tokens (ink, sand, graphite, on-ink variants, 28dp corner), and the Debt feature has been migrated. Other screens may still use the previous styling. Migrate one screen at a time, only when the task asks for it. Check `AppColors.kt` and `AppShapes.kt` for the exact token names before using or adding any; do not add aliases or duplicates of an existing token (for example a second pill shape next to `capsule`).
 
 **Look**
 - Neutral page, white cards that sit flat, and ONE ink-black card per screen as the focal point (balance, budget, total assets).
 - Sand (`#F2D3A8`) is a highlight only: selected item, budget segment, badge. Never a large background.
-- Numbers: Inter with tabular figures (`tnum`). Italic serif (Instrument Serif) is only for section titles and short accent words, never for amounts or paragraphs.
+- Numbers: Inter with tabular figures (`tnum`). Italic serif (Instrument Serif) only for section titles and short accent words, never for amounts or paragraphs.
 - Shapes: 28 / 24 / 20 / 16 / 12 and pill. No asymmetric corners. Shadows only on floating elements (nav bar, stacked bottom card); sheets use a 45% scrim.
 - Navigation: floating black pill bar with the active tab as a white pill. Keep text labels on tabs.
 
 **Rules for agents**
-1. Use theme tokens (`AppTheme.colors`, `AppTheme.shapes`, typography styles). No hard-coded hex colours, `dp` radii or `sp` sizes inside screens.
-2. Do not mix `AppTheme.colors.*` and `MaterialTheme.colorScheme.*` in the same screen; if a token is missing, add it to the theme.
-3. Spacing comes from the 4dp scale (4 / 8 / 16 / 24 / 32). Screen margin is 16dp; leave 120dp bottom clearance for the floating nav.
-4. Text is at least 12sp. Touch targets are at least 44dp (48dp for icon buttons). Icon-only buttons need `contentDescription`.
-5. Income and expense colours carry cash-flow meaning only. Status (safe / caution / over budget) always combines colour + icon + text.
-6. Text over images needs an overlay or blur; do not put photos behind dense data screens.
-7. Every text/background pair must keep a 4.5:1 contrast ratio in both light and dark themes.
-8. Keep the existing project rules: no nested `Scaffold` on main tab screens, and no hard-coded user-facing strings (add keys to both `values/strings.xml` and `values-en/strings.xml`).
-9. Before finishing a UI change, run through the checklist in DESIGN.md section 7 and the unit tests (`./gradlew.bat :app:testDebugUnitTest`).
+1. Take colours, shapes and type from the theme (`AppTheme.colors`, `AppTheme.shapes`, typography styles); no hard-coded hex colours in screens. Spacing comes from the 4dp scale (4 / 8 / 16 / 24 / 32); screen margin 16dp; 120dp bottom clearance for the floating nav.
+2. Brand and cash-flow tokens (ink, sand, income, expense, warning) belong in `AppTheme.colors`. Use `MaterialTheme.colorScheme` only for what Material components need, and never copy a `colorScheme` value into `AppTheme.colors`. A missing token is added to the theme, not hard-coded.
+3. Text is at least 12sp. Touch targets are at least 48dp. Icon-only buttons need `contentDescription`.
+4. Income and expense colours carry cash-flow meaning only. Status (safe / caution / over budget) combines colour + icon + text.
+5. Text over images needs an overlay or blur; no photos behind dense data screens.
+6. Every text/background pair keeps a 4.5:1 contrast ratio in both light and dark themes.
+7. Before finishing a UI change, run the checklist in `.agents/skills/ui-ux-playbook/SKILL.md`, check light/dark and font scale 1.3× and 2.0×, then run `./gradlew.bat :app:testDebugUnitTest`.
+
 ## Role & Operating Philosophy: Surgical Software Engineer
 
 You are a senior, highly disciplined software engineer. You value architectural integrity, minimal code footprint, and single-source-of-truth principles. You reject redundant logic, speculative coding, and architectural pollution.

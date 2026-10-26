@@ -2,13 +2,9 @@ package com.notepay.ui.feature.billsplit
 
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-
 import androidx.compose.foundation.clickable
-import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +15,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,11 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,13 +70,14 @@ import com.notepay.ui.theme.AppTheme
 import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietQrGenerator
 
-@Suppress("UNUSED_PARAMETER")
+/** Khoảng trống cho FAB để item cuối của danh sách không bị nút che. */
+private val FabClearance = 96.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BillSplitScreen(
     onDebtorClick: (String) -> Unit,
     onFeedback: suspend (UiFeedback) -> Boolean,
-    navigationBarOffset: Float = 0f,
     initialShowCreate: Boolean = false,
     onClearShowCreate: () -> Unit = {},
     viewModel: BillSplitViewModel = hiltViewModel(),
@@ -116,38 +112,51 @@ fun BillSplitScreen(
     }
 
     val title = stringResource(R.string.bill_split_title)
-    val vietqrContentDescription = stringResource(R.string.bill_split_vietqr_cd)
     val emptyAll = stringResource(R.string.bill_split_empty)
     val emptyUnpaid = stringResource(R.string.bill_split_empty_unpaid)
     val emptyPaid = stringResource(R.string.bill_split_empty_paid)
-    val vietqrSavedFormat = stringResource(R.string.bill_split_vietqr_saved)
     val confirmDeleteTitle = stringResource(R.string.confirm_delete_bill_title)
     val confirmDeleteMessageFormat = stringResource(R.string.dialog_delete_confirm_format)
     val linkedBankLabel = stringResource(R.string.bank_linked)
+
+    /*
+     * Người nhận tiền của mã QR chính là ví đang dùng. Trước đây không có chỗ nào nói ra
+     * điều đó, nên đổi ví là âm thầm đổi người nhận tiền trong tin nhắn chia sẻ.
+     */
+    val receiveAccountLabel = state.activeWallet?.let { wallet ->
+        val bankShortName = state.banks.find { it.bin == wallet.bankBin }?.shortName
+        val maskedAccount = wallet.accountNumber
+            ?.takeLast(4)
+            ?.let { last4 -> "\u2022\u2022$last4" }
+
+        listOfNotNull(bankShortName, maskedAccount)
+            .joinToString(" ")
+            .ifBlank { wallet.name }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GradientTopAppBar(
                 title = {
+                    Text(if (showPaidHistory) stringResource(R.string.billsplit_tab_paid) else title)
+                },
+                navigationIcon = {
                     if (showPaidHistory) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = { showPaidHistory = false },
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                    contentDescription = stringResource(R.string.billsplit_cd_back),
-                                )
-                            }
-                            Text(stringResource(R.string.billsplit_tab_paid))
+                        IconButton(
+                            onClick = { showPaidHistory = false },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = stringResource(R.string.billsplit_cd_back),
+                            )
                         }
-                    } else {
-                        Text(title)
                     }
                 },
                 actions = {
+                    // Nút cấu hình VietQR đã chuyển xuống dòng "Nhận về" trong thẻ
+                    // tổng quan: logo ở đây trông như nhãn trang trí chứ không phải nút.
                     if (!showPaidHistory) {
                         IconButton(
                             onClick = { showPaidHistory = true },
@@ -156,30 +165,6 @@ fun BillSplitScreen(
                             Icon(
                                 imageVector = Icons.Rounded.History,
                                 contentDescription = stringResource(R.string.billsplit_cd_history),
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .height(48.dp)
-                                .clip(AppTheme.shapes.corner12)
-                                .clickable(
-                                    enabled = state.activeWallet != null,
-                                    onClick = {
-                                        qrConfigWalletId = state.activeWallet?.id
-                                    },
-                                )
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.logo_vietqr),
-                                contentDescription = vietqrContentDescription,
-                                modifier = Modifier
-                                    .height(26.dp)
-                                    .graphicsLayer(
-                                        alpha = if (state.activeWallet != null) 1f else 0.38f,
-                                    ),
                             )
                         }
                     }
@@ -202,7 +187,7 @@ fun BillSplitScreen(
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
-        val bottomPadding = padding.calculateBottomPadding() + 96.dp
+        val bottomPadding = padding.calculateBottomPadding() + FabClearance
         val horizontalPadding = Modifier.padding(
             start = padding.calculateStartPadding(layoutDirection),
             top = padding.calculateTopPadding(),
@@ -248,32 +233,10 @@ fun BillSplitScreen(
                             .distinct()
                             .size,
                         splitCount = state.unpaidSplits.size,
+                        receiveAccountLabel = receiveAccountLabel,
+                        onChangeReceiveAccount = state.activeWallet
+                            ?.let { wallet -> { qrConfigWalletId = wallet.id } },
                     )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp, start = 4.dp, end = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.billsplit_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.billsplit_debtor_count,
-                                unpaidGroups.size,
-                                unpaidGroups.size,
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
 
                 if (unpaidGroups.isEmpty()) {
@@ -281,51 +244,47 @@ fun BillSplitScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(240.dp),
+                                .heightIn(min = 240.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             EmptyStateWithAction(
                                 title = emptyTitle,
                                 icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
                 } else {
                     items(unpaidGroups, key = { it.key }) { (debtorName, splits) ->
                         val totalAmountCents = splits.sumOf { it.split.amount.amountInCents }
-                        val amountStr = MoneyFormatter.format(Money(totalAmountCents)).replace("\u00A0", "").replace(" ", "").replace("₫", "đ")
+                        val amountStr = MoneyFormatter.format(Money(totalAmountCents))
                         val qrWallet = state.activeWallet
                         val qrBankBin = qrWallet?.bankBin
                         val qrAccountNumber = qrWallet?.accountNumber
-                        val hasQr = qrWallet != null && qrBankBin != null && qrAccountNumber != null
-                        val qrMemoCode = if (hasQr) {
-                            "NP " + debtorName.filter { it.isLetterOrDigit() || it.isWhitespace() }.trim().uppercase()
-                        } else {
-                            ""
-                        }
-                        val qrUrl = if (hasQr) {
+                        val qrMemoCode = "NP " + debtorName
+                            .filter { it.isLetterOrDigit() || it.isWhitespace() }
+                            .trim()
+                            .uppercase()
+                        // Kiểm tra null trực tiếp thay vì `!!`: ví có thể bị xoá cấu hình QR
+                        // bất kỳ lúc nào, khi đó chỉ là không tạo được mã.
+                        val qrUrl = if (qrBankBin != null && qrAccountNumber != null) {
                             VietQrGenerator.generateImageUrl(
-                                bankBin = qrBankBin!!,
-                                accountNumber = qrAccountNumber!!,
+                                bankBin = qrBankBin,
+                                accountNumber = qrAccountNumber,
                                 amountCents = totalAmountCents,
                                 memo = qrMemoCode,
                                 accountName = qrWallet?.accountName,
                             )
                         } else {
-                            ""
+                            null
                         }
-                        val bankName = if (hasQr) {
-                            state.banks.find { it.bin == qrBankBin }?.shortName ?: linkedBankLabel
-                        } else {
-                            ""
-                        }
-                        val shareWithQrMessage = if (hasQr) {
+                        val shareWithQrMessage = if (qrUrl != null) {
                             stringResource(
                                 R.string.billsplit_share_with_qr_format,
                                 debtorName,
                                 amountStr,
-                                bankName,
+                                state.banks.find { it.bin == qrBankBin }?.shortName
+                                    ?: linkedBankLabel,
                                 qrAccountNumber.orEmpty(),
                                 qrWallet?.accountName.orEmpty(),
                                 qrMemoCode,
@@ -379,12 +338,8 @@ fun BillSplitScreen(
                     accountNumber,
                     accountName,
                 )
+                // Không Toast: ViewModel đã phát feedback_vietqr_saved qua UiFeedback.
                 qrConfigWalletId = null
-                Toast.makeText(
-                    context,
-                    vietqrSavedFormat.format(wallet.name),
-                    Toast.LENGTH_SHORT,
-                ).show()
             },
         )
     }
@@ -439,7 +394,7 @@ private fun PaidHistoryContent(
             EmptyStateWithAction(
                 title = emptyTitle,
                 icon = Icons.Rounded.CheckCircle,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         return
@@ -483,16 +438,15 @@ private fun BillSplitOverview(
     totalAmountCents: Long,
     debtorCount: Int,
     splitCount: Int,
+    receiveAccountLabel: String?,
+    onChangeReceiveAccount: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val isLightTheme = !isAppDarkTheme()
-    val cardBgColor = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
-
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = cardBgColor,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
         Row(
@@ -523,7 +477,7 @@ private fun BillSplitOverview(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = MoneyFormatter.format(Money(totalAmountCents)).replace("\u00A0", "").replace(" ", "").replace("₫", "đ"),
+                    text = MoneyFormatter.format(Money(totalAmountCents)),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -545,6 +499,38 @@ private fun BillSplitOverview(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = if (receiveAccountLabel != null) {
+                            stringResource(R.string.billsplit_receive_to_format, receiveAccountLabel)
+                        } else {
+                            stringResource(R.string.billsplit_receive_unlinked)
+                        },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    if (onChangeReceiveAccount != null) {
+                        TextButton(
+                            onClick = onChangeReceiveAccount,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.billsplit_change_receive_account),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -566,7 +552,6 @@ private fun DebtorGroupRow(
     )
     val initial = debtorName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
 
-    val cardBgColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -579,7 +564,7 @@ private fun DebtorGroupRow(
                 .clickable(onClick = onClick),
             shape = AppTheme.shapes.corner16,
             colors = CardDefaults.cardColors(
-                containerColor = cardBgColor,
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
             Row(
@@ -624,7 +609,7 @@ private fun DebtorGroupRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = amount.replace("\u00A0", "").replace(" ", "").replace("₫", "đ"),
+                        text = amount,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -667,13 +652,12 @@ private fun PaidBillSplitRow(
     val note = itemState.parentTransaction?.note ?: stringResource(R.string.billsplit_default_note)
     val paidColor = MaterialTheme.colorScheme.tertiary
 
-    val cardBgColor = if (!isAppDarkTheme()) Color.White else MaterialTheme.colorScheme.surfaceContainer
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = cardBgColor,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         shape = AppTheme.shapes.corner16,
     ) {

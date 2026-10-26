@@ -14,7 +14,6 @@ import com.notepay.ui.navigation.Route
 fun NavGraphBuilder.billSplitGraph(
     navController: NavController,
     showFeedback: suspend (UiFeedback) -> Boolean,
-    navigationBarOffset: Float = 0f,
 ) {
     composable(
         route = "bill-split?showCreate={showCreate}",
@@ -39,7 +38,6 @@ fun NavGraphBuilder.billSplitGraph(
                     navController.navigate(Route.DebtorDetail(debtorName).path)
                 },
                 onFeedback = showFeedback,
-                navigationBarOffset = navigationBarOffset,
                 initialShowCreate = showCreate,
                 onClearShowCreate = {
                     backStackEntry.savedStateHandle["showCreate"] = false

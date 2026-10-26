@@ -17,6 +17,7 @@ import com.notepay.domain.usecase.debt.RecordDebtPaymentUseCase
 import com.notepay.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -93,6 +94,7 @@ class DebtDetailViewModel @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DebtDetailUiState> = combine(
         selectedDebtId.flatMapLatest { id ->
             if (id == null) {

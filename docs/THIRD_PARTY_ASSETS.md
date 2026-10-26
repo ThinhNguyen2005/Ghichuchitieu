@@ -2,7 +2,7 @@
 
 ## Release blocker for an open-source publication
 
-The repository currently bundles the following brand assets in `app/src/main/res/drawable/`: bank logos, `logo_napas.png`, and `logo_vietqr.png`. No provenance, license, permission record, or attribution file accompanies them in this repository.
+The repository currently bundles bank logos and VietQR bank metadata in `app/src/main/assets/vietqr/` (`banks.json` plus `logos/*.png`), synced by `scripts/sync-vietqr-banks.ps1`. The standalone NAPAS and VietQR wordmarks that used to sit in `app/src/main/res/drawable/` (`logo_napas.png`, `logo_vietqr.png`) are no longer referenced by any screen and were removed. No provenance, license, permission record, or attribution file accompanies the remaining assets in this repository.
 
 Do not assume that finding a logo online grants redistribution rights. Bank names, NAPAS, VietQR, and their logos may be protected trademarks. This is not legal advice; obtain written permission or a confirmed license from each rights holder before shipping or publishing those image files.
 

@@ -31,9 +31,9 @@ colors:
   border-soft: "#CFCFCF"
 
   income: "#2F6B3A"
-  income-on-ink: "#8FD99B"
+  on-ink-income: "#8FD99B"
   expense: "#A63B2E"
-  expense-on-ink: "#FF9C8C"
+  on-ink-expense: "#FF9C8C"
   warning: "#8A5A00"
   warning-container: "#FBF1DC"
 
@@ -119,7 +119,7 @@ radius:
   sm: 16px                         # ô nhập, dải thu/chi
   xs: 12px                         # thanh phân bổ
   sheet-top: "28px 28px 0 0"
-  pill: 999px
+  capsule: 999px
 
 spacing:
   xs: 4px
@@ -162,23 +162,23 @@ components:
     activeBackground: "{colors.on-ink}"
     activeText: "{colors.ink}"
     height: 64px
-    radius: "{radius.pill}"
+    radius: "{radius.capsule}"
     shadow: "{elevation.floating}"
     bottomInset: 22px
   primary-button:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.on-ink}"
-    radius: "{radius.pill}"
+    radius: "{radius.capsule}"
     height: 56px
   button-sand:                     # nút chính nằm trong thẻ ink
     backgroundColor: "{colors.sand}"
     textColor: "{colors.on-sand}"
-    radius: "{radius.pill}"
+    radius: "{radius.capsule}"
     height: 48px
   filter-chip:
     selected: "surface + viền 1px {colors.border}, chữ {colors.text-primary}"
     unselected: "trong suốt, chữ {colors.text-secondary}"
-    radius: "{radius.pill}"
+    radius: "{radius.capsule}"
     minHeight: 48px
   wallet-selector-chip:            # đổi ví ở thanh trên cùng màn Home
     backgroundColor: "{colors.surface} @ 72%"
@@ -247,8 +247,8 @@ Tương phản đã kiểm tra (WCAG): chữ chính trên surface 18.9:1, chữ 
 
 ## 4. Bo góc và khoảng cách
 
-Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24 / 20 / 16 / 12` và `pill`.
-- Thẻ lớn (ink, nhóm giao dịch, ảnh): 28. Thẻ phụ và cảnh báo: 24. Thẻ ví nhỏ: 20. Ô nhập: 16. Thanh phân bổ: 12. Nút và chip: pill.
+Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24 / 20 / 16 / 12` và `capsule`.
+- Thẻ lớn (ink, nhóm giao dịch, ảnh): 28. Thẻ phụ và cảnh báo: 24. Thẻ ví nhỏ: 20. Ô nhập: 16. Thanh phân bổ: 12. Nút và chip: capsule.
 - Khoảng cách theo thang 4: `4 / 8 / 16 / 24 / 32`. Lề màn hình 16. Chừa đáy 120 cho thanh điều hướng nổi.
 
 ## 5. Chiều sâu
@@ -260,9 +260,9 @@ Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24
 
 ## 6. Thành phần chính
 
-- **Ink balance card**: số dư lớn, huy hiệu thay đổi %, hàng nút (nút sand cho hành động chính, nút `ink-raised` cho phụ). Mỗi màn chỉ có một thẻ ink làm tâm điểm. Ở dark mode thẻ dùng `dark-ink` `#262626` kèm viền 1px `#3A3A3A` (ink `#0B0B0B` trên nền `#141414` chỉ đạt 1.07:1 và biến mất). Nền thẻ **luôn** lấy từ token `ink`, không dùng ảnh nền. Dòng thu/chi nằm trực tiếp trên nền ink (không dùng dải nền con) và dùng `income-on-ink` / `expense-on-ink` để đủ tương phản.
+- **Ink balance card**: số dư lớn, huy hiệu thay đổi %, hàng nút (nút sand cho hành động chính, nút `ink-raised` cho phụ). Mỗi màn chỉ có một thẻ ink làm tâm điểm. Ở dark mode thẻ dùng `dark-ink` `#262626` kèm viền 1px `#3A3A3A` (ink `#0B0B0B` trên nền `#141414` chỉ đạt 1.07:1 và biến mất). Nền thẻ **luôn** lấy từ token `ink`, không dùng ảnh nền. Dòng thu/chi nằm trực tiếp trên nền ink (không dùng dải nền con) và dùng `on-ink-income` / `on-ink-expense` để đủ tương phản.
 - **Segmented bar**: ngân sách hoặc phân bổ. Đoạn đầu `sand`, đoạn hai `graphite`, phần còn lại kẻ chéo. Nhãn phần trăm nằm trong đoạn nếu đủ rộng.
-- **Floating nav**: pill đen, mục đang chọn là pill trắng, chữ nhãn rõ (không chỉ icon).
+- **Floating nav**: capsule đen, mục đang chọn là capsule trắng, chữ nhãn rõ (không chỉ icon).
 - **Day group card**: giao dịch gom theo ngày trên nền trang xám; mỗi ngày là một thẻ `surface` bo `md` (20), tiêu đề nhóm dùng `eyebrow` ở ngoài thẻ, các dòng bên trong cách nhau bằng khoảng trắng, không dùng đường kẻ. Dòng giao dịch xếp kiểu sổ cái: tiêu đề đậm, dòng phụ "Danh mục • Ví", số tiền `amount-row` căn phải (thu có dấu `+` và màu `income`, chi có dấu `−` và `text-primary`).
 - **Swipe reveal row**: vuốt ngang để **lộ** nền hành động chứ không tự thực thi. Hai vùng nền rộng 96px: bên trái "Sửa" (nền `ink` / `sand` ở dark), bên phải "Xóa" (nền `expense`). Một lần chạm để thực thi; chạm ra ngoài để đóng. Tổng offset không vượt hai vùng 96px, có ngưỡng rung 50% chiều rộng.
 - **Wallet selector chip**: chip ở thanh trên cùng màn Home (icon + tên ví + mũi tên xuống) mở bottom sheet chọn ví, có mục "Tất cả ví" để quay về tổng. Chip cao 40, bo `xs`, nền `surface` 72% + viền 1px `hairline`; **không dùng viền đậm/đen để đánh dấu ví đang chọn** — trạng thái chọn thể hiện trong sheet.
@@ -298,7 +298,7 @@ Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24
 | Bo góc bất đối xứng 18/6 | Bo đều 28 / 24 / 20 / 16 |
 | Đường kẻ đứt giữa dòng | Khoảng trắng, không đường kẻ |
 | Fraunces + Manrope + JetBrains Mono | Fraunces (display) + Inter (`tnum`) |
-| Nav trắng nổi, chỉ báo đất nung | Nav ink, mục chọn pill trắng |
+| Nav trắng nổi, chỉ báo đất nung | Nav ink, mục chọn capsule trắng |
 | Dải mực 3px bên trái thẻ hero | Thẻ ink nguyên khối |
 
 ## 9. Giá trị suy ra (v4 không định nghĩa, đã chốt)
@@ -327,4 +327,4 @@ Thang bo góc mới (đồng đều, không còn "góc bẻ" của v3): `28 / 24
 | `outline` / `outlineVariant` | `#BDBDBD` / `#CFCFCF` | `#4A4A4A` / `#3A3A3A` | viền |
 | `error` / `errorContainer` | `#A63B2E` / `#F7E4DF` | `#FF8F7E` / `#3D1B14` | chi tiêu, cảnh báo |
 
-> **Trạng thái:** v4 đã triển khai ở tầng token (`Color.kt`, `AppColors.kt`, `AppShapes.kt`, `Type.kt`, `AppTypography.kt`) và ở tầng thành phần cho **thẻ ink hero**, **chip chọn ví trên thanh trên**, **backdrop trên**, **thẻ nhóm ngày theo kiểu sổ cái** và **vuốt lộ nút Sửa/Xóa** trên màn Home. Thẻ ví mini 150×92 đã bị gỡ khỏi màn Home (chọn ví nằm ở chip thanh trên + bottom sheet), tấm trắng `sheet-top` phủ nửa dưới cũng đã gỡ — trang dùng nền `background` xám. Còn ở v3: thanh điều hướng pill mực, thanh phân bổ có gạch chéo, thẻ ví chi tiết ở màn Ví. Palette id: `"sand"` (mặc định); `"ios"` và `"dynamic"` giữ nguyên; giá trị `"ledger"` đã lưu được ánh xạ sang `"sand"`. Ảnh nền thẻ ví/theo ví đã bỏ: thẻ dùng nền token của theme.
+> **Trạng thái:** v4 đã triển khai ở tầng token (`Color.kt`, `AppColors.kt`, `AppShapes.kt`, `Type.kt`, `AppTypography.kt`) và ở tầng thành phần cho **thẻ ink hero**, **chip chọn ví trên thanh trên**, **backdrop trên**, **thẻ nhóm ngày theo kiểu sổ cái** và **vuốt lộ nút Sửa/Xóa** trên màn Home. Thẻ ví mini 150×92 đã bị gỡ khỏi màn Home (chọn ví nằm ở chip thanh trên + bottom sheet), tấm trắng `sheet-top` phủ nửa dưới cũng đã gỡ — trang dùng nền `background` xám. Còn ở v3: thanh điều hướng capsule mực, thanh phân bổ có gạch chéo, thẻ ví chi tiết ở màn Ví. Palette id: `"sand"` (mặc định); `"ios"` và `"dynamic"` giữ nguyên; giá trị `"ledger"` đã lưu được ánh xạ sang `"sand"`. Ảnh nền thẻ ví/theo ví đã bỏ: thẻ dùng nền token của theme.

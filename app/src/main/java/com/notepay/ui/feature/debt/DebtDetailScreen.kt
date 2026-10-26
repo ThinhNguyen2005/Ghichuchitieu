@@ -194,7 +194,7 @@ fun DebtDetailScreen(
             } else {
                 val debt = item.debt
                 val isLend = debt.type == DebtType.LEND
-                val accentColor = if (isLend) Color(0xFF34C759) else Color(0xFFFF9500)
+                val accentColor = if (isLend) AppTheme.colors.success else AppTheme.colors.error
                 val animatedProgress by animateFloatAsState(
                     targetValue = item.progressRatio.coerceIn(0f, 1f),
                     label = "debt_progress"
@@ -213,7 +213,11 @@ fun DebtDetailScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            ),
                         ) {
                             Column(
                                 modifier = Modifier
@@ -230,15 +234,15 @@ fun DebtDetailScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(52.dp)
-                                            .clip(CircleShape)
-                                            .background(accentColor.copy(alpha = 0.15f)),
+                                            .clip(AppTheme.shapes.capsule)
+                                            .background(AppTheme.colors.sand),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             text = initial,
                                             fontWeight = FontWeight.ExtraBold,
                                             fontSize = 22.sp,
-                                            color = accentColor,
+                                            color = AppTheme.colors.onSand,
                                         )
                                     }
 
@@ -337,9 +341,11 @@ fun DebtDetailScreen(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = MoneyFormatter.format(item.remainingAmount),
-                                        style = MaterialTheme.typography.headlineMedium,
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontFeatureSettings = "tnum"
+                                        ),
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = if (item.isFullyPaid) Color(0xFF34C759) else accentColor,
+                                        color = if (item.isFullyPaid) AppTheme.colors.success else accentColor,
                                     )
                                 }
 
@@ -350,7 +356,7 @@ fun DebtDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(8.dp)
-                                            .clip(CircleShape),
+                                            .clip(AppTheme.shapes.capsule),
                                         color = accentColor,
                                         trackColor = accentColor.copy(alpha = 0.15f),
                                         strokeCap = StrokeCap.Round,
@@ -365,7 +371,9 @@ fun DebtDetailScreen(
                                                 R.string.debt_card_paid,
                                                 MoneyFormatter.format(item.totalPaid)
                                             ),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontFeatureSettings = "tnum"
+                                            ),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         Text(
@@ -373,7 +381,9 @@ fun DebtDetailScreen(
                                                 R.string.debt_card_total,
                                                 MoneyFormatter.format(debt.originalAmount)
                                             ),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontFeatureSettings = "tnum"
+                                            ),
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
                                         )
@@ -389,18 +399,18 @@ fun DebtDetailScreen(
                                     val (badgeText, badgeBg, badgeTextColor) = when {
                                         item.isFullyPaid -> Triple(
                                             stringResource(R.string.debt_status_settled),
-                                            Color(0xFF007AFF).copy(alpha = 0.12f),
-                                            Color(0xFF007AFF),
+                                            AppTheme.colors.success.copy(alpha = 0.15f),
+                                            AppTheme.colors.success,
                                         )
                                         item.isOverdue() -> Triple(
                                             stringResource(R.string.debt_status_overdue),
-                                            MaterialTheme.colorScheme.errorContainer,
-                                            MaterialTheme.colorScheme.error,
+                                            AppTheme.colors.error.copy(alpha = 0.15f),
+                                            AppTheme.colors.error,
                                         )
                                         item.isDueToday() -> Triple(
                                             stringResource(R.string.debt_status_due_today),
-                                            Color(0xFFFF9500).copy(alpha = 0.15f),
-                                            Color(0xFFFF9500),
+                                            AppTheme.colors.warning.copy(alpha = 0.15f),
+                                            AppTheme.colors.warning,
                                         )
                                         debt.dueDate != null -> Triple(
                                             stringResource(
@@ -465,7 +475,11 @@ fun DebtDetailScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            ),
                         ) {
                             Column(
                                 modifier = Modifier
@@ -476,10 +490,10 @@ fun DebtDetailScreen(
                                 // Record partial repayment
                                 Button(
                                     onClick = { showPaymentDialog = true },
-                                    shape = AppTheme.shapes.corner16,
+                                    shape = AppTheme.shapes.capsule,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = accentColor,
-                                        contentColor = Color.White,
+                                        containerColor = AppTheme.colors.ink,
+                                        contentColor = AppTheme.colors.onInk,
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -501,7 +515,7 @@ fun DebtDetailScreen(
                                 // Mark settled toggle
                                 FilledTonalButton(
                                     onClick = { viewModel.toggleSettled() },
-                                    shape = AppTheme.shapes.corner16,
+                                    shape = AppTheme.shapes.capsule,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .defaultMinSize(minHeight = 48.dp),
@@ -525,7 +539,7 @@ fun DebtDetailScreen(
                                 if (isLend) {
                                     OutlinedButton(
                                         onClick = { showQrSheet = true },
-                                        shape = AppTheme.shapes.corner16,
+                                        shape = AppTheme.shapes.capsule,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .defaultMinSize(minHeight = 48.dp),
@@ -593,7 +607,11 @@ fun DebtDetailScreen(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                ),
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -621,8 +639,7 @@ fun DebtDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = MoneyFormatter.format(payment.amount),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
+                                            style = AppTheme.typography.amountRow,
                                             color = MaterialTheme.colorScheme.onSurface,
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))

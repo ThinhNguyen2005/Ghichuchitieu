@@ -10,36 +10,42 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
@@ -57,7 +63,6 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.FirefliesBackground
 import com.notepay.ui.component.GradientBottomActionBar
 import com.notepay.ui.component.LiquidButton
 import com.notepay.ui.theme.AppTheme
@@ -65,8 +70,33 @@ import com.notepay.ui.util.MoneyFormatter
 import com.notepay.ui.util.VietnamCurrencyVisualTransformation
 import kotlin.math.abs
 import com.notepay.ui.util.localizedName
+import kotlinx.coroutines.launch
 
 private const val MAX_VND_INPUT_LENGTH = 15
+
+/** Giá trị "chưa chọn giao dịch" — dùng Long thay vì null để rememberSaveable chắc chắn lưu được. */
+private const val NoTransactionSelected = -1L
+
+/*
+ * Saver phẳng hoá danh sách người nợ để sống qua tái cấu hình.
+ *
+ * Không nối tên và số tiền bằng ký tự phân cách: danh sách được lưu xen kẽ
+ * [tên, tiền, tên, tiền, …] nên tên chứa dấu phẩy, xuống dòng hay bất kỳ ký tự
+ * nào vẫn khôi phục nguyên vẹn.
+ */
+private val DebtorEntriesSaver = listSaver<SnapshotStateList<DebtorEntry>, String>(
+    save = { entries -> entries.flatMap { entry -> listOf(entry.name, entry.amountInput) } },
+    restore = { flat ->
+        mutableStateListOf<DebtorEntry>().apply {
+            flat.chunked(2).forEach { pair ->
+                val name = pair.getOrNull(0) ?: return@forEach
+                val amountInput = pair.getOrNull(1) ?: return@forEach
+
+                add(DebtorEntry(name = name, amountInput = amountInput))
+            }
+        }
+    },
+)
 
 data class DebtorEntry(
     val name: String,
@@ -141,17 +171,39 @@ fun BillSplitCreateSheet(
         recentTransactions.filter { it.type == TransactionType.EXPENSE }
     }
 
-    var selectedTx by remember { mutableStateOf<Transaction?>(null) }
-    var step by remember { mutableStateOf(BillSplitStep.SELECT_TRANSACTION) }
-    var newDebtorName by remember { mutableStateOf("") }
+    var step by rememberSaveable { mutableStateOf(BillSplitStep.SELECT_TRANSACTION) }
+    var selectedTransactionId by rememberSaveable { mutableStateOf(NoTransactionSelected) }
+    var newDebtorName by rememberSaveable { mutableStateOf("") }
+    var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
 
-    val debtors = remember { mutableStateListOf<DebtorEntry>() }
+    /*
+     * Trước đây tất cả dùng remember nên xoay màn hình là mất sạch người đã nhập.
+     * Danh sách người nợ lưu qua Saver phẳng hoá; giao dịch đang chọn lưu theo id.
+     */
+    val debtors = rememberSaveable(saver = DebtorEntriesSaver) {
+        mutableStateListOf<DebtorEntry>()
+    }
+
+    val selectedTx = remember(expenses, selectedTransactionId) {
+        expenses.find { it.id == selectedTransactionId }
+    }
+
+    // Chỉ có đúng một giao dịch chi tiêu: chọn sẵn để bớt một bước bấm.
+    LaunchedEffect(expenses) {
+        if (selectedTransactionId == NoTransactionSelected && expenses.size == 1) {
+            selectedTransactionId = expenses.first().id
+        }
+    }
+
     val currencyTransformation = remember {
         VietnamCurrencyVisualTransformation()
     }
 
-    val focusManager = LocalFocusManager.current
     val localView = LocalView.current
+
+    // Dialog có cửa sổ riêng nên snackbar phải sống trong chính sheet này.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val parentCents = selectedTx?.amount?.amountInCents ?: 0L
 
@@ -163,6 +215,39 @@ fun BillSplitCreateSheet(
 
     val remainingCents = parentCents - totalCents
     val isOverLimit = totalCents > parentCents
+
+    val progress = if (parentCents > 0L) {
+        (totalCents.toFloat() / parentCents.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    // Một câu trạng thái tiền duy nhất cho cả màn, hiện ở thanh dưới cố định.
+    val moneyStatus = when {
+        isOverLimit -> stringResource(
+            R.string.billsplit_status_over_format,
+            MoneyFormatter.format(Money(abs(remainingCents))),
+        )
+
+        remainingCents == 0L -> stringResource(R.string.billsplit_status_exact)
+
+        else -> stringResource(
+            R.string.billsplit_status_remaining_format,
+            MoneyFormatter.format(Money(remainingCents)),
+        )
+    }
+
+    // accentColor chỉ dùng cho thanh tiến độ; chữ vẫn dùng onSurface để đủ tương phản ở mọi theme.
+    val statusAccent = when {
+        isOverLimit -> MaterialTheme.colorScheme.error
+        remainingCents == 0L -> AppTheme.colors.success
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val statusTextColor = if (isOverLimit) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     val allAmountsValid by remember {
         derivedStateOf {
@@ -196,20 +281,25 @@ fun BillSplitCreateSheet(
                 allAmountsValid &&
                 !isOverLimit
 
-    val disabledReason = when {
-        selectedTx == null ->
-            stringResource(R.string.billsplit_select_transaction_hint)
+    /*
+     * Back ở bước 2 quay về bước 1 thay vì đóng cả phiếu; chỉ hỏi xác nhận
+     * khi đã có dữ liệu người nợ có thể mất.
+     *
+     * Hàm này được truyền vào Dialog thay vì dùng BackHandler: Dialog tạo window
+     * riêng và tự nuốt sự kiện Back trước khi nó tới được activity, nên BackHandler
+     * đặt ở composition phía ngoài sẽ không bao giờ chạy.
+     */
+    fun requestDismiss() {
+        when {
+            showDiscardConfirm -> showDiscardConfirm = false
 
-        debtors.isEmpty() ->
-            stringResource(R.string.billsplit_add_participant)
+            step == BillSplitStep.MANAGE_DEBTORS && debtors.isEmpty() ->
+                step = BillSplitStep.SELECT_TRANSACTION
 
-        !allAmountsValid ->
-            stringResource(R.string.billsplit_amount_invalid)
+            debtors.isNotEmpty() -> showDiscardConfirm = true
 
-        isOverLimit ->
-            stringResource(R.string.billsplit_status_over_format, MoneyFormatter.format(Money(abs(remainingCents))))
-
-        else -> null
+            else -> onDismiss()
+        }
     }
 
     fun playSelectionHaptic() {
@@ -243,23 +333,56 @@ fun BillSplitCreateSheet(
         playSelectionHaptic()
     }
 
+    val evenSplitOverwrittenMessage = stringResource(R.string.billsplit_even_split_overwritten)
+    val undoLabel = stringResource(R.string.feedback_undo)
+
+    /*
+     * Chia đều chỉ điền vào các ô đang trống và chia phần còn lại của hóa đơn,
+     * để không ghi đè số người dùng đã gõ tay.
+     */
     fun splitEvenly() {
+        val blankIndexes = debtors.indices.filter { debtors[it].amountInput.isBlank() }
+        val overwritesTypedAmounts = blankIndexes.isEmpty() && debtors.isNotEmpty()
+
+        // Không còn ô trống: mọi số đã gõ sẽ bị ghi đè, nên giữ bản sao để hoàn tác.
+        val previousEntries = if (overwritesTypedAmounts) debtors.toList() else emptyList()
+
+        val targets = blankIndexes.ifEmpty { debtors.indices.toList() }
+        val alreadyCents = debtors.indices
+            .filterNot(targets::contains)
+            .sumOf { index -> vndInputToCents(debtors[index].amountInput) ?: 0L }
+
         val amounts = splitEvenlyInVnd(
-            totalCents = parentCents,
-            personCount = debtors.size,
+            totalCents = (parentCents - alreadyCents).coerceAtLeast(0L),
+            personCount = targets.size,
         )
 
-        amounts.forEachIndexed { index, amount ->
-            debtors[index] = debtors[index].copy(
-                amountInput = amount,
-            )
+        targets.forEachIndexed { position, index ->
+            val amount = amounts.getOrNull(position) ?: return@forEachIndexed
+
+            debtors[index] = debtors[index].copy(amountInput = amount)
         }
 
         playSelectionHaptic()
+
+        if (overwritesTypedAmounts) {
+            coroutineScope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = evenSplitOverwrittenMessage,
+                    actionLabel = undoLabel,
+                    duration = SnackbarDuration.Short,
+                )
+
+                if (result == SnackbarResult.ActionPerformed) {
+                    debtors.clear()
+                    debtors.addAll(previousEntries)
+                }
+            }
+        }
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
@@ -267,7 +390,6 @@ fun BillSplitCreateSheet(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            FirefliesBackground(Modifier.fillMaxSize())
             // Column + weight(1f): thanh nút tự lấy chiều cao thật, danh sách nhận phần
             // còn lại. Trước đây dùng Box chồng lớp với bottom = 104.dp cố định, nhỏ hơn
             // chiều cao thật của thanh nút (~112dp trở lên) nên nội dung bị đè.
@@ -294,28 +416,19 @@ fun BillSplitCreateSheet(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.quick_add_bill_split_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                            )
-
-                            Text(
-                                text = if (step == BillSplitStep.SELECT_TRANSACTION) {
-                                    stringResource(R.string.billsplit_step_select)
-                                } else {
-                                    stringResource(R.string.billsplit_step_manage)
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        // Dòng phụ "Bước x/2 — ..." đã bỏ: số bước đã nằm ở
+                        // BillSplitSectionTitle, thêm một chỗ nhắc nữa chỉ gây nhiễu.
+                        Text(
+                            text = stringResource(R.string.quick_add_bill_split_title),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
                         TextButton(
-                            onClick = onDismiss,
+                            onClick = ::requestDismiss,
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) {
                             Text(stringResource(R.string.action_close))
@@ -380,29 +493,28 @@ fun BillSplitCreateSheet(
                     ) { transaction ->
                         TransactionPickerRow(
                             transaction = transaction,
-                            selected = transaction.id == selectedTx?.id,
+                            selected = transaction.id == selectedTransactionId,
                             onClick = {
                                 // Chỉ xóa danh sách người nợ khi thực sự đổi sang giao dịch
                                 // khác, để quay lại bước 1 rồi chọn lại cùng giao dịch
                                 // không làm mất dữ liệu đã nhập.
-                                if (selectedTx?.id != transaction.id) {
+                                if (selectedTransactionId != transaction.id) {
                                     debtors.clear()
                                 }
 
-                                selectedTx = transaction
+                                selectedTransactionId = transaction.id
                                 playSelectionHaptic()
                             },
                         )
                     }
                 }
 
-                if (step == BillSplitStep.MANAGE_DEBTORS && selectedTx != null) {
+                if (step == BillSplitStep.MANAGE_DEBTORS) {
                     selectedTx?.let { transaction ->
                         item {
                             // Bấm vào thẻ để quay lại bước 1 đổi giao dịch.
                             SelectedTransactionCard(
                                 transaction = transaction,
-                                expanded = false,
                                 onClick = { step = BillSplitStep.SELECT_TRANSACTION },
                             )
                         }
@@ -417,15 +529,6 @@ fun BillSplitCreateSheet(
                     }
 
                     item {
-                        BillSplitProgressCard(
-                            parentCents = parentCents,
-                            totalCents = totalCents,
-                            remainingCents = remainingCents,
-                            isOverLimit = isOverLimit,
-                        )
-                    }
-
-                    item {
                         OutlinedTextField(
                             value = newDebtorName,
                             onValueChange = { newDebtorName = it },
@@ -433,9 +536,6 @@ fun BillSplitCreateSheet(
                             label = { Text(stringResource(R.string.billsplit_person_name)) },
                             placeholder = {
                                 Text(stringResource(R.string.billsplit_person_name_placeholder))
-                            },
-                            supportingText = {
-                                Text(stringResource(R.string.billsplit_person_name_hint))
                             },
                             leadingIcon = {
                                 Icon(
@@ -445,10 +545,8 @@ fun BillSplitCreateSheet(
                             },
                             trailingIcon = {
                                 IconButton(
-                                    onClick = {
-                                        addDebtor(newDebtorName)
-                                        focusManager.clearFocus()
-                                    },
+                                    // Không clearFocus: giữ bàn phím để thêm người tiếp theo.
+                                    onClick = { addDebtor(newDebtorName) },
                                     enabled = newDebtorName.isNotBlank(),
                                     modifier = Modifier.size(48.dp),
                                 ) {
@@ -462,10 +560,7 @@ fun BillSplitCreateSheet(
                                 imeAction = ImeAction.Done,
                             ),
                             keyboardActions = KeyboardActions(
-                                onDone = {
-                                    addDebtor(newDebtorName)
-                                    focusManager.clearFocus()
-                                },
+                                onDone = { addDebtor(newDebtorName) },
                             ),
                             singleLine = true,
                             shape = AppTheme.shapes.corner12,
@@ -551,96 +646,81 @@ fun BillSplitCreateSheet(
                         }
                     }
 
-                    if (debtors.isEmpty()) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = AppTheme.shapes.corner12,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme
-                                        .surfaceContainerLow,
-                                ),
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Group,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(
-                                            text = stringResource(R.string.billsplit_no_participants),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Medium,
-                                        )
-
-                                        Text(
-                                            text = stringResource(R.string.billsplit_add_names_hint),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        itemsIndexed(
-                            items = debtors,
-                            key = { _, entry -> entry.name },
-                        ) { index, entry ->
-                            SelectedDebtorCard(
-                                entry = entry,
-                                onAmountChange = { input ->
-                                    debtors[index] = entry.copy(
-                                        amountInput = input,
-                                    )
-                                },
-                                onRemove = {
-                                    debtors.removeAt(index)
-                                    playSelectionHaptic()
-                                },
-                                currencyTransformation = currencyTransformation,
-                            )
-                        }
-                    }
-
-                    if (debtors.isNotEmpty()) {
-                        item {
-                            BillSplitSummaryCard(
-                                parentCents = parentCents,
-                                totalCents = totalCents,
-                            )
-                        }
+                    itemsIndexed(
+                        items = debtors,
+                        key = { _, entry -> entry.name },
+                    ) { index, entry ->
+                        SelectedDebtorCard(
+                            entry = entry,
+                            onAmountChange = { input ->
+                                debtors[index] = entry.copy(amountInput = input)
+                            },
+                            onRemove = {
+                                debtors.removeAt(index)
+                                playSelectionHaptic()
+                            },
+                            currencyTransformation = currencyTransformation,
+                        )
                     }
                 }
             }
 
+            /*
+             * Snackbar nằm ngay trên thanh hành động. Không dùng snackbar cấp app:
+             * cửa sổ của Dialog sẽ che nó và người dùng không bấm được Hoàn tác.
+             */
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            )
+
+            /*
+             * Thanh dưới cố định: tiến độ + câu trạng thái tiền + nút hành động.
+             * Trước đây tiến độ nằm trong danh sách nên cuộn mất khi đang nhập ở dưới,
+             * còn trạng thái tiền bị lặp ở thẻ tiến độ, thẻ tổng kết và lý do khoá nút.
+             */
             GradientBottomActionBar(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (step == BillSplitStep.SELECT_TRANSACTION) {
-                        if (selectedTx == null) {
-                            Text(
-                                text = stringResource(R.string.billsplit_select_transaction_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                    if (step == BillSplitStep.MANAGE_DEBTORS) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            color = statusAccent,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            strokeCap = StrokeCap.Round,
+                        )
 
-                        LiquidButton(
+                        Text(
+                            text = moneyStatus,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = statusTextColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else if (selectedTx == null) {
+                        Text(
+                            text = stringResource(R.string.billsplit_select_transaction_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    if (step == BillSplitStep.SELECT_TRANSACTION) {
+                        SheetPrimaryButton(
+                            label = stringResource(R.string.billsplit_continue),
+                            enabled = selectedTx != null,
                             onClick = {
                                 localView.performHapticFeedback(
                                     HapticFeedbackConstants.KEYBOARD_TAP,
@@ -648,74 +728,66 @@ fun BillSplitCreateSheet(
 
                                 step = BillSplitStep.MANAGE_DEBTORS
                             },
-                            enabled = selectedTx != null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.billsplit_continue),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
+                        )
                     } else {
-                    disabledReason?.let { reason ->
-                        Text(
-                            text = reason,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isOverLimit) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                        SheetPrimaryButton(
+                            label = stringResource(R.string.billsplit_save_invoice_split),
+                            enabled = canSave,
+                            onClick = {
+                                selectedTx?.let { transaction ->
+                                    val entries = debtors.mapNotNull { entry ->
+                                        val cents = vndInputToCents(entry.amountInput)
 
-                    LiquidButton(
-                        onClick = {
-                            val entries = debtors.mapNotNull { entry ->
-                                val cents = vndInputToCents(entry.amountInput)
+                                        if (cents != null) {
+                                            entry.name.trim() to cents
+                                        } else {
+                                            null
+                                        }
+                                    }
 
-                                if (
-                                    entry.name.isNotBlank() &&
-                                    cents != null
-                                ) {
-                                    entry.name.trim() to cents
-                                } else {
-                                    null
+                                    localView.performHapticFeedback(
+                                        HapticFeedbackConstants.KEYBOARD_TAP,
+                                    )
+
+                                    onConfirm(
+                                        transaction.id,
+                                        entries,
+                                    )
                                 }
-                            }
-
-                            selectedTx?.let { transaction ->
-                                localView.performHapticFeedback(
-                                    HapticFeedbackConstants.KEYBOARD_TAP,
-                                )
-
-                                onConfirm(
-                                    transaction.id,
-                                    entries,
-                                )
-                            }
-                        },
-                        enabled = canSave,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.billsplit_save_invoice_split),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            },
                         )
-                    }
                     }
                 }
             }
             }
         }
+    }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(R.string.billsplit_discard_title)) },
+            text = { Text(stringResource(R.string.billsplit_discard_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        onDismiss()
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.billsplit_discard_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDiscardConfirm = false },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -769,94 +841,31 @@ private fun BillSplitSectionTitle(
 }
 
 @Composable
-private fun BillSplitProgressCard(
-    parentCents: Long,
-    totalCents: Long,
-    remainingCents: Long,
-    isOverLimit: Boolean,
+private fun SheetPrimaryButton(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
 ) {
-    val progress = if (parentCents > 0L) {
-        totalCents.toFloat().div(parentCents.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-    // accentColor chỉ dùng cho progress bar và lớp tint 10% của card — đây là thành phần UI,
-    // chỉ cần 3:1.
-    val accentColor = when {
-        isOverLimit -> MaterialTheme.colorScheme.error
-        remainingCents == 0L -> AppTheme.colors.success
-        else -> MaterialTheme.colorScheme.primary
-    }
-
-    /*
-     * Chữ trạng thái KHÔNG dùng accentColor. Trên nền card là chính accentColor pha alpha 0.10,
-     * ở light theme tỉ lệ tương phản chỉ đạt 1.78:1 với success (#30D158) và 4.25:1 với primary
-     * (#1B7F4F) — đều dưới mức 4.5:1 của WCAG AA.
-     *
-     * Không hard-code màu tối thay thế, vì app có 10 tuỳ chọn theme cộng dynamic color lấy từ
-     * hình nền, nên mọi giá trị chọn tay đều có thể vỡ ở một theme nào đó. onSurface là token
-     * Material bảo đảm tương phản với surface ở mọi theme (đo được 15.45:1 ở light mặc định).
-     *
-     * Trạng thái vẫn phân biệt được không cần màu chữ: nội dung chữ đã nói rõ, và progress bar
-     * vẫn giữ accentColor.
-     */
-    val statusColor = if (isOverLimit) {
-        MaterialTheme.colorScheme.error // 5.25:1 ở light mặc định, đạt AA
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
-    val status = when {
-        isOverLimit -> stringResource(R.string.billsplit_status_over_format, MoneyFormatter.format(Money(abs(remainingCents))))
-        remainingCents == 0L -> stringResource(R.string.billsplit_status_exact)
-        else -> stringResource(R.string.billsplit_status_remaining_format, MoneyFormatter.format(Money(remainingCents)))
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner16,
-        colors = CardDefaults.cardColors(
-            containerColor = accentColor.copy(alpha = 0.10f),
-        ),
+    LiquidButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.billsplit_progress_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor,
-                )
-            }
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = accentColor,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                strokeCap = StrokeCap.Round,
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
 private fun SelectedTransactionCard(
     transaction: Transaction,
-    expanded: Boolean,
     onClick: () -> Unit,
 ) {
     val category = transaction.category
@@ -903,16 +912,6 @@ private fun SelectedTransactionCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-
-                Text(
-                    text = if (expanded) {
-                        stringResource(R.string.billsplit_close_list)
-                    } else {
-                        stringResource(R.string.billsplit_change_transaction)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             Column(horizontalAlignment = Alignment.End) {
@@ -923,10 +922,20 @@ private fun SelectedTransactionCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
 
-                Icon(
-                    imageVector = Icons.Rounded.ArrowDropDown,
-                    contentDescription = null,
-                )
+                // Trước đây là một dòng chữ nhỏ trong thẻ nên rất dễ bỏ sót.
+                TextButton(
+                    onClick = onClick,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.billsplit_change_transaction_action),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -1110,137 +1119,5 @@ fun SelectedDebtorCard(
                 shape = AppTheme.shapes.corner12,
             )
         }
-    }
-}
-
-@Composable
-private fun BillSplitSummaryCard(
-    parentCents: Long,
-    totalCents: Long,
-) {
-    val remainingCents = parentCents - totalCents
-    val isOverLimit = totalCents > parentCents
-
-    val progress = if (parentCents > 0L) {
-        totalCents.toFloat()
-            .div(parentCents.toFloat())
-            .coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-
-    val accentColor = if (isOverLimit) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner16,
-        colors = CardDefaults.cardColors(
-            containerColor = accentColor.copy(alpha = 0.08f),
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                    contentDescription = null,
-                    tint = accentColor,
-                )
-
-                Text(
-                    text = stringResource(R.string.billsplit_summary),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = accentColor,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                strokeCap = StrokeCap.Round,
-            )
-
-            SummaryMoneyRow(
-                label = stringResource(R.string.billsplit_original_bill),
-                amount = parentCents,
-            )
-
-            SummaryMoneyRow(
-                label = stringResource(R.string.billsplit_already_split),
-                amount = totalCents,
-                amountColor = accentColor,
-            )
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            SummaryMoneyRow(
-                label = if (remainingCents < 0L) {
-                    stringResource(R.string.billsplit_over_limit)
-                } else {
-                    stringResource(R.string.billsplit_not_split)
-                },
-                amount = abs(remainingCents),
-                amountColor = if (remainingCents < 0L) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                emphasized = true,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryMoneyRow(
-    label: String,
-    amount: Long,
-    amountColor: Color = MaterialTheme.colorScheme.onSurface,
-    emphasized: Boolean = false,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            style = if (emphasized) {
-                MaterialTheme.typography.titleSmall
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            fontWeight = if (emphasized) {
-                FontWeight.SemiBold
-            } else {
-                FontWeight.Normal
-            },
-        )
-
-        Text(
-            text = MoneyFormatter.format(Money(amount)),
-            style = if (emphasized) {
-                MaterialTheme.typography.titleMedium
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            fontWeight = FontWeight.Bold,
-            color = amountColor,
-        )
     }
 }

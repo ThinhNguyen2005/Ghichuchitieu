@@ -8,7 +8,7 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.notepay.full.debug" />
+                  <option name="appId" value="com.notepay.full" />
                   <option name="mobileSdkAppId" value="1:667503750189:android:882378aaeba061ee9f9ca4" />
                   <option name="projectId" value="note-pay-5659d" />
                   <option name="projectNumber" value="667503750189" />
