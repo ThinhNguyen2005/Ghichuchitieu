@@ -3,8 +3,22 @@ name: Android CI
 on:
   push:
     branches: [ main, master, dev ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.agents/**'
+      - 'LICENSE'
   pull_request:
     branches: [ main, master, dev ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.agents/**'
+      - 'LICENSE'
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -23,10 +37,20 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '21'
-          cache: 'gradle'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/dev' }}
+
+      - name: Configure CI JVM Memory
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          echo "kotlin.daemon.jvmargs=-Xmx3072m -XX:+UseG1GC" >> ~/.gradle/gradle.properties
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
       - name: Run Unit Tests
-        run: ./gradlew :app:testFullDebugUnitTest :app:testPlayDebugUnitTest
+        run: ./gradlew :app:testFullDebugUnitTest :app:testPlayDebugUnitTest --build-cache --parallel
