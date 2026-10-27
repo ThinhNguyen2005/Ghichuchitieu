@@ -178,6 +178,8 @@ Unit tests run on the JVM with Robolectric, MockK, Turbine and Truth. Cover mone
 | [docs/THIRD_PARTY_ASSETS.md](docs/THIRD_PARTY_ASSETS.md) | Bundled asset provenance and trademark notes |
 | [AGENTS.md](AGENTS.md) | Contributor and agent guidelines: layout, style, commands |
 
+Older process write-ups (refactor audits, plans, walkthroughs) live in [docs/archive/](docs/archive/README.md) and describe past states, not current behaviour.
+
 ## Contributing
 
 Issues and pull requests are welcome.

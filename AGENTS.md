@@ -9,7 +9,7 @@ This is a single-module Android app (`app`) written in Kotlin with Jetpack Compo
 - `ui/`: Compose screens, reusable components, navigation, theme, and UI utilities.
 - `ai/`: local forecasting, parsing, and on-device assistant integrations.
 
-Resources are in `app/src/main/res/`; Room schema exports are versioned in `app/schemas/`. Unit tests belong in `app/src/test/`; device tests belong in `app/src/androidTest/`. Keep feature specs and plans under `specs/`.
+Resources are in `app/src/main/res/`; Room schema exports are versioned in `app/schemas/`. Unit tests belong in `app/src/test/`; device tests belong in `app/src/androidTest/`. Feature specs and design notes live in `docs/`; finished process write-ups are archived under `docs/archive/` and are historical only.
 
 ## Build, Test, and Development Commands
 
