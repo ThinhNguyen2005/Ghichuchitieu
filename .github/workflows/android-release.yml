@@ -33,6 +33,12 @@ jobs:
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
 
+      - name: Configure CI JVM Memory
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          echo "kotlin.daemon.jvmargs=-Xmx3072m -XX:+UseG1GC" >> ~/.gradle/gradle.properties
+
       - name: Validate release tag
         shell: bash
         env:

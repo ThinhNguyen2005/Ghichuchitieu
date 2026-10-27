@@ -1,7 +1,7 @@
 # NotePay
 
 [![Android CI](https://github.com/ThinhNguyen2005/Ghichuchitieu/actions/workflows/android.yml/badge.svg)](https://github.com/ThinhNguyen2005/Ghichuchitieu/actions/workflows/android.yml)
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red.svg)](#license)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF.svg)](https://kotlinlang.org)
 [![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84.svg)](https://developer.android.com/about/versions/oreo)
 
@@ -195,24 +195,12 @@ Do not include financial records, notification samples, OCR images, imported AI 
 
 ## License
 
-NotePay is released under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
+Copyright (C) 2026 ThinhNguyen2005. All rights reserved.
 
-```
-Copyright (C) 2026 ThinhNguyen2005
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, version 3 of the License.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-```
-
-Because the app is distributed under the GPL, any redistributed build — including modified flavors published on a store or as an APK — must ship the corresponding source code and preserve these terms. Third-party libraries remain under their own licenses; see their respective repository or POM metadata.
+This software and associated documentation files are proprietary and confidential. Unauthorized copying, distribution, modification, or public display of this source code and compiled artifacts, via any medium, is strictly prohibited. Third-party libraries remain under their own respective licenses.
 
 ## Trademarks and third-party assets
 
 NotePay is not affiliated with, endorsed by, or certified by NAPAS, VietQR, or any bank. The generated QR code is a payment request: always verify the recipient, amount and memo inside your banking app before confirming.
 
-Bundled bank logos and VietQR metadata in `app/src/main/assets/vietqr/` are third-party trademarks with unclear redistribution rights. Do not assume that finding a logo online grants such rights; read [docs/THIRD_PARTY_ASSETS.md](docs/THIRD_PARTY_ASSETS.md) before reusing or redistributing them. Their licenses are separate from this project's GPL-3.0 license.
+Bundled bank logos and VietQR metadata in `app/src/main/assets/vietqr/` are third-party trademarks with unclear redistribution rights. Do not assume that finding a logo online grants such rights; read [docs/THIRD_PARTY_ASSETS.md](docs/THIRD_PARTY_ASSETS.md) before reusing or redistributing them. Their licenses are separate from this project.
