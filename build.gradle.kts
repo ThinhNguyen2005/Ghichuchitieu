@@ -6,3 +6,9 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.google.services) apply false
 }
+
+// `gradlew clean` mặc định chỉ chạy :app:clean, nên thư mục build/ ở root (reports,
+// audit artifacts, ảnh preview sinh tự động) bị bỏ lại mãi. Task này dọn nốt.
+tasks.register<Delete>("clean") {
+    delete(layout.buildDirectory)
+}
