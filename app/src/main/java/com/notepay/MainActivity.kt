@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.ui.MainViewModel
+import com.notepay.ui.adaptive.ProvideWindowLayout
 import com.notepay.ui.navigation.NotePayNavHost
 import com.notepay.ui.navigation.Route
 import com.notepay.ui.theme.NotePayTheme
@@ -40,18 +41,20 @@ class MainActivity : ComponentActivity() {
             val authUser by viewModel.authUser.collectAsStateWithLifecycle()
 
             if (startDestination != null) {
-                NotePayTheme(
-                    themeMode = themeMode,
-                    themeColor = themeColor,
-                ) {
-                    NotePayNavHost(
-                        authUser = authUser,
-                        startDestination = startDestination ?: Route.Home.path,
-                        liquidGlassEnabled = glassEnabled,
-                        pendingRoute = targetRoute,
-                        onRouteHandled = viewModel::onRouteHandled,
-                        onCompleteWelcome = viewModel::completeWelcome,
-                    )
+                ProvideWindowLayout {
+                    NotePayTheme(
+                        themeMode = themeMode,
+                        themeColor = themeColor,
+                    ) {
+                        NotePayNavHost(
+                            authUser = authUser,
+                            startDestination = startDestination ?: Route.Home.path,
+                            liquidGlassEnabled = glassEnabled,
+                            pendingRoute = targetRoute,
+                            onRouteHandled = viewModel::onRouteHandled,
+                            onCompleteWelcome = viewModel::completeWelcome,
+                        )
+                    }
                 }
             }
         }

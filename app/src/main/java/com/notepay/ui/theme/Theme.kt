@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -25,7 +26,7 @@ fun isAppDarkTheme(): Boolean = LocalDarkTheme.current
 @Composable
 fun NotePayTheme(
     themeMode: String = "system",
-    themeColor: String = "ledger",
+    themeColor: String = "sand",
     darkTheme: Boolean = when (themeMode) {
         "light" -> false
         "dark" -> true
@@ -35,19 +36,24 @@ fun NotePayTheme(
 ) {
     val context = LocalContext.current
 
-    val materialColorScheme = if (darkTheme) {
-        getDarkColorScheme(themeColor, context)
-    } else {
-        getLightColorScheme(themeColor, context)
+    // remember: dynamic color scheme cấp phát đối tượng mới mỗi lần gọi, không được chạy lại mỗi recomposition.
+    val materialColorScheme = remember(darkTheme, themeColor, context) {
+        if (darkTheme) {
+            getDarkColorScheme(themeColor, context)
+        } else {
+            getLightColorScheme(themeColor, context)
+        }
     }
 
     val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
-    val appColors = baseAppColors.copy(
-        primary = materialColorScheme.primary,
-        secondary = materialColorScheme.secondary,
-        background = materialColorScheme.background,
-        surface = materialColorScheme.surface
-    )
+    val appColors = remember(baseAppColors, materialColorScheme) {
+        baseAppColors.copy(
+            primary = materialColorScheme.primary,
+            secondary = materialColorScheme.secondary,
+            background = materialColorScheme.background,
+            surface = materialColorScheme.surface
+        )
+    }
 
     val appTypography = DefaultAppTypography
     val appShapes = DefaultAppShapes

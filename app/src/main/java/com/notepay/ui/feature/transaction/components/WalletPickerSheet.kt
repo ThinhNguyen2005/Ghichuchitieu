@@ -2,6 +2,7 @@ package com.notepay.ui.feature.transaction.components
 
 import com.notepay.ui.theme.AppTheme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,7 @@ fun WalletPickerSheet(
     onWalletSelected: (Long) -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(),
+    onAllWalletsSelected: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -90,6 +93,22 @@ fun WalletPickerSheet(
                         .fillMaxWidth()
                         .heightIn(max = 400.dp),
                 ) {
+                    // Trang Home cần quay về trạng thái "Tất cả ví" nên sheet hỗ trợ thêm dòng này.
+                    if (onAllWalletsSelected != null) {
+                        item(key = "wallet_picker_all") {
+                            WalletPickerRow(
+                                label = stringResource(R.string.home_all_wallets),
+                                isSelected = selectedWalletId == null,
+                                onClick = {
+                                    onAllWalletsSelected()
+                                    onDismiss()
+                                },
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                            )
+                        }
+                    }
                     items(wallets, key = { it.id }) { wallet ->
                         WalletPickerRow(
                             wallet = wallet,
@@ -111,6 +130,49 @@ fun WalletPickerSheet(
 
 @Composable
 private fun WalletPickerRow(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.corner12)
+            // Trạng thái đang chọn dùng nền sand nhạt (điểm sáng của v4), không dùng viền.
+            .background(if (isSelected) selectedRowColor() else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.AccountBalanceWallet,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun selectedRowColor(): Color =
+    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+
+@Composable
+private fun WalletPickerRow(
     wallet: Wallet,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -118,7 +180,8 @@ private fun WalletPickerRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(AppTheme.shapes.corner8)
+            .clip(AppTheme.shapes.corner12)
+            .background(if (isSelected) selectedRowColor() else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -126,7 +189,7 @@ private fun WalletPickerRow(
     ) {
         Box(
             modifier = Modifier
-                .clip(AppTheme.shapes.corner10)
+                .clip(AppTheme.shapes.corner12)
                 .padding(2.dp),
         ) {
             Icon(

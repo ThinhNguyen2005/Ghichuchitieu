@@ -29,6 +29,7 @@ local.properties
 
 # Agent folders
 /.qoder
+/.claude/
 /app/release/
 # Kotlin incremental compilation cache
 .kotlin/

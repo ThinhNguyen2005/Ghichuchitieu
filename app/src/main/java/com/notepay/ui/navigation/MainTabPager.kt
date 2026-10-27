@@ -2,12 +2,15 @@ package com.notepay.ui.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.notepay.ui.feature.home.HomeScreen
 import com.notepay.ui.feature.stats.StatsScreen
@@ -22,6 +25,8 @@ fun MainTabPager(
     navController: NavHostController,
     showFeedback: suspend (UiFeedback) -> Boolean,
     reducedMotion: Boolean,
+    userScrollEnabled: Boolean = true,
+    contentStartInset: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -42,7 +47,12 @@ fun MainTabPager(
         state = pagerState,
         beyondViewportPageCount = 1,
         key = { page -> bottomTabs.getOrNull(page)?.route?.path ?: page },
-        modifier = modifier.fillMaxSize(),
+        // Tablet: rail dùng để chuyển tab, tắt vuốt ngang để không tranh cử chỉ với
+        // thao tác vuốt lộ nút Sửa/Xóa trên dòng giao dịch.
+        userScrollEnabled = userScrollEnabled,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(start = contentStartInset),
     ) { page ->
         when (page) {
             0 -> HomeScreen(

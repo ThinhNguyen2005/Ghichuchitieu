@@ -22,11 +22,13 @@ fun GradientTopAppBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    // Màu gốc của dải gradient. Đặt bằng màu container thật của thanh khi nó không nằm
+    // trên nền `colorScheme.background` (ví dụ pane chi tiết của bố cục hai pane).
+    topBarColor: Color = MaterialTheme.colorScheme.background,
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
         containerColor = Color.Transparent
     )
 ) {
-    val topBarColor = MaterialTheme.colorScheme.background
     val gradientBrush = remember(topBarColor) {
         Brush.verticalGradient(
             0.0f to topBarColor,

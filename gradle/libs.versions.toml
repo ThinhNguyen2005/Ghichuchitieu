@@ -33,6 +33,10 @@ mlkitTextRecognition = "19.0.1"
 generativeAi = "0.9.0"
 firebaseCrashlyticsBuildtools = "3.0.8"
 material3 = "1.4.0"
+# Material 3 Adaptive: WindowSizeClass + Posture cho layout tablet/foldable.
+material3Adaptive = "1.3.0"
+# window-core: nguồn hằng số breakpoint (600/840dp) mà WindowSizeClass dùng.
+window = "1.5.1"
 firebaseBom = "33.10.0"
 credentials = "1.3.0"
 googleid = "1.1.1"
@@ -102,6 +106,11 @@ truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+
+# Adaptive layouts (tablet / foldable)
+androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "material3Adaptive" }
+androidx-compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "material3Adaptive" }
+androidx-window-core = { group = "androidx.window", name = "window-core", version.ref = "window" }
 
 # Firebase (BoM) & Authentication
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }

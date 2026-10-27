@@ -10,8 +10,11 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,25 +27,48 @@ class TransactionDetailViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    private val transactionId: Long =
-        savedStateHandle.get<Long>(Route.TransactionDetail.ARG_ID) ?: -1L
+    /**
+     * Route độc lập lấy id từ nav args; ở chế độ hai pane thì để `null` rồi gọi [select]
+     * khi người dùng chọn một dòng trong danh sách.
+     */
+    private val initialTransactionId: Long? =
+        savedStateHandle.get<Long>(Route.TransactionDetail.ARG_ID)
 
     private val _state = MutableStateFlow(TransactionDetailUiState())
     val state = _state.asStateFlow()
 
+    private var observeJob: Job? = null
+
     init {
-        if (transactionId <= 0L) {
-            _state.update { it.copy(isLoading = false, error = context.getString(R.string.error_transaction_not_found)) }
-        } else {
-            observeTransaction()
-        }
+        select(initialTransactionId)
     }
 
-    private fun observeTransaction() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try {
-                transactionRepository.observeById(transactionId).collect { tx ->
+    /**
+     * Đổi giao dịch đang hiển thị. Job cũ bị hủy trước khi quan sát id mới để tránh
+     * hai luồng repo cùng ghi vào [state] khi người dùng bấm nhanh nhiều dòng.
+     */
+    fun select(transactionId: Long?) {
+        observeJob?.cancel()
+        if (transactionId == null || transactionId <= 0L) {
+            _state.value = TransactionDetailUiState(
+                isLoading = false,
+                error = context.getString(R.string.error_transaction_not_found),
+            )
+            return
+        }
+        observeJob = viewModelScope.launch {
+            _state.value = TransactionDetailUiState()
+            transactionRepository.observeById(transactionId)
+                .catch { error ->
+                    if (error is CancellationException) throw error
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = error.message ?: context.getString(R.string.error_transaction_load_failed),
+                        )
+                    }
+                }
+                .collect { tx ->
                     val walletName = tx?.let { walletRepository.getById(it.walletId)?.name }
                     _state.update {
                         it.copy(
@@ -53,14 +79,6 @@ class TransactionDetailViewModel @Inject constructor(
                         )
                     }
                 }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message ?: context.getString(R.string.error_transaction_load_failed),
-                    )
-                }
-            }
         }
     }
 }

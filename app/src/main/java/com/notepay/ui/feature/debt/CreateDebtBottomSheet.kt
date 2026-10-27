@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -134,6 +135,7 @@ fun CreateDebtBottomSheet(
                 FilterChip(
                     selected = lendSelected,
                     onClick = { selectedType = DebtType.LEND },
+                    shape = AppTheme.shapes.capsule,
                     label = {
                         Text(
                             text = stringResource(R.string.debt_type_lend_label),
@@ -142,8 +144,8 @@ fun CreateDebtBottomSheet(
                     },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF34C759).copy(alpha = 0.2f),
-                        selectedLabelColor = Color(0xFF248A3D),
+                        selectedContainerColor = AppTheme.colors.success.copy(alpha = 0.15f),
+                        selectedLabelColor = AppTheme.colors.success,
                     )
                 )
 
@@ -151,6 +153,7 @@ fun CreateDebtBottomSheet(
                 FilterChip(
                     selected = borrowSelected,
                     onClick = { selectedType = DebtType.BORROW },
+                    shape = AppTheme.shapes.capsule,
                     label = {
                         Text(
                             text = stringResource(R.string.debt_type_borrow_label),
@@ -159,8 +162,8 @@ fun CreateDebtBottomSheet(
                     },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFFFF9500).copy(alpha = 0.2f),
-                        selectedLabelColor = Color(0xFFC97600),
+                        selectedContainerColor = AppTheme.colors.error.copy(alpha = 0.15f),
+                        selectedLabelColor = AppTheme.colors.error,
                     )
                 )
             }
@@ -366,8 +369,10 @@ fun CreateDebtBottomSheet(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    shape = AppTheme.shapes.corner16,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
+                    shape = AppTheme.shapes.capsule,
                 ) {
                     Text(stringResource(R.string.action_cancel))
                 }
@@ -389,10 +394,13 @@ fun CreateDebtBottomSheet(
                         )
                     },
                     enabled = canSave,
-                    modifier = Modifier.weight(1.5f),
-                    shape = AppTheme.shapes.corner16,
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .defaultMinSize(minHeight = 48.dp),
+                    shape = AppTheme.shapes.capsule,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedType == DebtType.LEND) Color(0xFF34C759) else Color(0xFFFF9500)
+                        containerColor = AppTheme.colors.ink,
+                        contentColor = AppTheme.colors.onInk,
                     )
                 ) {
                     Text(stringResource(R.string.action_save), fontWeight = FontWeight.Bold)

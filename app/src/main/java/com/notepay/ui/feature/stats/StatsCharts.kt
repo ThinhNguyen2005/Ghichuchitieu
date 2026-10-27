@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,6 +46,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,11 +57,10 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.analytics.ForecastDisplayState
 import com.notepay.domain.analytics.StatsChartCalculator
-import com.notepay.domain.analytics.TrendAxisScale
-import com.notepay.domain.analytics.TrendAxisUnit
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.ui.util.MoneyFormatter
+import com.notepay.ui.util.localizedName
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.min
@@ -73,11 +78,21 @@ internal fun AllocationChartContent(
         mutableStateOf(breakdown.find { it.category == selectedCategory })
     }
     val legendItems = breakdown.take(5)
+    // MaterialTheme không đọc được bên trong DrawScope → hoist token ra ngoài Canvas.
+    val emptyRingColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    val chartDescription = if (breakdown.isEmpty()) {
+        stringResource(R.string.stats_allocation_chart_empty_cd)
+    } else {
+        val shares = legendItems.map { item ->
+            "${item.category.localizedName()} ${(item.percentage * 100).toInt()}%"
+        }
+        stringResource(R.string.stats_allocation_chart_cd_format, shares.joinToString(", "))
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(208.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -90,6 +105,7 @@ internal fun AllocationChartContent(
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
+                    .semantics { contentDescription = chartDescription }
                     .pointerInput(breakdown) {
                         detectTapGestures { offset ->
                             val tapped = findAllocationItem(offset, size.width.toFloat(), size.height.toFloat(), 34.dp.toPx(), breakdown)
@@ -103,7 +119,7 @@ internal fun AllocationChartContent(
                 var startAngle = 270f
                 if (breakdown.isEmpty()) {
                     drawArc(
-                        color = Color.LightGray.copy(alpha = 0.25f),
+                        color = emptyRingColor,
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -156,7 +172,7 @@ internal fun AllocationChartContent(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                         modifier = Modifier.size(32.dp),
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.stats_allocation_no_data),
                         style = MaterialTheme.typography.labelMedium,
@@ -173,7 +189,11 @@ internal fun AllocationChartContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(AppTheme.shapes.corner12)
-                                .clickable { onCategorySelected(if (selected) null else item.category) },
+                                .selectable(
+                                    selected = selected,
+                                    role = Role.Button,
+                                    onClick = { onCategorySelected(if (selected) null else item.category) },
+                                ),
                             shape = AppTheme.shapes.corner12,
                             color = color.copy(alpha = if (selected) .18f else .08f),
                         ) {
@@ -183,13 +203,13 @@ internal fun AllocationChartContent(
                             ) {
                                 Box(
                                     Modifier
-                                        .size(9.dp)
+                                        .size(8.dp)
                                         .clip(CircleShape)
                                         .background(color),
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "${item.category.displayName} — ${(item.percentage * 100).toInt()}%",
+                                    "${item.category.localizedName()} — ${(item.percentage * 100).toInt()}%",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                     modifier = Modifier.weight(1f),
@@ -227,13 +247,13 @@ private fun AllocationCenter(
     ) {
         Column(
             modifier = Modifier
-                .size(102.dp)
+                .size(104.dp)
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = if (isEmpty) stringResource(R.string.stats_no_data) else (item?.category?.displayName ?: stringResource(R.string.stats_total_allocation)),
+                text = if (isEmpty) stringResource(R.string.stats_no_data) else (item?.category?.localizedName() ?: stringResource(R.string.stats_total_allocation)),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isEmpty) MaterialTheme.colorScheme.onSurfaceVariant else if (item != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -250,7 +270,7 @@ private fun AllocationCenter(
                 overflow = TextOverflow.Ellipsis,
             )
             if (item != null) {
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(4.dp))
                 Surface(
                     shape = AppTheme.shapes.capsule,
                     color = tint.copy(alpha = 0.18f),
@@ -260,7 +280,7 @@ private fun AllocationCenter(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = tint,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
             }
@@ -275,12 +295,15 @@ internal fun TrendChartContent(
     isSelectedMonthCurrent: Boolean,
     forecast: Money?,
     showAmounts: Boolean,
+    trendWindow: TrendWindow,
+    onTrendWindowSelected: (TrendWindow) -> Unit,
     onPointClick: (MonthlyTrendPoint) -> Unit,
 ) {
     val chartColor = if (metric == StatsMetric.CHI_TIEU) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val values = points.map { point ->
         if (metric == StatsMetric.CHI_TIEU) point.expense.amountInCents else point.income.amountInCents
     }
+    val averageAmount = Money(StatsChartCalculator.average(values))
     val forecastDisplayState = StatsChartCalculator.forecastDisplayState(
         isExpense = metric == StatsMetric.CHI_TIEU,
         isSelectedMonthCurrent = isSelectedMonthCurrent,
@@ -289,64 +312,93 @@ internal fun TrendChartContent(
     )
     val hasForecast = forecastDisplayState != ForecastDisplayState.HIDDEN
     val axisScale = StatsChartCalculator.trendAxisScale(values, if (hasForecast) forecast else null)
-    val unitLabel = stringResource(
-        if (axisScale.unit == TrendAxisUnit.MILLIONS) R.string.stats_unit_millions else R.string.stats_unit_thousands,
-    )
+    // Lưới Y tinh gọn: chỉ 2 mốc (đỉnh và 50% đỉnh) với nhãn tiền viết gọn.
+    val topAxisLabel = MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents))
+    val middleAxisLabel = MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents / 2))
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f)
+    // 12 cột thì giãn nhịp nhãn tháng để "T1..T12" không chồng lên nhau.
+    val xLabelStride = if (points.size > 6) 2 else 1
+    val barHorizontalPadding = if (points.size > 6) 4.dp else 8.dp
+    val barShape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+    val barContentDescriptionHidden = stringResource(R.string.stats_amounts_hidden)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
     ) {
-        // 1. Top Header Row: Unit Label & Colored Dot Legend
+        // 1. Mức chi/thu trung bình của cả giai đoạn đang hiển thị
+        Text(
+            text = stringResource(R.string.stats_trend_average_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = if (showAmounts) MoneyFormatter.format(averageAmount) else barContentDescriptionHidden,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        // 2. Chọn khoảng thời gian (3T / 6T / 12T) + chú giải màu
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = "($unitLabel)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+            TrendWindowSelector(
+                selected = trendWindow,
+                onSelected = onTrendWindowSelected,
             )
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(chartColor),
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = if (metric == StatsMetric.CHI_TIEU) stringResource(R.string.stats_expense) else stringResource(R.string.stats_income),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(chartColor),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = if (metric == StatsMetric.CHI_TIEU) stringResource(R.string.stats_expense) else stringResource(R.string.stats_income),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // 2. Chart Grid & Bars Row
+        // 3. Lưới + cột: nhãn Y neo đúng mốc đỉnh (100%) và giữa (50%)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp),
         ) {
-            // Y-axis labels column
-            Column(
+            Box(
                 modifier = Modifier
-                    .width(42.dp)
+                    .width(44.dp)
                     .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                axisScale.labels.forEach { value ->
-                    val labelText = if (axisScale.unit == TrendAxisUnit.MILLIONS) "%.1f".format(value) else "%.0f".format(value)
-                    Text(
-                        text = labelText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = topAxisLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = middleAxisLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
 
             // Chart Canvas & Bars Area
@@ -355,18 +407,21 @@ internal fun TrendChartContent(
                     .weight(1f)
                     .fillMaxHeight(),
             ) {
-                // Horizontal grid lines
+                // 2 đường gióng ngang: mốc đỉnh và mốc 50% đỉnh
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val linesCount = axisScale.labels.size
-                    repeat(linesCount) { index ->
-                        val y = size.height * index / (linesCount - 1).coerceAtLeast(1)
-                        drawLine(
-                            color = gridColor,
-                            start = Offset(0f, y),
-                            end = Offset(size.width, y),
-                            strokeWidth = 1.dp.toPx(),
-                        )
-                    }
+                    val middleY = size.height / 2f
+                    drawLine(
+                        color = gridColor,
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, 0f),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                    drawLine(
+                        color = gridColor,
+                        start = Offset(0f, middleY),
+                        end = Offset(size.width, middleY),
+                        strokeWidth = 1.dp.toPx(),
+                    )
                 }
 
                 // Columns/Bars
@@ -376,8 +431,9 @@ internal fun TrendChartContent(
                     verticalAlignment = Alignment.Bottom,
                 ) {
                     points.forEachIndexed { index, point ->
+                        val pointValueInCents = values.getOrElse(index) { 0L }
                         val valueFraction by animateFloatAsState(
-                            (values.getOrElse(index) { 0L }.toFloat() / axisScale.topInCents).coerceIn(0f, 1f),
+                            (pointValueInCents.toFloat() / axisScale.topInCents).coerceIn(0f, 1f),
                             label = "trend-bar$index",
                         )
                         val isCurrent = index == points.lastIndex
@@ -396,12 +452,26 @@ internal fun TrendChartContent(
                             null
                         }
 
+                        val pointDescription = stringResource(
+                            R.string.stats_trend_point_cd_format,
+                            point.month,
+                            if (showAmounts) {
+                                MoneyFormatter.format(Money(pointValueInCents))
+                            } else {
+                                barContentDescriptionHidden
+                            },
+                        )
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .padding(horizontal = 8.dp)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .padding(horizontal = barHorizontalPadding)
+                                .clip(barShape)
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = pointDescription
+                                    role = Role.Button
+                                }
                                 .clickable { onPointClick(point) },
                             contentAlignment = Alignment.BottomCenter,
                         ) {
@@ -417,7 +487,7 @@ internal fun TrendChartContent(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .fillMaxHeight(forecastFraction)
-                                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                            .clip(barShape)
                                             .background(chartColor.copy(alpha = 0.25f)),
                                     )
                                 }
@@ -426,7 +496,7 @@ internal fun TrendChartContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight(valueFraction)
-                                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                        .clip(barShape)
                                         .background(chartColor),
                                 )
                                 if (forecastMarkerFraction != null) {
@@ -452,53 +522,57 @@ internal fun TrendChartContent(
             }
         }
 
-        // 3. Dedicated X-axis month labels row (below chart grid, aligned under bars)
+        // 4. Nhãn tháng dưới chân cột (12 tháng thì giãn nhịp để không chồng chữ)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 42.dp, top = 8.dp),
+                .padding(start = 44.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             points.forEachIndexed { index, point ->
-                val isCurrent = index == points.lastIndex
+                val isCurrent = index == points.lastIndex && isSelectedMonthCurrent
+                val showLabel = (points.lastIndex - index) % xLabelStride == 0
                 Text(
-                    text = if (isCurrent && isSelectedMonthCurrent) stringResource(R.string.stats_current_month) else stringResource(R.string.stats_month_label_format, point.month),
+                    text = if (showLabel) stringResource(R.string.stats_month_label_format, point.month) else "",
                     style = MaterialTheme.typography.labelMedium,
                     color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
                 )
             }
         }
 
-        // 4. Forecast legend row (below X-axis month labels, with proper vertical margin)
+        // 5. Forecast legend row (below X-axis month labels, with proper vertical margin)
         if (hasForecast) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier.padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (forecastDisplayState) {
                     ForecastDisplayState.PROJECTION -> Box(
                         modifier = Modifier
                             .size(12.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(chartColor.copy(alpha = 0.25f)),
                     )
                     ForecastDisplayState.REACHED -> Icon(
                         imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = null,
                         tint = chartColor,
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                     ForecastDisplayState.EXCEEDED -> Icon(
                         imageVector = Icons.Rounded.Warning,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                     ForecastDisplayState.HIDDEN -> Unit
                 }
@@ -514,6 +588,55 @@ internal fun TrendChartContent(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Chip chọn khung thời gian xu hướng (3T / 6T / 12T).
+ * Mỗi chip cao tối thiểu 48dp và đọc rõ số tháng qua contentDescription.
+ */
+@Composable
+private fun TrendWindowSelector(
+    selected: TrendWindow,
+    onSelected: (TrendWindow) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        TrendWindow.entries.forEach { window ->
+            val isSelected = window == selected
+            val windowDescription = stringResource(R.string.stats_trend_window_cd_format, window.months)
+            Surface(
+                modifier = Modifier
+                    .clip(AppTheme.shapes.capsule)
+                    .semantics { contentDescription = windowDescription }
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Tab,
+                        onClick = { onSelected(window) },
+                    ),
+                shape = AppTheme.shapes.capsule,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.stats_trend_window_short_format, window.months),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

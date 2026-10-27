@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -48,9 +49,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,6 +86,9 @@ import com.notepay.ui.util.MoneyFormatter
 fun DebtDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    // Pane phải truyền id đang chọn; route độc lập đã có id trong nav args nên để null.
+    debtId: Long? = null,
+    paneMode: Boolean = false,
     viewModel: DebtDetailViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -96,6 +100,10 @@ fun DebtDetailScreen(
     var paymentToDelete by remember { mutableStateOf<DebtPayment?>(null) }
 
     val qrSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(debtId) {
+        if (debtId != null) viewModel.select(debtId)
+    }
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -117,51 +125,55 @@ fun DebtDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            GradientTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.debt_detail_title),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
+    // Không dùng Scaffold: màn này chỉ gồm top bar + nội dung, và ở chế độ hai pane nó được
+    // lồng vào pane phải nên Scaffold nội bộ sẽ tạo thêm một lớp inset lồng nhau.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (paneMode) Color.Transparent else MaterialTheme.colorScheme.background),
+    ) {
+        GradientTopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.debt_detail_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            },
+            navigationIcon = {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
                     )
-                },
-                navigationIcon = {
+                }
+            },
+            actions = {
+                if (uiState.debtWithHistory != null) {
                     IconButton(
-                        onClick = onBack,
+                        onClick = { showDeleteDebtDialog = true },
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = stringResource(R.string.action_delete),
+                            tint = MaterialTheme.colorScheme.error,
                         )
                     }
-                },
-                actions = {
-                    if (uiState.debtWithHistory != null) {
-                        IconButton(
-                            onClick = { showDeleteDebtDialog = true },
-                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = stringResource(R.string.action_delete),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
                 }
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize(),
-    ) { innerPadding ->
+            },
+            // Pane phải đã nằm dưới top bar của màn danh sách nên không nhận lại inset status bar.
+            windowInsets = if (paneMode) WindowInsets(0, 0, 0, 0) else TopAppBarDefaults.windowInsets,
+            // Dải gradient phải trùng màu nền thật của thanh, nếu không sẽ lộ một vệt sáng ở pane.
+            topBarColor = if (paneMode) AppTheme.colors.surfaceSunken else MaterialTheme.colorScheme.background,
+        )
+
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
@@ -170,9 +182,7 @@ fun DebtDetailScreen(
             val item = uiState.debtWithHistory
             if (item == null) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -184,16 +194,14 @@ fun DebtDetailScreen(
             } else {
                 val debt = item.debt
                 val isLend = debt.type == DebtType.LEND
-                val accentColor = if (isLend) Color(0xFF34C759) else Color(0xFFFF9500)
+                val accentColor = if (isLend) AppTheme.colors.success else AppTheme.colors.error
                 val animatedProgress by animateFloatAsState(
                     targetValue = item.progressRatio.coerceIn(0f, 1f),
                     label = "debt_progress"
                 )
 
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
@@ -205,7 +213,11 @@ fun DebtDetailScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            ),
                         ) {
                             Column(
                                 modifier = Modifier
@@ -222,15 +234,15 @@ fun DebtDetailScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(52.dp)
-                                            .clip(CircleShape)
-                                            .background(accentColor.copy(alpha = 0.15f)),
+                                            .clip(AppTheme.shapes.capsule)
+                                            .background(AppTheme.colors.sand),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             text = initial,
                                             fontWeight = FontWeight.ExtraBold,
                                             fontSize = 22.sp,
-                                            color = accentColor,
+                                            color = AppTheme.colors.onSand,
                                         )
                                     }
 
@@ -329,9 +341,11 @@ fun DebtDetailScreen(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = MoneyFormatter.format(item.remainingAmount),
-                                        style = MaterialTheme.typography.headlineMedium,
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontFeatureSettings = "tnum"
+                                        ),
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = if (item.isFullyPaid) Color(0xFF34C759) else accentColor,
+                                        color = if (item.isFullyPaid) AppTheme.colors.success else accentColor,
                                     )
                                 }
 
@@ -342,7 +356,7 @@ fun DebtDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(8.dp)
-                                            .clip(CircleShape),
+                                            .clip(AppTheme.shapes.capsule),
                                         color = accentColor,
                                         trackColor = accentColor.copy(alpha = 0.15f),
                                         strokeCap = StrokeCap.Round,
@@ -357,7 +371,9 @@ fun DebtDetailScreen(
                                                 R.string.debt_card_paid,
                                                 MoneyFormatter.format(item.totalPaid)
                                             ),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontFeatureSettings = "tnum"
+                                            ),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         Text(
@@ -365,7 +381,9 @@ fun DebtDetailScreen(
                                                 R.string.debt_card_total,
                                                 MoneyFormatter.format(debt.originalAmount)
                                             ),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontFeatureSettings = "tnum"
+                                            ),
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
                                         )
@@ -381,18 +399,18 @@ fun DebtDetailScreen(
                                     val (badgeText, badgeBg, badgeTextColor) = when {
                                         item.isFullyPaid -> Triple(
                                             stringResource(R.string.debt_status_settled),
-                                            Color(0xFF007AFF).copy(alpha = 0.12f),
-                                            Color(0xFF007AFF),
+                                            AppTheme.colors.success.copy(alpha = 0.15f),
+                                            AppTheme.colors.success,
                                         )
                                         item.isOverdue() -> Triple(
                                             stringResource(R.string.debt_status_overdue),
-                                            MaterialTheme.colorScheme.errorContainer,
-                                            MaterialTheme.colorScheme.error,
+                                            AppTheme.colors.error.copy(alpha = 0.15f),
+                                            AppTheme.colors.error,
                                         )
                                         item.isDueToday() -> Triple(
                                             stringResource(R.string.debt_status_due_today),
-                                            Color(0xFFFF9500).copy(alpha = 0.15f),
-                                            Color(0xFFFF9500),
+                                            AppTheme.colors.warning.copy(alpha = 0.15f),
+                                            AppTheme.colors.warning,
                                         )
                                         debt.dueDate != null -> Triple(
                                             stringResource(
@@ -408,7 +426,7 @@ fun DebtDetailScreen(
                                     if (badgeText.isNotBlank()) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(AppTheme.shapes.corner8)
+                                                .clip(AppTheme.shapes.corner12)
                                                 .background(badgeBg)
                                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                                         ) {
@@ -457,7 +475,11 @@ fun DebtDetailScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            ),
                         ) {
                             Column(
                                 modifier = Modifier
@@ -468,10 +490,10 @@ fun DebtDetailScreen(
                                 // Record partial repayment
                                 Button(
                                     onClick = { showPaymentDialog = true },
-                                    shape = AppTheme.shapes.corner16,
+                                    shape = AppTheme.shapes.capsule,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = accentColor,
-                                        contentColor = Color.White,
+                                        containerColor = AppTheme.colors.ink,
+                                        contentColor = AppTheme.colors.onInk,
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -493,7 +515,7 @@ fun DebtDetailScreen(
                                 // Mark settled toggle
                                 FilledTonalButton(
                                     onClick = { viewModel.toggleSettled() },
-                                    shape = AppTheme.shapes.corner16,
+                                    shape = AppTheme.shapes.capsule,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .defaultMinSize(minHeight = 48.dp),
@@ -517,7 +539,7 @@ fun DebtDetailScreen(
                                 if (isLend) {
                                     OutlinedButton(
                                         onClick = { showQrSheet = true },
-                                        shape = AppTheme.shapes.corner16,
+                                        shape = AppTheme.shapes.capsule,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .defaultMinSize(minHeight = 48.dp),
@@ -585,7 +607,11 @@ fun DebtDetailScreen(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                ),
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -613,8 +639,7 @@ fun DebtDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = MoneyFormatter.format(payment.amount),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
+                                            style = AppTheme.typography.amountRow,
                                             color = MaterialTheme.colorScheme.onSurface,
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
@@ -650,23 +675,23 @@ fun DebtDetailScreen(
     }
 
     // Record Payment Dialog
-    if (showPaymentDialog && uiState.debtWithHistory != null) {
-        val debt = uiState.debtWithHistory!!.debt
+    val debtWithHistory = uiState.debtWithHistory
+    if (showPaymentDialog && debtWithHistory != null) {
         RecordPaymentDialog(
-            debtWithHistory = uiState.debtWithHistory!!,
+            debtWithHistory = debtWithHistory,
             wallets = uiState.wallets,
             onDismiss = { showPaymentDialog = false },
             onConfirm = { amount, walletId, note, syncWithWallet ->
-                viewModel.recordPayment(debt, amount, walletId, note, syncWithWallet)
+                viewModel.recordPayment(debtWithHistory.debt, amount, walletId, note, syncWithWallet)
                 showPaymentDialog = false
             }
         )
     }
 
     // VietQR Remind Bottom Sheet
-    if (showQrSheet && uiState.debtWithHistory != null) {
+    if (showQrSheet && debtWithHistory != null) {
         DebtRemindBottomSheet(
-            debtWithHistory = uiState.debtWithHistory!!,
+            debtWithHistory = debtWithHistory,
             wallets = uiState.wallets,
             banks = uiState.banks,
             sheetState = qrSheetState,

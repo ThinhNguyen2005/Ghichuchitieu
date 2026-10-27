@@ -22,8 +22,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -84,6 +87,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.money.Money
+import com.notepay.ui.adaptive.LocalContentGutter
+import com.notepay.ui.adaptive.LocalWindowLayout
+import com.notepay.ui.adaptive.usesNavigationRail
 import com.notepay.ui.component.WalletAppIcon
 import com.notepay.ui.feature.debt.DebtSummaryCard
 import com.notepay.ui.feedback.UiFeedback
@@ -99,6 +105,9 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+/** Bề rộng tối thiểu của một thẻ ví trong grid; dưới ngưỡng này grid tự rơi về 1 cột. */
+private val AssetCardMinWidth = 320.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssetsScreen(
@@ -111,6 +120,10 @@ fun AssetsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transferSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Tablet: lề bù để danh sách một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
+    val contentGutter = LocalContentGutter.current
+    // Compact/Medium có thanh điều hướng nổi ở đáy nên phải chừa chỗ; chế độ rail thì không.
+    val bottomClearance = if (LocalWindowLayout.current.usesNavigationRail) 24.dp else 120.dp
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -131,17 +144,20 @@ fun AssetsScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                // Grid tự chia cột theo bề rộng khả dụng: 1 cột ở Compact, 2 cột khi đủ chỗ.
+                columns = GridCells.Adaptive(minSize = AssetCardMinWidth),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
+                    start = 16.dp + contentGutter,
+                    end = 16.dp + contentGutter,
                     top = 16.dp,
-                    bottom = 120.dp
+                    bottom = bottomClearance
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
                     AssetsHeader(
                         totalNetWorth = state.totalNetWorth,
@@ -152,7 +168,7 @@ fun AssetsScreen(
                 }
 
                 // Biểu đồ phân bổ tài sản theo ví (Donut Chart chuẩn UX trang Thống kê)
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     WalletAllocationChartCard(
                         allocationItems = state.allocationItems,
                         totalNetWorth = state.totalNetWorth,
@@ -162,7 +178,7 @@ fun AssetsScreen(
                 // Thẻ tóm tắt Sổ nợ cá nhân (Personal Debts Summary)
                 val summary = state.debtSummary
                 if (summary != null && (summary.activeDebtsCount > 0 || summary.totalToCollect.amountInCents > 0L || summary.totalToPay.amountInCents > 0L)) {
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         DebtSummaryCard(
                             summary = summary,
                             onClick = onNavigateToDebtManagement,
@@ -171,7 +187,7 @@ fun AssetsScreen(
                 }
 
                 // Header danh sách ví
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -310,7 +310,7 @@ fun DebtorDetailScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(AppTheme.shapes.corner8)
+                                            .clip(AppTheme.shapes.corner12)
                                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
@@ -323,7 +323,7 @@ fun DebtorDetailScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(AppTheme.shapes.corner8)
+                                            .clip(AppTheme.shapes.corner12)
                                             .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = .55f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
@@ -452,7 +452,7 @@ private fun DebtSummaryCard(
                     )
                 }
                 Surface(
-                    shape = AppTheme.shapes.corner8,
+                    shape = AppTheme.shapes.corner12,
                     color = accent.copy(alpha = .12f),
                 ) {
                     Text(

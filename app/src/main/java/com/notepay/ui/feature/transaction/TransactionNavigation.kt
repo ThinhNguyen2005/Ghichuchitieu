@@ -80,6 +80,17 @@ fun NavGraphBuilder.transactionGraph(
                 onEditTransaction = { txId ->
                     navController.navigate(Route.EditTransaction(txId).path)
                 },
+                // Pane chi tiết ở chế độ Expanded dùng chung hai đích này với route chi tiết.
+                onCreateBillSplit = {
+                    navController.navigate(Route.BillSplit.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onCreateSubscription = { _, _ ->
+                    navController.navigate(Route.Subscription.path) {
+                        launchSingleTop = true
+                    }
+                },
                 onFeedback = showFeedback,
             )
         }

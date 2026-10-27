@@ -50,8 +50,6 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_THEME_COLOR = stringPreferencesKey("theme_color")
         val KEY_HAS_SEEN_WELCOME = booleanPreferencesKey("has_seen_welcome")
-
-        fun walletBackgroundKey(walletId: Long) = stringPreferencesKey("wallet_bg_$walletId")
     }
 
     val hasSeenWelcome: Flow<Boolean> = dataStore.data.map { preferences ->
@@ -149,23 +147,6 @@ class AppSettingsDataStore @Inject constructor(
         }
     }
 
-    fun observeWalletBackground(walletId: Long): Flow<String?> {
-        return dataStore.data.map { preferences ->
-            preferences[walletBackgroundKey(walletId)]
-        }
-    }
-
-    suspend fun setWalletBackground(walletId: Long, uriString: String?) {
-        dataStore.edit { preferences ->
-            val key = walletBackgroundKey(walletId)
-            if (uriString == null) {
-                preferences.remove(key)
-            } else {
-                preferences[key] = uriString
-            }
-        }
-    }
-
     val currencyCode: Flow<String> = dataStore.data.map { preferences ->
         preferences[KEY_CURRENCY_CODE] ?: "VND"
     }
@@ -217,7 +198,7 @@ class AppSettingsDataStore @Inject constructor(
     }
 
     val themeColor: Flow<String> = dataStore.data.map { preferences ->
-        preferences[KEY_THEME_COLOR] ?: "ledger"
+        preferences[KEY_THEME_COLOR] ?: "sand"
     }
 
     suspend fun setThemeColor(color: String) {

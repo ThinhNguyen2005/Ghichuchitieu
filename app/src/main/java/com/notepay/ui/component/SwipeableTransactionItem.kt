@@ -1,17 +1,22 @@
 package com.notepay.ui.component
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -20,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,7 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -42,15 +50,24 @@ import com.notepay.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.math.sign
+
+/** Bề rộng vùng hành động lộ ra sau khi vuốt — cũng là vùng chạm của nút (>= 48dp). */
+private val ActionWidth = 96.dp
+
+/** Tỉ lệ bề rộng hành động để phát rung báo "đã nắm được thao tác". */
+private const val RevealHapticFraction = 0.5f
 
 /**
- * Component bao bọc TransactionItem cho phép vuốt trực quan bám sát ngón tay (Direct Manipulation):
- * - Vuốt sang trái: Kích hoạt Xóa (Nền đỏ + Icon Thùng rác).
- * - Vuốt sang phải: Kích hoạt Sửa (Nền xanh/cam + Icon Bút chì).
- * - Vật lý đàn hồi (Rubber-band physics) khi kéo quá ngưỡng.
- * - Rung Haptic khi chạm mốc hành động.
- * - Khả năng ngắt quãng (Interruptible): chạm vào là dừng animation lò xo ngay tức khắc.
+ * Bọc một dòng giao dịch để vuốt ngang lộ nút hành động dạng "dính" (sticky reveal):
+ * - Vuốt sang trái: lộ nút **Xóa**, dừng lại ở trạng thái mở cho tới khi người dùng chạm.
+ * - Vuốt sang phải: lộ nút **Sửa** với cơ chế tương tự.
+ * - Chạm vào dòng khi đang mở: đóng lại thay vì mở chi tiết.
+ *
+ * Bề mặt hành động luôn được compose sẵn phía sau dòng, nên không có State nào bị đọc
+ * trong từng khung hình kéo: vị trí chỉ đọc trong layout phase qua `Modifier.offset { }`.
+ *
+ * @param shape bo góc của cả khối (dùng `RectangleShape` khi dòng nằm trong một thẻ nhóm).
+ * @param content nội dung dòng; mặc định là [TransactionItem] kiểu danh sách giao dịch.
  */
 @Composable
 fun SwipeableTransactionItem(
@@ -61,181 +78,178 @@ fun SwipeableTransactionItem(
     onDelete: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     hapticEnabled: Boolean = true,
+    isSelected: Boolean = false,
+    shape: Shape = AppTheme.shapes.corner16,
+    content: @Composable () -> Unit = {
+        TransactionItem(
+            transaction = transaction,
+            walletName = walletName,
+            onClick = onClick,
+            onLongClick = onDelete,
+            isSelected = isSelected,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    },
 ) {
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
 
-    val actionThresholdPx = with(density) { 88.dp.toPx() }
-    val commitThresholdPx = with(density) { 116.dp.toPx() }
-    val maxDragPx = with(density) { 140.dp.toPx() }
+    val editAction = onEdit
+    val deleteAction = onDelete
+
+    val actionWidthPx = with(density) { ActionWidth.toPx() }
+    val hapticThresholdPx = actionWidthPx * RevealHapticFraction
+    val minOffset = if (deleteAction != null) -actionWidthPx else 0f
+    val maxOffset = if (editAction != null) actionWidthPx else 0f
 
     val offsetX = remember { Animatable(0f) }
-    var hasTriggeredActionHaptic by remember { mutableStateOf(false) }
-    var hasTriggeredCommitHaptic by remember { mutableStateOf(false) }
+    var isOpen by remember { mutableStateOf(false) }
+    var dragStartOffset by remember { mutableFloatStateOf(0f) }
+    var dragAccumulated by remember { mutableFloatStateOf(0f) }
+    var hasTriggeredHaptic by remember { mutableStateOf(false) }
+
+    suspend fun settleTo(target: Float) {
+        offsetX.animateTo(
+            targetValue = target,
+            animationSpec = spring(dampingRatio = 0.85f, stiffness = 520f),
+        )
+        isOpen = target != 0f
+        hasTriggeredHaptic = false
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(AppTheme.shapes.corner16)
+            .clip(shape)
     ) {
-        val currentOffset = offsetX.value
-
-        // 1. Nền thao tác phía sau (Action Background)
-        if (currentOffset != 0f) {
-            val isSwipingLeft = currentOffset < 0
-            val absOffset = abs(currentOffset)
-            val progress = (absOffset / actionThresholdPx).coerceIn(0f, 1.5f)
-            val iconScale = (0.6f + progress * 0.4f).coerceIn(0.6f, 1.2f)
-
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(AppTheme.shapes.corner16)
-                    .background(
-                        if (isSwipingLeft) {
-                            if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.errorContainer
-                        } else {
-                            if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primaryContainer
-                        }
-                    )
-                    .padding(horizontal = 20.dp),
-                contentAlignment = if (isSwipingLeft) Alignment.CenterEnd else Alignment.CenterStart
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.scale(iconScale)
-                ) {
-                    if (isSwipingLeft) {
-                        Text(
-                            text = stringResource(R.string.action_delete),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.Delete,
-                            contentDescription = stringResource(R.string.action_delete),
-                            tint = if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = stringResource(R.string.action_edit),
-                            tint = if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.action_edit),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (absOffset >= actionThresholdPx) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
+        // Vùng hành động nằm sau dòng; chỉ phần không bị dòng che mới nhìn thấy và chạm được.
+        if (editAction != null) {
+            RevealAction(
+                label = stringResource(R.string.action_edit),
+                icon = Icons.Rounded.Edit,
+                containerColor = AppTheme.colors.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                alignment = Alignment.CenterStart,
+                onAction = {
+                    coroutineScope.launch { settleTo(0f) }
+                    editAction()
+                },
+            )
+        }
+        if (deleteAction != null) {
+            RevealAction(
+                label = stringResource(R.string.action_delete),
+                icon = Icons.Rounded.Delete,
+                containerColor = AppTheme.colors.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+                alignment = Alignment.CenterEnd,
+                onAction = {
+                    coroutineScope.launch { settleTo(0f) }
+                    deleteAction()
+                },
+            )
         }
 
-        // 2. Nội dung Item chính phía trước (bám theo ngón tay 1:1)
         Box(
             modifier = Modifier
-                .offset { IntOffset(currentOffset.roundToInt(), 0) }
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .fillMaxWidth()
-                .pointerInput(Unit) {
+                .pointerInput(actionWidthPx, minOffset, maxOffset) {
                     detectHorizontalDragGestures(
                         onDragStart = {
-                            coroutineScope.launch {
-                                offsetX.stop() // Ngắt animation tức thì nếu đang nảy
-                            }
-                            hasTriggeredActionHaptic = false
-                            hasTriggeredCommitHaptic = false
+                            coroutineScope.launch { offsetX.stop() }
+                            dragStartOffset = offsetX.value
+                            dragAccumulated = 0f
+                            hasTriggeredHaptic = false
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            coroutineScope.launch {
-                                val target = offsetX.value + dragAmount
-                                val absTarget = abs(target)
-                                
-                                // Áp dụng lực cản cao su (Rubber-band physics) khi kéo quá mức
-                                val dampedTarget = if (absTarget > actionThresholdPx) {
-                                    val overdrag = absTarget - actionThresholdPx
-                                    val dampedOverdrag = overdrag * 0.35f
-                                    (actionThresholdPx + dampedOverdrag).coerceAtMost(maxDragPx) * target.sign
-                                } else {
-                                    target
+                            dragAccumulated += dragAmount
+                            val target = (dragStartOffset + dragAccumulated)
+                                .coerceIn(minOffset, maxOffset)
+
+                            val pastThreshold = abs(target) >= hapticThresholdPx
+                            if (pastThreshold && !hasTriggeredHaptic) {
+                                if (hapticEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
-
-                                val currentAbsDrag = abs(dampedTarget)
-
-                                // Mốc 1: Vượt qua actionThresholdPx (88dp) - Rung nhẹ báo "đã lộ nút"
-                                if (currentAbsDrag >= actionThresholdPx && !hasTriggeredActionHaptic) {
-                                    if (hapticEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    hasTriggeredActionHaptic = true
-                                } else if (currentAbsDrag < actionThresholdPx && hasTriggeredActionHaptic) {
-                                    hasTriggeredActionHaptic = false
-                                }
-
-                                // Mốc 2: Vượt qua commitThresholdPx (116dp) - Rung dứt khoát báo "ngưỡng xác nhận thao tác"
-                                if (currentAbsDrag >= commitThresholdPx && !hasTriggeredCommitHaptic) {
-                                    if (hapticEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    }
-                                    hasTriggeredCommitHaptic = true
-                                } else if (currentAbsDrag < commitThresholdPx && hasTriggeredCommitHaptic) {
-                                    hasTriggeredCommitHaptic = false
-                                }
-
-                                offsetX.snapTo(dampedTarget)
+                                hasTriggeredHaptic = true
+                            } else if (!pastThreshold && hasTriggeredHaptic) {
+                                hasTriggeredHaptic = false
                             }
+
+                            coroutineScope.launch { offsetX.snapTo(target) }
                         },
                         onDragEnd = {
-                            coroutineScope.launch {
-                                val finalOffset = offsetX.value
-                                val committed = abs(finalOffset) >= commitThresholdPx
-
-                                if (committed) {
-                                    if (finalOffset < 0) onDelete?.invoke() else onEdit?.invoke()
-                                }
-
-                                offsetX.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = spring(
-                                        dampingRatio = if (committed) 0.85f else 0.7f,
-                                        stiffness = if (committed) 500f else 380f
-                                    )
-                                )
-                                hasTriggeredActionHaptic = false
-                                hasTriggeredCommitHaptic = false
+                            val settledOffset = when {
+                                offsetX.value <= -hapticThresholdPx -> minOffset
+                                offsetX.value >= hapticThresholdPx -> maxOffset
+                                else -> 0f
                             }
+                            coroutineScope.launch { settleTo(settledOffset) }
                         },
                         onDragCancel = {
-                            coroutineScope.launch {
-                                offsetX.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                )
-                                hasTriggeredActionHaptic = false
-                                hasTriggeredCommitHaptic = false
-                            }
-                        }
+                            coroutineScope.launch { settleTo(0f) }
+                        },
                     )
                 }
         ) {
-            TransactionItem(
-                transaction = transaction,
-                walletName = walletName,
-                onClick = onClick,
-                onLongClick = onDelete,
-                modifier = Modifier.fillMaxWidth()
+            content()
+
+            // Đang mở: chạm vào dòng để đóng, tránh mở nhầm chi tiết giao dịch.
+            if (isOpen) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClickLabel = stringResource(R.string.action_close),
+                            onClick = { coroutineScope.launch { settleTo(0f) } },
+                        )
+                )
+            }
+        }
+    }
+}
+
+/** Một nút hành động nằm sát một cạnh của dòng, chỉ lộ ra khi dòng bị kéo. */
+@Composable
+private fun BoxScope.RevealAction(
+    label: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    alignment: Alignment,
+    onAction: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.matchParentSize(),
+        contentAlignment = alignment,
+    ) {
+        Column(
+            modifier = Modifier
+                .width(ActionWidth)
+                .fillMaxHeight()
+                .background(containerColor)
+                .clickable(onClickLabel = label, onClick = onAction),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                maxLines = 1,
             )
         }
     }

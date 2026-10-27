@@ -17,12 +17,16 @@ import com.notepay.domain.usecase.debt.RecordDebtPaymentUseCase
 import com.notepay.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,15 +51,37 @@ class DebtDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    val debtId: Long = savedStateHandle.get<Long>(Route.DebtDetail.ARG_ID)
+    /**
+     * Route độc lập lấy id từ nav args; ở chế độ hai pane thì [select] được gọi khi người
+     * dùng chọn một khoản nợ trong danh sách.
+     */
+    private val initialDebtId: Long? = savedStateHandle.get<Long>(Route.DebtDetail.ARG_ID)
         ?: savedStateHandle.get<String>(Route.DebtDetail.ARG_ID)?.toLongOrNull()
-        ?: -1L
+
+    private val selectedDebtId = MutableStateFlow(initialDebtId)
 
     private val _events = MutableSharedFlow<DebtDetailUiEvent>()
     val events = _events.asSharedFlow()
 
     private val _isDeleted = MutableStateFlow(false)
     private val _banks = MutableStateFlow(VietQrBankRepository.FALLBACK)
+
+    /**
+     * `true` trong khoảng thời gian giữa lúc đổi lựa chọn và lúc Room phát bản ghi mới.
+     * Không có cờ này thì `combine` giữ dữ liệu của khoản nợ trước đó vài frame, đủ để
+     * người dùng thấy thoáng tên/số tiền của người khác.
+     */
+    private val _isSwitching = MutableStateFlow(false)
+
+    /**
+     * Đổi khoản nợ đang hiển thị. `null` làm luồng repo không phát gì nên `uiState` giữ
+     * nguyên trạng thái loading thay vì nháy "không tìm thấy" một frame.
+     */
+    fun select(debtId: Long?) {
+        _isDeleted.value = false
+        if (debtId != selectedDebtId.value) _isSwitching.value = true
+        selectedDebtId.value = debtId
+    }
 
     init {
         viewModelScope.launch {
@@ -68,17 +94,25 @@ class DebtDetailViewModel @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DebtDetailUiState> = combine(
-        debtRepository.observeById(debtId),
+        selectedDebtId.flatMapLatest { id ->
+            if (id == null) {
+                emptyFlow()
+            } else {
+                debtRepository.observeById(id).onEach { _isSwitching.value = false }
+            }
+        },
         walletRepository.observeAll(),
         _banks,
-        _isDeleted
-    ) { debtWithHistory, wallets, banks, isDeleted ->
+        _isDeleted,
+        _isSwitching,
+    ) { debtWithHistory, wallets, banks, isDeleted, isSwitching ->
         DebtDetailUiState(
-            debtWithHistory = debtWithHistory,
+            debtWithHistory = if (isSwitching) null else debtWithHistory,
             wallets = wallets,
             banks = banks,
-            isLoading = false,
+            isLoading = isSwitching,
             isDeleted = isDeleted,
         )
     }.stateIn(
@@ -130,8 +164,9 @@ class DebtDetailViewModel @Inject constructor(
 
     fun toggleSettled() {
         val current = uiState.value.debtWithHistory ?: return
+        val id = selectedDebtId.value ?: return
         viewModelScope.launch {
-            debtRepository.markSettled(debtId, !current.debt.isSettled)
+            debtRepository.markSettled(id, !current.debt.isSettled)
         }
     }
 
@@ -143,8 +178,9 @@ class DebtDetailViewModel @Inject constructor(
     }
 
     fun deleteDebt() {
+        val id = selectedDebtId.value ?: return
         viewModelScope.launch {
-            deleteDebtUseCase(debtId)
+            deleteDebtUseCase(id)
             _isDeleted.update { true }
             _events.emit(DebtDetailUiEvent.DebtDeleted)
         }

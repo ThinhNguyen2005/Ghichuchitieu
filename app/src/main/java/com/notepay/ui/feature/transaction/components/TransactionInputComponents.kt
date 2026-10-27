@@ -256,7 +256,7 @@ fun CategoryQuickSelectionRow(
                     color = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier
-                    .clip(AppTheme.shapes.corner8)
+                    .clip(AppTheme.shapes.corner12)
                     .clickable(onClick = onSeeAllClick)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )

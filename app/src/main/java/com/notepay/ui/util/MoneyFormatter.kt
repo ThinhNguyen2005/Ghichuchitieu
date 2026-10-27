@@ -17,14 +17,15 @@ object MoneyFormatter {
      * Formats Money into standard Vietnamese currency string.
      * Thread-safe per call.
      */
-    fun format(money: Money): String {
+    fun format(money: Money): String = "${groupedMajorUnits(money)} ₫"
+
+    private fun groupedMajorUnits(money: Money): String {
         val symbols = DecimalFormatSymbols(VIETNAMESE_LOCALE).apply {
             groupingSeparator = '.'
             decimalSeparator = ','
         }
         val formatter = DecimalFormat("#,##0", symbols)
-        val majorUnits = money.amountInCents / 100L
-        return "${formatter.format(majorUnits)} ₫"
+        return formatter.format(money.amountInCents / 100L)
     }
 
     /**

@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
     val themeColor: StateFlow<String> = appSettingsDataStore.themeColor.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "ios",
+        initialValue = "sand",
     )
 
     val liquidGlassEnabled: StateFlow<Boolean> = appSettingsDataStore.liquidGlassEnabled.stateIn(

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -24,50 +25,47 @@ object NotificationHelper {
 
     const val NOTIFICATION_ID_BUDGET = 2001
     const val NOTIFICATION_ID_WEEKLY_DIGEST = 2002
-    const val NOTIFICATION_ID_DAILY_REMINDER = 1001
 
     fun createNotificationChannels(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                ?: return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            ?: return
 
-            val budgetChannel = NotificationChannel(
-                CHANNEL_BUDGET_ALERTS,
-                context.getString(R.string.notif_channel_budget_alerts),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = context.getString(R.string.notif_channel_budget_alerts_desc)
-                enableVibration(true)
-            }
-
-            val weeklyChannel = NotificationChannel(
-                CHANNEL_WEEKLY_DIGEST,
-                context.getString(R.string.notif_channel_weekly_digest),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply {
-                description = context.getString(R.string.notif_channel_weekly_digest_desc)
-            }
-
-            val dailyChannel = NotificationChannel(
-                CHANNEL_DAILY_REMINDERS,
-                context.getString(R.string.notif_channel_daily_reminders),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply {
-                description = context.getString(R.string.notif_channel_daily_reminders_desc)
-            }
-
-            val subChannel = NotificationChannel(
-                CHANNEL_SUBSCRIPTION_REMINDERS,
-                context.getString(R.string.notif_subscription_channel_name),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = context.getString(R.string.notif_subscription_channel_desc)
-            }
-
-            manager.createNotificationChannels(
-                listOf(budgetChannel, weeklyChannel, dailyChannel, subChannel),
-            )
+        val budgetChannel = NotificationChannel(
+            CHANNEL_BUDGET_ALERTS,
+            context.getString(R.string.notif_channel_budget_alerts),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.notif_channel_budget_alerts_desc)
+            enableVibration(true)
         }
+
+        val weeklyChannel = NotificationChannel(
+            CHANNEL_WEEKLY_DIGEST,
+            context.getString(R.string.notif_channel_weekly_digest),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = context.getString(R.string.notif_channel_weekly_digest_desc)
+        }
+
+        val dailyChannel = NotificationChannel(
+            CHANNEL_DAILY_REMINDERS,
+            context.getString(R.string.notif_channel_daily_reminders),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = context.getString(R.string.notif_channel_daily_reminders_desc)
+        }
+
+        val subChannel = NotificationChannel(
+            CHANNEL_SUBSCRIPTION_REMINDERS,
+            context.getString(R.string.notif_subscription_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.notif_subscription_channel_desc)
+        }
+
+        manager.createNotificationChannels(
+            listOf(budgetChannel, weeklyChannel, dailyChannel, subChannel),
+        )
     }
 
     fun hasNotificationPermission(context: Context): Boolean {
@@ -83,6 +81,7 @@ object NotificationHelper {
         return true
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun sendBudgetAlert(
         context: Context,
         isOverspent: Boolean,
@@ -129,6 +128,7 @@ object NotificationHelper {
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_BUDGET, notification)
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun sendWeeklyDigest(
         context: Context,
         totalSpentFormatted: String,

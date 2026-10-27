@@ -14,7 +14,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import com.notepay.ui.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,14 +53,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,7 +118,6 @@ private enum class StatsContentState {
     CONTENT,
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
@@ -147,27 +142,30 @@ fun StatsScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            GradientTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.stats_screen_title),
-                        fontWeight = FontWeight.ExtraBold,
+    // Không dùng Scaffold lồng nhau: root shell (NotePayNavHost) đã là Scaffold duy nhất.
+    // GradientTopAppBar tự xử lý inset status bar qua windowInsets của TopAppBar.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        GradientTopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.stats_screen_title),
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            },
+            actions = {
+                if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                    StatsHeader(
+                        viewType = viewType,
+                        onViewTypeChanged = { viewType = it },
                     )
-                },
-                actions = {
-                    if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
-                        StatsHeader(
-                            viewType = viewType,
-                            onViewTypeChanged = { viewType = it },
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+                }
+            },
+        )
+
         AnimatedContent(
             targetState = contentState,
             transitionSpec = {
@@ -176,9 +174,8 @@ fun StatsScreen(
             },
             label = "stats-content",
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding),
+                .weight(1f)
+                .fillMaxWidth(),
         ) { target ->
             when (target) {
                 StatsContentState.LOADING -> StatsLoadingState()
@@ -195,6 +192,7 @@ fun StatsScreen(
                             viewModel.selectMonth(point.year, point.month)
                         },
                         onCategorySelected = viewModel::selectCategory,
+                        onTrendWindowSelected = viewModel::selectTrendWindow,
                         supportingContent = { metric ->
                             StatsSupportingContent(
                                 state = state,
@@ -248,7 +246,7 @@ private fun StatsLoadingState() {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.semantics {
                 contentDescription = loadingContentDescription
             },
@@ -260,7 +258,7 @@ private fun StatsLoadingState() {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(30.dp),
+                        modifier = Modifier.size(32.dp),
                         strokeWidth = 3.dp,
                     )
                 }
@@ -304,7 +302,7 @@ private fun StatsEmptyState(
                         imageVector = Icons.Outlined.PieChart,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(44.dp),
                     )
                 }
             }
@@ -326,7 +324,7 @@ private fun StatsEmptyState(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
-                shape = AppTheme.shapes.corner14,
+                shape = AppTheme.shapes.corner16,
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -449,27 +447,33 @@ private fun StatsSupportingContent(
                     enter = fadeIn(animationSpec = tween(180)) + expandVertically(animationSpec = tween(220)),
                     exit = fadeOut(animationSpec = tween(120)) + shrinkVertically(animationSpec = tween(180)),
                 ) {
-                    Text(
-                        text = stringResource(R.string.stats_transaction_history_format, item.category.localizedName()),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp, top = 4.dp),
-                    )
-
-                    if (selectedTransactions.isEmpty()) {
+                    // AnimatedVisibility xếp các con trực tiếp chồng lên nhau → gom vào 1 Column.
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Text(
-                            text = stringResource(R.string.stats_empty),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp),
+                            text = stringResource(R.string.stats_transaction_history_format, item.category.localizedName()),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
                         )
-                    } else {
-                        selectedTransactions.forEach { transaction ->
-                            TransactionItem(
-                                transaction = transaction,
-                                onClick = { onTransactionClick(transaction.id) },
+
+                        if (selectedTransactions.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.stats_empty),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(12.dp),
                             )
+                        } else {
+                            selectedTransactions.forEach { transaction ->
+                                TransactionItem(
+                                    transaction = transaction,
+                                    onClick = { onTransactionClick(transaction.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -485,7 +489,7 @@ private fun SectionHeading(
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = title,
@@ -529,18 +533,14 @@ private fun CategoryBreakdownRow(
             .clickable(onClick = onClick),
         shape = AppTheme.shapes.corner16,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isAppDarkTheme()) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         border = if (isSelected) BorderStroke(1.5.dp, Color(item.category.colorArgb)) else null,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CategoryAvatar(
@@ -583,7 +583,7 @@ private fun CategoryBreakdownRow(
                         progress = { item.percentage.coerceIn(0f, 1f) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(6.dp),
+                            .height(8.dp),
                         color = Color(item.category.colorArgb),
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = StrokeCap.Round,
@@ -644,26 +644,22 @@ private fun BudgetProgressBar(
         modifier = Modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isAppDarkTheme()) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            }
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Surface(
                     shape = CircleShape,
                     color = statusColor.copy(alpha = 0.12f),
-                    modifier = Modifier.size(38.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -694,7 +690,7 @@ private fun BudgetProgressBar(
                 }
 
                 Surface(
-                    shape = AppTheme.shapes.corner10,
+                    shape = AppTheme.shapes.corner12,
                     color = statusColor.copy(alpha = 0.12f),
                 ) {
                     Text(
@@ -706,7 +702,7 @@ private fun BudgetProgressBar(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -715,7 +711,7 @@ private fun BudgetProgressBar(
                 progress = { visualProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(9.dp)
+                    .height(12.dp)
                     .clip(CircleShape)
                     .semantics {
                         contentDescription = budgetUsedContentDescription
@@ -774,21 +770,17 @@ private fun SpendingPredictionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isAppDarkTheme()) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            }
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Surface(
                     shape = CircleShape,
@@ -829,7 +821,7 @@ private fun SpendingPredictionCard(
                 }
 
                 Surface(
-                    shape = AppTheme.shapes.corner10,
+                    shape = AppTheme.shapes.corner12,
                     color = riskContainerColor,
                 ) {
                     Text(
@@ -837,7 +829,7 @@ private fun SpendingPredictionCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = riskOnContainerColor,
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -901,7 +893,7 @@ private fun AiInsightsCarousel(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SectionHeading(
             title = stringResource(R.string.stats_section_advice),
@@ -994,13 +986,13 @@ private fun LocalAdvisorCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 Icons.Rounded.Psychology,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1022,8 +1014,7 @@ private fun LocalAdvisorCard(
             LocalAdvisorStatus.RUNNING -> {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -1047,7 +1038,6 @@ private fun LocalAdvisorCard(
                     text = idleDescription,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1063,10 +1053,10 @@ private fun LocalAdvisorCard(
                         Icon(
                             Icons.Rounded.Lightbulb,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onPrimary,
                         )
-                        Spacer(Modifier.width(5.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             text = stringResource(R.string.stats_action_analyze),
                             fontWeight = FontWeight.Bold,
@@ -1084,10 +1074,10 @@ private fun LocalAdvisorCard(
                             Icon(
                                 Icons.Rounded.Settings,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSecondary,
                             )
-                            Spacer(Modifier.width(5.dp))
+                            Spacer(Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.stats_action_ai_settings),
                                 fontWeight = FontWeight.Bold,
@@ -1107,7 +1097,6 @@ private fun LocalAdvisorCard(
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
                 )
 
                 Row(
@@ -1141,7 +1130,7 @@ private fun LocalAdvisorCard(
                             Icon(
                                 Icons.Rounded.Settings,
                                 contentDescription = stringResource(R.string.stats_cd_open_ai_settings),
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -1186,13 +1175,13 @@ private fun DynamicDailyBudgetCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 Icons.Rounded.Wallet,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1213,7 +1202,7 @@ private fun DynamicDailyBudgetCard(
         }
 
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -1237,7 +1226,7 @@ private fun DynamicDailyBudgetCard(
             progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(7.dp)
+                .height(8.dp)
                 .clip(CircleShape),
             color = accentColor,
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -1246,7 +1235,7 @@ private fun DynamicDailyBudgetCard(
 
         Row(
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 imageVector = if (budget.isExceeded) {
@@ -1290,7 +1279,7 @@ private fun AiAdviceCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 imageVector = if (advice.type == "warning") {
@@ -1300,7 +1289,7 @@ private fun AiAdviceCard(
                 },
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             Text(
                 text = advice.title.resolve(),
@@ -1317,7 +1306,6 @@ private fun AiAdviceCard(
             style = MaterialTheme.typography.bodySmall,
             maxLines = 5,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
         )
 
         Row(
@@ -1347,7 +1335,7 @@ private fun AiAdviceCard(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     },
-                    modifier = Modifier.size(19.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
             IconButton(
@@ -1362,7 +1350,7 @@ private fun AiAdviceCard(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     },
-                    modifier = Modifier.size(19.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -1380,13 +1368,13 @@ private fun SubscriptionProposalCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 Icons.Rounded.CalendarMonth,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1403,7 +1391,7 @@ private fun SubscriptionProposalCard(
         }
 
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -1426,14 +1414,14 @@ private fun SubscriptionProposalCard(
                 .fillMaxWidth()
                 .heightIn(min = 44.dp),
             shape = AppTheme.shapes.corner12,
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Icon(
                 Icons.Rounded.Add,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
             )
-            Spacer(Modifier.width(7.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.stats_add_to_subscriptions),
                 fontWeight = FontWeight.Bold,
@@ -1448,21 +1436,17 @@ private fun InsightCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        modifier = modifier.height(214.dp),
+        modifier = modifier.heightIn(min = 216.dp),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = if (!isAppDarkTheme()) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content,
         )
     }

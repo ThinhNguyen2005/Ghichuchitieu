@@ -361,7 +361,7 @@ private fun BudgetAlertSection(
                                 modifier = Modifier
                                     .weight(1f)
                                     .defaultMinSize(minHeight = 48.dp)
-                                    .clip(AppTheme.shapes.corner8)
+                                    .clip(AppTheme.shapes.corner12)
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                                     .selectable(
                                         selected = isSelected,

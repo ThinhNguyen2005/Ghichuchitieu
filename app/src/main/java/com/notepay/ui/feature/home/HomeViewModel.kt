@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -35,6 +34,9 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 import kotlin.time.Clock
+
+/** Số giao dịch gần đây tối đa hiển thị trên Home; giao diện tự gom theo ngày. */
+private const val MaxRecentTransactions = 30
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -106,27 +108,19 @@ class HomeViewModel @Inject constructor(
             walletRepo.observeAll(),
             transactionRepo.observeWalletStats(startMillis, endMillis)
         ) { wallets, stats ->
-            wallets to stats.associateBy { it.walletId }
-        }.flatMapLatest { (wallets, statsMap) ->
-            if (wallets.isEmpty()) flowOf(emptyList())
-            else {
-                val summaryFlows = wallets.map { wallet ->
-                    appSettingsDataStore.observeWalletBackground(wallet.id).map { bgUri ->
-                        val stat = statsMap[wallet.id]
-                        val totalInc = stat?.allTimeIncome ?: Money.ZERO
-                        val totalExp = stat?.allTimeExpense ?: Money.ZERO
-                        val monthInc = stat?.currentMonthIncome ?: Money.ZERO
-                        val monthExp = stat?.currentMonthExpense ?: Money.ZERO
-                        WalletSummary(
-                            wallet = wallet,
-                            balance = wallet.initialBalance + totalInc - totalExp,
-                            monthlyIncome = monthInc,
-                            monthlyExpense = monthExp,
-                            backgroundUri = bgUri
-                        )
-                    }
-                }
-                combine(summaryFlows) { it.toList() }
+            // Mỗi lượt emit dựng thẳng danh sách tóm tắt: một phép biến đổi thuần, không mở
+            // thêm N luồng DataStore như trước đây.
+            val statsMap = stats.associateBy { it.walletId }
+            wallets.map { wallet ->
+                val stat = statsMap[wallet.id]
+                val totalInc = stat?.allTimeIncome ?: Money.ZERO
+                val totalExp = stat?.allTimeExpense ?: Money.ZERO
+                WalletSummary(
+                    wallet = wallet,
+                    balance = wallet.initialBalance + totalInc - totalExp,
+                    monthlyIncome = stat?.currentMonthIncome ?: Money.ZERO,
+                    monthlyExpense = stat?.currentMonthExpense ?: Money.ZERO,
+                )
             }
         }
 
@@ -208,14 +202,13 @@ class HomeViewModel @Inject constructor(
                 currentBalance = activeSummary?.balance ?: Money.ZERO,
                 monthlyIncome = activeSummary?.monthlyIncome ?: Money.ZERO,
                 monthlyExpense = activeSummary?.monthlyExpense ?: Money.ZERO,
-                recentTransactions = summary.transactions.take(5),
+                recentTransactions = summary.transactions.take(MaxRecentTransactions),
                 monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
                 selectedMonth = summary.month,
                 selectedYear = summary.year,
                 isLoading = false,
                 budgetProjection = projection,
                 dueRemindersCount = dueCount,
-                walletBackgroundUri = activeSummary?.backgroundUri,
                 streakDays = streak,
                 isSmartInsightsDismissed = isDismissed,
             )
@@ -230,12 +223,6 @@ class HomeViewModel @Inject constructor(
         // Chỉ lọc giao dịch trên trang Home. Việc đặt ví mặc định (active wallet)
         // thuộc về màn Assets để tránh side-effect ghi DB khi người dùng chỉ xem.
         _selectedWalletFilterId.value = walletId
-    }
-
-    fun setWalletBackground(walletId: Long, uri: String?) {
-        viewModelScope.launch {
-            appSettingsDataStore.setWalletBackground(walletId, uri)
-        }
     }
 
     val hapticFeedbackEnabled = appSettingsDataStore.hapticFeedbackEnabled.stateIn(

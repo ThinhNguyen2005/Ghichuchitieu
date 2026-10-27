@@ -1,10 +1,12 @@
 package com.notepay.ui.theme
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.notepay.R
 
@@ -12,70 +14,62 @@ val FrauncesFontFamily = FontFamily(
     Font(R.font.fraunces_variable)
 )
 
-val ManropeFontFamily = FontFamily(
-    Font(R.font.manrope_variable)
-)
-
 val InterFontFamily = FontFamily(
     Font(R.font.inter_variable)
 )
 
-val NotePayNumberFontFamily = FontFamily(
-    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
-    Font(R.font.jetbrains_mono_medium, FontWeight.Medium),
-    Font(R.font.jetbrains_mono_bold, FontWeight.Bold)
-)
-
+/**
+ * Lớp kiểu chữ ngữ nghĩa của v4 "Sand & Ink" (DESIGN.md §3).
+ *
+ * Thang chữ chung (title / body / label) nằm ở [NotePayTypography]; lớp này chỉ giữ những
+ * style đặc thù của v4: tiêu đề serif, nhãn eyebrow và bộ số tiền bật `tnum`.
+ * Số tiền luôn dùng Inter + `tnum`, không dùng font serif.
+ */
+@Immutable
 data class AppTypography(
-    val display: TextStyle,
-    val displayMedium: TextStyle,
-    val displaySemibold: TextStyle,
-    
-    val headline: TextStyle,
-    val headlineMedium: TextStyle,
-    val headlineSemibold: TextStyle,
-    
-    val title: TextStyle,
-    val titleMedium: TextStyle,
-    val titleSemibold: TextStyle,
-    
-    val body: TextStyle,
-    val bodyMedium: TextStyle,
-    val bodySemibold: TextStyle,
-    
-    val caption: TextStyle,
-    val captionMedium: TextStyle,
-    val captionSemibold: TextStyle,
-    
-    val numberFontFamily: FontFamily,
-    val displayFontFamily: FontFamily = FrauncesFontFamily,
-    val contentFontFamily: FontFamily = ManropeFontFamily,
+    val displaySerif: TextStyle,
+    val eyebrow: TextStyle,
+    val amountHero: TextStyle,
+    val amountCard: TextStyle,
+    val amountRow: TextStyle
 )
 
 val DefaultAppTypography = AppTypography(
-    display = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 32.sp, fontWeight = FontWeight.Normal, lineHeight = 38.sp),
-    displayMedium = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 32.sp, fontWeight = FontWeight.Medium, lineHeight = 38.sp),
-    displaySemibold = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, lineHeight = 38.sp),
-    
-    headline = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 22.sp, fontWeight = FontWeight.Normal, lineHeight = 28.sp),
-    headlineMedium = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 22.sp, fontWeight = FontWeight.Medium, lineHeight = 28.sp),
-    headlineSemibold = TextStyle(fontFamily = FrauncesFontFamily, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp),
-    
-    title = TextStyle(fontFamily = ManropeFontFamily, fontSize = 19.sp, fontWeight = FontWeight.Normal, lineHeight = 25.sp),
-    titleMedium = TextStyle(fontFamily = ManropeFontFamily, fontSize = 19.sp, fontWeight = FontWeight.Medium, lineHeight = 25.sp),
-    titleSemibold = TextStyle(fontFamily = ManropeFontFamily, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, lineHeight = 25.sp),
-    
-    body = TextStyle(fontFamily = ManropeFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Normal, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontFamily = ManropeFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Medium, lineHeight = 22.sp),
-    bodySemibold = TextStyle(fontFamily = ManropeFontFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp),
-    
-    caption = TextStyle(fontFamily = ManropeFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, lineHeight = 16.sp),
-    captionMedium = TextStyle(fontFamily = ManropeFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp),
-    captionSemibold = TextStyle(fontFamily = ManropeFontFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 16.sp),
-    
-    numberFontFamily = NotePayNumberFontFamily,
-    displayFontFamily = FrauncesFontFamily,
-    contentFontFamily = ManropeFontFamily,
+    displaySerif = TextStyle(
+        fontFamily = FrauncesFontFamily,
+        fontSize = 26.sp,
+        fontWeight = FontWeight.Normal,
+        lineHeight = 30.sp
+    ),
+    eyebrow = TextStyle(
+        fontFamily = InterFontFamily,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 14.sp,
+        letterSpacing = 0.08.em
+    ),
+    amountHero = TextStyle(
+        fontFamily = InterFontFamily,
+        fontSize = 44.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 48.sp,
+        letterSpacing = (-0.03).em,
+        fontFeatureSettings = "tnum"
+    ),
+    amountCard = TextStyle(
+        fontFamily = InterFontFamily,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 26.sp,
+        fontFeatureSettings = "tnum"
+    ),
+    amountRow = TextStyle(
+        fontFamily = InterFontFamily,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 20.sp,
+        fontFeatureSettings = "tnum"
+    )
 )
 
 val LocalAppTypography = staticCompositionLocalOf { DefaultAppTypography }

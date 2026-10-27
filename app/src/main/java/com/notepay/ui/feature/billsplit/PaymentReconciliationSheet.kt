@@ -239,7 +239,7 @@ fun PaymentReconciliationSheet(
                             // Dùng Card(onClick = ...) chuẩn Material 3
                             Card(
                                 onClick = { selectedIncomeTxId = tx.id },
-                                shape = AppTheme.shapes.corner14,
+                                shape = AppTheme.shapes.corner16,
                                 colors = CardDefaults.cardColors(containerColor = cardBgColor),
                                 border = borderStroke,
                                 modifier = Modifier.fillMaxWidth(),
@@ -362,7 +362,7 @@ private fun PaymentMethodOption(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(AppTheme.shapes.corner14)
+            .clip(AppTheme.shapes.corner16)
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
                 else Color.Transparent,

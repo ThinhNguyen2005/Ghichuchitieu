@@ -10,137 +10,162 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 // ==========================================
-// NotePay Design Specification v3:
-// Ledger Ink & Warm Paper (DESIGN.md)
+// NotePay Design Specification v4:
+// Sand & Ink (Editorial) — xem DESIGN.md
 // ==========================================
 
-// Light Mode Canvas & Surface (Warm Paper)
-val LedgerLightBackground = Color(0xFFF7F3EC)       // Giấy ngà ấm
-val LedgerLightSurface = Color(0xFFFFFDF8)          // Bề mặt card - trắng ngà
-val LedgerLightSurfaceSunken = Color(0xFFEFE8DC)    // Vùng lõm (input/unfocused)
-val LedgerLightSurfaceRaised = Color(0xFFFFFFFF)    // Bề mặt nổi (modal/sheet)
+// Light Mode Canvas & Surface
+val SandInk = Color(0xFF0B0B0B)                  // Thẻ nhấn, nút chính, thanh điều hướng
+val SandLightBackground = Color(0xFFEFEFEF)      // Nền trang trung tính
+val SandLightSurface = Color(0xFFFFFFFF)         // Thẻ nội dung
+val SandLightSurfaceField = Color(0xFFF4F1EC)    // Ô nhập liệu, dải thu/chi
+val SandLightSurfaceLow = Color(0xFFF7F7F7)      // Vùng lõm nhẹ
+val SandLightSurfaceDim = Color(0xFFE7E7E7)
 
-val LedgerLightTextPrimary = Color(0xFF1F1B16)      // Mực đen ấm
-val LedgerLightTextSecondary = Color(0xFF6B6255)    // Nâu xám ấm
-val LedgerLightTextMuted = Color(0xFFA69C8C)        // Placeholder / disabled
+val SandLightTextPrimary = Color(0xFF111111)
+val SandLightTextSecondary = Color(0xFF5C5C5C)   // 5.8:1 trên background
+val SandLightTextMuted = Color(0xFF767676)       // >= 4.5:1 trên surface
 
-val LedgerLightBorder = Color(0xFFDCD3C2)           // Viền giấy ấm
-val LedgerLightBorderStrong = Color(0xFFC7BBA4)     // Viền nhấn (dashed divider ledger)
-val LedgerLightHairline = Color(0x1A1F1B16)         // rgba(31, 27, 22, 0.10)
+val SandLightBorder = Color(0xFFBDBDBD)
+val SandLightBorderSoft = Color(0xFFCFCFCF)
+val SandLightBorderStrong = Color(0xFF8A8A8A)
+val SandLightHairline = Color(0x1A111111)
 
-// Light Mode Brand Accent
-val LedgerPrimary = Color(0xFFB5502E)               // Đất nung (terracotta ink) - Chữ ký NotePay
-val LedgerOnPrimary = Color(0xFFFFF8F0)
-val LedgerPrimaryContainer = Color(0xFFF3DFCF)      // Nền nhạt accent
-val LedgerOnPrimaryContainer = Color(0xFF5C2413)
+// Light Mode Brand
+val Sand = Color(0xFFF2D3A8)                     // Điểm sáng: mục chọn, đoạn thanh, huy hiệu
+val SandOnSand = Color(0xFF111111)
+val SandGraphite = Color(0xFF3A3733)
+val SandClay = Color(0xFFC98A63)
+val SandSky = Color(0xFF7CC4FF)                  // Chuỗi dữ liệu thứ tư
+val SandLightTertiaryContainer = Color(0xFFF5E9DC)
+val SandLightOnTertiaryContainer = Color(0xFF3A2A1C)
+val SandLightErrorContainer = Color(0xFFF7E4DF)
+val SandLightOnError = Color(0xFFFFFFFF)
 
-val LedgerSecondary = Color(0xFF3E4A3E)             // Xanh rêu đậm
-val LedgerOnSecondary = Color(0xFFF7F3EC)
-val LedgerSecondaryContainer = Color(0xFFDCE3D5)
-val LedgerOnSecondaryContainer = Color(0xFF1F2A1F)
+// Dark Mode Canvas & Surface
+val SandDarkInk = Color(0xFF262626)              // Bề mặt ink ở dark mode
+val SandDarkInkBorder = Color(0xFF3A3A3A)        // Viền 1px bắt buộc kèm dark-ink
+val SandDarkBackground = Color(0xFF141414)
+val SandDarkSurface = Color(0xFF1D1D1D)
+val SandDarkSurfaceLow = Color(0xFF191919)
+val SandDarkCard = Color(0xFF242424)
+val SandDarkSurfaceHigh = Color(0xFF2A2A2A)
 
-val LedgerCta = Color(0xFFB5502E)                   // Nút hành động chính
-val LedgerOnCta = Color(0xFFFFF8F0)
+val SandDarkTextPrimary = Color(0xFFF2F2F2)
+val SandDarkTextSecondary = Color(0xFFA8A8A8)
+val SandDarkTextMuted = Color(0xFF8A8A8A)
 
-// Dark Mode Canvas & Surface (Ink Night)
-val LedgerDarkBackground = Color(0xFF15130F)        // Đen ấm ngả nâu
-val LedgerDarkSurface = Color(0xFF211E18)
-val LedgerDarkSurfaceSunken = Color(0xFF1A1712)
-val LedgerDarkSurfaceRaised = Color(0xFF2A261E)
+val SandDarkBorder = Color(0xFF3A3A3A)
+val SandDarkBorderStrong = Color(0xFF4A4A4A)
+val SandDarkHairline = Color(0x1AF2F2F2)
 
-val LedgerDarkTextPrimary = Color(0xFFF3ECDF)       // Trắng ngà ấm
-val LedgerDarkTextSecondary = Color(0xFFB7AC97)
-val LedgerDarkTextMuted = Color(0xFF7C7263)
+// Dark Mode Brand
+val SandDarkPrimaryContainer = Color(0xFF3A2F1F)
+val SandDarkSecondary = Color(0xFFB8AFA4)
+val SandDarkTertiary = Color(0xFFE0B48F)
+val SandDarkTertiaryContainer = Color(0xFF3A2A1C)
+val SandDarkOnTertiaryContainer = Color(0xFFF5E9DC)
+val SandDarkGraphite = Color(0xFF8A8279)
+val SandDarkClay = Color(0xFFD19A72)
 
-val LedgerDarkBorder = Color(0xFF3A3327)
-val LedgerDarkBorderStrong = Color(0xFF4E4433)
-val LedgerDarkHairline = Color(0x17F3ECDF)          // rgba(243, 236, 223, 0.09)
+// Semantic Financial Flow
+val SandIncome = Color(0xFF2F6B3A)
+val SandDarkIncome = Color(0xFF7FCB8C)
+val SandExpense = Color(0xFFA63B2E)
+val SandDarkExpense = Color(0xFFFF8F7E)
 
-// Dark Mode Brand Accent
-val LedgerDarkPrimary = Color(0xFFE08A5C)           // Đất nung sáng cho nền tối
-val LedgerDarkOnPrimary = Color(0xFF2E1206)
-val LedgerDarkPrimaryContainer = Color(0xFF4A2415)
-val LedgerDarkOnPrimaryContainer = Color(0xFFF3DFCF)
-
-val LedgerDarkSecondary = Color(0xFF8FA485)
-val LedgerDarkOnSecondary = Color(0xFF12190F)
-val LedgerDarkSecondaryContainer = Color(0xFF2B3527)
-val LedgerDarkOnSecondaryContainer = Color(0xFFDCE3D5)
-
-val LedgerDarkCta = Color(0xFFE08A5C)
-val LedgerDarkOnCta = Color(0xFF2E1206)
-
-// Semantic Financial Flow (Desaturated, warm tones)
-val LedgerIncome = Color(0xFF4C7A4A)                // Xanh lá rêu đục
-val LedgerIncomeContainer = Color(0xFFE1EBDC)
-val LedgerDarkIncome = Color(0xFF7FAE78)
-val LedgerDarkIncomeContainer = Color(0xFF233021)
-
-val LedgerExpense = Color(0xFFA63B2E)               // Đỏ gạch đất
-val LedgerExpenseContainer = Color(0xFFF3DAD2)
-val LedgerDarkExpense = Color(0xFFD9705A)
-val LedgerDarkExpenseContainer = Color(0xFF3D1B14)
-
-val LedgerWarning = Color(0xFFB8862E)               // Vàng đất mù tạt
-val LedgerWarningContainer = Color(0xFFF3E6C8)
-val LedgerDarkWarning = Color(0xFFD9AC5C)
-val LedgerDarkWarningContainer = Color(0xFF3B2C0F)
+// Thu/chi trên thẻ ink: biến thể sáng hơn để đủ tương phản trên nền #0B0B0B
+val SandIncomeOnInk = Color(0xFF8FD99B)          // 11.8:1 trên ink
+val SandExpenseOnInk = Color(0xFFFF9C8C)         // 9.7:1 trên ink
+val SandDarkOnExpense = Color(0xFF2A1215)
+val SandDarkErrorContainer = Color(0xFF3D1B14)
+val SandDarkOnErrorContainer = Color(0xFFFF9C8C)
+val SandWarning = Color(0xFF8A5A00)
+val SandDarkWarning = Color(0xFFF2C26B)
 
 // ==========================================
-// NotePay Ledger ColorSchemes (Default v3)
+// NotePay ColorSchemes v4 (Sand & Ink)
 // ==========================================
-val LedgerLightColorScheme: ColorScheme = lightColorScheme(
-    primary = LedgerPrimary,
-    onPrimary = LedgerOnPrimary,
-    primaryContainer = LedgerPrimaryContainer,
-    onPrimaryContainer = LedgerOnPrimaryContainer,
-    secondary = LedgerSecondary,
-    onSecondary = LedgerOnSecondary,
-    secondaryContainer = LedgerSecondaryContainer,
-    onSecondaryContainer = LedgerOnSecondaryContainer,
-    background = LedgerLightBackground,
-    onBackground = LedgerLightTextPrimary,
-    surface = LedgerLightSurface,
-    onSurface = LedgerLightTextPrimary,
-    surfaceVariant = LedgerLightSurfaceSunken,
-    onSurfaceVariant = LedgerLightTextSecondary,
-    surfaceContainer = LedgerLightSurfaceSunken,
-    surfaceContainerHighest = LedgerLightBorder,
-    outline = LedgerLightTextMuted,
-    outlineVariant = LedgerLightBorder,
-    error = LedgerExpense,
-    onError = LedgerOnPrimary,
-    errorContainer = LedgerExpenseContainer,
-    onErrorContainer = LedgerExpense,
+val SandLightColorScheme: ColorScheme = lightColorScheme(
+    primary = SandInk,
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Sand,
+    onPrimaryContainer = SandOnSand,
+    secondary = SandGraphite,
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = SandLightSurfaceField,
+    onSecondaryContainer = SandLightTextPrimary,
+    tertiary = SandClay,
+    onTertiary = SandOnSand,
+    tertiaryContainer = SandLightTertiaryContainer,
+    onTertiaryContainer = SandLightOnTertiaryContainer,
+    background = SandLightBackground,
+    onBackground = SandLightTextPrimary,
+    surface = SandLightSurface,
+    onSurface = SandLightTextPrimary,
+    surfaceVariant = SandLightSurfaceField,
+    onSurfaceVariant = SandLightTextSecondary,
+    surfaceDim = SandLightSurfaceDim,
+    surfaceBright = SandLightSurface,
+    surfaceContainerLowest = SandLightSurface,
+    surfaceContainerLow = SandLightSurfaceLow,
+    surfaceContainer = SandLightSurfaceField,
+    surfaceContainerHigh = SandLightSurface,
+    surfaceContainerHighest = SandLightBorderSoft,
+    inverseSurface = SandInk,
+    inverseOnSurface = Color(0xFFFFFFFF),
+    inversePrimary = Sand,
+    surfaceTint = SandLightSurface,
+    outline = SandLightBorder,
+    outlineVariant = SandLightBorderSoft,
+    error = SandExpense,
+    onError = SandLightOnError,
+    errorContainer = SandLightErrorContainer,
+    onErrorContainer = SandExpense,
+    scrim = Color(0xFF000000)
 )
 
-val LedgerDarkColorScheme: ColorScheme = darkColorScheme(
-    primary = LedgerDarkPrimary,
-    onPrimary = LedgerDarkOnPrimary,
-    primaryContainer = LedgerDarkPrimaryContainer,
-    onPrimaryContainer = LedgerDarkOnPrimaryContainer,
-    secondary = LedgerDarkSecondary,
-    onSecondary = LedgerDarkOnSecondary,
-    secondaryContainer = LedgerDarkSecondaryContainer,
-    onSecondaryContainer = LedgerDarkOnSecondaryContainer,
-    background = LedgerDarkBackground,
-    onBackground = LedgerDarkTextPrimary,
-    surface = LedgerDarkSurface,
-    onSurface = LedgerDarkTextPrimary,
-    surfaceVariant = LedgerDarkSurfaceSunken,
-    onSurfaceVariant = LedgerDarkTextSecondary,
-    surfaceContainer = LedgerDarkSurfaceSunken,
-    surfaceContainerHighest = LedgerDarkBorder,
-    outline = LedgerDarkTextMuted,
-    outlineVariant = LedgerDarkBorder,
-    error = LedgerDarkExpense,
-    onError = LedgerDarkOnPrimary,
-    errorContainer = LedgerDarkExpenseContainer,
-    onErrorContainer = LedgerDarkExpense,
+val SandDarkColorScheme: ColorScheme = darkColorScheme(
+    primary = Sand,
+    onPrimary = SandOnSand,
+    primaryContainer = SandDarkPrimaryContainer,
+    onPrimaryContainer = Sand,
+    secondary = SandDarkSecondary,
+    onSecondary = SandDarkBackground,
+    secondaryContainer = SandDarkSurfaceHigh,
+    onSecondaryContainer = SandDarkTextPrimary,
+    tertiary = SandDarkTertiary,
+    onTertiary = SandDarkBackground,
+    tertiaryContainer = SandDarkTertiaryContainer,
+    onTertiaryContainer = SandDarkOnTertiaryContainer,
+    background = SandDarkBackground,
+    onBackground = SandDarkTextPrimary,
+    surface = SandDarkSurface,
+    onSurface = SandDarkTextPrimary,
+    surfaceVariant = SandDarkCard,
+    onSurfaceVariant = SandDarkTextSecondary,
+    surfaceDim = SandDarkBackground,
+    surfaceBright = SandDarkSurfaceHigh,
+    surfaceContainerLowest = SandDarkSurfaceLow,
+    surfaceContainerLow = SandDarkSurface,
+    surfaceContainer = SandDarkCard,
+    surfaceContainerHigh = SandDarkSurfaceHigh,
+    surfaceContainerHighest = SandDarkBorder,
+    inverseSurface = SandDarkTextPrimary,
+    inverseOnSurface = SandDarkBackground,
+    inversePrimary = SandInk,
+    surfaceTint = SandDarkSurface,
+    outline = SandDarkBorderStrong,
+    outlineVariant = SandDarkBorder,
+    error = SandDarkExpense,
+    onError = SandDarkOnExpense,
+    errorContainer = SandDarkErrorContainer,
+    onErrorContainer = SandDarkOnErrorContainer,
+    scrim = Color(0xFF000000)
 )
 
 // ==========================================
-// Legacy iOS Monochrome Tokens (For option)
+// Legacy iOS Monochrome Tokens (lựa chọn "Đơn sắc iOS")
 // ==========================================
 val IosBlack = Color(0xFF000000)
 val IosWhite = Color(0xFFFFFFFF)
@@ -207,28 +232,29 @@ val IosDarkColorScheme: ColorScheme = darkColorScheme(
 )
 
 // ==========================================
-// Theme Resolvers (Default to Ledger Ink & Warm Paper)
+// Theme Resolvers (mặc định "sand")
 // ==========================================
-fun getLightColorScheme(themeColor: String = "ledger", context: Context? = null): ColorScheme {
+fun getLightColorScheme(themeColor: String = "sand", context: Context? = null): ColorScheme {
     return when (themeColor) {
         "ios" -> IosLightColorScheme
         "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
             dynamicLightColorScheme(context)
         } else {
-            LedgerLightColorScheme
+            SandLightColorScheme
         }
-        else -> LedgerLightColorScheme
+        // "sand" (mặc định), "ledger" (id v3 đã lưu), "green" (backup cũ) và mọi id lạ
+        else -> SandLightColorScheme
     }
 }
 
-fun getDarkColorScheme(themeColor: String = "ledger", context: Context? = null): ColorScheme {
+fun getDarkColorScheme(themeColor: String = "sand", context: Context? = null): ColorScheme {
     return when (themeColor) {
         "ios" -> IosDarkColorScheme
         "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
             dynamicDarkColorScheme(context)
         } else {
-            LedgerDarkColorScheme
+            SandDarkColorScheme
         }
-        else -> LedgerDarkColorScheme
+        else -> SandDarkColorScheme
     }
 }

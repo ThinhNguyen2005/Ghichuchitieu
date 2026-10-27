@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
+import com.notepay.ui.adaptive.LocalContentGutter
 import com.notepay.ui.feature.auth.AccountDetailsBottomSheet
 import com.notepay.ui.feature.auth.AuthViewModel
 import com.notepay.ui.theme.AppTheme
@@ -90,6 +91,8 @@ fun UtilitiesScreen(
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     var showAccountDetails by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Tablet: lề bù để danh sách một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
+    val contentGutter = LocalContentGutter.current
 
     if (showAccountDetails && authUiState.user != null) {
         AccountDetailsBottomSheet(
@@ -108,8 +111,8 @@ fun UtilitiesScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
+                start = 16.dp + contentGutter,
+                end = 16.dp + contentGutter,
                 top = 16.dp,
                 bottom = 120.dp
             ),
