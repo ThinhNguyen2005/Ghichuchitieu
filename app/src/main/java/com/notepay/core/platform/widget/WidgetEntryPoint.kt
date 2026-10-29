@@ -1,4 +1,4 @@
-package com.notepay.platform.widget
+package com.notepay.core.platform.widget
 
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.domain.repository.TransactionRepository

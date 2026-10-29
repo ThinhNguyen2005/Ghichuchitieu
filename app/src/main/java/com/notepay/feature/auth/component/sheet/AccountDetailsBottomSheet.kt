@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.auth
+package com.notepay.feature.auth.main.component.sheet
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,11 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

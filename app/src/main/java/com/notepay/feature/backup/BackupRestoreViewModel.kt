@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.backup
+package com.notepay.feature.backup
 
 import android.content.Context
 import androidx.core.content.edit
@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.backup.DataExporter
 import com.notepay.data.backup.DataImporter
 import com.notepay.R
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -20,6 +20,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -110,8 +113,8 @@ class BackupRestoreViewModel @Inject constructor(
     }
 
     private fun saveLastBackupDate() {
-        val now = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-            .format(java.util.Date())
+        val now = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            .format(Date())
         context.getSharedPreferences("notepay_backup", Context.MODE_PRIVATE)
             .edit { putString("last_backup_date", now) }
     }

@@ -1,12 +1,11 @@
-package com.notepay.ui.component
+package com.notepay.feature.category.mapper
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.DirectionsBus
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Coffee
-import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -29,12 +27,10 @@ import androidx.compose.material.icons.rounded.Checkroom
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.ChildCare
 import androidx.compose.material.icons.rounded.VolunteerActivism
-import androidx.compose.material.icons.rounded.Redeem
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Shield
@@ -57,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
@@ -147,8 +144,8 @@ private fun Color.preferredContentColor(): Color {
 fun CategoryAvatar(
     category: Category,
     modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 40.dp,
-    iconSize: androidx.compose.ui.unit.Dp = 18.dp
+    size: Dp = 40.dp,
+    iconSize: Dp = 18.dp
 ) {
     Box(
         modifier = modifier

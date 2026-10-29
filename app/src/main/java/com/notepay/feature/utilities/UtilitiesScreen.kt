@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.utilities
+package com.notepay.feature.utilities
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,10 +65,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
-import com.notepay.ui.adaptive.LocalContentGutter
+import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
 import com.notepay.feature.auth.main.AuthViewModel
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

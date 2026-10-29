@@ -1,6 +1,7 @@
 package com.notepay.ui.formatter
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.core.designsystem.formatter.VietnameseMoneyWordsFormatter
 import org.junit.Test
 
 class VietnameseMoneyWordsFormatterTest {

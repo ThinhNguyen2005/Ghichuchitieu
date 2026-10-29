@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.category
+package com.notepay.feature.category
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

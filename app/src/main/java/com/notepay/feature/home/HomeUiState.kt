@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home
 
 import androidx.compose.runtime.Immutable
 import com.notepay.domain.money.Money

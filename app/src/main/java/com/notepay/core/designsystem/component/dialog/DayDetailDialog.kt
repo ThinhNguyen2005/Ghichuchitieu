@@ -1,6 +1,6 @@
-package com.notepay.ui.component.dialog
+package com.notepay.core.designsystem.component.dialog
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +39,7 @@ import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.formatter.MoneyFormatter
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
@@ -48,8 +48,7 @@ import kotlinx.datetime.toLocalDateTime
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.ui.window.DialogProperties
 import com.notepay.feature.category.mapper.CategoryAvatar
-import com.notepay.ui.component.feedback.EmptyStateWithAction
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
 
 /**
  * Dialog chi tiết một ngày, dùng chung cho:
@@ -126,7 +125,7 @@ fun DayDetailDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (subscriptions.isEmpty() && transactions.isEmpty()) {
-                    EmptyStateWithAction(
+                    _root_ide_package_.com.notepay.core.designsystem.component.feedback.EmptyStateWithAction(
                         icon = Icons.Outlined.FolderOpen,
                         title = stringResource(R.string.state_empty_note),
                         description = stringResource(R.string.day_detail_empty_desc)

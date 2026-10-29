@@ -1,4 +1,4 @@
-package com.notepay.platform.notification
+package com.notepay.core.platform.notification
 
 import android.content.Context
 import com.notepay.data.preferences.AppSettingsDataStore

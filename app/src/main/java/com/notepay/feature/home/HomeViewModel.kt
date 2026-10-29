@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -203,7 +202,11 @@ class HomeViewModel @Inject constructor(
                 monthlyIncome = activeSummary?.monthlyIncome ?: Money.ZERO,
                 monthlyExpense = activeSummary?.monthlyExpense ?: Money.ZERO,
                 recentTransactions = summary.transactions.take(MaxRecentTransactions),
-                monthLabel = context.getString(R.string.home_month_label_format, summary.month, summary.year),
+                monthLabel = context.getString(
+                    R.string.home_month_label_format,
+                    summary.month,
+                    summary.year
+                ),
                 selectedMonth = summary.month,
                 selectedYear = summary.year,
                 isLoading = false,

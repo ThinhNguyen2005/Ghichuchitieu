@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -63,16 +63,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.money.Money
-import com.notepay.ui.adaptive.LocalContentGutter
-import com.notepay.ui.adaptive.LocalWindowLayout
-import com.notepay.ui.adaptive.WindowLayout
-import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.EmptyStateWithAction
-import com.notepay.ui.component.SmartInsightsCard
-import com.notepay.ui.feature.transaction.components.WalletPickerSheet
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.adaptive.LocalContentGutter
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.WindowLayout
+import com.notepay.ui.component.dialog.ConfirmDeleteDialog
+import com.notepay.ui.component.feedback.EmptyStateWithAction
+import com.notepay.feature.home.component.SmartInsightsCard
+import com.notepay.feature.home.component.HomeDaySection
+import com.notepay.feature.home.component.HomeHeroBlock
+import com.notepay.feature.home.component.ScreenHorizontalPadding
+import com.notepay.feature.home.component.rememberHomeDayGroups
+import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.localizedName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds

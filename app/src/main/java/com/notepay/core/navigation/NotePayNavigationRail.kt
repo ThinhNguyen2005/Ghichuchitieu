@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -46,7 +46,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
-import com.notepay.ui.adaptive.NotePayAdaptive
+import com.notepay.core.designsystem.adaptive.NotePayAdaptive
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 
 /*

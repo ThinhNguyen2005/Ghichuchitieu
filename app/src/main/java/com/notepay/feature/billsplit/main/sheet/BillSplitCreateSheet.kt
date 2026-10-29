@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.sheet
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
@@ -53,8 +53,8 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.feature.billsplit.main.component.BillSplitSummaryFooter
 import com.notepay.feature.billsplit.main.component.billSplitDebtorListItems
 import com.notepay.feature.billsplit.main.component.billSplitTransactionSelectorItems
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import kotlinx.coroutines.launch
 
 /** Giá trị "chưa chọn giao dịch" — dùng Long thay vì null để rememberSaveable chắc chắn lưu được. */
@@ -148,7 +148,7 @@ private fun splitEvenlyInVnd(
  * LazyColumn. Giao diện từng phần nằm trong:
  * - [billSplitTransactionSelectorItems]: bước chọn giao dịch
  * - [billSplitDebtorListItems]: bước quản lý người nợ
- * - [com.notepay.feature.billsplit.main.component.BillSplitSummaryFooter]: thanh tiến độ + trạng thái tiền + nút hành động
+ * - [BillSplitSummaryFooter]: thanh tiến độ + trạng thái tiền + nút hành động
  * - [BillSplitDiscardDialog]: hộp thoại xác nhận hủy
  */
 @Composable

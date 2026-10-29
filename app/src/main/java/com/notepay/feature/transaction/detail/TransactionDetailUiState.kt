@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.detail
+package com.notepay.feature.transaction.detail
 
 import com.notepay.domain.model.Transaction
 

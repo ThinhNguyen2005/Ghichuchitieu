@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding
+package com.notepay.feature.onboarding
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
-import com.notepay.platform.LocaleHelper
+import com.notepay.core.platform.LocaleHelper
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

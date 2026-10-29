@@ -1,17 +1,15 @@
-package com.notepay.ui.feature.subscription
+package com.notepay.feature.subscription.main
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,21 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SentimentSatisfied
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Notifications
@@ -44,24 +32,17 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SentimentSatisfied
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -75,24 +56,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Subscription
-import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.DayDetailDialog
-import com.notepay.ui.component.EmptyStateWithAction
-import com.notepay.ui.component.MonthlyCalendarView
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
+import com.notepay.ui.component.dialog.ConfirmDeleteDialog
+import com.notepay.ui.component.dialog.DayDetailDialog
+import com.notepay.ui.component.feedback.EmptyStateWithAction
+import com.notepay.ui.component.calendar.MonthlyCalendarView
+import com.notepay.core.designsystem.theme.isAppDarkTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -169,7 +152,7 @@ fun SubscriptionScreen(
                 },
                 title = {
                     if (isSearchActive) {
-                        androidx.compose.foundation.text.BasicTextField(
+                        BasicTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
@@ -339,7 +322,7 @@ private fun CalendarTab(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDayClick: (LocalDate) -> Unit,
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
 ) {
     val tz = TimeZone.currentSystemDefault()
     val calendarSubs = remember(subscriptions, year, month) {
@@ -360,7 +343,7 @@ private fun CalendarTab(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = AppTheme.shapes.corner16,
             colors = CardDefaults.cardColors(
-                containerColor = if (com.notepay.ui.theme.isAppDarkTheme()) {
+                containerColor = if (isAppDarkTheme()) {
                     MaterialTheme.colorScheme.surfaceContainer
                 } else {
                     Color.White
@@ -480,7 +463,7 @@ private fun ReminderListTab(
     query: String,
     isSearchActive: Boolean,
     onDelete: (Subscription) -> Unit,
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
 ) {
     var filter by remember { mutableStateOf(ReminderFilter.ALL) }
     var pendingDelete by remember { mutableStateOf<Subscription?>(null) }

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.list
+package com.notepay.feature.transaction.list
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
@@ -14,10 +14,10 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetTransactionsUseCase
-import com.notepay.ui.feedback.FeedbackDuration
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.formatter.TransactionDateHeaderFormatter
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.TransactionDateHeaderFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -34,6 +34,8 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.feature.transaction.component.DateRangePreset
+import com.notepay.core.designsystem.util.categoryNameRes
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -315,7 +317,7 @@ private fun filterTransactions(
 
         // 2. Query filter
         if (normalizedQuery.isNotBlank()) {
-            val locName = com.notepay.ui.util.categoryNameRes(tx.category.id)?.let(getString) ?: tx.category.displayName
+            val locName = categoryNameRes(tx.category.id)?.let(getString) ?: tx.category.displayName
             val matches = tx.note.lowercase().contains(normalizedQuery) ||
                 tx.category.displayName.lowercase().contains(normalizedQuery) ||
                 locName.lowercase().contains(normalizedQuery) ||

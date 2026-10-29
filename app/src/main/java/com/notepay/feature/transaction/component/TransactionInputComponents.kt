@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,12 +27,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.CategoryAvatar
+import com.notepay.feature.category.mapper.CategoryAvatar
 import com.notepay.feature.transaction.form.calculator.AmountParser
-import com.notepay.ui.formatter.VietnameseMoneyWordsFormatter
+import com.notepay.core.designsystem.formatter.VietnameseMoneyWordsFormatter
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.sp
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
+import java.util.Locale
 
 /**
  * Helper định dạng nhãn cấp độ số tiền thông minh (Smart Magnitude):
@@ -57,9 +58,9 @@ private fun formatSmartMagnitude(
             val formattedNum = if (isExact) {
                 (amount / 1_000_000L).toString()
             } else if (millions < 100.0 && isExactTenth) {
-                String.format(java.util.Locale.US, "%.1f", millions).replace('.', ',')
+                String.format(Locale.US, "%.1f", millions).replace('.', ',')
             } else if (millions < 10.0) {
-                String.format(java.util.Locale.US, "%.1f", millions).replace('.', ',')
+                String.format(Locale.US, "%.1f", millions).replace('.', ',')
             } else {
                 (amount / 1_000_000L).toString()
             }
@@ -73,9 +74,9 @@ private fun formatSmartMagnitude(
             val formattedNum = if (isExact) {
                 (amount / 1_000_000_000L).toString()
             } else if (billions < 100.0 && isExactTenth) {
-                String.format(java.util.Locale.US, "%.1f", billions).replace('.', ',')
+                String.format(Locale.US, "%.1f", billions).replace('.', ',')
             } else if (billions < 10.0) {
-                String.format(java.util.Locale.US, "%.1f", billions).replace('.', ',')
+                String.format(Locale.US, "%.1f", billions).replace('.', ',')
             } else {
                 (amount / 1_000_000_000L).toString()
             }
@@ -88,7 +89,7 @@ private fun formatSmartMagnitude(
             val formattedNum = if (isExact) {
                 (amount / 1_000_000_000_000L).toString()
             } else {
-                String.format(java.util.Locale.US, "%.1f", trillions).replace('.', ',')
+                String.format(Locale.US, "%.1f", trillions).replace('.', ',')
             }
             val text = "$formattedNum $trillionLabel"
             if (isExact) text else String.format(approxFormat, text)

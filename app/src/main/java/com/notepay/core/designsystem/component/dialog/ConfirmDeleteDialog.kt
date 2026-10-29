@@ -1,4 +1,4 @@
-package com.notepay.ui.component.dialog
+package com.notepay.core.designsystem.component.dialog
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline

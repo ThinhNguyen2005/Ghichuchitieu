@@ -1,4 +1,4 @@
-package com.notepay.platform
+package com.notepay.core.platform
 
 import android.app.LocaleManager
 import android.content.Context

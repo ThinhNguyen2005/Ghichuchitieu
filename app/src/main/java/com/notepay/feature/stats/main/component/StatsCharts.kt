@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main.component
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -59,8 +59,11 @@ import com.notepay.domain.analytics.ForecastDisplayState
 import com.notepay.domain.analytics.StatsChartCalculator
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.stats.main.CategoryBreakdownItem
+import com.notepay.feature.stats.main.MonthlyTrendPoint
+import com.notepay.feature.stats.main.TrendWindow
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.localizedName
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.min

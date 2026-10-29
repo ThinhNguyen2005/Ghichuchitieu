@@ -1,6 +1,6 @@
 package com.notepay.ui
 
-import com.notepay.ui.util.VietQrGenerator
+import com.notepay.core.designsystem.util.VietQrGenerator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

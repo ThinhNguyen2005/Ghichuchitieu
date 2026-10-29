@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding
+package com.notepay.feature.onboarding
 
 /**
  * Toàn bộ action từ OnboardingScreen → OnboardingViewModel.

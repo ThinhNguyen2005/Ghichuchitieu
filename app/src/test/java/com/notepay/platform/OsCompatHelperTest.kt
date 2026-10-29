@@ -1,5 +1,7 @@
 package com.notepay.platform
 
+import com.notepay.core.platform.LiquidGlassBlockReason
+import com.notepay.core.platform.OsCompatHelper
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

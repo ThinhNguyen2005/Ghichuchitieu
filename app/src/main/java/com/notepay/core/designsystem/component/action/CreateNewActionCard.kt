@@ -1,4 +1,4 @@
-package com.notepay.ui.component.action
+package com.notepay.core.designsystem.component.action
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
@@ -34,8 +34,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.isAppDarkTheme
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.isAppDarkTheme
 
 @Composable
 fun CreateNewActionCard(

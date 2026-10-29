@@ -1,8 +1,9 @@
-package com.notepay.ui.feature.subscription
+package com.notepay.feature.subscription.main.sheet
 
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.component.GradientBottomActionBar
-import com.notepay.ui.component.LiquidButton
+import android.view.HapticFeedbackConstants
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.ui.component.bar.GradientBottomActionBar
+import com.notepay.ui.component.button.LiquidButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,18 +25,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
@@ -47,7 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +59,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,15 +74,15 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
-import com.notepay.ui.component.categoryIcon
-import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.FirefliesBackground
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.feature.subscription.main.AddSubscriptionDialogState
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.ui.component.effect.FirefliesBackground
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,10 +100,10 @@ fun AddSubscriptionBottomSheet(
     onDismiss: () -> Unit,
 ) {
     val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
-    val localView = androidx.compose.ui.platform.LocalView.current
+    val localView = LocalView.current
     val playHaptic = {
         try {
-            localView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+            localView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         } catch (_: Exception) {}
     }
 
@@ -541,7 +538,7 @@ fun AddSubscriptionBottomSheet(
     }
 
     if (showRecentTxSheet) {
-        val context = androidx.compose.ui.platform.LocalContext.current
+        val context = LocalContext.current
         RecentTransactionsSheet(
             transactions = recentTransactions,
             onPicked = { tx ->

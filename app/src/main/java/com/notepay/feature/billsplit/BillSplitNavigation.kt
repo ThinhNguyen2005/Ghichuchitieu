@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -8,9 +8,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.feature.billsplit.main.BillSplitScreen
-import com.notepay.ui.component.PredictiveBackDestination
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.feature.billsplit.main.detail.DebtorDetailScreen
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.billSplitGraph(
     navController: NavController,

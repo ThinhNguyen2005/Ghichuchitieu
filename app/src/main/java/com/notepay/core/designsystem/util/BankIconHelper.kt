@@ -1,4 +1,4 @@
-package com.notepay.ui.util
+package com.notepay.core.designsystem.util
 
 import android.content.Context
 import android.content.pm.PackageManager

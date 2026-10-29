@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component.sheet
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions

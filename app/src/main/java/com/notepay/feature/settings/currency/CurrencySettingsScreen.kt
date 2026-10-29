@@ -1,10 +1,11 @@
-package com.notepay.ui.feature.settings.currency
+package com.notepay.feature.settings.currency
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -48,8 +49,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.money.Money
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 private data class CurrencyItem(
     val code: String,
@@ -102,7 +103,7 @@ fun CurrencySettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
                 top = 16.dp,

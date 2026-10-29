@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.ai
+package com.notepay.feature.settings.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

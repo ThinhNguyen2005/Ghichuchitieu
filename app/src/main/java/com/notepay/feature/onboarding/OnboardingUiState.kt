@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding
+package com.notepay.feature.onboarding
 
 import androidx.annotation.StringRes
 import com.notepay.R

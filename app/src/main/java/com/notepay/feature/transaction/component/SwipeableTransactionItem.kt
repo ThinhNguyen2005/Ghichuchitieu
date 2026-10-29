@@ -1,4 +1,4 @@
-package com.notepay.ui.component
+package com.notepay.feature.transaction.component
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt

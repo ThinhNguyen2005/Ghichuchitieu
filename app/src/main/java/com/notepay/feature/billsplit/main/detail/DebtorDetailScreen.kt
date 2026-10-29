@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.detail
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import android.content.ClipData
 import android.widget.Toast
@@ -43,15 +43,11 @@ import com.notepay.feature.billsplit.main.BillSplitItemState
 import com.notepay.feature.billsplit.main.BillSplitViewModel
 import com.notepay.feature.billsplit.main.sheet.PaymentReconciliationSheet
 import com.notepay.feature.billsplit.main.sheet.VietQrConfigFullScreenDialog
-import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.GradientBottomActionBar
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.component.LiquidButton
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietQrGenerator
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietQrGenerator
 import java.util.Locale
 import kotlinx.coroutines.launch
 
@@ -142,21 +138,29 @@ fun DebtorDetailScreen(
 
     Scaffold(
         topBar = {
-            GradientTopAppBar(
-                title = { Text(stringResource(R.string.debtor_detail_title, debtorName), fontWeight = FontWeight.Bold) },
+            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientTopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.debtor_detail_title, debtorName),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 }
             )
         },
         bottomBar = {
             if (unpaidDebtorSplits.isNotEmpty()) {
-                GradientBottomActionBar {
+                _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientBottomActionBar {
                     // surfaceColor vẽ màu đục hoàn toàn, khác tint chỉ phủ alpha 0.32
                     // nên nút hành động chính không bị loãng trên nền kính mờ.
-                    LiquidButton(
+                    _root_ide_package_.com.notepay.core.designsystem.component.button.LiquidButton(
                         onClick = { showReconciliationSheet = true },
                         surfaceColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth(),
@@ -373,7 +377,7 @@ fun DebtorDetailScreen(
     }
 
     pendingDeleteBill?.let { item ->
-        ConfirmDeleteDialog(
+        _root_ide_package_.com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_bill_title),
             itemName = "${item.split.debtorName} â€¢ ${MoneyFormatter.format(item.split.amount)}",
             message = stringResource(R.string.debt_delete_message),

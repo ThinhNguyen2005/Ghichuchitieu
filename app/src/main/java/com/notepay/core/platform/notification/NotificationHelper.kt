@@ -1,4 +1,4 @@
-package com.notepay.platform.notification
+package com.notepay.core.platform.notification
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -14,7 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.notepay.MainActivity
 import com.notepay.R
-import com.notepay.platform.widget.WidgetConstants
+import com.notepay.core.platform.widget.WidgetConstants
 
 object NotificationHelper {
 

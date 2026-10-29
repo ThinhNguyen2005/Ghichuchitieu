@@ -1,4 +1,4 @@
-package com.notepay.ui.component.effect
+package com.notepay.core.designsystem.component.effect
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.kyant.backdrop.backdrops.emptyBackdrop

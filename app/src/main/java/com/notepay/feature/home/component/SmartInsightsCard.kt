@@ -1,4 +1,4 @@
-package com.notepay.ui.component
+package com.notepay.feature.home.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.notepay.R
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 /**
  * Thẻ gợi ý & nhận định tài chính thông minh (Smart Financial Insights).

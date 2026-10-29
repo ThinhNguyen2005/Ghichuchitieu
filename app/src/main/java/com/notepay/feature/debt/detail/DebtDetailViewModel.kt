@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.detail
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
@@ -7,14 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
 import com.notepay.domain.repository.DebtRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.debt.DeleteDebtUseCase
 import com.notepay.domain.usecase.debt.RecordDebtPaymentUseCase
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi

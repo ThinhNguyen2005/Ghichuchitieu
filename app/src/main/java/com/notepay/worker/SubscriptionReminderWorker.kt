@@ -12,7 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.notepay.R
 import com.notepay.domain.repository.SubscriptionRepository
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.firstOrNull

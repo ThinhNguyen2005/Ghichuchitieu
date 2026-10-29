@@ -1,6 +1,6 @@
-package com.notepay.ui.component.calendar
+package com.notepay.core.designsystem.component.calendar
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,7 +38,7 @@ import com.notepay.R
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.formatter.MoneyFormatter
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -167,7 +167,12 @@ fun MonthlyCalendarView(
 
             // Tạo danh sách ngày riêng biệt cho từng trang của lịch để hiệu ứng chuyển tiếp không bị giật
             val pageCalendarDays = remember(pageYear, pageMonth, transactions, highlightDates) {
-                getCalendarDays(pageYear, pageMonth, transactions, highlightDates)
+                _root_ide_package_.com.notepay.core.designsystem.component.calendar.getCalendarDays(
+                    pageYear,
+                    pageMonth,
+                    transactions,
+                    highlightDates
+                )
             }
 
             val rows = pageCalendarDays.chunked(7)
@@ -179,7 +184,7 @@ fun MonthlyCalendarView(
                 rows.forEach { week ->
                     Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         week.forEach { day ->
-                            CalendarCell(
+                            _root_ide_package_.com.notepay.core.designsystem.component.calendar.CalendarCell(
                                 day = day,
                                 selectedDate = selectedDate,
                                 onClick = { if (day.isCurrentMonth) onDayClick(day.date) },
@@ -195,7 +200,7 @@ fun MonthlyCalendarView(
 
 @Composable
 private fun CalendarCell(
-    day: CalendarDay,
+    day: com.notepay.core.designsystem.component.calendar.CalendarDay,
     selectedDate: LocalDate?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -314,27 +319,49 @@ private fun getCalendarDays(
     month: Int,
     transactions: List<Transaction>,
     highlightDates: Set<LocalDate>,
-): List<CalendarDay> {
+): List<com.notepay.core.designsystem.component.calendar.CalendarDay> {
     val firstDayOfMonth = LocalDate(year, month, 1)
     val dayOfWeek = firstDayOfMonth.dayOfWeek.ordinal + 1
 
-    val daysInMonth = getDaysInMonth(year, month)
-    val list = ArrayList<CalendarDay>()
+    val daysInMonth =
+        _root_ide_package_.com.notepay.core.designsystem.component.calendar.getDaysInMonth(
+            year,
+            month
+        )
+    val list = ArrayList<com.notepay.core.designsystem.component.calendar.CalendarDay>()
 
     val prevMonthYear = if (month == 1) year - 1 else year
     val prevMonth = if (month == 1) 12 else month - 1
-    val daysInPrevMonth = getDaysInMonth(prevMonthYear, prevMonth)
+    val daysInPrevMonth =
+        _root_ide_package_.com.notepay.core.designsystem.component.calendar.getDaysInMonth(
+            prevMonthYear,
+            prevMonth
+        )
     val prevDaysCount = dayOfWeek - 1
 
     for (i in prevDaysCount - 1 downTo 0) {
         val d = daysInPrevMonth - i
         val date = LocalDate(prevMonthYear, prevMonth, d)
-        list.add(createCalendarDay(date, false, transactions, highlightDates))
+        list.add(
+            _root_ide_package_.com.notepay.core.designsystem.component.calendar.createCalendarDay(
+                date,
+                false,
+                transactions,
+                highlightDates
+            )
+        )
     }
 
     for (d in 1..daysInMonth) {
         val date = LocalDate(year, month, d)
-        list.add(createCalendarDay(date, true, transactions, highlightDates))
+        list.add(
+            _root_ide_package_.com.notepay.core.designsystem.component.calendar.createCalendarDay(
+                date,
+                true,
+                transactions,
+                highlightDates
+            )
+        )
     }
 
     val nextMonthYear = if (month == 12) year + 1 else year
@@ -344,7 +371,14 @@ private fun getCalendarDays(
 
     for (d in 1..nextDaysCount) {
         val date = LocalDate(nextMonthYear, nextMonth, d)
-        list.add(createCalendarDay(date, false, transactions, highlightDates))
+        list.add(
+            _root_ide_package_.com.notepay.core.designsystem.component.calendar.createCalendarDay(
+                date,
+                false,
+                transactions,
+                highlightDates
+            )
+        )
     }
 
     return list
@@ -364,7 +398,7 @@ private fun createCalendarDay(
     isCurrentMonth: Boolean,
     transactions: List<Transaction>,
     highlightDates: Set<LocalDate>,
-): CalendarDay {
+): com.notepay.core.designsystem.component.calendar.CalendarDay {
     val systemTz = TimeZone.currentSystemDefault()
     val dayTransactions = transactions.filter {
         val localDate = it.occurredAt.toLocalDateTime(systemTz).date
@@ -381,7 +415,7 @@ private fun createCalendarDay(
         }
     }
 
-    return CalendarDay(
+    return _root_ide_package_.com.notepay.core.designsystem.component.calendar.CalendarDay(
         date = date,
         isCurrentMonth = isCurrentMonth,
         totalExpense = Money(expense),

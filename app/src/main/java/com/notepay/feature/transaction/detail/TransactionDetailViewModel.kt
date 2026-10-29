@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.detail
+package com.notepay.feature.transaction.detail
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException

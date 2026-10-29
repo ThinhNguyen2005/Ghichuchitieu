@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.notification
+package com.notepay.feature.settings.notification
 
 import android.content.Context
 import androidx.lifecycle.ViewModel

@@ -1,4 +1,4 @@
-package com.notepay.ui.component
+package com.notepay.feature.transaction.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,12 +32,13 @@ import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.feature.category.mapper.CategoryAvatar
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.isAppDarkTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -76,7 +77,7 @@ fun TransactionItem(
         Modifier
     }
 
-    val isLightTheme = !com.notepay.ui.theme.isAppDarkTheme()
+    val isLightTheme = !isAppDarkTheme()
     val cardBgColor = if (isLightTheme) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
 
     Card(

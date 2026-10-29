@@ -1,8 +1,13 @@
-package com.notepay.ui.feature.transaction.edit
+package com.notepay.feature.transaction.list.edit
 
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.component.LiquidButton
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.ui.component.button.LiquidButton
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width
@@ -48,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,14 +63,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Transaction
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.feature.transaction.form.calculator.AmountParser
-import com.notepay.ui.feature.transaction.components.CategoryPickerSheet
-import com.notepay.ui.feature.transaction.components.CategoryQuickSelectionRow
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.feature.transaction.component.sheet.CategoryPickerSheet
+import com.notepay.feature.transaction.component.CategoryQuickSelectionRow
 import kotlinx.datetime.LocalDate
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -179,10 +186,10 @@ fun EditTransactionScreen(
             item {
                 val suggestedCategory = state.suggestedCategory
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    AnimatedVisibility(
                         visible = !state.isAutoCapture && suggestedCategory != null && suggestedCategory != state.category,
-                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically(),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         Row(
@@ -192,12 +199,12 @@ fun EditTransactionScreen(
                                 .fillMaxWidth()
                                 .clickable { suggestedCategory?.let { viewModel.onCategoryChanged(it) } }
                                 .background(
-                                    color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.12f),
+                                    color = Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.12f),
                                     shape = AppTheme.shapes.corner12
                                 )
                                 .border(
                                     width = 1.dp,
-                                    color = androidx.compose.ui.graphics.Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.4f),
+                                    color = Color(suggestedCategory?.colorArgb ?: 0L).copy(alpha = 0.4f),
                                     shape = AppTheme.shapes.corner12
                                 )
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -209,12 +216,12 @@ fun EditTransactionScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            com.notepay.ui.component.CategoryAvatar(category = suggestedCategory!!, size = 20.dp)
+                            CategoryAvatar(category = suggestedCategory!!, size = 20.dp)
                             Text(
                                 text = suggestedCategory.localizedName(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = androidx.compose.ui.graphics.Color(suggestedCategory.colorArgb)
+                                color = Color(suggestedCategory.colorArgb)
                             )
                         }
                     }

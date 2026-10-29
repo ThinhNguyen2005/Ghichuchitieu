@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 /**
  * Nền trang trí phía trên trang Home: một mảng màu rất mềm (đọc như ảnh bị làm mờ) chiếm

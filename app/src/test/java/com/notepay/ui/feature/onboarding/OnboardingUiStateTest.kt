@@ -2,6 +2,8 @@ package com.notepay.ui.feature.onboarding
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.model.Wallet
+import com.notepay.feature.onboarding.OnboardingStep
+import com.notepay.feature.onboarding.OnboardingUiState
 import org.junit.Test
 
 /**

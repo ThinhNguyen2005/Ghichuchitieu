@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.transaction.calculator
+package com.notepay.feature.transaction.form.calculator
 
-import com.notepay.feature.transaction.form.calculator.AmountParser
+import java.text.DecimalFormat
 
 /**
  * Mini calculator engine for the custom keypad.
@@ -113,7 +113,7 @@ object CalculatorEngine {
 
     private fun formatNumber(value: Long): String {
         if (value == 0L) return "0"
-        val formatter = java.text.DecimalFormat("#,###")
+        val formatter = DecimalFormat("#,###")
         return formatter.format(value).replace(",", ".")
     }
 }

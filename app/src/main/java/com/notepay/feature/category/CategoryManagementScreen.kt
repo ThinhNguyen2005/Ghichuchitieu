@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.category
+package com.notepay.feature.category
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,15 +59,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.categoryIcon
-import com.notepay.ui.component.customCategoryIconOptions
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.category.mapper.categoryIcon
+import com.notepay.feature.category.mapper.customCategoryIconOptions
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
 
 private val categoryPaletteColors = listOf(
     0xFFE57373L, 0xFFF06292L, 0xFFBA68C8L, 0xFF9575CDL,

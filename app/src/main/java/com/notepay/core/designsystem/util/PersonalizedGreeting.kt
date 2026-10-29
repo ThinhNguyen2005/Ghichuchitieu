@@ -1,4 +1,4 @@
-package com.notepay.ui.util
+package com.notepay.core.designsystem.util
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf

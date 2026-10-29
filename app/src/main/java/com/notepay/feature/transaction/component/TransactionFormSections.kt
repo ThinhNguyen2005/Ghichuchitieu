@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -48,10 +49,10 @@ import com.notepay.R
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.CategoryAvatar
+import com.notepay.feature.category.mapper.CategoryAvatar
 import com.notepay.feature.transaction.form.calculator.AmountParser
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
 
 @Composable
 fun TransactionTypeSelector(
@@ -248,9 +249,9 @@ fun TransactionSuggestionChipRow(
         ) {
             Text(
                 text = if (isApplied) {
-                    androidx.compose.ui.res.stringResource(R.string.transaction_suggestion_applied_label)
+                    stringResource(R.string.transaction_suggestion_applied_label)
                 } else {
-                    androidx.compose.ui.res.stringResource(R.string.transaction_suggestion_label)
+                    stringResource(R.string.transaction_suggestion_label)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

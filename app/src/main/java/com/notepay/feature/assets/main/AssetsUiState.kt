@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main
 
 import androidx.compose.runtime.Immutable
 import com.notepay.domain.money.Money

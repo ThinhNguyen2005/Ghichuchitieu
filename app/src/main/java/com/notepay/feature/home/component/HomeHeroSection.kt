@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -34,9 +34,9 @@ import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.money.Money
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.LocalAuthUser
-import com.notepay.ui.util.rememberUserGreeting
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.LocalAuthUser
+import com.notepay.core.designsystem.util.rememberUserGreeting
 
 // ── Design tokens của khối hero (bội số của 4) ───────────────────────────────
 // `internal` vì HomeScreen và feed giao dịch dùng chung lề ngang này.

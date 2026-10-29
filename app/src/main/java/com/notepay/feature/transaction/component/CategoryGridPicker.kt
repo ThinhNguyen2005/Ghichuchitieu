@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -68,10 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.categoryIcon
-import com.notepay.ui.component.customCategoryIconOptions
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.category.mapper.categoryIcon
+import com.notepay.feature.category.mapper.customCategoryIconOptions
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
 
 // ─── Nhóm danh mục (UI-only, không thuộc domain) ─────────────────────────────
 
@@ -122,7 +121,7 @@ fun CategoryGridPicker(
     var showAddDialog by remember { mutableStateOf(false) }
 
     // Tìm kiếm + lọc nhóm — derivedStateOf không gây recompose thừa khi state khác thay đổi
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val filtered by remember(query, selectedGroup, allVisible) {
         derivedStateOf {
             allVisible.filter { cat ->

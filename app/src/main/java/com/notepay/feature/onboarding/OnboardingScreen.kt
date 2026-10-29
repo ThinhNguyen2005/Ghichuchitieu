@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding
+package com.notepay.feature.onboarding
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -32,13 +32,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.ui.feature.onboarding.components.OnboardingPrimaryButton
-import com.notepay.ui.feature.onboarding.components.ProgressDotsIndicator
-import com.notepay.ui.feature.onboarding.steps.Step1CurrencyScreen
-import com.notepay.ui.feature.onboarding.steps.Step2WalletScreen
-import com.notepay.ui.feature.onboarding.steps.Step3ReminderScreen
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
+import com.notepay.feature.onboarding.components.OnboardingPrimaryButton
+import com.notepay.feature.onboarding.components.ProgressDotsIndicator
+import com.notepay.feature.onboarding.steps.Step1CurrencyScreen
+import com.notepay.feature.onboarding.steps.Step2WalletScreen
+import com.notepay.feature.onboarding.steps.Step3ReminderScreen
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
 
 /**
  * Onboarding stateless — nhận [uiState], phát [onAction].

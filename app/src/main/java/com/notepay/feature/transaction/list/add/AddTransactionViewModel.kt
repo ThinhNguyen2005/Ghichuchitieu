@@ -1,6 +1,7 @@
-package com.notepay.ui.feature.transaction.add
+package com.notepay.feature.transaction.list.add
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.di.IoDispatcher
@@ -13,14 +14,14 @@ import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.ai.LocalTransactionImageScanner
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.feature.transaction.form.mapper.CategorySuggestionUiMapper
 import com.notepay.feature.transaction.form.calculator.AmountParseError
 import com.notepay.feature.transaction.form.calculator.AmountParser
-import com.notepay.ui.feature.transaction.calculator.CalculatorEngine
-import com.notepay.ui.feature.transaction.calculator.CalculatorState
-import com.notepay.ui.feature.transaction.components.CalcKey
+import com.notepay.feature.transaction.form.calculator.CalculatorEngine
+import com.notepay.feature.transaction.form.calculator.CalculatorState
+import com.notepay.feature.transaction.component.CalcKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -200,7 +201,7 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
-    private fun scanImage(uri: android.net.Uri) {
+    private fun scanImage(uri: Uri) {
         if (_state.value.isImageScanning) return
         _state.update {
             it.copy(

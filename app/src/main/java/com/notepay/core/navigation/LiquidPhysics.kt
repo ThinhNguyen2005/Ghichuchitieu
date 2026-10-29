@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter

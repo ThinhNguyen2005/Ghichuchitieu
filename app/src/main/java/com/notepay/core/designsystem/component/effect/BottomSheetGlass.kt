@@ -1,4 +1,4 @@
-package com.notepay.ui.component.effect
+package com.notepay.core.designsystem.component.effect
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -58,7 +58,7 @@ fun BottomSheetGlass(
             )
         },
     ) {
-        CompositionLocalProvider(LocalNotePayBackdrop provides isolatedBackdrop) {
+        CompositionLocalProvider(_root_ide_package_.com.notepay.core.designsystem.component.effect.LocalNotePayBackdrop provides isolatedBackdrop) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

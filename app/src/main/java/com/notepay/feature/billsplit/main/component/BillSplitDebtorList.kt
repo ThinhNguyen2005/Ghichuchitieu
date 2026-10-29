@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,11 +46,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
-import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.feature.billsplit.main.sheet.BillSplitSectionTitle
+import com.notepay.feature.billsplit.main.sheet.BillSplitStep
+import com.notepay.feature.billsplit.main.sheet.DebtorEntry
+import com.notepay.feature.billsplit.main.sheet.vndInputToCents
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.util.localizedName
 
 private const val MAX_VND_INPUT_LENGTH = 15
 

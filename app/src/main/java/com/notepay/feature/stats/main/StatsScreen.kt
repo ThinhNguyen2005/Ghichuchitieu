@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
@@ -88,18 +88,25 @@ import com.notepay.R
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.ForecastConfidence
+import com.notepay.domain.analytics.SpendingPrediction
+import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.model.Category
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
-import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.component.LiquidButton
-import com.notepay.ui.component.TransactionItem
-import com.notepay.ui.feature.subscription.AddSubscriptionBottomSheet
-import com.notepay.ui.feature.subscription.AddSubscriptionDialogState
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.ui.component.button.LiquidButton
+import com.notepay.feature.transaction.component.TransactionItem
+import com.notepay.feature.stats.main.component.StatsDashboard
+import com.notepay.feature.stats.main.component.StatsHeader
+import com.notepay.feature.stats.main.component.StatsMetric
+import com.notepay.feature.stats.main.component.StatsViewType
+import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
+import com.notepay.feature.subscription.main.AddSubscriptionDialogState
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import java.util.Locale
 import kotlin.math.abs
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.util.localizedName
 
 @Composable
 private fun StatsUiText.resolve(): String = when (this) {
@@ -137,7 +144,7 @@ fun StatsScreen(
     }
 
     LaunchedEffect(state.currentPeriod?.range) {
-        if (state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.MONTH) {
+        if (state.currentPeriod?.range != StatsRange.MONTH) {
             viewType = StatsViewType.PHAN_BO
         }
     }
@@ -157,7 +164,7 @@ fun StatsScreen(
                 )
             },
             actions = {
-                if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+                if (state.currentPeriod?.range == StatsRange.MONTH) {
                     StatsHeader(
                         viewType = viewType,
                         onViewTypeChanged = { viewType = it },
@@ -353,9 +360,9 @@ private fun StatsSupportingContent(
         metric,
     ) {
         val expectedType = if (isExpense) {
-            com.notepay.domain.model.TransactionType.EXPENSE
+            TransactionType.EXPENSE
         } else {
-            com.notepay.domain.model.TransactionType.INCOME
+            TransactionType.INCOME
         }
 
         state.transactions.filter { transaction ->
@@ -742,7 +749,7 @@ private fun BudgetProgressBar(
 
 @Composable
 private fun SpendingPredictionCard(
-    prediction: com.notepay.domain.analytics.SpendingPrediction,
+    prediction: SpendingPrediction,
 ) {
     val probability = prediction.overBudgetProbability
 

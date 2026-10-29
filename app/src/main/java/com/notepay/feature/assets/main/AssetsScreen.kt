@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -86,16 +86,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.money.Money
-import com.notepay.ui.adaptive.LocalContentGutter
-import com.notepay.ui.adaptive.LocalWindowLayout
-import com.notepay.ui.adaptive.usesNavigationRail
-import com.notepay.ui.component.WalletAppIcon
+import com.notepay.feature.assets.main.component.WalletAppIcon
+import com.notepay.core.designsystem.adaptive.LocalContentGutter
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.feature.debt.management.component.DebtSummaryCard
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
-import com.notepay.ui.util.WalletUiHelper
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.util.WalletUiHelper
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
@@ -958,7 +958,7 @@ private fun TransferBottomSheet(
     onNoteChange: (String) -> Unit,
     onConfirm: () -> Unit,
 ) {
-    com.notepay.ui.component.BottomSheetGlass(
+    _root_ide_package_.com.notepay.core.designsystem.component.effect.BottomSheetGlass(
         visible = state.isTransferSheetVisible,
         onDismissRequest = onDismiss,
     ) {

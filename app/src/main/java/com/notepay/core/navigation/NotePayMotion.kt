@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import android.provider.Settings
 import androidx.compose.runtime.Composable

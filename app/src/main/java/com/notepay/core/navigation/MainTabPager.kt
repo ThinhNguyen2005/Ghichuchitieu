@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize

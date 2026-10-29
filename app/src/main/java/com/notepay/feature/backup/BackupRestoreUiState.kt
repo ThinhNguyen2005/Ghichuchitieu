@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.backup
+package com.notepay.feature.backup
 
 data class BackupRestoreUiState(
     val isExporting: Boolean = false,

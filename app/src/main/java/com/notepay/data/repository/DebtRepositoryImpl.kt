@@ -4,10 +4,10 @@ import com.notepay.data.local.dao.DebtDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.mapper.DebtMapper
 import com.notepay.di.IoDispatcher
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import com.notepay.domain.repository.DebtRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow

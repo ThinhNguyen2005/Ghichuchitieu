@@ -1,4 +1,4 @@
-package com.notepay.ui.component.action
+package com.notepay.core.designsystem.component.action
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,8 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.ui.component.effect.BottomSheetGlass
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +41,7 @@ fun CreateNewBottomSheet(
         isVisible = true
     }
 
-    BottomSheetGlass(
+    _root_ide_package_.com.notepay.core.designsystem.component.effect.BottomSheetGlass(
         visible = isVisible,
         onDismissRequest = {
             isVisible = false
@@ -65,7 +64,7 @@ fun CreateNewBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                CreateNewActionCard(
+                _root_ide_package_.com.notepay.core.designsystem.component.action.CreateNewActionCard(
                     visible = isVisible,
                     index = 0,
                     icon = Icons.Rounded.Receipt,
@@ -79,7 +78,7 @@ fun CreateNewBottomSheet(
                     },
                 )
 
-                CreateNewActionCard(
+                _root_ide_package_.com.notepay.core.designsystem.component.action.CreateNewActionCard(
                     visible = isVisible,
                     index = 1,
                     icon = Icons.AutoMirrored.Rounded.CallSplit,
@@ -93,7 +92,7 @@ fun CreateNewBottomSheet(
                     },
                 )
 
-                CreateNewActionCard(
+                _root_ide_package_.com.notepay.core.designsystem.component.action.CreateNewActionCard(
                     visible = isVisible,
                     index = 2,
                     icon = Icons.Rounded.Autorenew,

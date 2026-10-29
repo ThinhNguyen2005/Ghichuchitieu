@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.sheet
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,10 +65,9 @@ import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
-import com.notepay.ui.component.FirefliesBackground
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.VietQrGenerator
-import com.notepay.util.StringUtils
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.VietQrGenerator
+import com.notepay.core.common.util.StringUtils
 
 private enum class VietQrStep { SelectBank, EnterAccount }
 
@@ -89,7 +89,9 @@ fun VietQrConfigFullScreenDialog(
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            FirefliesBackground(Modifier.fillMaxSize())
+            _root_ide_package_.com.notepay.core.designsystem.component.effect.FirefliesBackground(
+                Modifier.fillMaxSize()
+            )
             Column(
                 modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp),
             ) {
@@ -209,7 +211,7 @@ private fun BankSelectionStep(banks: List<VietQrBank>, selectedBank: VietQrBank?
         } else LazyColumn(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 20.dp),
+            contentPadding = PaddingValues(bottom = 20.dp),
         ) {
             items(filteredBanks, key = { it.bin }) { bank ->
                 BankOption(bank, bank.bin == selectedBank?.bin) { onBankSelected(bank) }

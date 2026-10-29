@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -51,11 +51,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.navigation.compose.composable
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.notepay.platform.OsCompatHelper
+import com.notepay.core.platform.OsCompatHelper
 import com.notepay.R
-import com.notepay.ui.adaptive.LocalWindowLayout
-import com.notepay.ui.adaptive.NotePayAdaptive
-import com.notepay.ui.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.NotePayAdaptive
+import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.ui.component.button.FloatingAddButton
 import com.notepay.ui.component.effect.LocalNotePayBackdrop
 import com.notepay.feature.billsplit.billSplitGraph
@@ -69,7 +69,7 @@ import com.notepay.feature.assets.main.walletGraph
 import com.notepay.core.designsystem.feedback.FeedbackDuration
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.model.AuthUser
-import com.notepay.ui.util.LocalAuthUser
+import com.notepay.core.designsystem.util.LocalAuthUser
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)

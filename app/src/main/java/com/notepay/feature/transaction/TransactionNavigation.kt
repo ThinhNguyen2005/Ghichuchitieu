@@ -1,17 +1,17 @@
-package com.notepay.ui.feature.transaction
+package com.notepay.feature.transaction
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.notepay.ui.component.PredictiveBackDestination
-import com.notepay.ui.feature.transaction.add.AddTransactionScreen
-import com.notepay.ui.feature.transaction.detail.TransactionDetailScreen
-import com.notepay.ui.feature.transaction.edit.EditTransactionScreen
-import com.notepay.ui.feature.transaction.list.TransactionListScreen
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.feature.transaction.list.add.AddTransactionScreen
+import com.notepay.feature.transaction.detail.TransactionDetailScreen
+import com.notepay.feature.transaction.list.edit.EditTransactionScreen
+import com.notepay.feature.transaction.list.TransactionListScreen
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.transactionGraph(
     navController: NavController,

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.management
 
 import android.content.res.Configuration
 import android.widget.Toast
@@ -64,20 +64,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
-import com.notepay.feature.debt.DebtUiEvent
-import com.notepay.feature.debt.DebtUiState
-import com.notepay.feature.debt.DebtViewModel
-import com.notepay.ui.adaptive.LocalWindowLayout
-import com.notepay.ui.adaptive.WindowLayout
-import com.notepay.ui.component.DetailPaneEmptyState
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.WindowLayout
+import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
+import com.notepay.feature.debt.management.sheet.CreateDebtBottomSheet
+import com.notepay.feature.debt.detail.DebtDetailScreen
+import com.notepay.feature.debt.management.component.DebtItemCard
+import com.notepay.feature.debt.management.component.DebtSummaryCard
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
 import kotlin.time.Instant
 
 @Composable

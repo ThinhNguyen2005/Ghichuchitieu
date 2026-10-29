@@ -9,7 +9,7 @@ import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.CategoryRepository
-import com.notepay.platform.widget.WidgetUpdateHelper
+import com.notepay.core.platform.widget.WidgetUpdateHelper
 import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.subscription
+package com.notepay.feature.subscription
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -7,8 +7,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.notepay.feature.subscription.main.SubscriptionScreen
 
-import com.notepay.ui.component.PredictiveBackDestination
+import com.notepay.core.navigation.PredictiveBackDestination
 
 fun NavGraphBuilder.subscriptionScreen(
     navController: NavController,

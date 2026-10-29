@@ -1,4 +1,4 @@
-package com.notepay.ui.util
+package com.notepay.core.designsystem.util
 
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -7,7 +7,7 @@ import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
-import com.notepay.util.StringUtils
+import com.notepay.core.common.util.StringUtils
 import java.net.URLEncoder
 import java.util.EnumMap
 import java.util.Locale

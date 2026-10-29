@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.backup
+package com.notepay.feature.backup
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,13 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.notepay.R
-import com.notepay.ui.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.UiFeedback
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.ui.feature.auth.AuthViewModel
-import com.notepay.ui.feature.auth.GoogleSignInCard
+import com.notepay.feature.auth.main.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -189,7 +189,7 @@ fun BackupRestoreScreen(
 
 @Composable
 private fun BackupCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     description: String,
     color: Color,

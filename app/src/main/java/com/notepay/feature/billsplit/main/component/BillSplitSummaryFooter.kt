@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,10 +19,12 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.money.Money
-import com.notepay.ui.component.GradientBottomActionBar
-import com.notepay.ui.component.LiquidButton
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.billsplit.main.sheet.BillSplitStep
+import com.notepay.feature.billsplit.main.sheet.DebtorEntry
+import com.notepay.feature.billsplit.main.sheet.enteredTotalCents
+import com.notepay.feature.billsplit.main.sheet.vndInputToCents
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.math.abs
 
 /**
@@ -80,7 +82,7 @@ internal fun BillSplitSummaryFooter(
         MaterialTheme.colorScheme.onSurface
     }
 
-    GradientBottomActionBar(
+    _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientBottomActionBar(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -161,7 +163,7 @@ private fun SheetPrimaryButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    LiquidButton(
+    _root_ide_package_.com.notepay.core.designsystem.component.button.LiquidButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier

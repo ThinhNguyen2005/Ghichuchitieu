@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.sheet
 
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog

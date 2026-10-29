@@ -1,6 +1,5 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main
 
-import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -8,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -56,19 +56,19 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.money.Money
-import com.notepay.ui.component.ConfirmDeleteDialog
-import com.notepay.ui.component.EmptyStateWithAction
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietQrGenerator
+import com.notepay.feature.billsplit.main.sheet.BillSplitCreateSheet
+import com.notepay.feature.billsplit.main.sheet.VietQrConfigFullScreenDialog
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietQrGenerator
 
 /** Khoảng trống cho FAB để item cuối của danh sách không bị nút che. */
 private val FabClearance = 96.dp
@@ -137,7 +137,7 @@ fun BillSplitScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            GradientTopAppBar(
+            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientTopAppBar(
                 title = {
                     Text(if (showPaidHistory) stringResource(R.string.billsplit_tab_paid) else title)
                 },
@@ -215,7 +215,7 @@ fun BillSplitScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(horizontalPadding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                contentPadding = PaddingValues(
                     start = 16.dp,
                     top = 12.dp,
                     end = 16.dp,
@@ -247,7 +247,7 @@ fun BillSplitScreen(
                                 .heightIn(min = 240.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            EmptyStateWithAction(
+                            _root_ide_package_.com.notepay.core.designsystem.component.feedback.EmptyStateWithAction(
                                 title = emptyTitle,
                                 icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                                 modifier = Modifier.fillMaxWidth(),
@@ -364,7 +364,7 @@ fun BillSplitScreen(
     }
 
     pendingDeleteBill?.let { item ->
-        ConfirmDeleteDialog(
+        _root_ide_package_.com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog(
             title = confirmDeleteTitle,
             itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
             message = confirmDeleteMessageFormat.format(item.split.debtorName),
@@ -381,7 +381,7 @@ fun BillSplitScreen(
 private fun PaidHistoryContent(
     paidSplits: List<BillSplitItemState>,
     emptyTitle: String,
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
     onDebtorClick: (String) -> Unit,
     onDelete: (BillSplitItemState) -> Unit,
     modifier: Modifier = Modifier,
@@ -391,7 +391,7 @@ private fun PaidHistoryContent(
             modifier = modifier.padding(bottom = bottomPadding),
             contentAlignment = Alignment.Center,
         ) {
-            EmptyStateWithAction(
+            _root_ide_package_.com.notepay.core.designsystem.component.feedback.EmptyStateWithAction(
                 title = emptyTitle,
                 icon = Icons.Rounded.CheckCircle,
                 modifier = Modifier.fillMaxWidth(),
@@ -402,7 +402,7 @@ private fun PaidHistoryContent(
 
     LazyColumn(
         modifier = modifier,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+        contentPadding = PaddingValues(
             start = 16.dp,
             top = 16.dp,
             end = 16.dp,

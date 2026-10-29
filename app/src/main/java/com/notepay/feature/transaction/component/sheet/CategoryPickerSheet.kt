@@ -1,17 +1,19 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component.sheet
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.BottomSheetGlass
-import com.notepay.ui.component.GradientBottomActionBar
-import com.notepay.ui.component.LiquidButton
+import com.notepay.ui.component.effect.BottomSheetGlass
+import com.notepay.ui.component.bar.GradientBottomActionBar
+import com.notepay.ui.component.button.LiquidButton
+import com.notepay.feature.transaction.component.CategoryGridPicker
 
 /**
  * BottomSheet chứa lưới chọn và thêm danh mục tùy biến cho luồng thêm giao dịch.
@@ -53,7 +55,7 @@ fun CategoryPickerSheet(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                androidx.compose.material3.Text(stringResource(R.string.action_close))
+                Text(stringResource(R.string.action_close))
             }
         }
     }

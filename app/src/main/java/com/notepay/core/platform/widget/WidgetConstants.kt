@@ -1,4 +1,4 @@
-package com.notepay.platform.widget
+package com.notepay.core.platform.widget
 
 object WidgetConstants {
     const val ACTION_QUICK_ADD = "com.notepay.action.QUICK_ADD"

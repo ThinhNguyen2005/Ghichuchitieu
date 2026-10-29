@@ -1,4 +1,4 @@
-package com.notepay.ui.component.button
+package com.notepay.core.designsystem.component.button
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
@@ -9,7 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import com.notepay.ui.theme.isAppDarkTheme
+import com.notepay.core.designsystem.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape

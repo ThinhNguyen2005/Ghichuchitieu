@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.utilities
+package com.notepay.feature.utilities
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
@@ -11,8 +11,8 @@ import com.notepay.feature.settings.ai.AiSettingsScreen
 import com.notepay.feature.settings.appearance.AppearanceLanguageScreen
 import com.notepay.feature.settings.notification.NotificationSettingsScreen
 import com.notepay.feature.settings.currency.CurrencySettingsScreen
-import com.notepay.ui.component.PredictiveBackDestination
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.utilitiesGraph(
     navController: NavController,

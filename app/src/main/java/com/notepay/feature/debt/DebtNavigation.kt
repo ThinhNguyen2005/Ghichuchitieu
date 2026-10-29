@@ -7,8 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.feature.debt.detail.DebtDetailScreen
 import com.notepay.feature.debt.management.DebtManagementScreen
-import com.notepay.ui.component.PredictiveBackDestination
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.debtGraph(
     navController: NavController,

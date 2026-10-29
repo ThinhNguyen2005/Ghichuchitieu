@@ -28,8 +28,9 @@ import com.notepay.domain.notification.NotificationDecision
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
-import com.notepay.util.StringUtils
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.common.util.StringUtils
+import com.notepay.core.designsystem.util.localizedName
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -365,7 +366,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
                     val parentTx = transactionRepository.getById(matchingSplit.transactionId)
                     if (parentTx != null) {
                         val newAmountCents = (parentTx.amount.amountInCents - matchingSplit.amount.amountInCents).coerceAtLeast(0L)
-                        val paidNote = "${matchingSplit.debtorName} trả ${com.notepay.ui.util.MoneyFormatter.format(matchingSplit.amount)}"
+                        val paidNote = "${matchingSplit.debtorName} trả ${MoneyFormatter.format(matchingSplit.amount)}"
                         val newNote = if (parentTx.note.contains(" trả ")) {
                             "${parentTx.note}, $paidNote"
                         } else {
@@ -448,7 +449,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
 
                                 splits.forEach { split ->
                                     currentAmountCents = (currentAmountCents - split.amount.amountInCents).coerceAtLeast(0L)
-                                    val paidNote = "$matchedDebtor trả ${com.notepay.ui.util.MoneyFormatter.format(split.amount)}"
+                                    val paidNote = "$matchedDebtor trả ${MoneyFormatter.format(split.amount)}"
                                     currentNote = if (currentNote.contains(" trả ")) {
                                         "$currentNote, $paidNote"
                                     } else {
@@ -652,7 +653,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         pending: PendingBankNotification,
         walletName: String,
     ) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(pending.amountCents))
+        val amountFormat = MoneyFormatter.format(Money(pending.amountCents))
         val notificationId = pendingNotificationId(pending.id)
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
@@ -721,7 +722,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         categoryName: String,
         categoryEmoji: String
     ) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val amountFormat = MoneyFormatter.format(Money(amountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
@@ -755,7 +756,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         amountCents: Long,
         note: String
     ) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val amountFormat = MoneyFormatter.format(Money(amountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
@@ -783,8 +784,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         remainingDebtCents: Long,
         walletName: String
     ) {
-        val paidFormat = com.notepay.ui.util.MoneyFormatter.format(Money(paidAmountCents))
-        val remainingFormat = com.notepay.ui.util.MoneyFormatter.format(Money(remainingDebtCents))
+        val paidFormat = MoneyFormatter.format(Money(paidAmountCents))
+        val remainingFormat = MoneyFormatter.format(Money(remainingDebtCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
@@ -818,7 +819,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         billCount: Int,
         walletName: String
     ) {
-        val totalFormat = com.notepay.ui.util.MoneyFormatter.format(Money(totalAmountCents))
+        val totalFormat = MoneyFormatter.format(Money(totalAmountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
@@ -852,8 +853,8 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         percentUsed: Int,
         isLimitExceeded: Boolean
     ) {
-        val spentFormat = com.notepay.ui.util.MoneyFormatter.format(Money(spentCents))
-        val budgetFormat = com.notepay.ui.util.MoneyFormatter.format(Money(budgetCents))
+        val spentFormat = MoneyFormatter.format(Money(spentCents))
+        val budgetFormat = MoneyFormatter.format(Money(budgetCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val title = getString(
@@ -888,7 +889,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         name: String,
         amountCents: Long
     ) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val amountFormat = MoneyFormatter.format(Money(amountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val notifId = (amountCents + System.currentTimeMillis() / 1000).toInt()
 
@@ -937,7 +938,7 @@ class NotePayNotificationListenerService : NotificationListenerService() {
         fromWalletName: String,
         toWalletName: String
     ) {
-        val amountFormat = com.notepay.ui.util.MoneyFormatter.format(Money(amountCents))
+        val amountFormat = MoneyFormatter.format(Money(amountCents))
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val bigTextStyle = NotificationCompat.BigTextStyle()

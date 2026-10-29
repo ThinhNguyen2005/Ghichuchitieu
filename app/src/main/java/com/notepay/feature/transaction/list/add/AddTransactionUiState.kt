@@ -1,11 +1,11 @@
-﻿package com.notepay.ui.feature.transaction.add
+﻿package com.notepay.feature.transaction.list.add
 
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.ui.feature.transaction.calculator.CalculatorEngine
-import com.notepay.ui.feature.transaction.calculator.CalculatorState
+import com.notepay.feature.transaction.form.calculator.CalculatorEngine
+import com.notepay.feature.transaction.form.calculator.CalculatorState
 import kotlin.time.Clock
 import kotlin.time.Instant
 

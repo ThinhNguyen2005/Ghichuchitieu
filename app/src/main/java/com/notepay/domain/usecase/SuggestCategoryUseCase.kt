@@ -4,7 +4,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.repository.CategoryLearningEntry
 import com.notepay.domain.repository.CategoryLearningStore
 import com.notepay.domain.repository.CategoryLearningType
-import com.notepay.util.StringUtils
+import com.notepay.core.common.util.StringUtils
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton

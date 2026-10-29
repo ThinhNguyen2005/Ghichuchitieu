@@ -1,4 +1,4 @@
-package com.notepay.ui.theme
+package com.notepay.core.designsystem.theme
 
 import android.content.Context
 import android.os.Build

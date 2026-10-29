@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding
+package com.notepay.feature.onboarding
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

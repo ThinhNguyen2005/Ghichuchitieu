@@ -1,6 +1,7 @@
 package com.notepay.domain.usecase
 
 import com.google.common.truth.Truth.assertThat
+import com.notepay.core.platform.notification.BudgetAlertNotifier
 import com.notepay.domain.TestData
 import com.notepay.domain.model.TestTransactionFactory
 import com.notepay.domain.repository.TransactionRepository
@@ -84,7 +85,7 @@ class AddTransactionUseCaseTest {
     @Test
     fun `invoke with expense triggers budget alert check`() = runTest(dispatcher) {
         val wallet = TestData.wallet()
-        val budgetNotifier = mockk<com.notepay.platform.notification.BudgetAlertNotifier>(relaxed = true)
+        val budgetNotifier = mockk<BudgetAlertNotifier>(relaxed = true)
         val useCaseWithNotifier = AddTransactionUseCase(transactionRepo, walletRepo, dispatcher, budgetNotifier)
         coEvery { walletRepo.getById(1L) } returns wallet
         coEvery { transactionRepo.upsert(any()) } returns 1L
@@ -97,7 +98,7 @@ class AddTransactionUseCaseTest {
     @Test
     fun `invoke with income does not trigger budget alert check`() = runTest(dispatcher) {
         val wallet = TestData.wallet()
-        val budgetNotifier = mockk<com.notepay.platform.notification.BudgetAlertNotifier>(relaxed = true)
+        val budgetNotifier = mockk<BudgetAlertNotifier>(relaxed = true)
         val useCaseWithNotifier = AddTransactionUseCase(transactionRepo, walletRepo, dispatcher, budgetNotifier)
         coEvery { walletRepo.getById(1L) } returns wallet
         coEvery { transactionRepo.upsert(any()) } returns 1L

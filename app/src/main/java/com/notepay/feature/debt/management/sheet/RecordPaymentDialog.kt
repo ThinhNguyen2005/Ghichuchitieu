@@ -1,11 +1,10 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.management.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,11 +36,11 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 
 @Composable
 fun RecordPaymentDialog(

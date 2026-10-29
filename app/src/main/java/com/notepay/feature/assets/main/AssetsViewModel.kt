@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main
 
 import android.content.Context
 import com.notepay.R
@@ -11,8 +11,8 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -38,6 +38,7 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -202,7 +203,7 @@ class AssetsViewModel @Inject constructor(
             val firstPointAmount = trendPoints.firstOrNull()?.amount?.amountInCents ?: totalCents
             val netWorthChangeCents = totalCents - firstPointAmount
             val netWorthChangePercentage = if (firstPointAmount != 0L) {
-                (netWorthChangeCents.toFloat() / kotlin.math.abs(firstPointAmount).toFloat()) * 100f
+                (netWorthChangeCents.toFloat() / abs(firstPointAmount).toFloat()) * 100f
             } else 0f
 
             AssetsUiState(

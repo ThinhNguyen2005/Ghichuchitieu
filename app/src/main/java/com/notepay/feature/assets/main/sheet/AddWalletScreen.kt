@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main.sheet
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -71,15 +71,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.money.Money
-import com.notepay.ui.component.GradientBottomActionBar
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.component.LiquidButton
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
-import com.notepay.ui.util.WalletUiHelper
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.util.WalletUiHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +101,7 @@ fun AddWalletScreen(
 
     Scaffold(
         topBar = {
-            GradientTopAppBar(
+            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientTopAppBar(
                 title = {
                     Text(
                         if (state.isEditMode) {
@@ -125,8 +122,8 @@ fun AddWalletScreen(
             )
         },
         bottomBar = {
-            GradientBottomActionBar {
-                LiquidButton(
+            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientBottomActionBar {
+                _root_ide_package_.com.notepay.core.designsystem.component.button.LiquidButton(
                     onClick = { viewModel.save() },
                     enabled = state.canSave,
                     surfaceColor = MaterialTheme.colorScheme.primary,

@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.transaction.add
+package com.notepay.feature.transaction.list.add
 
-import com.notepay.ui.theme.AppTheme
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,25 +9,36 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.*
-import com.notepay.ui.feature.transaction.components.*
-import com.notepay.ui.formatter.TransactionDateLabelFormatter
+import com.notepay.feature.transaction.component.CalcKey
+import com.notepay.feature.transaction.component.CategoryQuickSelectionRow
+import com.notepay.feature.transaction.component.NotePreviewChip
+import com.notepay.feature.transaction.component.TransactionAmountDisplay
+import com.notepay.feature.transaction.component.TransactionCustomKeypad
+import com.notepay.feature.transaction.component.TransactionSuggestionChipRow
+import com.notepay.feature.transaction.component.TransactionTypeSelector
+import com.notepay.feature.transaction.component.TransactionWalletField
+import com.notepay.feature.transaction.component.sheet.CategoryPickerSheet
+import com.notepay.feature.transaction.component.sheet.NoteQuickEntrySheet
+import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
+import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.formatter.TransactionDateLabelFormatter
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +84,7 @@ fun AddTransactionScreen(
 
     LaunchedEffect(Unit) {
         viewModel.feedback.collect { feedback ->
-            if (feedback.type == com.notepay.ui.feedback.FeedbackType.Success) {
+            if (feedback.type == FeedbackType.Success) {
                 onSaved()
             } else {
                 snackbarHostState.showSnackbar(feedback.message)
@@ -94,7 +105,7 @@ fun AddTransactionScreen(
     val dateLabel = remember(state.occurredAt, todayPrefix, yesterdayPrefix, monthSuffixFmt) {
         TransactionDateLabelFormatter.format(
             target = state.occurredAt.toLocalDateTime(systemTimeZone).date,
-            today = kotlin.time.Clock.System.now().toLocalDateTime(systemTimeZone).date,
+            today = Clock.System.now().toLocalDateTime(systemTimeZone).date,
             todayPrefix = todayPrefix,
             yesterdayPrefix = yesterdayPrefix,
             monthSuffixFormat = monthSuffixFmt,
@@ -116,7 +127,7 @@ fun AddTransactionScreen(
                     IconButton(
                         onClick = {
                             imagePicker.launch(
-                                androidx.activity.result.PickVisualMediaRequest(
+                                PickVisualMediaRequest(
                                     ActivityResultContracts.PickVisualMedia.ImageOnly
                                 )
                             )
@@ -197,8 +208,8 @@ fun AddTransactionScreen(
                     if (state.availableWallets.size > 1) {
                         showWalletPicker.value = true
                     } else {
-                        android.widget.Toast.makeText(
-                            context, noOtherWalletToast, android.widget.Toast.LENGTH_SHORT
+                        Toast.makeText(
+                            context, noOtherWalletToast, Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
@@ -236,6 +247,7 @@ fun AddTransactionScreen(
                                 }
                             }
                         }
+
                         else -> viewModel.onEvent(AddTransactionEvent.CalcKeyPressed(key))
                     }
                 },

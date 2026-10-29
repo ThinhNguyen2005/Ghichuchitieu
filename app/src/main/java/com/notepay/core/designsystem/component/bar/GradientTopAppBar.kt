@@ -1,4 +1,4 @@
-package com.notepay.ui.component.bar
+package com.notepay.core.designsystem.component.bar
 
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme

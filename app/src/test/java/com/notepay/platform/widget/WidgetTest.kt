@@ -2,7 +2,11 @@ package com.notepay.platform.widget
 
 import android.content.Intent
 import com.google.common.truth.Truth.assertThat
-import com.notepay.ui.navigation.Route
+import com.notepay.core.navigation.Route
+import com.notepay.core.platform.widget.QuickActionWidgetReceiver
+import com.notepay.core.platform.widget.SpentGlanceWidgetReceiver
+import com.notepay.core.platform.widget.WidgetConstants
+import com.notepay.core.platform.widget.WidgetUpdateHelper
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

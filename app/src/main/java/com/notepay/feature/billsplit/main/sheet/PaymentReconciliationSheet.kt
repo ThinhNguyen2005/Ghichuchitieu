@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main.sheet
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -61,10 +61,10 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.localizedName
 
 private enum class ReconciliationMethod {
     CASH, TRANSFER

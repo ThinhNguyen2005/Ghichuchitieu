@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main
 
 import android.content.Context
 import androidx.core.content.edit
@@ -8,6 +8,7 @@ import com.notepay.R
 import com.notepay.ai.OnDeviceBudgetAdvisor
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
+import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.CategoryExpenseShare
 import com.notepay.domain.analytics.DailyExpense
@@ -17,17 +18,21 @@ import com.notepay.domain.analytics.StatsInsightsCalculator
 import com.notepay.domain.analytics.StatsPeriod
 import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.analytics.StatsSummaryCalculator
+import com.notepay.domain.analytics.comparablePreviousRange
 import com.notepay.domain.analytics.customPeriod
+import com.notepay.domain.analytics.hasComparableData
 import com.notepay.domain.analytics.periodFor
 import com.notepay.domain.analytics.shift
 import com.notepay.domain.model.Category
+import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.stats.main.component.StatsInsightsUiMapper
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.util.localizedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -54,6 +59,7 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
+import kotlin.collections.iterator
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -163,8 +169,8 @@ class StatsViewModel @Inject constructor(
 
         // 2.5 Tính toán so sánh với kỳ trước
         val firstTxDate = allTransactions.minByOrNull { it.occurredAt }?.occurredAt?.toLocalDateTime(zone)?.date
-        val prevRange = com.notepay.domain.analytics.comparablePreviousRange(period, now.date)
-        val hasData = com.notepay.domain.analytics.hasComparableData(prevRange, firstTxDate)
+        val prevRange = comparablePreviousRange(period, now.date)
+        val hasData = hasComparableData(prevRange, firstTxDate)
         
         var previousExpense: Money? = null
         var previousIncome: Money? = null
@@ -175,8 +181,8 @@ class StatsViewModel @Inject constructor(
                 val txDate = tx.occurredAt.toLocalDateTime(zone).date
                 if (txDate in prevRange) {
                     if (selectedWalletId == null || tx.walletId == selectedWalletId) {
-                        if (tx.type == com.notepay.domain.model.TransactionType.EXPENSE) pExp += tx.amount.amountInCents
-                        else if (tx.type == com.notepay.domain.model.TransactionType.INCOME) pInc += tx.amount.amountInCents
+                        if (tx.type == TransactionType.EXPENSE) pExp += tx.amount.amountInCents
+                        else if (tx.type == TransactionType.INCOME) pInc += tx.amount.amountInCents
                     }
                 }
             }
@@ -231,7 +237,7 @@ class StatsViewModel @Inject constructor(
         }
 
         // 7. Dự báo chi tiêu cuối tháng (Forecast)
-        val isViewingCurrentMonth = period.range == com.notepay.domain.analytics.StatsRange.MONTH && period.contains(now.date)
+        val isViewingCurrentMonth = period.range == StatsRange.MONTH && period.contains(now.date)
         
         val prediction = if (isViewingCurrentMonth) {
             val dailyExpenses = allTransactions.asSequence()
@@ -430,7 +436,7 @@ class StatsViewModel @Inject constructor(
             recentMonths = recentMonths,
             trendWindow = filters.trendWindow,
             isLoading = false,
-            isCurrentMonth = period.range == com.notepay.domain.analytics.StatsRange.MONTH && period.contains(now.date),
+            isCurrentMonth = period.range == StatsRange.MONTH && period.contains(now.date),
             isLatestPeriod = period.contains(now.date),
             selectedCategory = null,
             transactions = filteredTxs,
@@ -487,11 +493,11 @@ class StatsViewModel @Inject constructor(
                         status = LocalAdvisorStatus.READY,
                         result = result,
                         availability = when (result.provider) {
-                            com.notepay.domain.analytics.AdvisorProvider.GEMINI_NANO ->
+                            AdvisorProvider.GEMINI_NANO ->
                                 AdvisorAvailability.GEMINI_NANO
-                            com.notepay.domain.analytics.AdvisorProvider.CLOUD_GEMINI ->
+                            AdvisorProvider.CLOUD_GEMINI ->
                                 AdvisorAvailability.CLOUD_GEMINI
-                            com.notepay.domain.analytics.AdvisorProvider.STATISTICAL_FALLBACK ->
+                            AdvisorProvider.STATISTICAL_FALLBACK ->
                                 _localAdvisor.value.availability
                         },
                     )
@@ -664,7 +670,7 @@ class StatsViewModel @Inject constructor(
         viewModelScope.launch {
             val cleanAmountInput = form.amountInput.replace(Regex("[^0-9]"), "")
             val cents = (cleanAmountInput.toLongOrNull() ?: 0L) * 100
-            val newSub = com.notepay.domain.model.Subscription(
+            val newSub = Subscription(
                 id = 0L,
                 name = form.name,
                 amount = Money(cents),

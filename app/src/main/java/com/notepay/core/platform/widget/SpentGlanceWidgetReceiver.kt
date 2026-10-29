@@ -1,4 +1,4 @@
-package com.notepay.platform.widget
+package com.notepay.core.platform.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider

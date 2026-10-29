@@ -1,4 +1,4 @@
-package com.notepay.ui.component.button
+package com.notepay.core.designsystem.component.button
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 /** Solid action button; keeps existing call sites and touch geometry. */
 @Composable

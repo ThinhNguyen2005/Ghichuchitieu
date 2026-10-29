@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home.component
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
@@ -29,10 +29,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.money.Money
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.theme.isAppDarkTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.designsystem.theme.isAppDarkTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 /**
  * Thẻ số dư Hero — thẻ ink nguyên khối của v4 (DESIGN.md §6, `ink-balance-card`).

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.auth
+package com.notepay.feature.auth.main
 
 import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.AuthUser

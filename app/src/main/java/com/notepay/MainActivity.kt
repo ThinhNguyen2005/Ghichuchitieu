@@ -10,10 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.ui.MainViewModel
-import com.notepay.ui.adaptive.ProvideWindowLayout
-import com.notepay.ui.navigation.NotePayNavHost
-import com.notepay.ui.navigation.Route
-import com.notepay.ui.theme.NotePayTheme
+import com.notepay.core.designsystem.adaptive.ProvideWindowLayout
+import com.notepay.core.navigation.NotePayNavHost
+import com.notepay.core.navigation.Route
+import com.notepay.core.designsystem.theme.NotePayTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

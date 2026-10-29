@@ -1,7 +1,7 @@
-package com.notepay.ui.feature.transaction.detail
+package com.notepay.feature.transaction.detail
 
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.isAppDarkTheme
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.isAppDarkTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -50,16 +49,18 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.CategoryAvatar
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.category.mapper.CategoryAvatar
+import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.rounded.Person
-import com.notepay.ui.util.localizedName
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.notepay.domain.model.Transaction
+import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -177,7 +178,7 @@ fun TransactionDetailContent(
 }
 
 @Composable
-private fun TransactionHeader(transaction: com.notepay.domain.model.Transaction) {
+private fun TransactionHeader(transaction: Transaction) {
     val isIncome = transaction.type == TransactionType.INCOME
     val sign = if (isIncome) "+" else "−"
     val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -232,7 +233,7 @@ private fun TransactionHeader(transaction: com.notepay.domain.model.Transaction)
 
 @Composable
 private fun MetaCard(
-    transaction: com.notepay.domain.model.Transaction,
+    transaction: Transaction,
     walletName: String?,
 ) {
     val tz = TimeZone.currentSystemDefault()
@@ -310,7 +311,7 @@ private fun MetaCard(
 
 @Composable
 private fun TransactionMetadataRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String,
 ) {
@@ -385,7 +386,7 @@ private fun ActionsBlock(
 
 @Composable
 private fun ActionRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     onClick: () -> Unit
 ) {

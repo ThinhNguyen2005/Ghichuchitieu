@@ -1,4 +1,4 @@
-package com.notepay.ui.util
+package com.notepay.core.designsystem.util
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.home
+package com.notepay.feature.home.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,10 +25,10 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.component.SwipeableTransactionItem
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.feature.transaction.component.SwipeableTransactionItem
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.localizedName
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number

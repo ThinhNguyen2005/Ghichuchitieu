@@ -1,4 +1,4 @@
-package com.notepay.ui.theme
+package com.notepay.core.designsystem.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable

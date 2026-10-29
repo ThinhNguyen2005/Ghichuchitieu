@@ -1,9 +1,8 @@
-package com.notepay.ui.feature.auth
+package com.notepay.feature.auth.main.component
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,14 +36,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
-import com.notepay.ui.theme.AppTheme
+import com.notepay.feature.auth.main.AuthUiState
+import com.notepay.core.designsystem.theme.AppTheme
 
 /**
  * Thẻ hiển thị trạng thái và hành động Đăng nhập Google.
@@ -121,10 +123,10 @@ private fun UnauthenticatedContent(
     onSignInClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val googleButtonBg = if (isDark) androidx.compose.ui.graphics.Color(0xFF131314) else androidx.compose.ui.graphics.Color(0xFFFFFFFF)
-    val googleButtonTextColor = if (isDark) androidx.compose.ui.graphics.Color(0xFFE3E3E3) else androidx.compose.ui.graphics.Color(0xFF1F1F1F)
-    val googleButtonBorder = if (isDark) androidx.compose.ui.graphics.Color(0xFF8E918F) else androidx.compose.ui.graphics.Color(0xFF747775)
+    val isDark = isSystemInDarkTheme()
+    val googleButtonBg = if (isDark) Color(0xFF131314) else Color(0xFFFFFFFF)
+    val googleButtonTextColor = if (isDark) Color(0xFFE3E3E3) else Color(0xFF1F1F1F)
+    val googleButtonBorder = if (isDark) Color(0xFF8E918F) else Color(0xFF747775)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -174,7 +176,7 @@ private fun UnauthenticatedContent(
             onClick = onSignInClick,
             enabled = !isLoading,
             shape = CircleShape,
-            border = androidx.compose.foundation.BorderStroke(1.dp, googleButtonBorder),
+            border = BorderStroke(1.dp, googleButtonBorder),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = googleButtonBg,
                 contentColor = googleButtonTextColor,
@@ -199,16 +201,16 @@ private fun UnauthenticatedContent(
                 )
             } else {
                 Icon(
-                    painter = androidx.compose.ui.res.painterResource(R.drawable.ic_google_logo),
+                    painter = painterResource(R.drawable.ic_google_logo),
                     contentDescription = null,
-                    tint = androidx.compose.ui.graphics.Color.Unspecified,
+                    tint = Color.Unspecified,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = stringResource(R.string.auth_sign_in_with_google),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    fontWeight = FontWeight.Medium,
                     color = googleButtonTextColor
                 )
             }

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.management.component
 
 import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
@@ -36,9 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 /**
  * Thẻ tổng quan nợ v4 Sand & Ink:

@@ -1,6 +1,6 @@
-package com.notepay.ui.component.feedback
+package com.notepay.core.designsystem.component.feedback
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

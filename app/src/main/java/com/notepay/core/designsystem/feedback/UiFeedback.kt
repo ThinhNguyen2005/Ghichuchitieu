@@ -1,4 +1,4 @@
-package com.notepay.ui.feedback
+package com.notepay.core.designsystem.feedback
 
 enum class FeedbackType {
     Success,

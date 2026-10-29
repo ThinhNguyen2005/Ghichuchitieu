@@ -1,7 +1,7 @@
 package com.notepay.ui
 
 import androidx.compose.ui.text.AnnotatedString
-import com.notepay.ui.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

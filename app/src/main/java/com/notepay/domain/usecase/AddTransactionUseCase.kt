@@ -5,7 +5,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.model.TransactionType
-import com.notepay.platform.notification.BudgetAlertNotifier
+import com.notepay.core.platform.notification.BudgetAlertNotifier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext

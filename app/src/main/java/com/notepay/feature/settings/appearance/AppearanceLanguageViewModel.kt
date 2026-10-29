@@ -1,11 +1,11 @@
-package com.notepay.ui.feature.settings.appearance
+package com.notepay.feature.settings.appearance
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.platform.LocaleHelper
-import com.notepay.platform.OsCompatHelper
+import com.notepay.core.platform.LocaleHelper
+import com.notepay.core.platform.OsCompatHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted

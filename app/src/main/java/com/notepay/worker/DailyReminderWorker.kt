@@ -15,8 +15,8 @@ import com.notepay.R
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.util.StreakTrackerHelper
-import com.notepay.platform.notification.NotificationHelper
-import com.notepay.platform.widget.WidgetConstants
+import com.notepay.core.platform.notification.NotificationHelper
+import com.notepay.core.platform.widget.WidgetConstants
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first

@@ -1,9 +1,8 @@
-﻿package com.notepay.ui.feature.transaction.add
+﻿package com.notepay.feature.transaction.list.add
 
 import com.notepay.domain.model.Category
-import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
-import com.notepay.ui.feature.transaction.components.CalcKey
+import com.notepay.feature.transaction.component.CalcKey
 import android.net.Uri
 import kotlin.time.Instant
 

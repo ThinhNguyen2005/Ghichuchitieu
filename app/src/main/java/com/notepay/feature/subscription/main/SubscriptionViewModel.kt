@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.subscription
+package com.notepay.feature.subscription.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,6 +22,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import javax.inject.Inject
+import kotlin.time.Instant
 
 data class SubscriptionUiState(
     val allSubscriptions: List<Subscription> = emptyList(),
@@ -138,7 +139,7 @@ class SubscriptionViewModel @Inject constructor(
                     name = dialog.name.trim(),
                     amount = Money(cents),
                     category = dialog.category,
-                    nextDueDate = kotlin.time.Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
+                    nextDueDate = Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
                     repeatMonths = dialog.repeatMonths,
                     remindDaysBefore = dialog.remindDaysBefore,
                     note = dialog.note.trim(),

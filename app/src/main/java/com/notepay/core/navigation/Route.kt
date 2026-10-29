@@ -1,4 +1,6 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
+
+import android.net.Uri
 
 sealed interface Route {
     val path: String
@@ -51,7 +53,7 @@ sealed interface Route {
         }
     }
     data class DebtorDetail(val name: String) : Route {
-        override val path = "debtor-detail/${android.net.Uri.encode(name)}"
+        override val path = "debtor-detail/${Uri.encode(name)}"
         companion object {
             const val ROUTE = "debtor-detail/{name}"
             const val ARG_NAME = "name"

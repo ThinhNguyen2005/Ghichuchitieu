@@ -1,5 +1,6 @@
-package com.notepay.ui.feature.settings.notification
+package com.notepay.feature.settings.notification
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,7 +172,7 @@ fun NotificationSettingsScreen(
                                 title = stringResource(R.string.settings_notif_reminder_time_title),
                                 subtitle = stringResource(R.string.settings_notif_reminder_time_dialog),
                                 onClick = {
-                                    android.app.TimePickerDialog(
+                                    TimePickerDialog(
                                         context,
                                         { _, hour, minute -> viewModel.updateReminderTime(hour, minute) },
                                         reminderHour,

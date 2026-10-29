@@ -1,4 +1,4 @@
-package com.notepay.util
+package com.notepay.core.common.util
 
 import java.text.Normalizer
 import java.util.regex.Pattern

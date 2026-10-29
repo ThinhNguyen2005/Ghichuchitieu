@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.currency
+package com.notepay.feature.settings.currency
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

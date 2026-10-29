@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main
 
 import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.Category
@@ -8,6 +8,7 @@ import com.notepay.domain.model.Wallet
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.BudgetAdvisorResult
 import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.domain.analytics.StatsPeriod
 
 sealed interface StatsUiText {
     @Immutable
@@ -101,7 +102,7 @@ data class StatsUiState(
     val balance: Money = Money.ZERO,
     val previousExpense: Money? = null,
     val previousIncome: Money? = null,
-    val currentPeriod: com.notepay.domain.analytics.StatsPeriod? = null,
+    val currentPeriod: StatsPeriod? = null,
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
     val recentMonths: List<MonthlyTrendPoint> = emptyList(),

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction.edit
+package com.notepay.feature.transaction.list.edit
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
@@ -12,8 +12,8 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.usecase.SuggestCategoryUseCase
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.feature.transaction.form.mapper.CategorySuggestionUiMapper
 import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +34,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
 import javax.inject.Inject
 import java.util.UUID
+import kotlin.time.Instant
 
 data class EditTransactionUiState(
     val isLoading: Boolean = true,
@@ -198,7 +199,7 @@ class EditTransactionViewModel @Inject constructor(
             try {
                 // P2-14: nếu user đổi ngày thì cập nhật occurredAt (giữ nguyên giờ cũ).
                 val newDate = current.date
-                val newOccurredAt: kotlin.time.Instant = if (newDate != null) {
+                val newOccurredAt: Instant = if (newDate != null) {
                     val oldLocal = tx.occurredAt.toLocalDateTime(TimeZone.currentSystemDefault())
                     LocalDateTime(
                         date = LocalDate(newDate.year, newDate.month.number, newDate.day),

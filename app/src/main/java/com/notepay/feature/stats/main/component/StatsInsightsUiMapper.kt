@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main.component
 
 import com.notepay.R
 import com.notepay.domain.analytics.DynamicDailyBudgetResult
@@ -7,9 +7,15 @@ import com.notepay.domain.analytics.StatsAdviceSignal
 import com.notepay.domain.analytics.StatsAdviceType
 import com.notepay.domain.analytics.StatsEarlyWarning
 import com.notepay.domain.analytics.StatsForecastResult
+import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.stats.main.AiAdviceItem
+import com.notepay.feature.stats.main.BudgetForecast
+import com.notepay.feature.stats.main.DynamicDailyBudgetData
+import com.notepay.feature.stats.main.StatsUiText
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import java.util.Locale
+import kotlin.math.abs
 
 object StatsInsightsUiMapper {
     fun mapForecast(result: StatsForecastResult, limitInCents: Long?): BudgetForecast {
@@ -117,7 +123,7 @@ object StatsInsightsUiMapper {
                     R.string.stats_advice_food_content,
                     listOf("%.1f%%".format(Locale.ROOT, signal.percentage * 100)),
                 ),
-                categoryId = com.notepay.domain.model.Category.FOOD.id,
+                categoryId = Category.FOOD.id,
                 feedback = signal.feedback,
             )
             is StatsAdviceSignal.UpcomingSubscription -> AiAdviceItem(
@@ -154,7 +160,7 @@ object StatsInsightsUiMapper {
                 content = StatsUiText.Resource(
                     if (signal.isIncrease) R.string.stats_engine_advice_trend_up_content
                     else R.string.stats_engine_advice_trend_down_content,
-                    listOf("%.0f".format(Locale.ROOT, kotlin.math.abs(signal.changePercent))),
+                    listOf("%.0f".format(Locale.ROOT, abs(signal.changePercent))),
                 ),
                 feedback = signal.feedback,
             )

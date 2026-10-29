@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main.sheet
 
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.money.Money

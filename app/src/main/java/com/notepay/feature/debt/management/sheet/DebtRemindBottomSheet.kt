@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.management.sheet
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -15,12 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
@@ -29,7 +27,6 @@ import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +34,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -57,16 +53,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.notepay.BuildConfig
 import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
-import com.notepay.domain.model.debt.DebtWithHistory
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.VietQrGenerator
+import com.notepay.domain.model.DebtWithHistory
+import com.notepay.ui.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietQrGenerator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +143,7 @@ fun DebtRemindBottomSheet(
         } else null
     }
 
-    com.notepay.ui.component.BottomSheetGlass(
+    BottomSheetGlass(
         visible = true,
         onDismissRequest = onDismiss,
         modifier = modifier,

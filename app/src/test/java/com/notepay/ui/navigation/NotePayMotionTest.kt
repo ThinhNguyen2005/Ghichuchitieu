@@ -1,5 +1,9 @@
 package com.notepay.ui.navigation
 
+import com.notepay.core.navigation.Route
+import com.notepay.core.navigation.rootTabIndexForRoute
+import com.notepay.core.navigation.tabIndicatorOffsetPx
+import com.notepay.core.navigation.tabTransitionDirection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

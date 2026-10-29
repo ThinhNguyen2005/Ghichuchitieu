@@ -1,10 +1,11 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.notepay.ui.navigation.Route
+import com.notepay.feature.stats.main.StatsScreen
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.statsScreen(
     navController: NavController,

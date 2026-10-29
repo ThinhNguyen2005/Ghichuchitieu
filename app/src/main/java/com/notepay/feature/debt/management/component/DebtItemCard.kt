@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.management.component
 
 import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
@@ -39,15 +39,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import com.notepay.domain.money.Money
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.time.Clock
 import kotlin.time.Instant
 

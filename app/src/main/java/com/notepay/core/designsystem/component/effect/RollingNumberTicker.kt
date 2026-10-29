@@ -1,4 +1,4 @@
-package com.notepay.ui.component.effect
+package com.notepay.core.designsystem.component.effect
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform

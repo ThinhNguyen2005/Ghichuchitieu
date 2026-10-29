@@ -1,4 +1,4 @@
-package com.notepay.ui.navigation
+package com.notepay.core.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.ui.geometry.Offset
@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -413,7 +414,7 @@ fun BoxScope.NotePayBottomBar(
                             },
                             layerBlock = {
                                 val progress = dampedDragAnimation.pressProgress
-                                val scale = androidx.compose.ui.util.lerp(
+                                val scale = lerp(
                                     1f,
                                     1f + 16f.dp.toPx() / size.width,
                                     progress
@@ -448,7 +449,7 @@ fun BoxScope.NotePayBottomBar(
                 // Row 2: Capture labels and content backdrop only
                 CompositionLocalProvider(
                     LocalLiquidBottomTabScale provides {
-                        androidx.compose.ui.util.lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
+                        lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
                     }
                 ) {
                     Row(

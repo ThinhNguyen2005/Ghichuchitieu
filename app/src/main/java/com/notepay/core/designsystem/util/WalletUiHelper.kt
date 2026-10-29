@@ -1,4 +1,4 @@
-package com.notepay.ui.util
+package com.notepay.core.designsystem.util
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp

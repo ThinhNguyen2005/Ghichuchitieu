@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding.components
+package com.notepay.feature.onboarding.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -34,8 +34,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.notepay.ui.feature.onboarding.OnboardingStep
-import com.notepay.ui.theme.AppTheme
+import com.notepay.feature.onboarding.OnboardingStep
+import com.notepay.core.designsystem.theme.AppTheme
 
 /** Nút CTA chính, đủ 48dp touch target, có phản hồi nhấn nhẹ. */
 @Composable

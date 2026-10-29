@@ -1,4 +1,4 @@
-package com.notepay.ui.adaptive
+package com.notepay.core.designsystem.adaptive
 
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable

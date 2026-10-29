@@ -1,4 +1,4 @@
-package com.notepay.ui.component
+package com.notepay.feature.assets.main.component
 
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.layout.size
@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.domain.model.Wallet
-import com.notepay.ui.util.BankIconHelper
-import com.notepay.ui.util.WalletUiHelper
+import com.notepay.core.designsystem.util.BankIconHelper
+import com.notepay.core.designsystem.util.WalletUiHelper
 
 /**
  * Hiển thị Icon ví tài chính. 

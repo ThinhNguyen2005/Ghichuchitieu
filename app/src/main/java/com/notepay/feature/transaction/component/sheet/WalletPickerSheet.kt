@@ -1,6 +1,6 @@
-package com.notepay.ui.feature.transaction.components
+package com.notepay.feature.transaction.component.sheet
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Wallet
-import com.notepay.ui.util.WalletUiHelper
+import com.notepay.core.designsystem.util.WalletUiHelper
 
 /**
  * P1-4: Bottom sheet chọn ví — thay cho AssistChip xoay vòng nhiều lần.

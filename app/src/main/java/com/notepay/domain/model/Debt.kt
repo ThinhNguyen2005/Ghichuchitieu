@@ -1,4 +1,4 @@
-package com.notepay.domain.model.debt
+package com.notepay.domain.model
 
 import com.notepay.domain.money.Money
 import kotlin.time.Clock

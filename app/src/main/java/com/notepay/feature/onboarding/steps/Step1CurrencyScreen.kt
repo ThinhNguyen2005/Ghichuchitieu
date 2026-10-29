@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.onboarding.steps
+package com.notepay.feature.onboarding.steps
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.notepay.R
-import com.notepay.ui.feature.onboarding.OnboardingUiState
-import com.notepay.ui.feature.onboarding.components.ChoiceRow
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.theme.NotePayTheme
+import com.notepay.feature.onboarding.OnboardingUiState
+import com.notepay.feature.onboarding.components.ChoiceRow
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.NotePayTheme
 
 @Composable
 fun Step1CurrencyScreen(

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.transaction
+package com.notepay.feature.transaction.form.calculator
 
 import com.notepay.domain.money.Money
 

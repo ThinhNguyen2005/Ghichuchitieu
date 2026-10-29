@@ -1,18 +1,8 @@
-package com.notepay.ui.feature.stats
+package com.notepay.feature.stats.main.component
 
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,13 +65,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
-import com.notepay.ui.adaptive.LocalContentGutter
-import com.notepay.ui.adaptive.LocalWindowLayout
-import com.notepay.ui.adaptive.WindowLayout
-import com.notepay.ui.adaptive.usesNavigationRail
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.feature.stats.main.MonthlyTrendPoint
+import com.notepay.feature.stats.main.StatsUiState
+import com.notepay.feature.stats.main.TrendWindow
+import com.notepay.core.designsystem.adaptive.LocalContentGutter
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.WindowLayout
+import com.notepay.core.designsystem.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import kotlin.math.abs
 
 internal enum class StatsViewType { PHAN_BO, XU_HUONG }
 enum class StatsMetric { CHI_TIEU, THU_NHAP }
@@ -93,7 +88,7 @@ internal fun StatsDashboard(
     viewType: StatsViewType,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
+    onSelectRange: (StatsRange) -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     onTrendWindowSelected: (TrendWindow) -> Unit,
@@ -190,7 +185,7 @@ private fun StatsChartPane(
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
+    onSelectRange: (StatsRange) -> Unit,
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     onTrendWindowSelected: (TrendWindow) -> Unit,
@@ -230,7 +225,7 @@ private fun StatsChartPane(
             onNextMonth = onNextMonth,
             onSelectRange = onSelectRange,
         ) {
-            if (state.currentPeriod?.range == com.notepay.domain.analytics.StatsRange.MONTH) {
+            if (state.currentPeriod?.range == StatsRange.MONTH) {
                 TrendChartContent(
                     points = state.recentMonths,
                     metric = metric,
@@ -387,7 +382,7 @@ private fun OverviewCard(
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onSelectRange: (com.notepay.domain.analytics.StatsRange) -> Unit,
+    onSelectRange: (StatsRange) -> Unit,
     chartContent: (@Composable () -> Unit)? = null,
 ) {
     val previousExpense = state.previousExpense
@@ -404,10 +399,10 @@ private fun OverviewCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val ranges = listOf(
-                com.notepay.domain.analytics.StatsRange.WEEK to stringResource(R.string.stats_range_week),
-                com.notepay.domain.analytics.StatsRange.MONTH to stringResource(R.string.stats_range_month),
-                com.notepay.domain.analytics.StatsRange.YEAR to stringResource(R.string.stats_range_year),
-                com.notepay.domain.analytics.StatsRange.ALL to stringResource(R.string.stats_range_all)
+                StatsRange.WEEK to stringResource(R.string.stats_range_week),
+                StatsRange.MONTH to stringResource(R.string.stats_range_month),
+                StatsRange.YEAR to stringResource(R.string.stats_range_year),
+                StatsRange.ALL to stringResource(R.string.stats_range_all)
             )
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
@@ -427,8 +422,8 @@ private fun OverviewCard(
 
             // Month navigation row
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val hasArrows = state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.ALL && 
-                                state.currentPeriod?.range != com.notepay.domain.analytics.StatsRange.CUSTOM
+                val hasArrows = state.currentPeriod?.range != StatsRange.ALL &&
+                                state.currentPeriod?.range != StatsRange.CUSTOM
                 if (hasArrows) {
                     IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
@@ -509,7 +504,7 @@ private fun OverviewCard(
                     else -> Icons.Rounded.Warning
                 }
     
-                val absFormatted = MoneyFormatter.format(Money(kotlin.math.abs(difference)))
+                val absFormatted = MoneyFormatter.format(Money(abs(difference)))
                 val bannerText = when {
                     !showAmounts -> stringResource(R.string.stats_amounts_hidden)
                     isFlat -> stringResource(R.string.stats_stable_previous)

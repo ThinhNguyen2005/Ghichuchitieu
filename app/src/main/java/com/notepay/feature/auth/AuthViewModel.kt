@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.auth
+package com.notepay.feature.auth.main
 
 import android.content.Context
 import android.util.Log
@@ -18,8 +18,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.notepay.BuildConfig
 import com.notepay.R
 import com.notepay.domain.repository.AuthRepository
-import com.notepay.ui.feedback.FeedbackType
-import com.notepay.ui.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException

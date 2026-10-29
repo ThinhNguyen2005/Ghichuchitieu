@@ -1,4 +1,4 @@
-package com.notepay.ui.theme
+package com.notepay.core.designsystem.theme
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp

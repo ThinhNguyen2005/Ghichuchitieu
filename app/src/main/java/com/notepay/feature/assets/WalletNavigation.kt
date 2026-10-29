@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.wallet
+package com.notepay.feature.assets.main
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
@@ -6,9 +6,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.notepay.ui.component.PredictiveBackDestination
-import com.notepay.ui.feedback.UiFeedback
-import com.notepay.ui.navigation.Route
+import com.notepay.feature.assets.main.sheet.AddWalletScreen
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.walletGraph(
     navController: NavController,

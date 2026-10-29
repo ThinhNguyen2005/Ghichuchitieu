@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.about
+package com.notepay.feature.settings
 
 import android.content.pm.PackageManager
 import android.os.Build
@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import com.notepay.R
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.appearance
+package com.notepay.feature.settings.appearance
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 
 private data class ThemeColorOption(
     val id: String,

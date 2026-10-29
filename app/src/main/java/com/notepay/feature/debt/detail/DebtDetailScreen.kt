@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.debt
+package com.notepay.feature.debt.detail
 
 import android.content.Intent
 import android.net.Uri
@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import android.content.ActivityNotFoundException
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,14 +71,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
 import com.notepay.feature.debt.management.sheet.DebtRemindBottomSheet
 import com.notepay.feature.debt.management.sheet.RecordPaymentDialog
-import com.notepay.ui.component.GradientTopAppBar
-import com.notepay.ui.formatter.PresentationDateFormatter
-import com.notepay.ui.theme.AppTheme
-import com.notepay.ui.util.MoneyFormatter
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -212,7 +213,7 @@ fun DebtDetailScreen(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = androidx.compose.foundation.BorderStroke(
+                            border = BorderStroke(
                                 1.dp,
                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             ),
@@ -474,7 +475,7 @@ fun DebtDetailScreen(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = androidx.compose.foundation.BorderStroke(
+                            border = BorderStroke(
                                 1.dp,
                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             ),
@@ -606,7 +607,7 @@ fun DebtDetailScreen(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                                border = androidx.compose.foundation.BorderStroke(
+                                border = BorderStroke(
                                     1.dp,
                                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 ),

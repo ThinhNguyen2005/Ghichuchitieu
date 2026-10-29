@@ -1,4 +1,4 @@
-package com.notepay.ui.adaptive
+package com.notepay.core.designsystem.adaptive
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

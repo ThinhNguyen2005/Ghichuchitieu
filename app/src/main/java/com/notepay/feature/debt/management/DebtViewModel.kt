@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.debt.CreateDebtUseCase
 import com.notepay.domain.usecase.debt.DeleteDebtUseCase
@@ -15,7 +15,6 @@ import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
 import com.notepay.domain.usecase.debt.GetDebtsUseCase
 import com.notepay.domain.usecase.debt.RecordDebtPaymentUseCase
 import com.notepay.domain.repository.DebtRepository
-import com.notepay.feature.debt.DebtUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow

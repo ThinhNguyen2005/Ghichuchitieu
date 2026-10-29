@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.billsplit
+package com.notepay.feature.billsplit.main
 
 import com.notepay.domain.model.BillSplit
 import com.notepay.domain.model.Transaction

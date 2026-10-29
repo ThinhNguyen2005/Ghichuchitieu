@@ -1,4 +1,4 @@
-package com.notepay.ui.feature.settings.ai
+package com.notepay.feature.settings.ai
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
@@ -80,7 +80,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.data.preferences.AiSettingsDataStore
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
