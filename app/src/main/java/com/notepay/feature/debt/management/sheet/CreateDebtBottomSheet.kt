@@ -55,7 +55,7 @@ import com.notepay.R
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.DebtType
-import com.notepay.ui.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.component.effect.BottomSheetGlass
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.PresentationDateFormatter
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation

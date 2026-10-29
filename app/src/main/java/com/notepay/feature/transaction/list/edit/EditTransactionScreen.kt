@@ -6,8 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.ui.component.bar.GradientTopAppBar
-import com.notepay.ui.component.button.LiquidButton
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.button.LiquidButton
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width

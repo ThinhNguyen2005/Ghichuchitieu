@@ -4,15 +4,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.notepay.core.navigation.PredictiveBackDestination
+import com.notepay.core.navigation.Route
 import com.notepay.feature.backup.BackupRestoreScreen
 import com.notepay.feature.category.CategoryManagementScreen
 import com.notepay.feature.settings.AboutScreen
 import com.notepay.feature.settings.ai.AiSettingsScreen
 import com.notepay.feature.settings.appearance.AppearanceLanguageScreen
-import com.notepay.feature.settings.notification.NotificationSettingsScreen
+import com.notepay.feature.settings.currency.CurrencyConverterScreen
 import com.notepay.feature.settings.currency.CurrencySettingsScreen
-import com.notepay.core.navigation.PredictiveBackDestination
-import com.notepay.core.navigation.Route
+import com.notepay.feature.settings.notification.NotificationSettingsScreen
 
 fun NavGraphBuilder.utilitiesGraph(
     navController: NavController,
@@ -87,7 +88,17 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.CurrencySettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            CurrencySettingsScreen(onBack = { navController.popBackStack() })
+            CurrencySettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenConverter = {
+                    navController.navigate(Route.CurrencyConverter.path) { launchSingleTop = true }
+                },
+            )
+        }
+    }
+    composable(Route.CurrencyConverter.path) {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            CurrencyConverterScreen(onBack = { navController.popBackStack() })
         }
     }
     composable(Route.CategoryManagement.path) {

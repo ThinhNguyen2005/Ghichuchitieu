@@ -59,7 +59,7 @@ import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.DebtWithHistory
-import com.notepay.ui.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.component.effect.BottomSheetGlass
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.util.VietQrGenerator

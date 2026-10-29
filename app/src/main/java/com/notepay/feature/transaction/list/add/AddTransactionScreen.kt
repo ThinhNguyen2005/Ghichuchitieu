@@ -31,7 +31,7 @@ import com.notepay.feature.transaction.component.TransactionWalletField
 import com.notepay.feature.transaction.component.sheet.CategoryPickerSheet
 import com.notepay.feature.transaction.component.sheet.NoteQuickEntrySheet
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
-import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.formatter.TransactionDateLabelFormatter
 import kotlin.time.Instant

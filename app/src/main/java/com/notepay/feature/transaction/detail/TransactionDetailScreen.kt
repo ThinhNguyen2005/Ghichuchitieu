@@ -50,7 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.TransactionType
 import com.notepay.feature.category.mapper.CategoryAvatar
-import com.notepay.ui.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number

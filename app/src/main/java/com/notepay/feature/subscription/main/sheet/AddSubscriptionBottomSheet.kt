@@ -2,8 +2,8 @@ package com.notepay.feature.subscription.main.sheet
 
 import android.view.HapticFeedbackConstants
 import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.ui.component.bar.GradientBottomActionBar
-import com.notepay.ui.component.button.LiquidButton
+import com.notepay.core.designsystem.component.bar.GradientBottomActionBar
+import com.notepay.core.designsystem.component.button.LiquidButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -76,7 +76,7 @@ import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
 import com.notepay.feature.subscription.main.AddSubscriptionDialogState
 import com.notepay.feature.category.mapper.CategoryAvatar
-import com.notepay.ui.component.effect.FirefliesBackground
+import com.notepay.core.designsystem.component.effect.FirefliesBackground
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import kotlin.time.Instant

@@ -66,8 +66,8 @@ import com.notepay.domain.money.Money
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
-import com.notepay.ui.component.dialog.ConfirmDeleteDialog
-import com.notepay.ui.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.feature.home.component.SmartInsightsCard
 import com.notepay.feature.home.component.HomeDaySection
 import com.notepay.feature.home.component.HomeHeroBlock

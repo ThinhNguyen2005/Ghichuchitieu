@@ -56,8 +56,8 @@ import com.notepay.R
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.NotePayAdaptive
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
-import com.notepay.ui.component.button.FloatingAddButton
-import com.notepay.ui.component.effect.LocalNotePayBackdrop
+import com.notepay.core.designsystem.component.button.FloatingAddButton
+import com.notepay.core.designsystem.component.effect.LocalNotePayBackdrop
 import com.notepay.feature.billsplit.billSplitGraph
 import com.notepay.feature.onboarding.OnboardingRoute
 import com.notepay.feature.stats.statsScreen

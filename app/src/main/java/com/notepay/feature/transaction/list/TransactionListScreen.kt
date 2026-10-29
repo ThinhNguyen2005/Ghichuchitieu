@@ -89,10 +89,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.focus.FocusRequester
-import com.notepay.ui.component.dialog.ConfirmDeleteDialog
-import com.notepay.ui.component.dialog.DayDetailDialog
-import com.notepay.ui.component.bar.GradientTopAppBar
-import com.notepay.ui.component.calendar.MonthlyCalendarView
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.dialog.DayDetailDialog
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.calendar.MonthlyCalendarView
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
 import com.notepay.feature.transaction.detail.TransactionDetailContent
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel

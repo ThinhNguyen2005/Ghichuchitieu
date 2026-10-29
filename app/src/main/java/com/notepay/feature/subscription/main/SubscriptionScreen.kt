@@ -70,10 +70,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.domain.model.Subscription
 import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
-import com.notepay.ui.component.dialog.ConfirmDeleteDialog
-import com.notepay.ui.component.dialog.DayDetailDialog
-import com.notepay.ui.component.feedback.EmptyStateWithAction
-import com.notepay.ui.component.calendar.MonthlyCalendarView
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.dialog.DayDetailDialog
+import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.component.calendar.MonthlyCalendarView
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import kotlin.time.Clock

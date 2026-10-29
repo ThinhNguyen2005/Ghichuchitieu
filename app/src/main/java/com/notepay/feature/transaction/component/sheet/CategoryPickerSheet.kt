@@ -10,9 +10,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
-import com.notepay.ui.component.effect.BottomSheetGlass
-import com.notepay.ui.component.bar.GradientBottomActionBar
-import com.notepay.ui.component.button.LiquidButton
+import com.notepay.core.designsystem.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.component.bar.GradientBottomActionBar
+import com.notepay.core.designsystem.component.button.LiquidButton
 import com.notepay.feature.transaction.component.CategoryGridPicker
 
 /**

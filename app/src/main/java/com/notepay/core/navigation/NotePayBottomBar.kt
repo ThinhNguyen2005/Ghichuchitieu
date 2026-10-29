@@ -87,7 +87,7 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.notepay.R
-import com.notepay.ui.component.button.FloatingAddButton
+import com.notepay.core.designsystem.component.button.FloatingAddButton
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign

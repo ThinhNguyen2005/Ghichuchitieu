@@ -94,8 +94,8 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
 import com.notepay.feature.category.mapper.CategoryAvatar
-import com.notepay.ui.component.bar.GradientTopAppBar
-import com.notepay.ui.component.button.LiquidButton
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.button.LiquidButton
 import com.notepay.feature.transaction.component.TransactionItem
 import com.notepay.feature.stats.main.component.StatsDashboard
 import com.notepay.feature.stats.main.component.StatsHeader
