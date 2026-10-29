@@ -171,6 +171,14 @@ class TransactionListViewModel internal constructor(
         }
     }
 
+    /** Về đúng tháng hiện tại — dùng cho chip "Hôm nay" của lịch gọn. */
+    fun onGoToToday() {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        filters.update {
+            it.copy(calendarYear = today.year, calendarMonth = today.month.ordinal + 1)
+        }
+    }
+
     fun onQueryChanged(query: String) {
         filters.update { it.copy(query = query) }
     }

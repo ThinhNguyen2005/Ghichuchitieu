@@ -85,9 +85,9 @@ import com.notepay.core.designsystem.util.WalletUiHelper
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.material.icons.automirrored.rounded.List
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
-import com.notepay.core.designsystem.component.dialog.DayDetailDialog
 import com.notepay.core.designsystem.component.bar.GradientTopAppBar
-import com.notepay.core.designsystem.component.calendar.MonthlyCalendarView
+import com.notepay.core.designsystem.component.calendar.CompactMonthCalendar
+import com.notepay.core.designsystem.component.calendar.buildMonthGrid
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
 import com.notepay.feature.transaction.detail.TransactionDetailContent
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel
@@ -113,13 +113,16 @@ fun TransactionListScreen(
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var selectedDayForDetail by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedCalendarDate by remember { mutableStateOf<LocalDate?>(null) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     // Thanh hành động gập lại khi thẻ thống kê (mục đầu của danh sách) đã cuộn khỏi đỉnh.
     // derivedStateOf chỉ phát recomposition khi vượt ngưỡng thay vì mỗi pixel cuộn nên không
     // có chi phí recompose theo từng khung hình.
     val listState = rememberLazyListState()
+    // Chế độ lịch có cấu trúc mục khác hẳn (lịch đứng trước danh sách) nên phải giữ vị trí
+    // cuộn riêng; dùng chung listState sẽ khiến đổi chế độ là nhảy sang một vị trí lạ.
+    val calendarListState = rememberLazyListState()
     val isActionBarCollapsed by remember(listState) {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 24
@@ -135,6 +138,11 @@ fun TransactionListScreen(
             searchFocusRequester.requestFocus()
             pendingSearchFocus = false
         }
+    }
+
+    // Đổi tháng thì bỏ chọn ngày: highlight cũ không còn thuộc lưới đang xem.
+    LaunchedEffect(state.calendarYear, state.calendarMonth) {
+        selectedCalendarDate = null
     }
 
     // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
@@ -206,10 +214,21 @@ fun TransactionListScreen(
                 TransactionListPane(
                     state = state,
                     listState = listState,
-                    selectedDay = selectedDayForDetail,
+                    calendarListState = calendarListState,
+                    selectedCalendarDate = selectedCalendarDate,
                     selectedTransactionId = resolvedTransactionId,
                     bottomPadding = if (isTwoPane) 24.dp else 100.dp,
-                    onDayClick = { date -> selectedDayForDetail = date },
+                    onCalendarDayClick = { date ->
+                        selectedCalendarDate = date
+                        // Lịch là mục 0 của danh sách nên nhóm ngày thứ n nằm ở mục n + 1.
+                        val groupIndex = state.dayGroups.indexOfFirst { it.date == date }
+                        if (groupIndex >= 0) {
+                            coroutineScope.launch {
+                                calendarListState.animateScrollToItem(groupIndex + 1)
+                            }
+                        }
+                    },
+                    onGoToToday = viewModel::onGoToToday,
                     onPreviousMonth = viewModel::onPreviousMonth,
                     onNextMonth = viewModel::onNextMonth,
                     onTransactionClick = { txId ->
@@ -236,16 +255,6 @@ fun TransactionListScreen(
                     )
                 }
             }
-        }
-
-        // Dialog chi tiết ngày (khi tap vào một ngày trên lịch)
-        val dayDetail = selectedDayForDetail
-        if (dayDetail != null) {
-            DayDetailDialog(
-                date = dayDetail,
-                transactions = state.transactionsByDate[dayDetail] ?: emptyList(),
-                onDismiss = { selectedDayForDetail = null }
-            )
         }
 
         // Bottom Sheet: Khoảng thời gian (Ảnh 3)
@@ -316,10 +325,12 @@ fun TransactionListScreen(
 private fun TransactionListPane(
     state: TransactionListUiState,
     listState: LazyListState,
-    selectedDay: LocalDate?,
+    calendarListState: LazyListState,
+    selectedCalendarDate: LocalDate?,
     selectedTransactionId: Long?,
     bottomPadding: Dp,
-    onDayClick: (LocalDate) -> Unit,
+    onCalendarDayClick: (LocalDate) -> Unit,
+    onGoToToday: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onTransactionClick: (Long) -> Unit,
@@ -328,18 +339,76 @@ private fun TransactionListPane(
     hapticFeedbackEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
+    // CHẾ ĐỘ LỊCH: lưới chọn ngày gọn ở trên, danh sách giao dịch cuộn liền ngay bên dưới.
+    // Gộp cả hai vào một LazyColumn để lịch không chiếm trọn màn hình và để chạm một ngày là
+    // cuộn tới đúng nhóm ngày đó thay vì mở dialog.
     if (state.isCalendarView) {
-        MonthlyCalendarView(
-            year = state.calendarYear,
-            month = state.calendarMonth,
-            transactions = state.transactions,
-            selectedDate = selectedDay,
-            onDayClick = onDayClick,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
-            modifier = modifier.fillMaxWidth(),
-        )
+        val grid = remember(state.calendarYear, state.calendarMonth, state.transactionsByDate) {
+            buildMonthGrid(
+                year = state.calendarYear,
+                month = state.calendarMonth,
+                transactionsByDate = state.transactionsByDate,
+            )
+        }
+
+        LazyColumn(
+            state = calendarListState,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 8.dp,
+                bottom = bottomPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item(key = "calendar") {
+                CompactMonthCalendar(
+                    grid = grid,
+                    selectedDate = selectedCalendarDate,
+                    onDayClick = onCalendarDayClick,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onGoToToday = onGoToToday,
+                )
+            }
+
+            if (state.dayGroups.isEmpty()) {
+                item(key = "calendar-empty") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tx_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.tx_empty_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            } else {
+                items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
+                    DayGroupSection(
+                        dayGroup = dayGroup,
+                        walletsMap = state.walletsMap,
+                        selectedTransactionId = selectedTransactionId,
+                        onTransactionClick = onTransactionClick,
+                        onEditTransaction = onEditTransaction,
+                        onDeleteTransaction = onDeleteTransaction,
+                        hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    )
+                }
+            }
+        }
         return
     }
 
@@ -660,7 +729,7 @@ private fun SummaryStatisticsCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppTheme.shapes.corner12)
                         .clickable {}
                         .padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
                 ) {

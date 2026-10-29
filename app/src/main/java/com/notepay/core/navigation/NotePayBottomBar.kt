@@ -88,6 +88,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.notepay.R
 import com.notepay.core.designsystem.component.button.FloatingAddButton
+import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
@@ -136,8 +137,8 @@ private fun RowScope.NotePayBottomTabItem(
         label = "bottom tab selection",
     )
     val activeColor by animateColorAsState(
-        targetValue = if (isSourceActiveRow) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSourceActiveRow) AppTheme.colors.onSand
+        else AppTheme.colors.onInkMuted,
         animationSpec = if (reducedMotion) snap() else tween(NotePayMotion.tabIndicatorDurationMillis),
         label = "bottom tab color",
     )
@@ -180,8 +181,8 @@ private fun RowScope.NotePayBottomTabItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = tabLabel,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
+                style = AppTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
                     fontWeight = if (isSourceActiveRow) FontWeight.Bold else FontWeight.Normal,
                 ),
                 color = activeColor,
@@ -210,9 +211,10 @@ fun BoxScope.NotePayBottomBar(
     val fabContentDesc = stringResource(
         if (showQuickAddSheet) R.string.quick_add_close_menu else R.string.quick_add_open_menu
     )
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = AppTheme.colors.onSand
+    val sandColor = AppTheme.colors.sand
     val isLightTheme = !isAppDarkTheme()
-    val containerColor = if (isLightTheme) Color.White.copy(alpha = 0.28f) else Color(0xFF1A1A1A).copy(alpha = 0.32f)
+    val containerColor = if (isLightTheme) AppTheme.colors.ink.copy(alpha = 0.88f) else Color(0xFF1A1A1A).copy(alpha = 0.92f)
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -242,7 +244,7 @@ fun BoxScope.NotePayBottomBar(
                     .weight(1f)
                     .height(64.dp)
                     .clip(CircleShape)
-                    .background(if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer)
+                    .background(AppTheme.colors.ink)
                     .padding(4.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -282,7 +284,7 @@ fun BoxScope.NotePayBottomBar(
                             translationX = indicatorOffset.value
                         }
                         .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            AppTheme.colors.sand,
                             CircleShape,
                         ),
                 )
@@ -348,7 +350,7 @@ fun BoxScope.NotePayBottomBar(
                             onTabSelected(navTabs[targetIndex].route)
                             coroutineScope.launch {
                                 if (reducedMotion) {
-                                    offsetAnimation.snapTo(0f)
+                                     offsetAnimation.snapTo(0f)
                                 } else {
                                     offsetAnimation.animateTo(
                                         0f,
@@ -545,13 +547,11 @@ fun BoxScope.NotePayBottomBar(
                             onDrawSurface = {
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
-                                    if (isLightTheme) Color.Black.copy(0.08f)
-                                    else Color.White.copy(0.12f),
+                                    sandColor.copy(alpha = 0.85f),
                                     alpha = 1f - progress
                                 )
                                 drawRect(
-                                    if (isLightTheme) Color.Black.copy(alpha = 0.03f * progress)
-                                    else Color.White.copy(alpha = 0.03f * progress)
+                                    sandColor.copy(alpha = 0.05f * progress)
                                 )
                             }
                         )
@@ -571,5 +571,3 @@ fun BoxScope.NotePayBottomBar(
         )
     }
 }
-
-

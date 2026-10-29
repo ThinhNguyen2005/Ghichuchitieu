@@ -541,6 +541,10 @@
     <string name="wallet_picker_title">Choose wallet</string>
     <string name="wallet_picker_empty">No wallets yet. Create a wallet first.</string>
     <string name="calendar_month_year_format">Month %1$d / %2$d</string>
+    <string name="calendar_today_action">Today</string>
+    <string name="calendar_month_totals_format">Month %1$d · Out %2$s · In %3$s</string>
+    <string name="calendar_day_cd">Day %1$d</string>
+    <string name="calendar_day_activity_cd">Day %1$d, has transactions</string>
     <string name="calendar_weekday_monday">Mon</string>
     <string name="calendar_weekday_tuesday">Tue</string>
     <string name="calendar_weekday_wednesday">Wed</string>
@@ -804,12 +808,18 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
     <!-- Assets screen -->
     <string name="assets_total_balance">Total Net Worth</string>
+    <string name="assets_net_worth_title">Total Net Worth</string>
+    <string name="assets_negative_balance_hint">Negative net worth (total debts exceed wallet balance)</string>
     <string name="assets_wallets_header">Wallets</string>
     <string name="assets_wallet_balance">Balance</string>
     <string name="assets_view_transactions">View transactions</string>
     <string name="assets_view_ledger">View ledger</string>
     <string name="assets_add_wallet_btn">Add wallet</string>
     <string name="assets_transfer_btn">Transfer</string>
+    <string name="action_transfer">Transfer</string>
+    <string name="action_add_wallet">Add wallet</string>
+    <string name="wallet_tx_count">%1$d transactions</string>
+    <string name="badge_stable">Stable</string>
     <string name="wallets_count_label">accounts</string>
     <string name="transactions_count_label">transactions</string>
     <string name="wallet_badge_active">Active</string>

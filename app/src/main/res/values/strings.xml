@@ -515,6 +515,10 @@
     <string name="wallet_picker_title">Chọn ví</string>
     <string name="wallet_picker_empty">Chưa có ví nào. Vui lòng tạo ví trước.</string>
     <string name="calendar_month_year_format">Tháng %1$d / %2$d</string>
+    <string name="calendar_today_action">Hôm nay</string>
+    <string name="calendar_month_totals_format">Tháng %1$d · Chi %2$s · Thu %3$s</string>
+    <string name="calendar_day_cd">Ngày %1$d</string>
+    <string name="calendar_day_activity_cd">Ngày %1$d, có giao dịch</string>
     <string name="calendar_weekday_monday">Th 2</string>
     <string name="calendar_weekday_tuesday">Th 3</string>
     <string name="calendar_weekday_wednesday">Th 4</string>
@@ -768,12 +772,18 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
     <!-- Assets screen -->
     <string name="assets_total_balance">Tổng tài sản ròng</string>
+    <string name="assets_net_worth_title">Tổng tài sản ròng</string>
+    <string name="assets_negative_balance_hint">Tổng tài sản đang âm (dư nợ vượt quá số dư ví)</string>
     <string name="assets_wallets_header">Danh sách ví</string>
     <string name="assets_wallet_balance">Số dư</string>
     <string name="assets_view_transactions">Xem giao dịch</string>
     <string name="assets_view_ledger">Xem sổ cái</string>
     <string name="assets_add_wallet_btn">Thêm ví</string>
     <string name="assets_transfer_btn">Chuyển tiền</string>
+    <string name="action_transfer">Chuyển tiền</string>
+    <string name="action_add_wallet">Thêm ví</string>
+    <string name="wallet_tx_count">%1$d giao dịch</string>
+    <string name="badge_stable">Ổn định</string>
     <string name="wallets_count_label">tài khoản</string>
     <string name="transactions_count_label">giao dịch</string>
     <string name="wallet_badge_active">Ví chính</string>

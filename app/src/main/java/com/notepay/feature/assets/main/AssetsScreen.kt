@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,18 +39,17 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -61,9 +59,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -121,14 +117,14 @@ fun AssetsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppTheme.colors.background)
     ) {
         if (state.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(color = AppTheme.colors.primary)
             }
         } else {
             LazyVerticalGrid(
@@ -136,13 +132,13 @@ fun AssetsScreen(
                 columns = GridCells.Adaptive(minSize = AssetCardMinWidth),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    start = 16.dp + contentGutter,
-                    end = 16.dp + contentGutter,
-                    top = 16.dp,
+                    start = AppTheme.dimensions.spaceLarge + contentGutter,
+                    end = AppTheme.dimensions.spaceLarge + contentGutter,
+                    top = AppTheme.dimensions.spaceLarge,
                     bottom = bottomClearance
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceLarge),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceLarge)
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     // Item của grid không tự xếp chồng nhiều con như LazyColumn, nên inset
@@ -176,15 +172,15 @@ fun AssetsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                            .padding(horizontal = AppTheme.dimensions.spaceExtraSmall, vertical = AppTheme.dimensions.spaceExtraSmall),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = stringResource(R.string.assets_wallets_header),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = AppTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = AppTheme.colors.textPrimary
                         )
                         Text(
                             text = stringResource(
@@ -192,8 +188,8 @@ fun AssetsScreen(
                                 state.wallets.size,
                                 stringResource(R.string.wallets_count_label)
                             ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = AppTheme.typography.bodySmall,
+                            color = AppTheme.colors.textSecondary
                         )
                     }
                 }
@@ -230,9 +226,10 @@ private fun AssetsInkHeroCard(
     allocationItems: List<WalletAllocationItem>,
     onAddWallet: () -> Unit,
     onTransferClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner28,
         colors = CardDefaults.cardColors(
             containerColor = AppTheme.colors.ink,
@@ -245,7 +242,7 @@ private fun AssetsInkHeroCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(AppTheme.dimensions.spaceExtraLarge)
         ) {
             // Dòng trên: Nhãn "Tổng tài sản ròng" + Badge xu hướng biến động
             Row(
@@ -254,17 +251,16 @@ private fun AssetsInkHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.assets_total_balance),
-                    style = MaterialTheme.typography.labelMedium,
+                    text = stringResource(R.string.assets_net_worth_title),
+                    style = AppTheme.typography.labelMedium,
                     color = AppTheme.colors.onInkMuted,
                     fontWeight = FontWeight.Medium,
-                    // Nhường chỗ cho badge: không để nhãn đẩy badge tràn ra ngoài thẻ ở font scale 2.0.
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
 
                 if (changePercentage != 0f) {
                     val isPositive = changePercentage >= 0f
@@ -275,7 +271,7 @@ private fun AssetsInkHeroCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = AppTheme.dimensions.spaceSmall, vertical = 3.dp)
                         ) {
                             Icon(
                                 imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
@@ -283,14 +279,14 @@ private fun AssetsInkHeroCard(
                                 tint = trendColor,
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceExtraSmall))
                             val formattedPct = String.format(Locale.US, "%.1f", abs(changePercentage))
                             Text(
                                 text = stringResource(
                                     if (isPositive) R.string.percent_change_positive else R.string.percent_change_negative,
                                     formattedPct
                                 ),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = AppTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = trendColor
                             )
@@ -303,7 +299,7 @@ private fun AssetsInkHeroCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = AppTheme.dimensions.spaceSmall, vertical = 3.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Remove,
@@ -311,10 +307,10 @@ private fun AssetsInkHeroCard(
                                 tint = AppTheme.colors.onInkMuted,
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceExtraSmall))
                             Text(
-                                text = stringResource(R.string.assets_balance_stable),
-                                style = MaterialTheme.typography.labelSmall,
+                                text = stringResource(R.string.badge_stable),
+                                style = AppTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = AppTheme.colors.onInkMuted
                             )
@@ -323,7 +319,7 @@ private fun AssetsInkHeroCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
 
             // Số tiền Hero: Inter + tnum để các chữ số không nhảy ngang khi số dư đổi
             Text(
@@ -334,9 +330,28 @@ private fun AssetsInkHeroCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Thanh phân bổ Segmented Bar
-            if (allocationItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
+            // UX: Xử lý cảnh báo số âm dưới số tiền hero
+            if (totalNetWorth.amountInCents < 0L) {
+                Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.Warning,
+                        contentDescription = null,
+                        tint = AppTheme.colors.onInkExpense,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
+                    Text(
+                        text = stringResource(R.string.assets_negative_balance_hint),
+                        style = AppTheme.typography.labelMedium,
+                        color = AppTheme.colors.onInkExpense
+                    )
+                }
+            }
+
+            // Thanh phân bổ Segmented Bar (chỉ hiển thị khi tổng tài sản > 0)
+            if (totalNetWorth.amountInCents > 0L && allocationItems.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceLarge))
 
                 Row(
                     modifier = Modifier
@@ -357,7 +372,7 @@ private fun AssetsInkHeroCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
 
                 // Dòng Legend: tối đa 3 ví lớn nhất + gom "Khác" nếu > 3 ví
                 val (topItems, otherPct) = remember(allocationItems) {
@@ -372,7 +387,7 @@ private fun AssetsInkHeroCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     topItems.forEach { item ->
@@ -380,7 +395,7 @@ private fun AssetsInkHeroCard(
                         val pct = (item.percentage * 100).roundToInt()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceExtraSmall),
                             modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Box(
@@ -391,14 +406,14 @@ private fun AssetsInkHeroCard(
                             )
                             Text(
                                 text = item.name,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = AppTheme.typography.labelMedium,
                                 color = AppTheme.colors.onInkMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = stringResource(R.string.percent_format, pct),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = AppTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AppTheme.colors.onInk
                             )
@@ -408,7 +423,7 @@ private fun AssetsInkHeroCard(
                     if (otherPct > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceExtraSmall)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -418,12 +433,12 @@ private fun AssetsInkHeroCard(
                             )
                             Text(
                                 text = stringResource(R.string.assets_allocation_other),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = AppTheme.typography.labelMedium,
                                 color = AppTheme.colors.onInkMuted
                             )
                             Text(
                                 text = stringResource(R.string.percent_format, otherPct),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = AppTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AppTheme.colors.onInk
                             )
@@ -432,20 +447,20 @@ private fun AssetsInkHeroCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceExtraLarge))
 
-            // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target 48dp)
+            // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target >= 48dp)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceMedium)
             ) {
                 Button(
                     onClick = onTransferClick,
                     modifier = Modifier
                         .weight(1f)
-                        .defaultMinSize(minHeight = 48.dp),
+                        .defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget),
                     shape = AppTheme.shapes.capsule,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = AppTheme.dimensions.spaceMedium, vertical = AppTheme.dimensions.spaceMedium),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppTheme.colors.sand,
                         contentColor = AppTheme.colors.onSand
@@ -457,13 +472,13 @@ private fun AssetsInkHeroCard(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
                     Text(
-                        text = stringResource(R.string.assets_transfer_btn),
-                        style = MaterialTheme.typography.labelLarge,
+                        text = stringResource(R.string.action_transfer),
+                        style = AppTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -472,9 +487,9 @@ private fun AssetsInkHeroCard(
                     onClick = onAddWallet,
                     modifier = Modifier
                         .weight(1f)
-                        .defaultMinSize(minHeight = 48.dp),
+                        .defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget),
                     shape = AppTheme.shapes.capsule,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = AppTheme.dimensions.spaceMedium, vertical = AppTheme.dimensions.spaceMedium),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppTheme.colors.inkRaised,
                         contentColor = AppTheme.colors.onInk
@@ -486,13 +501,13 @@ private fun AssetsInkHeroCard(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
                     Text(
-                        text = stringResource(R.string.assets_add_wallet_btn),
-                        style = MaterialTheme.typography.labelLarge,
+                        text = stringResource(R.string.action_add_wallet),
+                        style = AppTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -507,25 +522,25 @@ private fun WalletAssetCard(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onSetDefault: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val wallet = item.wallet
-    val iconVector = WalletUiHelper.getIcon(wallet.iconKey)
     val colorValue = WalletUiHelper.getColor(wallet.colorKey)
 
     val cardBorder = if (wallet.isActive) {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.35f))
     } else {
-        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        BorderStroke(1.dp, AppTheme.colors.separator)
     }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(AppTheme.shapes.corner20)
             .clickable(onClick = onClick),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppTheme.colors.surface
         ),
         border = cardBorder,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -533,9 +548,9 @@ private fun WalletAssetCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(AppTheme.dimensions.spaceLarge)
         ) {
-            // Hàng đầu: Icon ví | Cột thông tin ví & Badge | Cột số dư
+            // Hàng đầu: Icon ví | Cột tên & Badge | Nút Sửa ví (IconButton minTouchTarget 48dp)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -555,17 +570,17 @@ private fun WalletAssetCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceMedium))
 
-                // Cột thông tin ví: Tên ví trên dòng riêng, dòng phụ chứa Badge "Ví chính" và số giao dịch
+                // Cột thông tin ví
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = wallet.name,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = AppTheme.colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -577,47 +592,43 @@ private fun WalletAssetCard(
                     ) {
                         if (wallet.isActive) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                shape = AppTheme.shapes.corner12,
+                                color = AppTheme.colors.primary.copy(alpha = 0.15f)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = AppTheme.dimensions.spaceSmall, vertical = 2.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary)
+                                            .background(AppTheme.colors.primary)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceExtraSmall))
                                     Text(
                                         text = stringResource(R.string.wallet_badge_active),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        style = AppTheme.typography.labelMedium,
+                                        color = AppTheme.colors.primary,
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
                             Text(
                                 text = stringResource(R.string.bullet_separator),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AppTheme.typography.bodySmall,
+                                color = AppTheme.colors.textSecondary
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
                         }
 
                         Text(
-                            text = stringResource(
-                                R.string.assets_transactions_count_format,
-                                item.transactionCount,
-                                stringResource(R.string.transactions_count_label)
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = stringResource(R.string.wallet_tx_count, item.transactionCount),
+                            style = AppTheme.typography.bodySmall,
+                            color = AppTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
@@ -625,130 +636,120 @@ private fun WalletAssetCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Cột số dư
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = MoneyFormatter.format(item.balance),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
+                // Chuyển nút Sửa ví lên góc trên bên phải để tiết kiệm không gian dưới cùng
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(AppTheme.dimensions.minTouchTarget)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Edit,
+                        contentDescription = stringResource(R.string.action_edit_wallet),
+                        tint = AppTheme.colors.textSecondary
                     )
                 }
             }
 
-            // Dòng thu chi tháng (chỉ hiển thị khi có phát sinh để loại bỏ clutter rườm rà)
-            if (item.monthlyIncome.amountInCents > 0L || item.monthlyExpense.amountInCents > 0L) {
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceMedium))
+
+            // Dòng số dư
+            Text(
+                text = MoneyFormatter.format(item.balance),
+                style = AppTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.align(Alignment.End)
+            )
+
+            // Dải thu chi tháng: Lọc triệt để số 0
+            val hasIncome = item.monthlyIncome.amountInCents > 0L
+            val hasExpense = item.monthlyExpense.amountInCents > 0L
+
+            if (hasIncome || hasExpense) {
+                Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceMedium))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .clip(AppTheme.shapes.corner12)
+                        .background(AppTheme.colors.surfaceSunken)
+                        .padding(horizontal = AppTheme.dimensions.spaceMedium, vertical = AppTheme.dimensions.spaceSmall),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                            contentDescription = null,
-                            tint = AppTheme.colors.success,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = stringResource(
-                                R.string.amount_positive_format,
-                                MoneyFormatter.format(item.monthlyIncome)
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AppTheme.colors.success
-                        )
+                    if (hasIncome) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                                contentDescription = null,
+                                tint = AppTheme.colors.success,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceExtraSmall))
+                            Text(
+                                text = stringResource(
+                                    R.string.amount_positive_format,
+                                    MoneyFormatter.format(item.monthlyIncome)
+                                ),
+                                style = AppTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AppTheme.colors.success
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
-                            contentDescription = null,
-                            tint = AppTheme.colors.error,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = stringResource(
-                                R.string.amount_negative_format,
-                                MoneyFormatter.format(item.monthlyExpense)
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AppTheme.colors.error
-                        )
+                    if (hasExpense) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
+                                contentDescription = null,
+                                tint = AppTheme.colors.error,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceExtraSmall))
+                            Text(
+                                text = stringResource(
+                                    R.string.amount_negative_format,
+                                    MoneyFormatter.format(item.monthlyExpense)
+                                ),
+                                style = AppTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AppTheme.colors.error
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Action Row: Đặt ví chính (trái) | Chỉnh sửa ví (phải)
-            // Hai hành động được tách biệt rõ ràng, mỗi bên có touch target ≥ 48dp
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Trái: Nút "Đặt làm ví chính" — chỉ hiện khi chưa là ví chính
-                // Dùng icon Star (không phải Check) để khỏi nhầm với badge trạng thái
-                if (!wallet.isActive) {
+            // Nút "Đặt làm ví chính" — chỉ xuất hiện khi chưa phải là ví chính
+            if (!wallet.isActive) {
+                Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     TextButton(
                         onClick = onSetDefault,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        modifier = Modifier.defaultMinSize(minHeight = 36.dp)
+                        contentPadding = PaddingValues(horizontal = AppTheme.dimensions.spaceMedium, vertical = AppTheme.dimensions.spaceSmall),
+                        modifier = Modifier.defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(13.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier.size(16.dp),
+                            tint = AppTheme.colors.primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
                         Text(
                             text = stringResource(R.string.set_as_active_wallet),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = AppTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = AppTheme.colors.primary
                         )
                     }
-                } else {
-                    // Ví đang là ví chính → không có action cần thực hiện,
-                    // badge ở trên đã thông báo rõ trạng thái
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-
-                // Phải: Nút Chỉnh sửa — TextButton với icon + nhãn, touch target đủ rộng
-                // ChevronRight loại bỏ (card toàn thẻ đã clickable rồi, chevron gây nhầm lẫn)
-                TextButton(
-                    onClick = onEdit,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.defaultMinSize(minHeight = 36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit,
-                        contentDescription = stringResource(R.string.edit_wallet_title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.edit_wallet_title),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
         }
@@ -773,8 +774,8 @@ private fun TransferBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 32.dp)
+                .padding(horizontal = AppTheme.dimensions.spaceExtraLarge, vertical = AppTheme.dimensions.spaceSmall)
+                .padding(bottom = AppTheme.dimensions.spaceMassive)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -783,30 +784,34 @@ private fun TransferBottomSheet(
             ) {
                 Text(
                     text = stringResource(R.string.assets_transfer_dialog_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = AppTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.colors.textPrimary
                 )
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(AppTheme.dimensions.minTouchTarget)
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close)
+                        contentDescription = stringResource(R.string.action_close),
+                        tint = AppTheme.colors.textSecondary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceLarge))
 
             // From Wallet selection
             Text(
                 text = stringResource(R.string.assets_transfer_from_wallet),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AppTheme.typography.labelMedium,
+                color = AppTheme.colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            // LazyRow: cuộn ngang khi có nhiều ví, tránh tràn mép màn hình.
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceSmall),
                 contentPadding = PaddingValues(vertical = 2.dp)
             ) {
                 items(items = state.wallets, key = { it.wallet.id }) { item ->
@@ -817,30 +822,41 @@ private fun TransferBottomSheet(
                         label = {
                             Text(
                                 text = item.wallet.name,
+                                style = AppTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         },
+                        shape = AppTheme.shapes.capsule,
+                        modifier = Modifier.defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            selectedContainerColor = AppTheme.colors.ink,
+                            selectedLabelColor = AppTheme.colors.onInk,
+                            containerColor = AppTheme.colors.surfaceSunken,
+                            labelColor = AppTheme.colors.textSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = AppTheme.colors.separator,
+                            selectedBorderColor = AppTheme.colors.ink,
+                            enabled = true,
+                            selected = isSelected
                         )
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceLarge))
 
             // To Wallet selection
             Text(
                 text = stringResource(R.string.assets_transfer_to_wallet),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AppTheme.typography.labelMedium,
+                color = AppTheme.colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.dimensions.spaceSmall),
                 contentPadding = PaddingValues(vertical = 2.dp)
             ) {
                 items(items = state.wallets, key = { it.wallet.id }) { item ->
@@ -851,77 +867,102 @@ private fun TransferBottomSheet(
                         label = {
                             Text(
                                 text = item.wallet.name,
+                                style = AppTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         },
+                        shape = AppTheme.shapes.capsule,
+                        modifier = Modifier.defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            selectedContainerColor = AppTheme.colors.ink,
+                            selectedLabelColor = AppTheme.colors.onInk,
+                            containerColor = AppTheme.colors.surfaceSunken,
+                            labelColor = AppTheme.colors.textSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = AppTheme.colors.separator,
+                            selectedBorderColor = AppTheme.colors.ink,
+                            enabled = true,
+                            selected = isSelected
                         )
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceLarge))
 
             // Amount input
             Text(
                 text = stringResource(R.string.assets_transfer_amount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AppTheme.typography.labelMedium,
+                color = AppTheme.colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
             OutlinedTextField(
                 value = state.transferAmountInput,
                 onValueChange = onAmountChange,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                placeholder = { Text(stringResource(R.string.ui_0)) },
+                shape = AppTheme.shapes.corner16,
+                placeholder = { Text(stringResource(R.string.ui_0), color = AppTheme.colors.textMuted) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 visualTransformation = remember { VietnamCurrencyVisualTransformation() },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                    focusedBorderColor = AppTheme.colors.ink,
+                    unfocusedBorderColor = AppTheme.colors.border,
+                    cursorColor = AppTheme.colors.ink
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceLarge))
 
             // Note input
             Text(
                 text = stringResource(R.string.assets_transfer_note),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AppTheme.typography.labelMedium,
+                color = AppTheme.colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
             OutlinedTextField(
                 value = state.transferNote,
                 onValueChange = onNoteChange,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                placeholder = { Text(stringResource(R.string.assets_transfer_note_hint)) },
-                singleLine = true
+                shape = AppTheme.shapes.corner16,
+                placeholder = { Text(stringResource(R.string.assets_transfer_note_hint), color = AppTheme.colors.textMuted) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppTheme.colors.ink,
+                    unfocusedBorderColor = AppTheme.colors.border,
+                    cursorColor = AppTheme.colors.ink
+                )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceExtraLarge))
 
             Button(
                 onClick = onConfirm,
                 enabled = !state.isTransferSubmitting && state.transferAmountInput.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .defaultMinSize(minHeight = 52.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .defaultMinSize(minHeight = 56.dp),
+                shape = AppTheme.shapes.capsule,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppTheme.colors.ink,
+                    contentColor = AppTheme.colors.onInk,
+                    disabledContainerColor = AppTheme.colors.surfaceSunken,
+                    disabledContentColor = AppTheme.colors.textMuted
+                )
             ) {
                 if (state.isTransferSubmitting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = AppTheme.colors.onInk
                     )
                 } else {
                     Text(
                         text = stringResource(R.string.assets_transfer_confirm_btn),
+                        style = AppTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
