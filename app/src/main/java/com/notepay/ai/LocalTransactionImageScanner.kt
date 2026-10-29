@@ -19,7 +19,7 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-import com.notepay.data.preferences.AiSettingsDataStore
+import com.notepay.data.datastore.AiSettingsDataStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await

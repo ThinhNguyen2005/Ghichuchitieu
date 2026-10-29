@@ -4,12 +4,11 @@ import android.content.Context
 import com.notepay.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.TransferBetweenWalletsUseCase
 import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
@@ -48,6 +47,7 @@ class AssetsViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val transactionRepository: TransactionRepository,
     private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
+    private val transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
 ) : ViewModel() {
 
     private val _chartRange = MutableStateFlow(AssetChartRange.MONTH)
@@ -225,6 +225,8 @@ class AssetsViewModel @Inject constructor(
             try {
                 walletRepository.setActive(walletId)
                 _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_set_active), type = FeedbackType.Success))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_switch_failed, e.message.orEmpty()), type = FeedbackType.Error))
             }
@@ -286,45 +288,34 @@ class AssetsViewModel @Inject constructor(
         }
 
         val wallets = assetData.value.wallets
+        val fromWallet = wallets.firstOrNull { it.wallet.id == fromId }?.wallet
+        val toWallet = wallets.firstOrNull { it.wallet.id == toId }?.wallet
+        val noteText = form.note.ifBlank { context.getString(R.string.transfer_note_default) }
+        val otherWallet = context.getString(R.string.transfer_wallet_other)
+
         _transferForm.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
-            try {
-                val fromWallet = wallets.firstOrNull { it.wallet.id == fromId }?.wallet
-                val toWallet = wallets.firstOrNull { it.wallet.id == toId }?.wallet
-                val now = Clock.System.now()
-                val noteText = form.note.ifBlank { context.getString(R.string.transfer_note_default) }
-                val otherWallet = context.getString(R.string.transfer_wallet_other)
-
-                // Ghi cặp giao dịch trong MỘT transaction DB: không thể xảy ra trường hợp
-                // ví nguồn bị trừ mà ví đích không được cộng (mất tiền khi crash giữa chừng).
-                transactionRepository.upsertTransferPair(
-                    outgoing = Transaction(
-                        amount = Money(amountCents),
-                        type = TransactionType.EXPENSE,
-                        category = Category.OTHER,
-                        note = context.getString(R.string.transfer_note_to, toWallet?.name ?: otherWallet, noteText),
-                        occurredAt = now,
-                        walletId = fromId,
-                        isInternalTransfer = true,
-                    ),
-                    incoming = Transaction(
-                        amount = Money(amountCents),
-                        type = TransactionType.INCOME,
-                        category = Category.OTHER,
-                        note = context.getString(R.string.transfer_note_from, fromWallet?.name ?: otherWallet, noteText),
-                        occurredAt = now,
-                        walletId = toId,
-                        isInternalTransfer = true,
-                    ),
-                )
-
+            val result = transferBetweenWalletsUseCase(
+                fromWalletId = fromId,
+                toWalletId = toId,
+                amount = Money(amountCents),
+                outgoingNote = context.getString(R.string.transfer_note_to, toWallet?.name ?: otherWallet, noteText),
+                incomingNote = context.getString(R.string.transfer_note_from, fromWallet?.name ?: otherWallet, noteText),
+            )
+            if (result.isSuccess) {
                 _transferForm.value = TransferFormState()
                 _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_success), type = FeedbackType.Success))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            } else {
                 _transferForm.update { it.copy(isSubmitting = false) }
-                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_failed, e.message.orEmpty()), type = FeedbackType.Error))
+                _feedback.tryEmit(
+                    UiFeedback(
+                        message = context.getString(
+                            R.string.feedback_transfer_failed,
+                            result.exceptionOrNull()?.message.orEmpty(),
+                        ),
+                        type = FeedbackType.Error,
+                    ),
+                )
             }
         }
     }

@@ -74,7 +74,7 @@ class CreateDebtUseCaseTest {
         coEvery { addTransactionUseCase(capture(txSlot)) } returns Result.success(55L)
         coEvery { debtRepo.upsertDebt(any()) } returns 102L
 
-        val result = useCase(debt, syncWithWallet = true)
+        val result = useCase(debt, syncWithWallet = true, transactionNote = "Cho vay: Tran Thi B (Vay tien mua sach)")
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.getOrNull()).isEqualTo(102L)
@@ -85,7 +85,7 @@ class CreateDebtUseCaseTest {
         assertThat(createdTx.category).isEqualTo(Category.BILL)
         assertThat(createdTx.walletId).isEqualTo(2L)
         assertThat(createdTx.amount).isEqualTo(Money(1_000_000_00L))
-        assertThat(createdTx.note).contains("Tran Thi B")
+        assertThat(createdTx.note).isEqualTo("Cho vay: Tran Thi B (Vay tien mua sach)")
     }
 
     @Test
@@ -107,7 +107,7 @@ class CreateDebtUseCaseTest {
         coEvery { addTransactionUseCase(capture(txSlot)) } returns Result.success(56L)
         coEvery { debtRepo.upsertDebt(any()) } returns 103L
 
-        val result = useCase(debt, syncWithWallet = true)
+        val result = useCase(debt, syncWithWallet = true, transactionNote = "Đi vay: Le Van C (Muon tien sua xe)")
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.getOrNull()).isEqualTo(103L)
@@ -117,7 +117,7 @@ class CreateDebtUseCaseTest {
         assertThat(createdTx.category).isEqualTo(Category.INCOME_OTHER)
         assertThat(createdTx.walletId).isEqualTo(3L)
         assertThat(createdTx.amount).isEqualTo(Money(2_000_000_00L))
-        assertThat(createdTx.note).contains("Le Van C")
+        assertThat(createdTx.note).isEqualTo("Đi vay: Le Van C (Muon tien sua xe)")
     }
 
     @Test

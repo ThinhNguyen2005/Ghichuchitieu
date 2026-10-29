@@ -31,9 +31,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.preferences.AutoCaptureSettings
-import com.notepay.data.preferences.AutoCaptureSettingsStore
-import com.notepay.data.preferences.KnownBankApps
+import com.notepay.data.datastore.AutoCaptureSettings
+import com.notepay.data.datastore.AutoCaptureSettingsStore
+import com.notepay.data.datastore.KnownBankApps
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel

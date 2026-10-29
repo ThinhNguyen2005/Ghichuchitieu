@@ -736,7 +736,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_date_year_format">Năm %1$d</string>
     <string name="stats_date_range_format">%1$s - %2$s</string>
     <string name="stats_forecast_probability_suffix"> Khả năng vượt định mức khoảng %1$d%%.</string>
-    <string name="stats_forecast_message">Nhịp chi gần đây %1$s/ngày; dự báo cuối tháng khoảng %2$s.%3$s</string>
+    <string name="stats_forecast_message">Nhịp chi gần đây %1$s/ngày; dự báo cuối tháng khoảng %2$s.</string>
     <string name="stats_advice_food_title">Cảnh báo ăn uống</string>
     <string name="stats_advice_food_content">Chi tiêu ăn uống của bạn chiếm %1$s tổng chi tiêu tháng này. Hãy thử tự nấu ăn tại nhà để tiết kiệm chi phí nhé!</string>
     <string name="stats_advice_bill_title">Chuẩn bị tiền đóng phí</string>

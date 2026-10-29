@@ -3,8 +3,8 @@ package com.notepay.platform.notification
 import android.content.Context
 import com.notepay.core.platform.notification.BudgetAlertNotifier
 import com.notepay.core.platform.notification.NotificationHelper
-import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.domain.TestData
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.WalletRepository
@@ -51,7 +51,7 @@ class BudgetAlertNotifierTest {
     fun setUp() {
         mockkObject(NotificationHelper)
         every { NotificationHelper.sendBudgetAlert(any(), any(), any(), any(), any()) } returns Unit
-        coEvery { budgetSettingsStore.settings } returns flowOf(com.notepay.data.preferences.BudgetSettings())
+        coEvery { budgetSettingsStore.settings } returns flowOf(com.notepay.data.datastore.BudgetSettings())
     }
 
     @After

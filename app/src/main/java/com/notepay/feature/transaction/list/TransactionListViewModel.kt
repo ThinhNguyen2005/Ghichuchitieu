@@ -33,7 +33,7 @@ import kotlin.time.Clock
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.feature.transaction.component.DateRangePreset
 import com.notepay.core.designsystem.util.categoryNameRes
 import kotlinx.coroutines.flow.StateFlow

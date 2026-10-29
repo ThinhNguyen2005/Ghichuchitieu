@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.LegacyAiModelCleaner
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository

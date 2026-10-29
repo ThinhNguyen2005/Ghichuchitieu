@@ -1,10 +1,10 @@
 package com.notepay.domain.notification
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.data.preferences.NotificationCaptureStore
-import com.notepay.data.preferences.LearnedCaptureDecision
-import com.notepay.data.preferences.LearnedCapturePolicy
-import com.notepay.data.preferences.KnownBankApps
+import com.notepay.data.datastore.NotificationCaptureStore
+import com.notepay.data.datastore.LearnedCaptureDecision
+import com.notepay.data.datastore.LearnedCapturePolicy
+import com.notepay.data.datastore.KnownBankApps
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
 import org.junit.Test

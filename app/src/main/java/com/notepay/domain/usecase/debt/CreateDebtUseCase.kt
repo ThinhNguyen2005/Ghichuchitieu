@@ -19,10 +19,14 @@ class CreateDebtUseCase @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
+    /**
+     * @param transactionNote ghi chú cho giao dịch ví, do tầng hiển thị dịch sẵn vì domain
+     * không giữ chuỗi hiển thị. Chỉ dùng khi [syncWithWallet] bật.
+     */
     suspend operator fun invoke(
         debt: Debt,
         syncWithWallet: Boolean = false,
-        actionNote: String? = null,
+        transactionNote: String = "",
     ): Result<Long> = try {
         withContext(ioDispatcher) {
             val debtId = debtRepository.upsertDebt(debt)
@@ -31,21 +35,13 @@ class CreateDebtUseCase @Inject constructor(
                 val isLend = debt.type == DebtType.LEND
                 val txType = if (isLend) TransactionType.EXPENSE else TransactionType.INCOME
                 val category = if (isLend) Category.BILL else Category.INCOME_OTHER
-                val note = actionNote ?: run {
-                    val actionPrefix = if (isLend) "Cho vay" else "Đi vay"
-                    if (debt.note.isNotBlank()) {
-                        "$actionPrefix: ${debt.personName} (${debt.note})"
-                    } else {
-                        "$actionPrefix: ${debt.personName}"
-                    }
-                }
 
                 val transaction = Transaction(
                     id = 0L,
                     amount = debt.originalAmount,
                     type = txType,
                     category = category,
-                    note = note,
+                    note = transactionNote,
                     occurredAt = debt.createdAt,
                     walletId = debt.walletId,
                     createdAt = Clock.System.now(),

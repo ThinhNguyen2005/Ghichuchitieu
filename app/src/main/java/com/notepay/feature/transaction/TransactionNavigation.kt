@@ -6,9 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.core.navigation.PredictiveBackDestination
-import com.notepay.feature.transaction.list.add.AddTransactionScreen
+import com.notepay.feature.transaction.form.TransactionFormScreen
 import com.notepay.feature.transaction.detail.TransactionDetailScreen
-import com.notepay.feature.transaction.list.edit.EditTransactionScreen
 import com.notepay.feature.transaction.list.TransactionListScreen
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.Route
@@ -19,7 +18,7 @@ fun NavGraphBuilder.transactionGraph(
 ) {
     composable(Route.AddTransaction.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            AddTransactionScreen(
+            TransactionFormScreen(
                 onSaved = { navController.popBackStack() },
                 onBack = { navController.popBackStack() },
             )
@@ -30,13 +29,11 @@ fun NavGraphBuilder.transactionGraph(
         arguments = listOf(navArgument(Route.EditTransaction.ARG_ID) { type = NavType.LongType }),
     ) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            EditTransactionScreen(
-                onSaved = { feedback ->
+            TransactionFormScreen(
+                onSaved = {
                     navController.popBackStack()
-                    showFeedback(feedback)
                 },
                 onBack = { navController.popBackStack() },
-                onFeedback = showFeedback,
             )
         }
     }

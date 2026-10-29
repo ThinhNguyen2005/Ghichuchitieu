@@ -9,7 +9,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.notepay.ui.MainViewModel
+import com.notepay.core.navigation.MainViewModel
 import com.notepay.core.designsystem.adaptive.ProvideWindowLayout
 import com.notepay.core.navigation.NotePayNavHost
 import com.notepay.core.navigation.Route

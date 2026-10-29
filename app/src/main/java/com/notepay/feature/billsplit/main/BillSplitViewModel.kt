@@ -13,6 +13,7 @@ import com.notepay.domain.repository.BillSplitRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
+import com.notepay.domain.usecase.billsplit.SettleBillSplitsUseCase
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +38,7 @@ class BillSplitViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
     private val addTransaction: AddTransactionUseCase,
+    private val settleBillSplitsUseCase: SettleBillSplitsUseCase,
     private val vietQrBankRepository: VietQrBankRepository,
 ) : ViewModel() {
 
@@ -207,28 +209,23 @@ class BillSplitViewModel @Inject constructor(
 
     fun markDebtorAsPaidWithReconciliation(debtorName: String, splitIds: List<Long>, incomeTxId: Long?) {
         viewModelScope.launch {
-            try {
-                val splitsToProcess = splitIds.mapNotNull { splitId ->
-                    billSplitRepository.getById(splitId)?.takeUnless { it.isPaid }
-                }
-                splitsToProcess.forEach { split ->
-                    billSplitRepository.markAsPaid(split.id, Clock.System.now())
-                }
-
-                val msg = if (incomeTxId != null) {
-                    str(R.string.feedback_bill_split_reconciled)
-                } else {
-                    str(R.string.feedback_bill_split_marked_paid)
-                }
-                _feedback.emit(UiFeedback(msg, type = FeedbackType.Success))
-            } catch (e: Exception) {
+            val result = settleBillSplitsUseCase(splitIds)
+            if (result.isFailure) {
                 _feedback.emit(
                     UiFeedback(
                         str(R.string.feedback_bill_split_mark_failed),
                         type = FeedbackType.Error
                     )
                 )
+                return@launch
             }
+
+            val msg = if (incomeTxId != null) {
+                str(R.string.feedback_bill_split_reconciled)
+            } else {
+                str(R.string.feedback_bill_split_marked_paid)
+            }
+            _feedback.emit(UiFeedback(msg, type = FeedbackType.Success))
         }
     }
 

@@ -1,8 +1,8 @@
 package com.notepay.core.platform.notification
 
 import android.content.Context
-import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase

@@ -20,11 +20,15 @@ class RecordDebtPaymentUseCase @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
+    /**
+     * @param transactionNote ghi chú cho giao dịch ví, do tầng hiển thị dịch sẵn vì domain
+     * không giữ chuỗi hiển thị. Chỉ dùng khi [syncWithWallet] bật.
+     */
     suspend operator fun invoke(
         debt: Debt,
         payment: DebtPayment,
         syncWithWallet: Boolean = false,
-        actionNote: String? = null,
+        transactionNote: String = "",
     ): Result<Long> = try {
         withContext(ioDispatcher) {
             var createdTxId: Long? = null
@@ -33,21 +37,13 @@ class RecordDebtPaymentUseCase @Inject constructor(
                 val isLend = debt.type == DebtType.LEND
                 val txType = if (isLend) TransactionType.INCOME else TransactionType.EXPENSE
                 val category = if (isLend) Category.INCOME_OTHER else Category.BILL
-                val note = actionNote ?: run {
-                    val actionPrefix = if (isLend) "Thu nợ từ" else "Trả nợ cho"
-                    if (payment.note.isNotBlank()) {
-                        "$actionPrefix ${debt.personName} (${payment.note})"
-                    } else {
-                        "$actionPrefix ${debt.personName}"
-                    }
-                }
 
                 val transaction = Transaction(
                     id = 0L,
                     amount = payment.amount,
                     type = txType,
                     category = category,
-                    note = note,
+                    note = transactionNote,
                     occurredAt = payment.paidAt,
                     walletId = payment.walletId,
                     createdAt = Clock.System.now(),

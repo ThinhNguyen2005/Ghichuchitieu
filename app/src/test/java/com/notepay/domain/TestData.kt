@@ -6,14 +6,16 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 object TestData {
-    val NOW: kotlin.time.Instant = Clock.System.now()
+    val NOW: Instant = Clock.System.now()
 
     fun wallet(
         id: Long = 1L,
         name: String = "Tiền mặt",
         initialBalance: Money = Money.ZERO,
+        budgetLimit: Money? = null,
     ) = Wallet(
         id = id,
         name = name,
@@ -21,6 +23,7 @@ object TestData {
         iconKey = Wallet.ICON_CASH,
         colorKey = Wallet.COLOR_PRIMARY,
         isActive = true,
+        budgetLimit = budgetLimit,
     )
 
     fun transaction(
@@ -30,13 +33,14 @@ object TestData {
         category: Category = Category.FOOD,
         note: String = "Cơm trưa",
         walletId: Long = 1L,
+        occurredAt: Instant = NOW,
     ) = Transaction(
         id = id,
         amount = amount,
         type = type,
         category = category,
         note = note,
-        occurredAt = NOW,
+        occurredAt = occurredAt,
         walletId = walletId,
     )
 }

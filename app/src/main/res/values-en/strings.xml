@@ -770,7 +770,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_date_year_format">Year %1$d</string>
     <string name="stats_date_range_format">%1$s - %2$s</string>
     <string name="stats_forecast_probability_suffix"> Chance of exceeding the limit: %1$d%%.</string>
-    <string name="stats_forecast_message">Recent pace: %1$s/day; month-end forecast: %2$s.%3$s</string>
+    <string name="stats_forecast_message">Recent pace: %1$s/day; month-end forecast: %2$s.</string>
     <string name="stats_advice_food_title">Food spending warning</string>
     <string name="stats_advice_food_content">Food spending is %1$s of your monthly spending. Try cooking at home to save money!</string>
     <string name="stats_advice_bill_title">Prepare bill money</string>

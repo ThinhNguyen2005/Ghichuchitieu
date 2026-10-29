@@ -14,7 +14,7 @@ import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.data.local.entity.WalletEntity
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.model.Category
 import dagger.hilt.android.qualifiers.ApplicationContext

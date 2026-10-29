@@ -1,9 +1,9 @@
 package com.notepay.ui.feature.stats
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.notepay.MainDispatcherRule
 import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.data.datastore.AdvisorFeedbackStore
 import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
@@ -33,12 +33,11 @@ class StatsViewModelTest {
         val subscriptionRepo = mockk<SubscriptionRepository> {
             every { observeAll() } returns flowOf(emptyList())
         }
-        val sharedPrefs = mockk<SharedPreferences> {
-            every { all } returns emptyMap<String, Any>()
+        val advisorFeedbackStore = mockk<AdvisorFeedbackStore> {
+            every { feedbacks } returns flowOf(emptyMap())
         }
         val context = mockk<Context> {
-            every { getSharedPreferences(any(), any()) } returns sharedPrefs
-            // In case we need strings:
+            // Tên danh mục cho trợ lý AI / phát hiện định kỳ:
             every { getString(any(), *anyVararg()) } returns ""
             every { getString(any()) } returns ""
         }
@@ -48,6 +47,7 @@ class StatsViewModelTest {
             transactionRepo = transactionRepo,
             walletRepo = walletRepo,
             subscriptionRepo = subscriptionRepo,
+            advisorFeedbackStore = advisorFeedbackStore,
             context = context,
             budgetAdvisor = budgetAdvisor
         )

@@ -3,7 +3,7 @@ package com.notepay.feature.settings.appearance
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.core.platform.LocaleHelper
 import com.notepay.core.platform.OsCompatHelper
 import dagger.hilt.android.lifecycle.HiltViewModel

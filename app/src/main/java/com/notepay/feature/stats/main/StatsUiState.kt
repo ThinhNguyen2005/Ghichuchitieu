@@ -117,7 +117,8 @@ data class StatsUiState(
     // Thuộc tính mới phục vụ bộ lọc & hạn mức
     val wallets: List<Wallet> = emptyList(),
     val selectedWallet: Wallet? = null,
-    val dateRangeLabel: String = "",
+    /** Nhãn kỳ đang xem, dạng tài nguyên để đổi ngôn ngữ là giao diện cập nhật ngay. */
+    val dateRangeLabel: StatsUiText = StatsUiText.Plain(""),
     val budgetLimit: Money? = null,
     val budgetSpent: Money = Money.ZERO,
     val budgetPercentage: Float = 0f,

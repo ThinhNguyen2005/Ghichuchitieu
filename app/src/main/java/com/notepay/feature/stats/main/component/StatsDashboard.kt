@@ -71,6 +71,7 @@ import com.notepay.domain.money.Money
 import com.notepay.feature.stats.main.MonthlyTrendPoint
 import com.notepay.feature.stats.main.StatsUiState
 import com.notepay.feature.stats.main.TrendWindow
+import com.notepay.feature.stats.main.resolve
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
@@ -439,7 +440,8 @@ private fun OverviewCard(
                     Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else state.dateRangeLabel,
+                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month)
+                        else state.dateRangeLabel.resolve(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )

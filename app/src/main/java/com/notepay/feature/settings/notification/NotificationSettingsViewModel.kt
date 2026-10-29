@@ -3,7 +3,7 @@ package com.notepay.feature.settings.notification
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

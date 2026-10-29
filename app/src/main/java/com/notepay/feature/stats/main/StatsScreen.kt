@@ -109,7 +109,7 @@ import kotlin.math.abs
 import com.notepay.core.designsystem.util.localizedName
 
 @Composable
-private fun StatsUiText.resolve(): String = when (this) {
+internal fun StatsUiText.resolve(): String = when (this) {
     is StatsUiText.Plain -> value
     is StatsUiText.Resource -> stringResource(resId, *args.toTypedArray())
     is StatsUiText.Composite -> {

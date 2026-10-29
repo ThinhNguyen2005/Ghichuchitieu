@@ -30,8 +30,8 @@ import org.robolectric.RobolectricTestRunner
 import org.junit.Rule
 import com.notepay.MainDispatcherRule
 
-import com.notepay.data.preferences.BudgetSettingsStore
-import com.notepay.data.preferences.KnownBankApps
+import com.notepay.data.datastore.BudgetSettingsStore
+import com.notepay.data.datastore.KnownBankApps
 import com.notepay.domain.money.Money
 
 @OptIn(ExperimentalCoroutinesApi::class)

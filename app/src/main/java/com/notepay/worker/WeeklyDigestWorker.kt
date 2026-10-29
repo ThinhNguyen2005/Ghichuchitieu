@@ -5,7 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.notepay.R
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository

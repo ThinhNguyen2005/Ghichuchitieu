@@ -4,7 +4,7 @@ import android.content.Context
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import com.notepay.R
-import com.notepay.data.preferences.AiSettingsDataStore
+import com.notepay.data.datastore.AiSettingsDataStore
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
