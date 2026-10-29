@@ -2,6 +2,7 @@ package com.notepay.ui.util
 
 import com.google.common.truth.Truth.assertThat
 import com.notepay.domain.money.Money
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import org.junit.Test
 
 class MoneyFormatterTest {

@@ -8,7 +8,9 @@ import com.notepay.MainDispatcherRule
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
-import com.notepay.ui.feedback.FeedbackType
+import com.notepay.feature.auth.main.AuthViewModel
+import com.notepay.feature.auth.main.isAccountReauthRequired
+import com.notepay.core.designsystem.feedback.FeedbackType
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi

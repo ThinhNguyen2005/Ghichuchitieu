@@ -1,9 +1,9 @@
 package com.notepay.domain.repository
 
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import kotlinx.coroutines.flow.Flow
 
 interface DebtRepository {

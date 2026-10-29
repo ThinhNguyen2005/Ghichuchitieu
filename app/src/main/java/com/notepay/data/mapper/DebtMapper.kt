@@ -4,10 +4,10 @@ import com.notepay.data.local.entity.DebtEntity
 import com.notepay.data.local.entity.DebtPaymentEntity
 import com.notepay.data.local.entity.DebtWithPayments
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.debt.Debt
-import com.notepay.domain.model.debt.DebtPayment
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.Debt
+import com.notepay.domain.model.DebtPayment
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import kotlin.time.Instant
 import javax.inject.Inject
 

@@ -1,0 +1,33 @@
+package com.notepay.feature.stats
+
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.composable
+import com.notepay.feature.stats.main.StatsScreen
+import com.notepay.core.navigation.Route
+
+fun NavGraphBuilder.statsScreen(
+    navController: NavController,
+    onNavigateToTab: ((Route) -> Unit)? = null,
+) {
+    composable(Route.Stats.path) {
+        if (onNavigateToTab != null) {
+            LaunchedEffect(Unit) {
+                // Graph này chính là tab Stats; host tự quy đổi route -> trang pager.
+                onNavigateToTab(Route.Stats)
+                navController.popBackStack(Route.Home.path, inclusive = false)
+            }
+        } else {
+            StatsScreen(
+                onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
+                onTransactionClick = { txId ->
+                    navController.navigate(Route.TransactionDetail(txId).path)
+                },
+                onConfigureLocalModel = {
+                    navController.navigate(Route.AiSettings.path)
+                },
+            )
+        }
+    }
+}

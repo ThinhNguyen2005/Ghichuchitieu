@@ -41,7 +41,7 @@
 
         <!-- Quick Action Widget -->
         <receiver
-            android:name=".platform.widget.QuickActionWidgetReceiver"
+            android:name=".core.platform.widget.QuickActionWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -53,7 +53,7 @@
 
         <!-- Spent Glance Widget -->
         <receiver
-            android:name=".platform.widget.SpentGlanceWidgetReceiver"
+            android:name=".core.platform.widget.SpentGlanceWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

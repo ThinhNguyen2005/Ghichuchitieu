@@ -37,6 +37,7 @@ import com.notepay.MainDispatcherRule
 import com.notepay.data.preferences.BudgetSettingsStore
 import com.notepay.data.preferences.KnownBankApps
 import com.notepay.domain.money.Money
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 /**
  * Unit tests cho cơ chế đối soát tự động (Auto-Reconciliation) khi nhận thông báo ngân hàng
@@ -171,7 +172,7 @@ class NotificationReconciliationTest {
         // Xác minh giao dịch gốc được cập nhật với số tiền giảm trừ
         assertThat(capturedTx.captured.id).isEqualTo(parentTransaction.id)
         assertThat(capturedTx.captured.amount).isEqualTo(Money(70_000_00L)) // 90k - 20k = 70k
-        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(unpaidSplitBanA.amount)})"
+        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${MoneyFormatter.format(unpaidSplitBanA.amount)})"
         assertThat(capturedTx.captured.note).isEqualTo(expectedNote)
     }
 
@@ -307,7 +308,7 @@ class NotificationReconciliationTest {
         // Verify parent transaction amount was reduced
         assertThat(capturedTx.captured.id).isEqualTo(parentTransaction.id)
         assertThat(capturedTx.captured.amount).isEqualTo(Money(40_000_00L)) // 90k - 20k - 30k = 40k
-        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split1.amount)}), Ban A trả ${com.notepay.ui.util.MoneyFormatter.format(split2.amount)}"
+        val expectedNote = "Bữa tối nhà hàng (Ban A trả ${MoneyFormatter.format(split1.amount)}), Ban A trả ${MoneyFormatter.format(split2.amount)}"
         assertThat(capturedTx.captured.note).isEqualTo(expectedNote)
     }
 

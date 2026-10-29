@@ -1,0 +1,131 @@
+package com.notepay.feature.stats.main
+
+import androidx.compose.runtime.Immutable
+import com.notepay.domain.model.Category
+import com.notepay.domain.money.Money
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.analytics.SpendingPrediction
+import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.domain.analytics.StatsPeriod
+
+sealed interface StatsUiText {
+    @Immutable
+    data class Resource(val resId: Int, val args: List<Any> = emptyList()) : StatsUiText
+
+    @Immutable
+    data class Plain(val value: String) : StatsUiText
+
+    @Immutable
+    data class Composite(val parts: List<StatsUiText>) : StatsUiText
+}
+
+/** Số tháng người dùng chọn cho biểu đồ xu hướng (chip 3T / 6T / 12T). */
+enum class TrendWindow(val months: Int) {
+    THREE_MONTHS(3),
+    SIX_MONTHS(6),
+    TWELVE_MONTHS(12),
+}
+
+@Immutable
+data class BudgetForecast(
+    val dailyAverage: Money,
+    val projectedSpend: Money,
+    val forecastMessage: StatsUiText,
+    val isProjectedToExceed: Boolean = false,
+
+    val previousMonthDailyAverage: Money? = null,
+    val trendPercent: Float? = null,
+    val trendMessage: StatsUiText? = null,
+    val prediction: SpendingPrediction? = null,
+)
+
+enum class LocalAdvisorStatus { NOT_REQUESTED, RUNNING, READY }
+
+@Immutable
+data class LocalAdvisorUiState(
+    val status: LocalAdvisorStatus = LocalAdvisorStatus.NOT_REQUESTED,
+    val result: BudgetAdvisorResult? = null,
+    val availability: AdvisorAvailability = AdvisorAvailability.CHECKING,
+)
+
+@Immutable
+data class CategoryBreakdownItem(
+    val category: Category,
+    val amount: Money,
+    val percentage: Float,
+)
+
+/** A real calendar-month total used by the trend chart. */
+@Immutable
+data class MonthlyTrendPoint(
+    val year: Int,
+    val month: Int,
+    val expense: Money,
+    val income: Money,
+)
+
+@Immutable
+data class DynamicDailyBudgetData(
+    val dailyBudget: Money,
+    val spentToday: Money,
+    val remainingToday: Money,
+    val tomorrowBudget: Money,
+    val isExceeded: Boolean,
+    val earlyWarning: StatsUiText? = null
+)
+
+@Immutable
+data class AiAdviceItem(
+    val id: String,
+    val type: String, // "warning", "info", "success"
+    val title: StatsUiText,
+    val content: StatsUiText,
+    val categoryId: String? = null,
+    val feedback: Int = 0 // 0: none, 1: thumb up, -1: thumb down
+)
+
+@Immutable
+data class DetectedSubscription(
+    val name: String,
+    val amount: Money,
+    val category: Category,
+    val repeatMonths: Int = 1,
+    val possibleNextDueDate: Long // epoch ms
+)
+
+@Immutable
+data class StatsUiState(
+    val totalIncome: Money = Money.ZERO,
+    val totalExpense: Money = Money.ZERO,
+    val balance: Money = Money.ZERO,
+    val previousExpense: Money? = null,
+    val previousIncome: Money? = null,
+    val currentPeriod: StatsPeriod? = null,
+    val breakdown: List<CategoryBreakdownItem> = emptyList(),
+    val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
+    val recentMonths: List<MonthlyTrendPoint> = emptyList(),
+    val trendWindow: TrendWindow = TrendWindow.SIX_MONTHS,
+    val isLoading: Boolean = true,
+    val isCurrentMonth: Boolean = false,
+    val isLatestPeriod: Boolean = false,
+    val selectedCategory: Category? = null,
+    val transactions: List<Transaction> = emptyList(),
+    val hasAnyTransactions: Boolean = false,
+    
+    // Thuộc tính mới phục vụ bộ lọc & hạn mức
+    val wallets: List<Wallet> = emptyList(),
+    val selectedWallet: Wallet? = null,
+    val dateRangeLabel: String = "",
+    val budgetLimit: Money? = null,
+    val budgetSpent: Money = Money.ZERO,
+    val budgetPercentage: Float = 0f,
+    val spendingForecast: BudgetForecast? = null,
+
+    // AI & Trợ lý thông minh
+    val dynamicDailyBudget: DynamicDailyBudgetData? = null,
+    val aiAdvices: List<AiAdviceItem> = emptyList(),
+    val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
+    val localAdvisor: LocalAdvisorUiState = LocalAdvisorUiState(),
+)

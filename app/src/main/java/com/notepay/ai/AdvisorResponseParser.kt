@@ -1,6 +1,6 @@
 package com.notepay.ai
 
-import com.notepay.util.StringUtils
+import com.notepay.core.common.util.StringUtils
 import java.util.Locale
 
 data class ParsedAdvisorResponse(

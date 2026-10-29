@@ -9,9 +9,9 @@ import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.TransactionRepository
-import com.notepay.platform.notification.NotificationHelper
-import com.notepay.ui.util.MoneyFormatter
-import com.notepay.ui.util.localizedName
+import com.notepay.core.platform.notification.NotificationHelper
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.localizedName
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first

@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.preferences.AppSettingsDataStore
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
-import com.notepay.platform.widget.WidgetConstants
-import com.notepay.ui.navigation.Route
+import com.notepay.core.platform.widget.WidgetConstants
+import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

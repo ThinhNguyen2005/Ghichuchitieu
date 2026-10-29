@@ -35,7 +35,7 @@ import com.notepay.data.preferences.AutoCaptureSettings
 import com.notepay.data.preferences.AutoCaptureSettingsStore
 import com.notepay.data.preferences.KnownBankApps
 import com.notepay.R
-import com.notepay.ui.theme.AppTheme
+import com.notepay.core.designsystem.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn

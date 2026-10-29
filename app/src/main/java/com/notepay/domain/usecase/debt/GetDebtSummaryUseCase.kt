@@ -1,8 +1,8 @@
 package com.notepay.domain.usecase.debt
 
 import com.notepay.domain.money.Money
-import com.notepay.domain.model.debt.DebtType
-import com.notepay.domain.model.debt.DebtWithHistory
+import com.notepay.domain.model.DebtType
+import com.notepay.domain.model.DebtWithHistory
 import com.notepay.domain.repository.DebtRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

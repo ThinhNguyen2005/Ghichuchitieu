@@ -1,5 +1,6 @@
 package com.notepay.platform
 
+import com.notepay.core.platform.LocaleHelper
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

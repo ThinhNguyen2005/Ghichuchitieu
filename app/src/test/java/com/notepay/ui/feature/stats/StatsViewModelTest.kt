@@ -9,7 +9,7 @@ import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import app.cash.turbine.test
-import io.mockk.coEvery
+import com.notepay.feature.stats.main.StatsViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
