@@ -5,20 +5,11 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.usecase.debt.DebtSummary
 
-enum class AssetChartRange {
-    WEEK,
-    MONTH,
-    HALF_YEAR,
-    YEAR
-}
-
-@Immutable
-data class AssetTrendPoint(
-    val timestampMs: Long,
-    val dateLabel: String,
-    val amount: Money,
-)
-
+/**
+ * Một phân đoạn của thanh phân bổ tài sản trên thẻ Ink.
+ *
+ * [percentage] nằm trong khoảng 0.0f - 1.0f và chỉ tính trên các ví có số dư dương.
+ */
 @Immutable
 data class WalletAllocationItem(
     val walletId: Long,
@@ -43,10 +34,7 @@ data class AssetsUiState(
     val totalNetWorth: Money = Money.ZERO,
     val wallets: List<WalletAssetItem> = emptyList(),
     val isLoading: Boolean = true,
-    val selectedChartRange: AssetChartRange = AssetChartRange.MONTH,
-    val trendPoints: List<AssetTrendPoint> = emptyList(),
     val allocationItems: List<WalletAllocationItem> = emptyList(),
-    val netWorthChangeInPeriod: Money = Money.ZERO,
     val netWorthChangePercentage: Float = 0f,
     val isTransferSheetVisible: Boolean = false,
     val transferFromWalletId: Long? = null,

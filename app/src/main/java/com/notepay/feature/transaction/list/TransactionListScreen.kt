@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,11 +31,7 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,7 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,6 +55,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,12 +82,8 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.util.WalletUiHelper
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.material.icons.automirrored.rounded.List
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.component.dialog.DayDetailDialog
 import com.notepay.core.designsystem.component.bar.GradientTopAppBar
@@ -98,6 +93,7 @@ import com.notepay.feature.transaction.detail.TransactionDetailContent
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel
 import com.notepay.feature.transaction.component.DateRangePreset
 import kotlinx.datetime.LocalDate
+import kotlinx.coroutines.launch
 import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,9 +113,29 @@ fun TransactionListScreen(
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var isSearchActive by remember { mutableStateOf(false) }
     var selectedDayForDetail by remember { mutableStateOf<LocalDate?>(null) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
+
+    // Thanh hành động gập lại khi thẻ thống kê (mục đầu của danh sách) đã cuộn khỏi đỉnh.
+    // derivedStateOf chỉ phát recomposition khi vượt ngưỡng thay vì mỗi pixel cuộn nên không
+    // có chi phí recompose theo từng khung hình.
+    val listState = rememberLazyListState()
+    val isActionBarCollapsed by remember(listState) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 24
+        }
+    }
+    val coroutineScope = rememberCoroutineScope()
+    val searchFocusRequester = remember { FocusRequester() }
+    var pendingSearchFocus by remember { mutableStateOf(false) }
+
+    // Ô nhập chỉ tồn tại khi thanh đã mở nên chỉ xin focus sau khi header bung ra.
+    LaunchedEffect(pendingSearchFocus, isActionBarCollapsed) {
+        if (pendingSearchFocus && !isActionBarCollapsed) {
+            searchFocusRequester.requestFocus()
+            pendingSearchFocus = false
+        }
+    }
 
     // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
     // xoay máy và resize cửa sổ nên dùng rememberSaveable thay vì remember.
@@ -155,23 +171,30 @@ fun TransactionListScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Gradient Top Bar mờ dần tích hợp tìm kiếm và chuyển đổi 1 chạm Lịch / Danh sách
+            // Gradient Top Bar mờ dần: điều hướng, phạm vi ví và chuyển đổi 1 chạm Lịch / Danh sách
             TransactionTopBar(
-                isSearchActive = isSearchActive,
-                searchQuery = state.query,
-                onQueryChange = { viewModel.onQueryChanged(it) },
-                onToggleSearch = { active ->
-                    isSearchActive = active
-                    if (!active) {
-                        viewModel.onQueryChanged("")
-                    }
-                },
                 isCalendarView = state.isCalendarView,
                 onToggleCalendar = { viewModel.toggleViewMode() },
                 selectedWalletId = state.selectedWalletId,
                 wallets = state.wallets,
                 onBack = onBack,
                 onOpenWalletPicker = { viewModel.openWalletPicker(true) }
+            )
+
+            // Tìm kiếm, thời gian và bộ lọc gộp trong một khung duy nhất, ngay dưới top bar
+            TransactionActionBar(
+                query = state.query,
+                onQueryChange = viewModel::onQueryChanged,
+                dateLabel = stringResource(state.selectedDateRangePreset.labelRes),
+                activeFilterCount = state.activeFilterCount,
+                collapsed = isActionBarCollapsed && !state.isCalendarView,
+                onExpandSearch = {
+                    pendingSearchFocus = true
+                    coroutineScope.launch { listState.animateScrollToItem(0) }
+                },
+                onOpenDateRange = { viewModel.openDateRangeSheet(true) },
+                onOpenFilter = { viewModel.openFilterSheet(true) },
+                searchFocusRequester = searchFocusRequester,
             )
 
             Row(
@@ -182,14 +205,13 @@ fun TransactionListScreen(
                 // Ở Compact/Medium pane này chiếm trọn bề rộng; ở Expanded chia 45/55.
                 TransactionListPane(
                     state = state,
+                    listState = listState,
                     selectedDay = selectedDayForDetail,
                     selectedTransactionId = resolvedTransactionId,
                     bottomPadding = if (isTwoPane) 24.dp else 100.dp,
                     onDayClick = { date -> selectedDayForDetail = date },
                     onPreviousMonth = viewModel::onPreviousMonth,
                     onNextMonth = viewModel::onNextMonth,
-                    onOpenDateRange = { viewModel.openDateRangeSheet(true) },
-                    onOpenFilter = { viewModel.openFilterSheet(true) },
                     onTransactionClick = { txId ->
                         // Expanded: chọn tại chỗ thay vì đẩy route chi tiết lên back stack.
                         if (isTwoPane) selectedTransactionId = txId else onTransactionClick(txId)
@@ -286,64 +308,53 @@ fun TransactionListScreen(
 }
 
 /**
- * Pane trái: tìm kiếm đã nằm ở top bar dùng chung, phần này chỉ chứa bộ lọc + danh sách
- * (hoặc lịch). Tách khỏi [TransactionListScreen] để bố cục một cột và hai cột dùng chung
+ * Pane trái: thanh hành động đã nằm ở trên dùng chung, phần này chỉ chứa thẻ thống kê + danh
+ * sách (hoặc lịch). Tách khỏi [TransactionListScreen] để bố cục một cột và hai cột dùng chung
  * đúng một bản triển khai.
  */
 @Composable
 private fun TransactionListPane(
     state: TransactionListUiState,
+    listState: LazyListState,
     selectedDay: LocalDate?,
     selectedTransactionId: Long?,
     bottomPadding: Dp,
     onDayClick: (LocalDate) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onOpenDateRange: () -> Unit,
-    onOpenFilter: () -> Unit,
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     hapticFeedbackEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
+    if (state.isCalendarView) {
+        MonthlyCalendarView(
+            year = state.calendarYear,
+            month = state.calendarMonth,
+            transactions = state.transactions,
+            selectedDate = selectedDay,
+            onDayClick = onDayClick,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            modifier = modifier.fillMaxWidth(),
+        )
+        return
+    }
+
     Column(modifier = modifier) {
-        if (state.isCalendarView) {
-            // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
-            MonthlyCalendarView(
-                year = state.calendarYear,
-                month = state.calendarMonth,
-                transactions = state.transactions,
-                selectedDate = selectedDay,
-                onDayClick = onDayClick,
-                onPreviousMonth = onPreviousMonth,
-                onNextMonth = onNextMonth,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
-        } else {
-            // CHẾ ĐỘ DANH SÁCH: Thống kê và nhóm giao dịch theo ngày
-            // Dual Filter Buttons: [Khoảng thời gian v] [Bộ lọc]
-            FilterButtonsRow(
-                currentPreset = state.selectedDateRangePreset,
-                hasActiveFilters = state.selectedTransactionType != null ||
-                        state.isTransferOnly ||
-                        state.selectedCategoryIds.isNotEmpty(),
-                onOpenDateRange = onOpenDateRange,
-                onOpenFilter = onOpenFilter
-            )
-
-            // Summary Card (Thu Nhập / Chi Tiêu)
-            SummaryStatisticsCard(
-                totalIncome = state.totalIncome,
-                totalExpense = state.totalExpense,
-                transactionCount = state.transactionCount,
-                netBalance = state.netBalance,
-            )
-
-            // Transaction Day Groups
-            if (state.isLoading) {
+        when {
+            state.isLoading -> {
+                // Chưa có gì để cuộn nên thẻ thống kê đứng yên như trước, tránh khoảng
+                // trống giữa thanh hành động và vòng xoay chờ.
+                SummaryStatisticsCard(
+                    totalIncome = state.totalIncome,
+                    totalExpense = state.totalExpense,
+                    transactionCount = state.transactionCount,
+                    netBalance = state.netBalance,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -352,7 +363,16 @@ private fun TransactionListPane(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            } else if (state.isEmpty) {
+            }
+
+            state.isEmpty -> {
+                SummaryStatisticsCard(
+                    totalIncome = state.totalIncome,
+                    totalExpense = state.totalExpense,
+                    transactionCount = state.transactionCount,
+                    netBalance = state.netBalance,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -377,8 +397,13 @@ private fun TransactionListPane(
                         )
                     }
                 }
-            } else {
+            }
+
+            else -> {
+                // Thẻ thống kê là mục đầu của danh sách nên cuộn xuống là nó trượt lên và
+                // biến mất, đúng lúc thanh hành động gập lại.
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -390,6 +415,14 @@ private fun TransactionListPane(
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item(key = "summary") {
+                        SummaryStatisticsCard(
+                            totalIncome = state.totalIncome,
+                            totalExpense = state.totalExpense,
+                            transactionCount = state.transactionCount,
+                            netBalance = state.netBalance,
+                        )
+                    }
                     items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
                         DayGroupSection(
                             dayGroup = dayGroup,
@@ -445,10 +478,6 @@ private fun TransactionDetailPane(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TransactionTopBar(
-    isSearchActive: Boolean,
-    searchQuery: String,
-    onQueryChange: (String) -> Unit,
-    onToggleSearch: (Boolean) -> Unit,
     isCalendarView: Boolean,
     onToggleCalendar: () -> Unit,
     selectedWalletId: Long?,
@@ -461,222 +490,77 @@ private fun TransactionTopBar(
     } else {
         wallets.firstOrNull { it.id == selectedWalletId }?.name ?: stringResource(R.string.wallet_fallback)
     }
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            focusRequester.requestFocus()
-        }
-    }
 
     GradientTopAppBar(
         navigationIcon = {
-            if (isSearchActive) {
-                IconButton(onClick = { onToggleSearch(false) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            } else {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.action_back),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         },
         title = {
-            if (isSearchActive) {
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onQueryChange,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    singleLine = true,
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.filter_search_hint),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .focusRequester(focusRequester)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.transactions_header_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Surface(
+                    onClick = onOpenWalletPicker,
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
                 ) {
-                    Text(
-                        text = stringResource(R.string.transactions_header_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.5.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Surface(
-                        onClick = onOpenWalletPicker,
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AccountBalanceWallet,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = selectedWalletName,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = Icons.Rounded.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Rounded.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = selectedWalletName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
                 }
             }
         },
         actions = {
-            if (isSearchActive) {
-                if (searchQuery.isNotBlank()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Clear,
-                            contentDescription = stringResource(R.string.cd_clear_search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                IconButton(onClick = { onToggleSearch(false) }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            } else {
-                IconButton(onClick = { onToggleSearch(true) }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = stringResource(R.string.action_search),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onToggleCalendar) {
-                    Icon(
-                        imageVector = if (isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
-                        contentDescription = if (isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
-                        tint = if (isCalendarView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            IconButton(onClick = onToggleCalendar) {
+                Icon(
+                    imageVector = if (isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
+                    contentDescription = if (isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
+                    tint = if (isCalendarView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     )
-}
-
-@Composable
-private fun FilterButtonsRow(
-    currentPreset: DateRangePreset,
-    hasActiveFilters: Boolean,
-    onOpenDateRange: () -> Unit,
-    onOpenFilter: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // Date Range Button
-        OutlinedButton(
-            onClick = onOpenDateRange,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.CalendarMonth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = currentPreset.labelVi,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-
-        // Advanced Filter Button
-        OutlinedButton(
-            onClick = onOpenFilter,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            BadgedBox(
-                badge = {
-                    if (hasActiveFilters) {
-                        Badge(containerColor = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.FilterList,
-                    contentDescription = null,
-                    tint = if (hasActiveFilters) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.filter_advanced),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (hasActiveFilters) FontWeight.Bold else FontWeight.SemiBold
-            )
-        }
-    }
 }
 
 @Composable
@@ -685,11 +569,10 @@ private fun SummaryStatisticsCard(
     totalExpense: Money,
     transactionCount: Int,
     netBalance: Money,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -758,6 +641,9 @@ private fun SummaryStatisticsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val netPrefix = if (netBalance.amountInCents >= 0) "+" else ""
+                // weight(1f) giữ cho nút xuất file luôn còn chỗ: nếu để Text tự do chiếm
+                // chiều rộng, ở font scale 2.0 nó ép cụm bên phải xuống 0dp khiến nhãn bị
+                // xuống dòng từng ký tự và làm thẻ cao vọt.
                 Text(
                     text = stringResource(
                         R.string.summary_sub_format,
@@ -765,7 +651,10 @@ private fun SummaryStatisticsCard(
                         "$netPrefix${MoneyFormatter.format(netBalance)}"
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Row(
@@ -773,7 +662,7 @@ private fun SummaryStatisticsCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {}
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.FileDownload,
@@ -900,7 +789,7 @@ private fun DateRangeBottomSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = preset.labelVi,
+                        text = stringResource(preset.labelRes),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface

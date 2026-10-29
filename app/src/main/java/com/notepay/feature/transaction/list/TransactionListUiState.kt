@@ -58,4 +58,13 @@ data class TransactionListUiState(
     val isWalletPickerOpen: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !isLoading && transactions.isEmpty()
+
+    /**
+     * Số mục lọc phụ đang bật, dùng cho badge trên thanh hành động. Mỗi mục đã chọn tính là
+     * một đơn vị để người dùng biết bộ lọc đang thu hẹp danh sách ở bao nhiêu chỗ.
+     */
+    val activeFilterCount: Int
+        get() = (if (selectedTransactionType != null) 1 else 0) +
+                (if (isTransferOnly) 1 else 0) +
+                selectedCategoryIds.size
 }

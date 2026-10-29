@@ -785,16 +785,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="assets_transfer_note">Ghi chú (tùy chọn):</string>
     <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền…</string>
     <string name="assets_transfer_confirm_btn">Xác nhận chuyển</string>
-    <string name="assets_trend_chart_title">Xu hướng tài sản</string>
-    <string name="assets_chart_range_7d">7 ngày</string>
-    <string name="assets_chart_range_30d">30 ngày</string>
-    <string name="assets_chart_range_1y">1 năm</string>
-    <string name="assets_trend_no_data">Chưa đủ dữ liệu biến động</string>
     <string name="assets_balance_stable">Số dư ổn định</string>
-    <string name="assets_trend_no_change_caption">Chưa có biến động</string>
-    <string name="assets_scrubber_at_date">Vào %1$s</string>
-    <string name="assets_allocation_title">Phân bổ tài sản</string>
-    <string name="assets_allocation_no_balance">Chưa có số dư để phân bổ</string>
+    <string name="assets_allocation_other">Khác</string>
     <string name="assets_monthly_flow_format">Tháng này: +%1$s · -%2$s</string>
     <string name="tx_empty_title">Không tìm thấy giao dịch nào</string>
     <string name="tx_empty_subtitle">Hãy thử thay đổi tiêu chí lọc hoặc khoảng thời gian</string>
@@ -806,13 +798,23 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="transactions_header_title">GIAO DỊCH</string>
     <string name="filter_all_accounts">Tất cả tài khoản</string>
     <string name="filter_time_period">Khoảng thời gian</string>
+    <string name="date_range_this_month">Tháng này</string>
+    <string name="date_range_last_month">Tháng trước</string>
+    <string name="date_range_last_30_days">30 ngày qua</string>
+    <string name="date_range_last_3_months">3 tháng qua</string>
+    <string name="date_range_last_6_months">6 tháng qua</string>
+    <string name="date_range_this_year">Từ đầu năm</string>
+    <string name="date_range_last_year">Năm trước</string>
+    <string name="date_range_all_time">Toàn bộ thời gian</string>
+    <string name="date_range_custom">Tùy chỉnh</string>
+    <string name="cd_filter_active_count">Bộ lọc, đang bật %1$d mục</string>
     <string name="filter_advanced">Bộ lọc</string>
     <string name="filter_clear_all">Xóa tất cả</string>
     <string name="filter_apply">Áp dụng</string>
     <string name="filter_classification">Phân loại</string>
     <string name="filter_category_expense">Danh mục Chi tiêu</string>
     <string name="filter_category_income">Danh mục Thu nhập</string>
-    <string name="filter_search_hint">Tìm ghi chú, danh mục, số tiền…</string>
+    <string name="tx_search_hint">Tìm kiếm…</string>
     <string name="summary_income_header">THU NHẬP</string>
     <string name="summary_expense_header">CHI TIÊU</string>
     <string name="summary_export_file">Xuất file</string>
@@ -1212,7 +1214,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_paid_note_format">Đã trả nợ cho %1$s</string>
 
     <!-- Added to fix ExtraTranslation lint errors -->
-    <string name="assets_chart_range_6m">6T</string>
     <string name="currency_primary_unit_title">Tiền tệ chính</string>
     <string name="category_badge_default">Mặc định</string>
     <string name="category_field_name">Tên danh mục</string>

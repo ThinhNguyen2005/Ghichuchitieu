@@ -15,7 +15,6 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +22,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,12 +33,15 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.abs
-import kotlin.time.Instant
 
-@OptIn(ExperimentalCoroutinesApi::class)
+/**
+ * Số ngày của cửa sổ so sánh dùng cho badge biến động số dư trên thẻ Ink
+ * (tính cả hôm nay, khớp 30 mốc ngày của biểu đồ xu hướng trước đây).
+ */
+private const val COMPARISON_WINDOW_DAYS = 29L
+
 @HiltViewModel
 class AssetsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -49,8 +50,6 @@ class AssetsViewModel @Inject constructor(
     private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
     private val transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
 ) : ViewModel() {
-
-    private val _chartRange = MutableStateFlow(AssetChartRange.MONTH)
 
     /**
      * Trạng thái tức thời của form chuyển khoản. Tách khỏi dữ liệu Room để luồng dữ liệu
@@ -61,10 +60,9 @@ class AssetsViewModel @Inject constructor(
     /**
      * Dữ liệu tài sản dẫn xuất từ Room. `WhileSubscribed(5_000)` giữ kết nối thêm 5 giây
      * sau khi UI ngừng quan sát (đổi tab, xoay màn hình) rồi mới huỷ, nên khi app xuống
-     * background sẽ không còn tốn CPU để dựng lại trend chart và phân bổ tài sản.
+     * background sẽ không còn tốn CPU để dựng lại phân bổ tài sản.
      */
-    private val assetData: StateFlow<AssetsUiState> = _chartRange
-        .flatMapLatest { chartRange -> observeAssets(chartRange) }
+    private val assetData: StateFlow<AssetsUiState> = observeAssets()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -90,11 +88,7 @@ class AssetsViewModel @Inject constructor(
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
-    fun onChartRangeSelected(range: AssetChartRange) {
-        _chartRange.value = range
-    }
-
-    private fun observeAssets(chartRange: AssetChartRange): Flow<AssetsUiState> {
+    private fun observeAssets(): Flow<AssetsUiState> {
         val tz = TimeZone.currentSystemDefault()
         val nowInstant = Clock.System.now()
         val now = nowInstant.toLocalDateTime(tz)
@@ -104,16 +98,8 @@ class AssetsViewModel @Inject constructor(
         val monthStartMillis = firstDate.atStartOfDayIn(tz).toEpochMilliseconds()
         val monthEndMillis = nextMonth.atStartOfDayIn(tz).toEpochMilliseconds() - 1
 
-        val daysAgoSteps = when (chartRange) {
-            AssetChartRange.WEEK -> (6 downTo 0).toList()
-            AssetChartRange.MONTH -> (29 downTo 0).toList()
-            AssetChartRange.HALF_YEAR -> (175 downTo 0 step 7).toList()
-            AssetChartRange.YEAR -> (350 downTo 0 step 14).toList()
-        }
-
-        val oldestDays = daysAgoSteps.firstOrNull() ?: 0
         val oneDayMs = 86_400_000L
-        val sinceMillis = nowInstant.toEpochMilliseconds() - (oldestDays * oneDayMs)
+        val sinceMillis = nowInstant.toEpochMilliseconds() - (COMPARISON_WINDOW_DAYS * oneDayMs)
 
         return combine(
             walletRepository.observeAll(),
@@ -174,46 +160,25 @@ class AssetsViewModel @Inject constructor(
                 emptyList()
             }
 
-            // 2. Xu hướng tài sản (Asset Trend Points)
-            val trendPoints = daysAgoSteps.map { daysAgo ->
-                val pointMs = nowInstant.toEpochMilliseconds() - (daysAgo * oneDayMs)
-                val txsAfterPoint = nonTransferTxs.filter { it.occurredAt.toEpochMilliseconds() > pointMs }
-
-                var incomeAfter = 0L
-                var expenseAfter = 0L
-                for (tx in txsAfterPoint) {
-                    when (tx.type) {
-                        TransactionType.INCOME -> incomeAfter += tx.amount.amountInCents
-                        TransactionType.EXPENSE -> expenseAfter += tx.amount.amountInCents
-                    }
+            // 2. Biến động số dư trong cửa sổ so sánh = dòng tiền ròng của các giao dịch
+            // không phải chuyển khoản nội bộ. Chuỗi điểm theo ngày không còn cần dựng vì
+            // biểu đồ xu hướng đã được thay bằng thanh phân bổ trên thẻ Ink.
+            val netFlowCents = nonTransferTxs.fold(0L) { acc, tx ->
+                when (tx.type) {
+                    TransactionType.INCOME -> acc + tx.amount.amountInCents
+                    TransactionType.EXPENSE -> acc - tx.amount.amountInCents
                 }
-
-                val balanceAtPoint = totalCents - incomeAfter + expenseAfter
-                val pointInstant = Instant.fromEpochMilliseconds(pointMs)
-                val pointDate = pointInstant.toLocalDateTime(tz)
-                val label = String.format(Locale.getDefault(), "%02d/%02d", pointDate.day, pointDate.month.number)
-
-                AssetTrendPoint(
-                    timestampMs = pointMs,
-                    dateLabel = label,
-                    amount = Money(balanceAtPoint)
-                )
             }
-
-            val firstPointAmount = trendPoints.firstOrNull()?.amount?.amountInCents ?: totalCents
-            val netWorthChangeCents = totalCents - firstPointAmount
-            val netWorthChangePercentage = if (firstPointAmount != 0L) {
-                (netWorthChangeCents.toFloat() / abs(firstPointAmount).toFloat()) * 100f
+            val startBalanceCents = totalCents - netFlowCents
+            val netWorthChangePercentage = if (startBalanceCents != 0L) {
+                (netFlowCents.toFloat() / abs(startBalanceCents).toFloat()) * 100f
             } else 0f
 
             AssetsUiState(
                 totalNetWorth = Money(totalCents),
                 wallets = items,
                 isLoading = false,
-                selectedChartRange = chartRange,
-                trendPoints = trendPoints,
                 allocationItems = allocationItems,
-                netWorthChangeInPeriod = Money(netWorthChangeCents),
                 netWorthChangePercentage = netWorthChangePercentage,
                 debtSummary = debtSummary,
             )

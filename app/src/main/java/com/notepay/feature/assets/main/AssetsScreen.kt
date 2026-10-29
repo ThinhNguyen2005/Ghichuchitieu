@@ -1,10 +1,8 @@
 package com.notepay.feature.assets.main
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,7 +38,6 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
@@ -70,15 +67,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,12 +89,8 @@ import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.core.designsystem.util.WalletUiHelper
 import java.util.Locale
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 /** Bề rộng tối thiểu của một thẻ ví trong grid; dưới ngưỡng này grid tự rơi về 1 cột. */
 private val AssetCardMinWidth = 320.dp
@@ -157,21 +145,19 @@ fun AssetsScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
-                    AssetsHeader(
-                        totalNetWorth = state.totalNetWorth,
-                        changePercentage = state.netWorthChangePercentage,
-                        onAddWallet = onAddWallet,
-                        onTransferClick = { viewModel.openTransferSheet() }
-                    )
-                }
-
-                // Biểu đồ phân bổ tài sản theo ví (Donut Chart chuẩn UX trang Thống kê)
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    WalletAllocationChartCard(
-                        allocationItems = state.allocationItems,
-                        totalNetWorth = state.totalNetWorth,
-                    )
+                    // Item của grid không tự xếp chồng nhiều con như LazyColumn, nên inset
+                    // phải nằm trong cùng một Column, nếu không thẻ Ink sẽ trôi lên dưới
+                    // thanh trạng thái và bị đồng hồ hệ thống đè lên.
+                    Column {
+                        Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
+                        AssetsInkHeroCard(
+                            totalNetWorth = state.totalNetWorth,
+                            changePercentage = state.netWorthChangePercentage,
+                            allocationItems = state.allocationItems,
+                            onAddWallet = onAddWallet,
+                            onTransferClick = { viewModel.openTransferSheet() }
+                        )
+                    }
                 }
 
                 // Thẻ tóm tắt Sổ nợ cá nhân (Personal Debts Summary)
@@ -238,461 +224,281 @@ fun AssetsScreen(
 }
 
 @Composable
-private fun AssetsHeader(
+private fun AssetsInkHeroCard(
     totalNetWorth: Money,
     changePercentage: Float,
+    allocationItems: List<WalletAllocationItem>,
     onAddWallet: () -> Unit,
     onTransferClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner24,
+        shape = AppTheme.shapes.corner28,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = AppTheme.colors.ink,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    )
-                )
-                .padding(20.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.assets_total_balance),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    if (changePercentage != 0f) {
-                        val isPositive = changePercentage >= 0f
-                        val trendColor = if (isPositive) AppTheme.colors.success else AppTheme.colors.error
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = trendColor.copy(alpha = 0.15f)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
-                                    contentDescription = null,
-                                    tint = trendColor,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                val formattedPct = String.format(Locale.US, "%.1f", abs(changePercentage))
-                                Text(
-                                    text = stringResource(
-                                        if (isPositive) R.string.percent_change_positive else R.string.percent_change_negative,
-                                        formattedPct
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = trendColor
-                                )
-                            }
-                        }
-                    } else {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Remove,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(R.string.assets_balance_stable),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = MoneyFormatter.format(totalNetWorth),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 32.sp,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target 48dp)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    FilledTonalButton(
-                        onClick = onTransferClick,
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.CompareArrows,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.assets_transfer_btn),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        )
-                    }
-
-                    FilledTonalButton(
-                        onClick = onAddWallet,
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.assets_add_wallet_btn),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WalletAllocationChartCard(
-    allocationItems: List<WalletAllocationItem>,
-    totalNetWorth: Money,
-) {
-    var selectedItem by remember(allocationItems) {
-        mutableStateOf<WalletAllocationItem?>(null)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner24,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = if (!AppTheme.colors.isLight) {
+            BorderStroke(1.dp, AppTheme.colors.inkBorder)
+        } else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
+            // Dòng trên: Nhãn "Tổng tài sản ròng" + Badge xu hướng biến động
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.assets_allocation_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = stringResource(R.string.assets_total_balance),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.onInkMuted,
+                    fontWeight = FontWeight.Medium,
+                    // Nhường chỗ cho badge: không để nhãn đẩy badge tràn ra ngoài thẻ ở font scale 2.0.
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-                if (selectedItem != null) {
-                    TextButton(
-                        onClick = { selectedItem = null },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                if (changePercentage != 0f) {
+                    val isPositive = changePercentage >= 0f
+                    val trendColor = if (isPositive) AppTheme.colors.onInkIncome else AppTheme.colors.onInkExpense
+                    Surface(
+                        shape = AppTheme.shapes.capsule,
+                        color = trendColor.copy(alpha = 0.18f)
                     ) {
-                        Text(
-                            text = stringResource(R.string.wallet_all),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
+                                contentDescription = null,
+                                tint = trendColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            val formattedPct = String.format(Locale.US, "%.1f", abs(changePercentage))
+                            Text(
+                                text = stringResource(
+                                    if (isPositive) R.string.percent_change_positive else R.string.percent_change_negative,
+                                    formattedPct
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = trendColor
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        shape = AppTheme.shapes.capsule,
+                        color = AppTheme.colors.onInk.copy(alpha = 0.10f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Remove,
+                                contentDescription = null,
+                                tint = AppTheme.colors.onInkMuted,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.assets_balance_stable),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = AppTheme.colors.onInkMuted
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            if (allocationItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PieChart,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.assets_allocation_no_balance),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            } else {
+            // Số tiền Hero: Inter + tnum để các chữ số không nhảy ngang khi số dư đổi
+            Text(
+                text = MoneyFormatter.format(totalNetWorth),
+                style = AppTheme.typography.amountHero,
+                color = AppTheme.colors.onInk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Thanh phân bổ Segmented Bar
+            if (allocationItems.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(210.dp)
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .height(10.dp)
+                        .clip(AppTheme.shapes.capsule),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // Donut Chart bên trái (Box cân bằng)
-                    Box(
-                        modifier = Modifier
-                            .weight(1.05f)
-                            .fillMaxHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(
+                    allocationItems.forEach { item ->
+                        val weight = item.percentage.coerceAtLeast(0.01f)
+                        val color = WalletUiHelper.getColor(item.colorKey)
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(allocationItems) {
-                                    detectTapGestures { offset ->
-                                        val tapped = findWalletAllocationItem(
-                                            tap = offset,
-                                            width = size.width.toFloat(),
-                                            height = size.height.toFloat(),
-                                            strokePx = 36.dp.toPx(),
-                                            items = allocationItems
-                                        )
-                                        selectedItem = if (tapped?.walletId == selectedItem?.walletId) null else tapped
-                                    }
-                                }
-                        ) {
-                            val diameter = min(size.width, size.height) * 0.76f
-                            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-                            var startAngle = 270f
-
-                            allocationItems.forEach { item ->
-                                val sweep = item.percentage * 360f
-                                val isSelected = item.walletId == selectedItem?.walletId
-                                val color = WalletUiHelper.getColor(item.colorKey)
-
-                                drawArc(
-                                    color = color,
-                                    startAngle = startAngle,
-                                    sweepAngle = sweep,
-                                    useCenter = false,
-                                    topLeft = topLeft,
-                                    size = Size(diameter, diameter),
-                                    style = Stroke(
-                                        width = if (isSelected) 40.dp.toPx() else 32.dp.toPx(),
-                                        cap = StrokeCap.Butt
-                                    )
-                                )
-                                startAngle += sweep
-                            }
-                        }
-
-                        WalletAllocationCenter(
-                            item = selectedItem,
-                            totalNetWorth = totalNetWorth
+                                .weight(weight)
+                                .fillMaxHeight()
+                                .background(color)
                         )
                     }
+                }
 
-                    // Danh sách Legend ví bên phải
-                    Column(
-                        modifier = Modifier
-                            .weight(0.95f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
-                    ) {
-                        allocationItems.forEach { item ->
-                            val isSelected = item.walletId == selectedItem?.walletId
-                            val color = WalletUiHelper.getColor(item.colorKey)
-                            val pct = (item.percentage * 100).roundToInt()
+                Spacer(modifier = Modifier.height(8.dp))
 
-                            Surface(
+                // Dòng Legend: tối đa 3 ví lớn nhất + gom "Khác" nếu > 3 ví
+                val (topItems, otherPct) = remember(allocationItems) {
+                    if (allocationItems.size <= 3) {
+                        allocationItems to 0
+                    } else {
+                        val top = allocationItems.take(3)
+                        val other = (allocationItems.drop(3).sumOf { it.percentage.toDouble() } * 100).roundToInt()
+                        top to other
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    topItems.forEach { item ->
+                        val color = WalletUiHelper.getColor(item.colorKey)
+                        val pct = (item.percentage * 100).roundToInt()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(AppTheme.shapes.corner12)
-                                    .clickable {
-                                        selectedItem = if (isSelected) null else item
-                                    },
-                                shape = AppTheme.shapes.corner12,
-                                color = color.copy(alpha = if (isSelected) 0.20f else 0.08f),
-                                border = if (isSelected) BorderStroke(1.dp, color.copy(alpha = 0.6f)) else null
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(9.dp)
-                                            .clip(CircleShape)
-                                            .background(color)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = stringResource(R.string.percent_format, pct),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                            )
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppTheme.colors.onInkMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = stringResource(R.string.percent_format, pct),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AppTheme.colors.onInk
+                            )
+                        }
+                    }
+
+                    if (otherPct > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(AppTheme.colors.onInkMuted)
+                            )
+                            Text(
+                                text = stringResource(R.string.assets_allocation_other),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppTheme.colors.onInkMuted
+                            )
+                            Text(
+                                text = stringResource(R.string.percent_format, otherPct),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AppTheme.colors.onInk
+                            )
                         }
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun WalletAllocationCenter(
-    item: WalletAllocationItem?,
-    totalNetWorth: Money,
-) {
-    val tint = item?.let { WalletUiHelper.getColor(it.colorKey) } ?: MaterialTheme.colorScheme.primary
-    val bg = if (item != null) {
-        tint.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-    }
+            Spacer(modifier = Modifier.height(20.dp))
 
-    Surface(
-        shape = CircleShape,
-        color = bg
-    ) {
-        Column(
-            modifier = Modifier
-                .size(102.dp)
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = item?.name ?: stringResource(R.string.assets_total_balance),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = if (item != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = MoneyFormatter.format(item?.balance ?: totalNetWorth),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (item != null) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Surface(
+            // Hai Action Buttons cân bằng phân cấp thị giác (Pill Shape, Touch Target 48dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onTransferClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
                     shape = AppTheme.shapes.capsule,
-                    color = tint.copy(alpha = 0.18f)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppTheme.colors.sand,
+                        contentColor = AppTheme.colors.onSand
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                 ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.CompareArrows,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.percent_format, (item.percentage * 100).roundToInt()),
-                        style = MaterialTheme.typography.labelSmall,
+                        text = stringResource(R.string.assets_transfer_btn),
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = tint,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Button(
+                    onClick = onAddWallet,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
+                    shape = AppTheme.shapes.capsule,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppTheme.colors.inkRaised,
+                        contentColor = AppTheme.colors.onInk
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.assets_add_wallet_btn),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
     }
-}
-
-private fun findWalletAllocationItem(
-    tap: Offset,
-    width: Float,
-    height: Float,
-    strokePx: Float,
-    items: List<WalletAllocationItem>
-): WalletAllocationItem? {
-    if (items.isEmpty()) return null
-    val diameter = min(width, height) * 0.76f
-    val radius = diameter / 2f
-    val center = Offset(width / 2f, height / 2f)
-    val dx = tap.x - center.x
-    val dy = tap.y - center.y
-    val dist = sqrt(dx * dx + dy * dy)
-    if (dist !in (radius - strokePx * 0.75f)..(radius + strokePx * 0.75f)) return null
-    val angle = ((atan2(dy, dx) * 180f / PI.toFloat()) + 360f) % 360f
-    var start = 270f
-    items.forEach { item ->
-        val sweep = item.percentage * 360f
-        val end = (start + sweep) % 360f
-        if (if (start <= end) angle in start..end else angle >= start || angle <= end) return item
-        start = end
-    }
-    return null
 }
 
 @Composable
@@ -722,7 +528,7 @@ private fun WalletAssetCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = cardBorder,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -791,7 +597,7 @@ private fun WalletAssetCard(
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
-                                        softWrap = false
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -812,7 +618,9 @@ private fun WalletAssetCard(
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
                 }
