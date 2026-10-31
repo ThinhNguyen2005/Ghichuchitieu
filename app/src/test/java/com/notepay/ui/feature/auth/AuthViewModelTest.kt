@@ -1,7 +1,12 @@
 package com.notepay.ui.feature.auth
 
 import android.content.Context
+import androidx.credentials.Credential
+import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
@@ -10,6 +15,8 @@ import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
 import com.notepay.feature.auth.main.AuthViewModel
 import com.notepay.feature.auth.main.isAccountReauthRequired
+import com.notepay.feature.auth.main.googleSheetCredentialRequest
+import com.notepay.feature.auth.main.requestGoogleCredential
 import com.notepay.core.designsystem.feedback.FeedbackType
 import io.mockk.every
 import io.mockk.mockk
@@ -42,8 +49,9 @@ class AuthViewModelTest {
             get() = authFlow.value
 
         var signOutCalled = false
+        var signOutResult: Result<Unit> = Result.success(Unit)
 
-        override suspend fun signInWithGoogle(idToken: String, rawNonce: String?): Result<AuthUser> {
+        override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> {
             val user = AuthUser(uid = "test-uid", email = "test@example.com", displayName = "Test User")
             authFlow.value = user
             return Result.success(user)
@@ -51,8 +59,8 @@ class AuthViewModelTest {
 
         override suspend fun signOut(): Result<Unit> {
             signOutCalled = true
-            authFlow.value = null
-            return Result.success(Unit)
+            if (signOutResult.isSuccess) authFlow.value = null
+            return signOutResult
         }
 
         fun emitUser(user: AuthUser?) {
@@ -66,6 +74,7 @@ class AuthViewModelTest {
         every { appContext.getString(R.string.auth_error_canceled) } returns "Sign in canceled"
         every { appContext.getString(R.string.auth_error_no_credentials) } returns "No credentials"
         every { appContext.getString(R.string.auth_error_sign_in_failed, any()) } returns "Sign in failed"
+        every { appContext.getString(R.string.auth_error_sign_out_failed) } returns "Could not sign out"
 
         fakeAuthRepository = FakeAuthRepository()
         viewModel = AuthViewModel(
@@ -129,6 +138,39 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun `Google sign in uses bottom sheet for authorized and new accounts`() {
+        val authorizedRequest = googleSheetCredentialRequest("test-web-client-id", authorizedOnly = true)
+        val allAccountsRequest = googleSheetCredentialRequest("test-web-client-id", authorizedOnly = false)
+
+        assertThat(authorizedRequest.credentialOptions).hasSize(1)
+        assertThat(allAccountsRequest.credentialOptions).hasSize(1)
+        val authorized = authorizedRequest.credentialOptions.single() as GetGoogleIdOption
+        val allAccounts = allAccountsRequest.credentialOptions.single() as GetGoogleIdOption
+        assertThat(authorized.filterByAuthorizedAccounts).isTrue()
+        assertThat(allAccounts.filterByAuthorizedAccounts).isFalse()
+        assertThat(authorized.autoSelectEnabled).isFalse()
+        assertThat(allAccounts.autoSelectEnabled).isFalse()
+    }
+
+    @Test
+    fun `Google sign in falls back to button flow if both sheets have no credentials`() = runTest {
+        val requests = mutableListOf<GetCredentialRequest>()
+        val expectedCredential = mockk<Credential>()
+
+        val credential = requestGoogleCredential("test-web-client-id") { request ->
+            requests += request
+            if (requests.size < 3) throw NoCredentialException("No matching accounts")
+            expectedCredential
+        }
+
+        assertThat(credential).isSameInstanceAs(expectedCredential)
+        assertThat(requests).hasSize(3)
+        assertThat((requests[0].credentialOptions.single() as GetGoogleIdOption).filterByAuthorizedAccounts).isTrue()
+        assertThat((requests[1].credentialOptions.single() as GetGoogleIdOption).filterByAuthorizedAccounts).isFalse()
+        assertThat(requests[2].credentialOptions.single()).isInstanceOf(GetSignInWithGoogleOption::class.java)
+    }
+
+    @Test
     fun `user sign out clears current user and updates repository`() = runTest {
         val testUser = AuthUser(uid = "uid-1", email = "test@notepay.app", displayName = "NotePay User")
         fakeAuthRepository.emitUser(testUser)
@@ -157,6 +199,23 @@ class AuthViewModelTest {
             }
 
             assertThat(fakeAuthRepository.signOutCalled).isTrue()
+        }
+    }
+
+    @Test
+    fun `sign out failure keeps user signed in and emits error`() = runTest {
+        val user = AuthUser(uid = "uid-2", email = "user@example.com")
+        fakeAuthRepository.emitUser(user)
+        fakeAuthRepository.signOutResult = Result.failure(IllegalStateException("Firebase unavailable"))
+
+        viewModel.feedback.test {
+            viewModel.signOut(mockk(relaxed = true))
+            val feedback = awaitItem()
+            assertThat(feedback.type).isEqualTo(FeedbackType.Error)
+            assertThat(feedback.message).isEqualTo("Could not sign out")
+            assertThat(fakeAuthRepository.signOutCalled).isTrue()
+            assertThat(viewModel.uiState.value.user).isEqualTo(user)
+            assertThat(viewModel.uiState.value.isSigningOut).isFalse()
         }
     }
 }

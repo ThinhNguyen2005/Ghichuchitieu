@@ -20,12 +20,16 @@ interface AuthRepository {
     val currentUser: AuthUser?
 
     /**
-     * Xác thực với Firebase bằng Google ID Token và nonce (nếu có).
+     * Xác thực với Firebase bằng Google ID Token.
+     * Nonce chỉ dùng khi yêu cầu ID Token từ Google; Firebase không nhận nonce như access token.
      */
-    suspend fun signInWithGoogle(idToken: String, rawNonce: String?): Result<AuthUser>
+    suspend fun signInWithGoogle(idToken: String): Result<AuthUser>
 
     /**
      * Đăng xuất khỏi Firebase Auth.
      */
     suspend fun signOut(): Result<Unit>
 }
+
+/** Firebase Authentication không được cấu hình trong bản ứng dụng hiện tại. */
+class AuthUnavailableException : IllegalStateException("Firebase Authentication is unavailable")
