@@ -92,6 +92,7 @@ fun MainTabPager(
                 },
             )
             3 -> UtilitiesScreen(
+                onFeedback = showFeedback,
                 onNavigateToBillSplit = {
                     navController.navigate(Route.BillSplit.path) {
                         launchSingleTop = true

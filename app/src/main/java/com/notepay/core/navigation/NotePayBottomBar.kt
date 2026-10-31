@@ -1,7 +1,6 @@
 package com.notepay.core.navigation
 
 import androidx.annotation.StringRes
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
@@ -54,8 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -126,22 +125,12 @@ private fun RowScope.NotePayBottomTabItem(
     tab: BottomTab,
     tabLabel: String,
     isSourceActiveRow: Boolean,
+    contentColor: Color,
     onClick: () -> Unit,
     isInteractive: Boolean = true,
     reducedMotion: Boolean = false,
 ) {
     val scale = LocalLiquidBottomTabScale.current
-    val selectionProgress by animateFloatAsState(
-        targetValue = if (isSourceActiveRow) 1f else 0f,
-        animationSpec = if (reducedMotion) snap() else tween(NotePayMotion.tabIndicatorDurationMillis),
-        label = "bottom tab selection",
-    )
-    val activeColor by animateColorAsState(
-        targetValue = if (isSourceActiveRow) AppTheme.colors.onSand
-        else AppTheme.colors.onInkMuted,
-        animationSpec = if (reducedMotion) snap() else tween(NotePayMotion.tabIndicatorDurationMillis),
-        label = "bottom tab color",
-    )
     Box(
         modifier = Modifier
             .clip(CircleShape)
@@ -164,18 +153,13 @@ private fun RowScope.NotePayBottomTabItem(
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.graphicsLayer {
-                val contentScale = 0.96f + (0.04f * selectionProgress)
-                scaleX = contentScale
-                scaleY = contentScale
-            },
             verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 imageVector = if (isSourceActiveRow) tab.selectedIcon else tab.unselectedIcon,
                 contentDescription = tabLabel,
-                tint = activeColor,
+                tint = contentColor,
                 modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.height(2.dp))
@@ -185,7 +169,7 @@ private fun RowScope.NotePayBottomTabItem(
                     fontSize = 12.sp,
                     fontWeight = if (isSourceActiveRow) FontWeight.Bold else FontWeight.Normal,
                 ),
-                color = activeColor,
+                color = contentColor,
             )
         }
     }
@@ -211,10 +195,10 @@ fun BoxScope.NotePayBottomBar(
     val fabContentDesc = stringResource(
         if (showQuickAddSheet) R.string.quick_add_close_menu else R.string.quick_add_open_menu
     )
-    val primaryColor = AppTheme.colors.onSand
-    val sandColor = AppTheme.colors.sand
     val isLightTheme = !isAppDarkTheme()
-    val containerColor = if (isLightTheme) AppTheme.colors.ink.copy(alpha = 0.88f) else Color(0xFF1A1A1A).copy(alpha = 0.92f)
+    val containerColor = if (isLightTheme) Color.White.copy(alpha = 0.28f) else Color(0xFF1A1A1A).copy(alpha = 0.35f)
+    val accentColor = if (isLightTheme) AppTheme.colors.ink else AppTheme.colors.sand
+    val unselectedColor = if (isLightTheme) Color(0xFF555555) else Color(0x99FFFFFF)
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -293,10 +277,12 @@ fun BoxScope.NotePayBottomBar(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     navTabs.forEachIndexed { index, tab ->
+                        val isSelected = index == selectedIndex
                         NotePayBottomTabItem(
                             tab = tab,
                             tabLabel = tabLabels[bottomTabs.indexOf(tab)],
-                            isSourceActiveRow = index == selectedIndex,
+                            isSourceActiveRow = isSelected,
+                            contentColor = if (isSelected) AppTheme.colors.onSand else AppTheme.colors.onInkMuted,
                             reducedMotion = reducedMotion,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -307,7 +293,7 @@ fun BoxScope.NotePayBottomBar(
                 }
             }
         } else {
-            // Left: Tabs Bar
+            // Left: Tabs Bar with Kyant0 Liquid Glass Architecture
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
@@ -373,7 +359,11 @@ fun BoxScope.NotePayBottomBar(
 
                 LaunchedEffect(selectedIndex) {
                     if (selectedIndex.toFloat() != dampedDragAnimation.targetValue) {
-                        dampedDragAnimation.animateToValue(selectedIndex.toFloat())
+                        if (reducedMotion) {
+                            dampedDragAnimation.updateValue(selectedIndex.toFloat())
+                        } else {
+                            dampedDragAnimation.animateToValue(selectedIndex.toFloat())
+                        }
                     }
                 }
 
@@ -391,7 +381,7 @@ fun BoxScope.NotePayBottomBar(
                     )
                 }
 
-                // Row 1: Bottom Layer - Main visible bar
+                // Row 1: Bottom Layer - Main visible glass bar with unselected tabs
                 Row(
                     Modifier
                         .graphicsLayer {
@@ -414,6 +404,12 @@ fun BoxScope.NotePayBottomBar(
                                     alpha = if (isLightTheme) 0.12f else 0.25f
                                 )
                             },
+                            shadow = {
+                                Shadow(
+                                    radius = 16f.dp,
+                                    alpha = if (isLightTheme) 0.10f else 0.35f
+                                )
+                            },
                             layerBlock = {
                                 val progress = dampedDragAnimation.pressProgress
                                 val scale = lerp(
@@ -424,7 +420,9 @@ fun BoxScope.NotePayBottomBar(
                                 scaleX = scale
                                 scaleY = scale
                             },
-                            onDrawSurface = { drawRect(containerColor) }
+                            onDrawSurface = {
+                                drawRect(containerColor)
+                            }
                         )
                         .then(interactiveHighlight.modifier)
                         .height(64f.dp)
@@ -432,23 +430,23 @@ fun BoxScope.NotePayBottomBar(
                         .padding(4f.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    navTabs.forEach { tab ->
+                    navTabs.forEachIndexed { index, tab ->
                         NotePayBottomTabItem(
                             tab = tab,
-                            tabLabel = tabLabels[bottomTabs.indexOf(tab)],
+                            tabLabel = tabLabels[index],
                             isSourceActiveRow = false,
+                            contentColor = unselectedColor,
                             reducedMotion = reducedMotion,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                val targetIndex = navTabs.indexOf(tab)
-                                dampedDragAnimation.animateToValue(targetIndex.toFloat())
+                                dampedDragAnimation.animateToValue(index.toFloat())
                                 onTabSelected(tab.route)
                             }
                         )
                     }
                 }
 
-                // Row 2: Capture labels and content backdrop only
+                // Row 2: Offscreen Active Tabs Capture into tabsBackdrop
                 CompositionLocalProvider(
                     LocalLiquidBottomTabScale provides {
                         lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
@@ -483,24 +481,24 @@ fun BoxScope.NotePayBottomBar(
                             .then(interactiveHighlight.modifier)
                             .height(56f.dp)
                             .fillMaxWidth()
-                            .padding(horizontal = 4f.dp)
-                            .graphicsLayer(colorFilter = ColorFilter.tint(primaryColor)),
+                            .padding(horizontal = 4f.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        navTabs.forEach { tab ->
+                        navTabs.forEachIndexed { index, tab ->
                             NotePayBottomTabItem(
                                 tab = tab,
-                                tabLabel = tabLabels[bottomTabs.indexOf(tab)],
+                                tabLabel = tabLabels[index],
                                 isSourceActiveRow = true,
-                                onClick = {},
+                                contentColor = accentColor,
                                 isInteractive = false,
                                 reducedMotion = reducedMotion,
+                                onClick = {}
                             )
                         }
                     }
                 }
 
-                // Box 3: Sliding Highlight Indicator
+                // Box 3: Sliding Highlight Indicator with Liquid Lens Refraction
                 Box(
                     Modifier
                         .padding(horizontal = 4f.dp)
@@ -547,16 +545,15 @@ fun BoxScope.NotePayBottomBar(
                             onDrawSurface = {
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
-                                    sandColor.copy(alpha = 0.85f),
+                                    if (isLightTheme) Color.Black.copy(0.08f)
+                                    else Color.White.copy(0.12f),
                                     alpha = 1f - progress
                                 )
-                                drawRect(
-                                    sandColor.copy(alpha = 0.05f * progress)
-                                )
+                                drawRect(Color.Black.copy(alpha = 0.03f * progress))
                             }
                         )
                         .height(56f.dp)
-                        .width(with(density) { tabWidth.toDp() })
+                        .fillMaxWidth(1f / tabsCount)
                 )
             }
         }

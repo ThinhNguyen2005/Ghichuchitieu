@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.model.AuthUser
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
@@ -74,6 +76,7 @@ import com.notepay.core.designsystem.theme.AppTheme
 @Composable
 fun UtilitiesScreen(
     onNavigateToBillSplit: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     modifier: Modifier = Modifier,
     onNavigateToSubscription: () -> Unit,
     onNavigateToAssets: () -> Unit = {},
@@ -94,12 +97,20 @@ fun UtilitiesScreen(
     // Tablet: lề bù để danh sách một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
 
-    if (showAccountDetails && authUiState.user != null) {
+    LaunchedEffect(authViewModel, onFeedback) {
+        authViewModel.feedback.collect { feedback -> onFeedback(feedback) }
+    }
+
+    val signedInUser = authUiState.user
+    if (showAccountDetails && signedInUser != null) {
         AccountDetailsBottomSheet(
-            user = authUiState.user!!,
+            user = signedInUser,
             sheetState = sheetState,
             onDismissRequest = { showAccountDetails = false },
-            onSignOut = { authViewModel.signOut(context) }
+            onSignOut = {
+                showAccountDetails = false
+                authViewModel.signOut(context)
+            }
         )
     }
 

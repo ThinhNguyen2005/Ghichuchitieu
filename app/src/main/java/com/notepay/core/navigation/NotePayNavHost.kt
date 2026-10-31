@@ -314,6 +314,7 @@ fun NotePayNavHost(
                             )
                             utilitiesGraph(
                                 navController = navController,
+                                onFeedback = ::showFeedback,
                                 onNavigateToTab = navigateToRootTab,
                             )
                             debtGraph(navController)

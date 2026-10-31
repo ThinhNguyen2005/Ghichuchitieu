@@ -4,6 +4,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.PredictiveBackDestination
 import com.notepay.core.navigation.Route
 import com.notepay.feature.backup.BackupRestoreScreen
@@ -17,6 +18,7 @@ import com.notepay.feature.settings.notification.NotificationSettingsScreen
 
 fun NavGraphBuilder.utilitiesGraph(
     navController: NavController,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     onNavigateToTab: ((Route) -> Unit)? = null,
 ) {
     composable(Route.Utilities.path) {
@@ -28,6 +30,7 @@ fun NavGraphBuilder.utilitiesGraph(
             }
         } else {
             UtilitiesScreen(
+                onFeedback = onFeedback,
                 onNavigateToBillSplit = {
                     navController.navigate(Route.BillSplit.path) {
                         launchSingleTop = true
