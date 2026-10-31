@@ -258,3 +258,48 @@ fun getDarkColorScheme(themeColor: String = "sand", context: Context? = null): C
         else -> SandDarkColorScheme
     }
 }
+
+// ==========================================
+// Bảng màu "Mint" — đặc khu cho màn Home
+// ==========================================
+// Các token dưới đây chưa phải theme toàn cục: chỉ `HomePalette` (feature/home/theme)
+// đọc chúng, nên màn khác và thanh điều hướng vẫn dùng v4 Sand & Ink. Khi Home được
+// duyệt chính thức, các token này sẽ chuyển lên AppColors và section này bị xóa.
+
+// Light — nền lạnh rất nhạt, thẻ trắng, nhấn xanh lá
+val MintLightBackground = Color(0xFFF7F9FB)
+val MintLightCard = Color(0xFFFFFFFF)
+val MintLightField = Color(0xFFF2F4F6)
+val MintLightChip = Color(0xFFE6E8EA)
+val MintLightTrack = Color(0xFFECEEF0)
+val MintLightText = Color(0xFF191C1E)
+val MintLightTextVariant = Color(0xFF3C4A42)
+val MintLightDivider = Color(0xFFBBCABF)
+val MintPrimary = Color(0xFF006C49)                 // 5.9:1 trên MintLightCard
+val MintOnPrimary = Color(0xFFFFFFFF)
+val MintPrimaryContainer = Color(0xFF10B981)        // đoạn thanh ngân sách, khối icon
+val MintBanner = Color(0xFFDAE2FD)                  // fixed của vai phụ: banner AI
+val MintOnBanner = Color(0xFF131B2E)
+val MintOnBannerMuted = Color(0xFF5C647A)
+val MintLightError = Color(0xFFBA1A1A)
+val MintLightErrorContainer = Color(0xFFFFDAD6)
+val MintLightOnErrorContainer = Color(0xFF93000A)
+
+// Dark — cùng ngữ nghĩa nhưng đảo sáng/tối để giữ tương phản >= 4.5:1
+val MintDarkBackground = Color(0xFF101312)
+val MintDarkCard = Color(0xFF1A1E1D)
+val MintDarkField = Color(0xFF202524)
+val MintDarkChip = Color(0xFF2A302E)
+val MintDarkTrack = Color(0xFF242A28)
+val MintDarkText = Color(0xFFE2E5E3)
+val MintDarkTextVariant = Color(0xFFAFC3B7)
+val MintDarkDivider = Color(0xFF2E3533)
+val MintDarkPrimary = Color(0xFF57D9A3)
+val MintDarkOnPrimary = Color(0xFF00382A)
+val MintDarkPrimaryContainer = Color(0xFF146C4A)
+val MintDarkBanner = Color(0xFF22304A)
+val MintOnDarkBanner = Color(0xFFDCE6F8)
+val MintOnDarkBannerMuted = Color(0xFFA8B6CC)
+val MintDarkError = Color(0xFFFF6F6F)
+val MintDarkErrorContainer = Color(0xFF5C2320)
+val MintDarkOnErrorContainer = Color(0xFFFFB4AB)

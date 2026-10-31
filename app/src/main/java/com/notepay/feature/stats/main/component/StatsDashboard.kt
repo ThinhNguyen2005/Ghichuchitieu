@@ -97,6 +97,16 @@ internal fun StatsDashboard(
     modifier: Modifier = Modifier,
 ) {
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
+    // Đổi tab Thu/Chi phải đóng danh mục đang mở ngay trong handler: danh mục của tab cũ
+    // không tồn tại trong breakdown của tab mới. Để LaunchedEffect đuổi theo sẽ dư một frame
+    // hiển thị sai và thêm một lần recompose.
+    val handleMetricChanged: (StatsMetric) -> Unit = { newMetric ->
+        if (newMetric != metric) {
+            metric = newMetric
+            if (state.selectedCategory != null) onCategorySelected(null)
+        }
+    }
+
     // Tablet: lề bù để nội dung không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
     val windowLayout = LocalWindowLayout.current
@@ -124,7 +134,7 @@ internal fun StatsDashboard(
                         metric = metric,
                         viewType = viewType,
                         showAmounts = showAmounts,
-                        onMetricChanged = { metric = it },
+                        onMetricChanged = handleMetricChanged,
                         onPreviousMonth = onPreviousMonth,
                         onNextMonth = onNextMonth,
                         onSelectRange = onSelectRange,
@@ -162,7 +172,7 @@ internal fun StatsDashboard(
                     metric = metric,
                     viewType = viewType,
                     showAmounts = showAmounts,
-                    onMetricChanged = { metric = it },
+                    onMetricChanged = handleMetricChanged,
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
                     onSelectRange = onSelectRange,

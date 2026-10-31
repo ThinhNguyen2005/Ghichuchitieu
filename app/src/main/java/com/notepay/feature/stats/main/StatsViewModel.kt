@@ -517,12 +517,13 @@ class StatsViewModel @Inject constructor(
     private val _addSubForm = MutableStateFlow(StatsAddSubscriptionFormState())
     val addSubForm: StateFlow<StatsAddSubscriptionFormState> = _addSubForm.asStateFlow()
 
-    fun showAddSubscription(name: String, amountCents: Long, categoryId: String, nextDueMs: Long) {
+    /** Nhận thẳng model gợi ý: tránh truyền nhầm thứ tự 4 tham số rời (hai tham số Long cạnh nhau). */
+    fun showAddSubscription(subscription: DetectedSubscription) {
         _addSubForm.value = StatsAddSubscriptionFormState(
-            name = name,
-            amountInput = (amountCents / 100).toString(),
-            category = categoryId,
-            nextDueEpochMs = nextDueMs,
+            name = subscription.name,
+            amountInput = (subscription.amount.amountInCents / 100).toString(),
+            category = subscription.category.id,
+            nextDueEpochMs = subscription.possibleNextDueDate,
             isVisible = true,
         )
     }

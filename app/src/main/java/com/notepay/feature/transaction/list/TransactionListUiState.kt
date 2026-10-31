@@ -62,9 +62,13 @@ data class TransactionListUiState(
     /**
      * Số mục lọc phụ đang bật, dùng cho badge trên thanh hành động. Mỗi mục đã chọn tính là
      * một đơn vị để người dùng biết bộ lọc đang thu hẹp danh sách ở bao nhiêu chỗ.
+     *
+     * Bộ lọc ví cũng được đếm: nếu bỏ sót nó, người dùng lọc còn một ví mà danh sách rỗng sẽ
+     * không thấy dấu hiệu nào trên badge để biết vì sao.
      */
     val activeFilterCount: Int
         get() = (if (selectedTransactionType != null) 1 else 0) +
                 (if (isTransferOnly) 1 else 0) +
+                (if (selectedWalletId != null) 1 else 0) +
                 selectedCategoryIds.size
 }

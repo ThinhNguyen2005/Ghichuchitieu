@@ -1,6 +1,9 @@
 package com.notepay.feature.transaction.list
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +83,7 @@ import com.notepay.domain.model.Wallet
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
+import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
@@ -94,6 +100,7 @@ import com.notepay.feature.transaction.detail.TransactionDetailViewModel
 import com.notepay.feature.transaction.component.DateRangePreset
 import kotlinx.datetime.LocalDate
 import kotlinx.coroutines.launch
+import java.util.Locale
 import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,6 +116,15 @@ fun TransactionListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
+
+    // Xuất CSV của đúng danh sách đang nhìn thấy. Dựng nội dung ngay trước khi mở hộp chọn
+    // tệp nên tệp luôn khớp bộ lọc hiện tại, không phải đọc lại cơ sở dữ liệu.
+    val onExportCsv = rememberCsvExporter(
+        transactions = state.transactions,
+        walletsMap = state.walletsMap,
+        onFeedback = onFeedback,
+    )
+
     val dateRangeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -238,6 +254,7 @@ fun TransactionListScreen(
                     onEditTransaction = onEditTransaction,
                     onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
                     hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    onExport = onExportCsv,
                     modifier = Modifier
                         .weight(if (isTwoPane) 0.45f else 1f)
                         .fillMaxHeight(),
@@ -337,6 +354,7 @@ private fun TransactionListPane(
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     hapticFeedbackEnabled: Boolean,
+    onExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // CHẾ ĐỘ LỊCH: lưới chọn ngày gọn ở trên, danh sách giao dịch cuộn liền ngay bên dưới.
@@ -490,6 +508,7 @@ private fun TransactionListPane(
                             totalExpense = state.totalExpense,
                             transactionCount = state.transactionCount,
                             netBalance = state.netBalance,
+                            onExport = onExport,
                         )
                     }
                     items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
@@ -546,6 +565,63 @@ private fun TransactionDetailPane(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun rememberCsvExporter(
+    transactions: List<Transaction>,
+    walletsMap: Map<Long, String>,
+    onFeedback: suspend (UiFeedback) -> Boolean,
+): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val header = stringResource(R.string.tx_export_csv_header)
+    val expenseLabel = stringResource(R.string.filter_type_expense)
+    val incomeLabel = stringResource(R.string.filter_type_income)
+    val transferLabel = stringResource(R.string.filter_type_transfer)
+    val successTemplate = stringResource(R.string.tx_export_success)
+    val failedMessage = stringResource(R.string.tx_export_failed)
+    val fileName = stringResource(R.string.tx_export_file_name, csvFileNameStem())
+
+    var pendingCsv by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(CsvMimeType),
+    ) { uri ->
+        val csv = pendingCsv
+        pendingCsv = null
+        if (uri != null && csv != null) {
+            scope.launch {
+                val written = writeCsvToUri(context.contentResolver, uri, csv)
+                onFeedback(
+                    if (written) {
+                        UiFeedback(
+                            message = String.format(Locale.ROOT, successTemplate, transactions.size),
+                            type = FeedbackType.Success,
+                        )
+                    } else {
+                        UiFeedback(message = failedMessage, type = FeedbackType.Error)
+                    }
+                )
+            }
+        }
+    }
+
+    return {
+        pendingCsv = buildTransactionsCsv(
+            transactions = transactions,
+            walletsMap = walletsMap,
+            header = header,
+            typeLabels = mapOf(
+                TransactionType.EXPENSE to expenseLabel,
+                TransactionType.INCOME to incomeLabel,
+            ),
+            transferLabel = transferLabel,
+        )
+        launcher.launch(fileName)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun TransactionTopBar(
     isCalendarView: Boolean,
     onToggleCalendar: () -> Unit,
@@ -585,38 +661,11 @@ private fun TransactionTopBar(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Surface(
-                    onClick = onOpenWalletPicker,
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = selectedWalletName,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                // Một ví thì không có gì để lọc: ẩn hẳn để top bar trả chỗ cho tiêu đề và nút
+                // đổi chế độ xem, thay vì giữ một control không đổi được kết quả nào.
+                if (wallets.size > 1) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    WalletFilterChip(label = selectedWalletName, onClick = onOpenWalletPicker)
                 }
             }
         },
@@ -632,6 +681,62 @@ private fun TransactionTopBar(
     )
 }
 
+/**
+ * Chip lọc theo ví ở thanh trên cùng.
+ *
+ * Vùng chạm bọc ngoài đạt 48dp theo ngưỡng tiếp cận, còn pill bên trong giữ chiều cao 40dp
+ * đúng đặc tả `wallet-selector-chip` trong DESIGN.md nên thanh không cao thêm.
+ */
+@Composable
+private fun WalletFilterChip(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clip(AppTheme.shapes.corner12)
+            .clickable(
+                onClickLabel = stringResource(R.string.tx_select_wallet_sheet_title),
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = AppTheme.shapes.corner12,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            border = BorderStroke(1.dp, AppTheme.colors.hairline),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 40.dp)
+                    .padding(horizontal = 10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SummaryStatisticsCard(
     totalIncome: Money,
@@ -639,6 +744,7 @@ private fun SummaryStatisticsCard(
     transactionCount: Int,
     netBalance: Money,
     modifier: Modifier = Modifier,
+    onExport: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -726,26 +832,34 @@ private fun SummaryStatisticsCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(AppTheme.shapes.corner12)
-                        .clickable {}
-                        .padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.FileDownload,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.summary_export_file),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                if (transactionCount > 0 && onExport != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            // Hành động thật thì phải bấm trúng được: vùng chạm 48dp thay cho
+                            // hàng chữ ~20dp trước đây.
+                            .defaultMinSize(minHeight = 48.dp)
+                            .clip(AppTheme.shapes.corner12)
+                            .clickable(
+                                onClickLabel = stringResource(R.string.summary_export_file),
+                                onClick = onExport,
+                            )
+                            .padding(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.FileDownload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.summary_export_file),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }

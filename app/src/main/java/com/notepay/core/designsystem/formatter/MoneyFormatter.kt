@@ -14,11 +14,18 @@ import kotlin.math.abs
 object MoneyFormatter {
     private val VIETNAMESE_LOCALE = Locale.Builder().setLanguage("vi").setRegion("VN").build()
 
+    /** Chuỗi che số tiền dùng chung cho mọi màn hình có nút "Ẩn số tiền". */
+    const val MASK = "••••••"
+
     /**
      * Formats Money into standard Vietnamese currency string.
      * Thread-safe per call.
      */
     fun format(money: Money): String = "${groupedMajorUnits(money)} ₫"
+
+    /** Format hoặc che số tiền theo cờ [showAmounts] của tuỳ chọn riêng tư trên màn hình. */
+    fun format(money: Money, showAmounts: Boolean): String =
+        if (showAmounts) format(money) else MASK
 
     private fun groupedMajorUnits(money: Money): String {
         val symbols = DecimalFormatSymbols(VIETNAMESE_LOCALE).apply {

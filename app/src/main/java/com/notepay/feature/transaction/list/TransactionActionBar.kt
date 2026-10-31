@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -168,6 +169,10 @@ private fun SearchField(
 
 @Composable
 private fun DateRangeZone(label: String, onClick: () -> Unit) {
+    // Trần bề ngang của nhãn phải lớn lên cùng font scale, nếu không nhãn dài nhất
+    // ("Toàn bộ thời gian") bị cắt ngay khi người dùng tăng cỡ chữ lên 1.3x. Trần 150dp giữ
+    // cho ô tìm kiếm vẫn gõ được ở 2.0x thay vì bị đẩy về 0dp.
+    val maxLabelWidth = (112.dp * LocalDensity.current.fontScale).coerceAtMost(150.dp)
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -190,7 +195,7 @@ private fun DateRangeZone(label: String, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 92.dp),
+            modifier = Modifier.widthIn(max = maxLabelWidth),
         )
         Icon(
             imageVector = Icons.Rounded.KeyboardArrowDown,

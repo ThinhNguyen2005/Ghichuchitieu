@@ -4,7 +4,6 @@ import com.notepay.R
 import com.notepay.domain.analytics.DynamicDailyBudgetResult
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceSignal
-import com.notepay.domain.analytics.StatsAdviceType
 import com.notepay.domain.analytics.StatsEarlyWarning
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
@@ -91,7 +90,7 @@ object StatsInsightsUiMapper {
         when (signal) {
             is StatsAdviceSignal.FoodShare -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_advice_food_title),
                 content = StatsUiText.Resource(
                     R.string.stats_advice_food_content,
@@ -102,7 +101,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.UpcomingSubscription -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_advice_bill_title),
                 content = StatsUiText.Resource(
                     R.string.stats_advice_bill_content,
@@ -112,7 +111,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.SpendingSpike -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_engine_advice_spike_title),
                 content = StatsUiText.Resource(
                     R.string.stats_engine_advice_spike_content,
@@ -126,7 +125,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.TrendChange -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(
                     if (signal.isIncrease) R.string.stats_engine_advice_trend_up_title
                     else R.string.stats_engine_advice_trend_down_title,
@@ -140,7 +139,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.Saving -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_engine_advice_saving_title),
                 content = StatsUiText.Resource(
                     R.string.stats_engine_advice_saving_content,
@@ -150,6 +149,4 @@ object StatsInsightsUiMapper {
             )
         }
     }
-
-    private fun StatsAdviceType.asUiType(): String = name.lowercase(Locale.ROOT)
 }

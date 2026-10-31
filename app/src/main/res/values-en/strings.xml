@@ -56,9 +56,26 @@
     <string name="home_day_yesterday">YESTERDAY</string>
     <!-- %1$d = day, %2$s = short month name, %3$d = month number -->
     <string name="home_day_other">%2$s %1$d</string>
-    <string name="home_income_month">Income</string>
-    <string name="home_expense_month">Expense</string>
+    <string name="home_income_month">Monthly income</string>
+    <string name="home_expense_month">Monthly expense</string>
     <string name="home_add_wallet">Add wallet</string>
+
+    <!-- Hero block + quick action strip of the Home screen ("Mint" style) -->
+    <string name="home_hide_balance">Hide balance</string>
+    <string name="home_show_balance">Show balance</string>
+    <!-- %1$s = change sign, %2$d = net monthly percentage -->
+    <string name="home_net_change_format">%1$s%2$d%%</string>
+    <string name="home_budget_used_percent">%1$d%% of budget used</string>
+    <!-- %1$s = amount spent, %2$s = monthly limit -->
+    <string name="home_budget_spent_limit_format">%1$s / %2$s</string>
+    <string name="home_auto_capture_on">Auto-capture: %1$d sources</string>
+    <string name="home_ai_assistant_label">Finance assistant</string>
+    <string name="home_open_analytics">View full analysis</string>
+    <string name="home_local_forecast_note">On-device forecast</string>
+    <string name="home_action_quick_add">Quick add</string>
+    <string name="home_action_scan_bill">Scan bill AI</string>
+    <string name="home_action_debt_book">Debt book</string>
+    <string name="home_action_split_group">Split group</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 You have overspent your wallet limit by %1$s!</string>
@@ -555,13 +572,13 @@
     <string name="amount_input_title">Enter amount</string>
     <string name="numeric_keypad_title">Number keypad</string>
     <string name="content_description_collapse_keypad">Collapse keypad</string>
-    <string name="insight_budget_exceeded_title">⚠️ Monthly limit exceeded</string>
+    <string name="insight_budget_exceeded_title">Monthly limit exceeded</string>
     <string name="insight_budget_exceeded_description">You have exceeded your budget. Review unnecessary expenses.</string>
-    <string name="insight_budget_near_limit_title">⚠️ %1$d%% of limit used</string>
+    <string name="insight_budget_near_limit_title">%1$d%% of limit used</string>
     <string name="insight_budget_near_limit_description">You are close to this month\'s expected spending threshold. Consider new purchases carefully.</string>
-    <string name="insight_streak_title">🔥 %1$d-day tracking streak!</string>
+    <string name="insight_streak_title">%1$d-day logging streak</string>
     <string name="insight_streak_description">Your financial habits are looking great. Keep it going!</string>
-    <string name="insight_default_title">💡 Smart money tip</string>
+    <string name="insight_default_title">Smart money tip</string>
     <string name="insight_default_description">Recording spending right away helps you avoid missing small expenses.</string>
 
     <!-- Local notification and background worker copy -->
@@ -868,13 +885,24 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="summary_income_header">INCOME</string>
     <string name="summary_expense_header">EXPENSE</string>
     <string name="summary_export_file">Export file</string>
+    <string name="tx_export_file_name">transactions-%1$s</string>
+    <string name="tx_export_csv_header">Date,Time,Category,Wallet,Type,Amount,Note</string>
+    <string name="tx_export_success">Exported %1$d transactions</string>
+    <string name="tx_export_failed">Could not export the file</string>
     <string name="summary_sub_format">%1$d transactions · net %2$s</string>
 
     <string name="utilities_title">Utilities</string>
     <string name="utilities_tools_title">Helpful tools</string>
     <string name="utilities_bill_split_description">Record shared expenses, split them automatically, and generate VietQR codes for quick collection.</string>
-    <string name="utilities_subscription_description">Manage recurring fees (Netflix, Spotify, rent, insurance…), with automatic due-date reminders.</string>
     <string name="home_streak_format">🔥 %1$dd</string>
+    <!-- Small date line above the greeting: %1$s = weekday, %2$d = day, %3$s = month abbreviation. -->
+    <string name="home_greeting_date_format">%1$s, %2$d %3$s</string>
+    <string name="utilities_subscription_description">Manage recurring fees (Netflix, Spotify, rent, insurance…), with automatic due-date reminders.</string>
+    <!-- Consecutive logging days, shown in the badge next to the greeting. -->
+    <plurals name="home_streak_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
     <string name="wallet_fallback">Wallet</string>
     <string name="transaction_income_label">Income</string>
     <string name="transaction_expense_label">Spent</string>
@@ -930,6 +958,10 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="billsplit_account_step">Account</string>
     <string name="stats_category_percentage_cd">%1$s percent</string>
     <string name="stats_category_selected_cd">expanded</string>
+    <!-- Screen reader description of a category card: %1$s name, %2$s amount, %3$s share -->
+    <string name="stats_category_row_cd">%1$s, %2$s, %3$s of total</string>
+    <string name="stats_category_row_open_cd">%1$s, %2$s, %3$s of total, %4$s</string>
+    <string name="stats_show_more_transactions">Show %1$d more transactions</string>
     <string name="subscription_service_electricity">Electricity bill</string>
     <string name="subscription_service_water">Water bill</string>
     <string name="subscription_service_rent">Rent</string>
@@ -1311,12 +1343,12 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="auth_details_status_connected">Connected</string>
 
     <!-- Personalized Greetings -->
-    <string name="greeting_morning_with_name">Good morning, %1$s ☀️</string>
-    <string name="greeting_afternoon_with_name">Good afternoon, %1$s 🌤️</string>
-    <string name="greeting_evening_with_name">Good evening, %1$s 🌙</string>
-    <string name="greeting_morning_generic">Good morning ☀️</string>
-    <string name="greeting_afternoon_generic">Good afternoon 🌤️</string>
-    <string name="greeting_evening_generic">Good evening 🌙</string>
+    <string name="greeting_morning_with_name">Good morning, %1$s</string>
+    <string name="greeting_afternoon_with_name">Good afternoon, %1$s</string>
+    <string name="greeting_evening_with_name">Good evening, %1$s</string>
+    <string name="greeting_morning_generic">Good morning</string>
+    <string name="greeting_afternoon_generic">Good afternoon</string>
+    <string name="greeting_evening_generic">Good evening</string>
 
     <string name="stats_date_all_time">All time</string>
     <string name="stats_range_week">Week</string>

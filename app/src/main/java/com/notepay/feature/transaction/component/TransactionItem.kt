@@ -35,9 +35,6 @@ import com.notepay.feature.category.mapper.CategoryAvatar
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import java.util.Locale
 import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -46,27 +43,32 @@ fun TransactionItem(
     transaction: Transaction,
     modifier: Modifier = Modifier,
     walletName: String = "",
+    /** Màn hình có nút "Ẩn số tiền" truyền false để dòng giao dịch không rò rỉ số liệu. */
+    showAmounts: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     isSelected: Boolean = false,
 
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
-    val amountColor = if (isIncome) AppTheme.colors.success else AppTheme.colors.error
+    // DESIGN.md §6: khoản chi phân biệt bằng dấu "−" và màu chữ chính, không tô đỏ. Tô đỏ
+    // mọi dòng chi khiến cả sổ đầy điểm nhấn tranh nhau và làm mất tín hiệu của màu lỗi.
+    val amountColor = if (isIncome) AppTheme.colors.success else AppTheme.colors.textPrimary
     val sign = if (isIncome) "+" else "−"
 
-    val systemTz = TimeZone.currentSystemDefault()
-    val localDateTime = transaction.occurredAt.toLocalDateTime(systemTz)
-    val timeStr = String.format(Locale.ROOT, "%02d:%02d", localDateTime.hour, localDateTime.minute)
-
+    // Cùng khuôn với HomeTransactionRow: tiêu đề là nội dung giao dịch (ghi chú, không có thì
+    // danh mục), dòng phụ là "Danh mục • Ví". Trước đây danh mục nằm ở cả hai dòng và ghi chú
+    // chiếm thêm dòng thứ ba, nên dòng phụ không thêm thông tin gì.
+    val categoryName = transaction.category.localizedName()
+    val noteText = transaction.note.trim()
+    val titleText = noteText.ifBlank { categoryName }
     val subtitleParts = listOfNotNull(
-        timeStr,
-        transaction.category.localizedName(),
+        // Tiêu đề đã là danh mục thì bỏ để khỏi đọc lại đúng một từ.
+        categoryName.takeIf { noteText.isNotBlank() },
         walletName.takeIf { it.isNotBlank() },
         if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else null
     )
     val subtitleText = subtitleParts.joinToString(" • ")
-    val noteText = transaction.note.trim()
 
     val clickModifier = if (onClick != null || onLongClick != null) {
         Modifier.combinedClickable(
@@ -149,7 +151,7 @@ fun TransactionItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = transaction.category.localizedName(),
+                        text = titleText,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -157,30 +159,26 @@ fun TransactionItem(
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
                     Text(
-                        text = "$sign${MoneyFormatter.format(transaction.amount)}",
+                        text = if (showAmounts) {
+                            "$sign${MoneyFormatter.format(transaction.amount)}"
+                        } else {
+                            MoneyFormatter.MASK
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = amountColor,
                     )
                 }
-                if (noteText.isNotBlank()) {
+                if (subtitleText.isNotBlank()) {
                     Text(
-                        text = noteText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = subtitleText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                Text(
-                    text = subtitleText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
             }
         }
     }

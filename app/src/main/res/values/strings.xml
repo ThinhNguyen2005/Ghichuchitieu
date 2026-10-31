@@ -55,9 +55,26 @@
     <string name="home_day_yesterday">HÔM QUA</string>
     <!-- %1$d = ngày, %2$s = tên tháng viết tắt (bản tiếng Anh), %3$d = số tháng (bản tiếng Việt) -->
     <string name="home_day_other">%1$d THÁNG %3$d</string>
-    <string name="home_income_month">Thu</string>
-    <string name="home_expense_month">Chi</string>
+    <string name="home_income_month">Thu nhập tháng</string>
+    <string name="home_expense_month">Chi tiêu tháng</string>
     <string name="home_add_wallet">Thêm ví</string>
+
+    <!-- Khối hero + dải tác vụ nhanh màn Home (bản "Mint") -->
+    <string name="home_hide_balance">Ẩn số dư</string>
+    <string name="home_show_balance">Hiện số dư</string>
+    <!-- %1$s = dấu biến động, %2$d = phần trăm thuần của tháng -->
+    <string name="home_net_change_format">%1$s%2$d%%</string>
+    <string name="home_budget_used_percent">Đã dùng %1$d%% ngân sách</string>
+    <!-- %1$s = số đã chi, %2$s = hạn mức tháng -->
+    <string name="home_budget_spent_limit_format">%1$s / %2$s</string>
+    <string name="home_auto_capture_on">Tự ghi: %1$d nguồn</string>
+    <string name="home_ai_assistant_label">Trợ lý tài chính</string>
+    <string name="home_open_analytics">Xem phân tích chi tiết</string>
+    <string name="home_local_forecast_note">Dự báo ngay trên máy</string>
+    <string name="home_action_quick_add">Ghi nhanh</string>
+    <string name="home_action_scan_bill">Quét bill AI</string>
+    <string name="home_action_debt_book">Sổ nợ</string>
+    <string name="home_action_split_group">Chia nhóm</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
@@ -529,13 +546,13 @@
     <string name="amount_input_title">Nhập số tiền</string>
     <string name="numeric_keypad_title">Bàn phím nhập số</string>
     <string name="content_description_collapse_keypad">Thu gọn bàn phím</string>
-    <string name="insight_budget_exceeded_title">⚠️ Vượt quá hạn mức tháng</string>
+    <string name="insight_budget_exceeded_title">Vượt quá hạn mức tháng</string>
     <string name="insight_budget_exceeded_description">Bạn đã chi tiêu vượt ngân sách đề ra. Hãy rà soát lại các khoản chi không cần thiết nhé.</string>
-    <string name="insight_budget_near_limit_title">⚠️ Đã dùng %1$d%% hạn mức</string>
+    <string name="insight_budget_near_limit_title">Đã dùng %1$d%% hạn mức</string>
     <string name="insight_budget_near_limit_description">Gần chạm ngưỡng chi tiêu dự kiến của tháng này. Hãy cân nhắc trước các khoản mua sắm mới.</string>
-    <string name="insight_streak_title">🔥 Chuỗi %1$d ngày ghi chép!</string>
+    <string name="insight_streak_title">Chuỗi %1$d ngày ghi chép</string>
     <string name="insight_streak_description">Thói quen tài chính của bạn đang rất tốt. Tiếp tục duy trì phong độ này nhé!</string>
-    <string name="insight_default_title">💡 Mẹo tài chính thông minh</string>
+    <string name="insight_default_title">Mẹo tài chính thông minh</string>
     <string name="insight_default_description">Ghi chép lại ngay sau khi chi tiêu giúp bạn không bao giờ bỏ sót các khoản tiền nhỏ.</string>
 
     <!-- Local notification and background worker copy -->
@@ -828,6 +845,10 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="summary_income_header">THU NHẬP</string>
     <string name="summary_expense_header">CHI TIÊU</string>
     <string name="summary_export_file">Xuất file</string>
+    <string name="tx_export_file_name">giao-dich-%1$s</string>
+    <string name="tx_export_csv_header">Ngày,Giờ,Danh mục,Ví,Loại,Số tiền,Ghi chú</string>
+    <string name="tx_export_success">Đã xuất %1$d giao dịch</string>
+    <string name="tx_export_failed">Không thể xuất file</string>
     <string name="summary_sub_format">%1$d giao dịch · ròng %2$s</string>
 
     <string name="utilities_title">Tiện ích</string>
@@ -835,6 +856,12 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="utilities_bill_split_description">Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.</string>
     <string name="utilities_subscription_description">Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm…), tự động thông báo trước ngày hết hạn.</string>
     <string name="home_streak_format">🔥 %1$dd</string>
+    <!-- Dòng ngày nhỏ phía trên lời chào: %1$s = thứ, %2$d = ngày, %3$s = tháng viết tắt. -->
+    <string name="home_greeting_date_format">%1$s, %2$d %3$s</string>
+    <!-- Số ngày ghi chép liên tiếp; hiển thị trong huy hiệu cạnh lời chào. -->
+    <plurals name="home_streak_days">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
     <string name="wallet_fallback">Ví</string>
     <string name="transaction_income_label">Thu vào</string>
     <string name="transaction_expense_label">Đã chi</string>
@@ -890,6 +917,10 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_account_step">Tài khoản</string>
     <string name="stats_category_percentage_cd">%1$s phần trăm</string>
     <string name="stats_category_selected_cd">đang mở</string>
+    <!-- Mô tả screen reader cho thẻ danh mục: %1$s tên, %2$s số tiền, %3$s tỷ lệ -->
+    <string name="stats_category_row_cd">%1$s, %2$s, chiếm %3$s</string>
+    <string name="stats_category_row_open_cd">%1$s, %2$s, chiếm %3$s, %4$s</string>
+    <string name="stats_show_more_transactions">Xem thêm %1$d giao dịch</string>
     <string name="subscription_service_electricity">Tiền điện</string>
     <string name="subscription_service_water">Tiền nước</string>
     <string name="subscription_service_rent">Tiền nhà</string>
@@ -1297,12 +1328,12 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="auth_details_status_connected">Đã kết nối</string>
 
     <!-- Personalized Greetings -->
-    <string name="greeting_morning_with_name">Chào buổi sáng, %1$s ☀️</string>
-    <string name="greeting_afternoon_with_name">Chào buổi chiều, %1$s 🌤️</string>
-    <string name="greeting_evening_with_name">Chào buổi tối, %1$s 🌙</string>
-    <string name="greeting_morning_generic">Chào buổi sáng ☀️</string>
-    <string name="greeting_afternoon_generic">Chào buổi chiều 🌤️</string>
-    <string name="greeting_evening_generic">Chào buổi tối 🌙</string>
+    <string name="greeting_morning_with_name">Chào buổi sáng, %1$s</string>
+    <string name="greeting_afternoon_with_name">Chào buổi chiều, %1$s</string>
+    <string name="greeting_evening_with_name">Chào buổi tối, %1$s</string>
+    <string name="greeting_morning_generic">Chào buổi sáng</string>
+    <string name="greeting_afternoon_generic">Chào buổi chiều</string>
+    <string name="greeting_evening_generic">Chào buổi tối</string>
 
     <string name="stats_date_all_time">Tất cả thời gian</string>
     <string name="stats_range_week">Tuần</string>
