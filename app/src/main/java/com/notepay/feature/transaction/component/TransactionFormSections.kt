@@ -129,8 +129,8 @@ fun TransactionAmountSection(
     onAmountChanged: (String) -> Unit,
     focusRequester: FocusRequester,
     onRequestFocus: () -> Unit,
-    zeroWords: String,
-    currencySuffix: String,
+    @Suppress("UnusedParameter") zeroWords: String,
+    @Suppress("UnusedParameter") currencySuffix: String,
     modifier: Modifier = Modifier,
 ) {
     Box(

@@ -47,7 +47,7 @@ class DataImporter @Inject constructor(
                 output.write(buffer, 0, count)
             }
             output.toString(Charsets.UTF_8.name())
-        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
+        } ?: throw java.io.IOException(context.getString(R.string.backup_file_read_error))
     }
 
     /**
@@ -105,6 +105,7 @@ class DataImporter @Inject constructor(
                         createdAt = obj.getLong("createdAt"),
                         isAutoCapture = obj.optBoolean("isAutoCapture", false),
                         isInternalTransfer = obj.optBoolean("isInternalTransfer", false),
+                        transferGroupId = obj.optString("transferGroupId").takeIf { it.isNotBlank() && it != "null" },
                     ),
                 )
             }

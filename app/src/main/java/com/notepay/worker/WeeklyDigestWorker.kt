@@ -1,6 +1,10 @@
 package com.notepay.worker
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -88,12 +92,17 @@ class WeeklyDigestWorker @AssistedInject constructor(
             ""
         }
 
-        NotificationHelper.sendWeeklyDigest(
-            context = context,
-            totalSpentFormatted = MoneyFormatter.format(totalExpenseThisWeek),
-            comparisonText = comparisonText,
-            topCategoryText = topCategoryText,
-        )
+        val canNotify = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (canNotify) {
+            NotificationHelper.sendWeeklyDigest(
+                context = context,
+                totalSpentFormatted = MoneyFormatter.format(totalExpenseThisWeek),
+                comparisonText = comparisonText,
+                topCategoryText = topCategoryText,
+            )
+        }
 
         return Result.success()
     }

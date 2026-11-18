@@ -1,5 +1,8 @@
 package com.notepay.data.repository
 
+import androidx.room.withTransaction
+import com.notepay.data.local.NotePayDatabase
+import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
 import com.notepay.data.mapper.WalletMapper
 import com.notepay.di.IoDispatcher
@@ -15,6 +18,8 @@ import javax.inject.Singleton
 @Singleton
 class WalletRepositoryImpl @Inject constructor(
     private val dao: WalletDao,
+    private val transactionDao: TransactionDao,
+    private val database: NotePayDatabase,
     private val mapper: WalletMapper,
     @param:IoDispatcher private val dispatcher: CoroutineDispatcher,
 ) : WalletRepository {
@@ -31,7 +36,14 @@ class WalletRepositoryImpl @Inject constructor(
     override suspend fun upsert(wallet: Wallet): Long =
         dao.upsert(mapper.toEntity(wallet))
 
-    override suspend fun delete(id: Long) = dao.delete(id)
+    override suspend fun delete(id: Long) {
+        database.withTransaction {
+            require(!transactionDao.hasInternalTransfer(id)) {
+                "Cannot delete a wallet containing internal transfer entries"
+            }
+            dao.delete(id)
+        }
+    }
 
     override suspend fun setActive(id: Long) = dao.setActiveExclusive(id)
 }

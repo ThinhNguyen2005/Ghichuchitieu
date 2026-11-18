@@ -62,6 +62,8 @@ class TransferBetweenWalletsUseCaseTest {
         assertThat(incoming.note).isEqualTo("Nhận từ TPBank")
         assertThat(incoming.isInternalTransfer).isTrue()
         assertThat(incoming.occurredAt).isEqualTo(occurredAt)
+        assertThat(outgoing.transferGroupId).isNotEmpty()
+        assertThat(incoming.transferGroupId).isEqualTo(outgoing.transferGroupId)
     }
 
     @Test

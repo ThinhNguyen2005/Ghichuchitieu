@@ -9,8 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,45 +24,37 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,33 +65,31 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Category
-import com.notepay.domain.money.Money
-import com.notepay.domain.model.Transaction
-import com.notepay.domain.model.TransactionType
-import com.notepay.domain.model.Wallet
+import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
-import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
-import com.notepay.core.designsystem.feedback.FeedbackType
-import com.notepay.core.designsystem.feedback.UiFeedback
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.formatter.MoneyFormatter
-import com.notepay.core.designsystem.util.WalletUiHelper
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.material.icons.automirrored.rounded.List
-import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.component.bar.GradientTopAppBar
 import com.notepay.core.designsystem.component.calendar.CompactMonthCalendar
 import com.notepay.core.designsystem.component.calendar.buildMonthGrid
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.money.Money
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
+import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.feature.transaction.detail.TransactionDetailContent
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel
-import com.notepay.feature.transaction.component.DateRangePreset
-import kotlinx.datetime.LocalDate
+import com.notepay.feature.transaction.list.sheet.DateRangeBottomSheet
+import com.notepay.feature.transaction.list.sheet.FilterBottomSheet
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import java.util.Locale
-import com.notepay.core.designsystem.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -303,14 +291,13 @@ fun TransactionListScreen(
 
         // Bottom Sheet: Chọn tài khoản
         if (state.isWalletPickerOpen) {
-            WalletPickerBottomSheet(
+            WalletPickerSheet(
                 wallets = state.wallets,
                 selectedWalletId = state.selectedWalletId,
                 sheetState = walletPickerSheetState,
+                onWalletSelected = { walletId -> viewModel.selectWallet(walletId) },
+                onAllWalletsSelected = { viewModel.selectWallet(null) },
                 onDismiss = { viewModel.openWalletPicker(false) },
-                onSelectWallet = { walletId ->
-                    viewModel.selectWallet(walletId)
-                }
             )
         }
 
@@ -911,434 +898,11 @@ private fun DayGroupSection(
                 transaction = tx,
                 walletName = walletsMap[tx.walletId] ?: stringResource(R.string.wallet_fallback),
                 onClick = { onTransactionClick(tx.id) },
-                onEdit = { onEditTransaction(tx.id) },
-                onDelete = { onDeleteTransaction(tx) },
+                onEdit = if (tx.isInternalTransfer) null else ({ onEditTransaction(tx.id) }),
+                onDelete = if (tx.isInternalTransfer && tx.transferGroupId == null) null else ({ onDeleteTransaction(tx) }),
                 hapticEnabled = hapticFeedbackEnabled,
                 isSelected = tx.id == selectedTransactionId,
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DateRangeBottomSheet(
-    currentPreset: DateRangePreset,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onSelectPreset: (DateRangePreset) -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_time_period),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Clear,
-                        contentDescription = stringResource(R.string.action_close)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            DateRangePreset.entries.forEach { preset ->
-                val isSelected = preset == currentPreset
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectPreset(preset) }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(preset.labelRes),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun FilterBottomSheet(
-    currentType: TransactionType?,
-    isTransferOnly: Boolean,
-    currentCategoryIds: Set<String>,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onClearAll: () -> Unit,
-    onApply: (TransactionType?, Boolean, Set<String>) -> Unit,
-) {
-    var selectedType by remember { mutableStateOf(currentType) }
-    var selectedTransferOnly by remember { mutableStateOf(isTransferOnly) }
-    var selectedCategories by remember { mutableStateOf(currentCategoryIds) }
-
-    val expenseCategories = remember { Category.getAll().filter { !it.isIncome } }
-    val incomeCategories = remember { Category.getAll().filter { it.isIncome } }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_advanced),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = {
-                        selectedType = null
-                        selectedTransferOnly = false
-                        selectedCategories = emptySet()
-                        onClearAll()
-                    }) {
-                        Text(
-                            text = stringResource(R.string.filter_clear_all),
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Rounded.Clear,
-                            contentDescription = stringResource(R.string.action_close)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Phân loại: [ Tất cả ] [ Chi tiêu ] [ Thu nhập ] [ Chuyển khoản ]
-            Text(
-                text = stringResource(R.string.filter_classification),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val isAllSelected = selectedType == null && !selectedTransferOnly
-                FilterChip(
-                    selected = isAllSelected,
-                    onClick = {
-                        selectedType = null
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_all)) }
-                )
-                FilterChip(
-                    selected = selectedType == TransactionType.EXPENSE && !selectedTransferOnly,
-                    onClick = {
-                        selectedType = TransactionType.EXPENSE
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_expense)) }
-                )
-                FilterChip(
-                    selected = selectedType == TransactionType.INCOME && !selectedTransferOnly,
-                    onClick = {
-                        selectedType = TransactionType.INCOME
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_income)) }
-                )
-                FilterChip(
-                    selected = selectedTransferOnly,
-                    onClick = {
-                        selectedType = null
-                        selectedTransferOnly = true
-                    },
-                    label = { Text(stringResource(R.string.filter_type_transfer)) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Danh mục Chi tiêu Grid
-            Text(
-                text = stringResource(R.string.filter_category_expense),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                expenseCategories.take(12).forEach { category ->
-                    val isCatSelected = category.id in selectedCategories
-                    FilterChip(
-                        selected = isCatSelected,
-                        onClick = {
-                            selectedCategories = if (isCatSelected) {
-                                selectedCategories - category.id
-                            } else {
-                                selectedCategories + category.id
-                            }
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(category.colorArgb))
-                            )
-                        },
-                        label = { Text(category.localizedName(), fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Danh mục Thu nhập Grid
-            Text(
-                text = stringResource(R.string.filter_category_income),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                incomeCategories.forEach { category ->
-                    val isCatSelected = category.id in selectedCategories
-                    FilterChip(
-                        selected = isCatSelected,
-                        onClick = {
-                            selectedCategories = if (isCatSelected) {
-                                selectedCategories - category.id
-                            } else {
-                                selectedCategories + category.id
-                            }
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(category.colorArgb))
-                            )
-                        },
-                        label = { Text(category.localizedName(), fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Nút Áp dụng lớn
-            Button(
-                onClick = {
-                    onApply(selectedType, selectedTransferOnly, selectedCategories)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_apply),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WalletPickerBottomSheet(
-    wallets: List<Wallet>,
-    selectedWalletId: Long?,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onSelectWallet: (Long?) -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.tx_select_wallet_sheet_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Clear,
-                        contentDescription = stringResource(R.string.action_close)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // "Tất cả tài khoản" option
-            val isAllSelected = selectedWalletId == null
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onSelectWallet(null) }
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.filter_all_accounts),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (isAllSelected) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
-
-            // Individual wallets
-            wallets.forEach { wallet ->
-                val isSelected = wallet.id == selectedWalletId
-                val icon = WalletUiHelper.getIcon(wallet.iconKey)
-                val color = WalletUiHelper.getColor(wallet.colorKey)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectWallet(wallet.id) }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(color.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = color,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = wallet.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
         }
     }
 }

@@ -9,6 +9,7 @@ import com.notepay.domain.repository.TransactionRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import java.util.UUID
 import kotlin.time.Clock
 import kotlin.time.Instant
 import javax.inject.Inject
@@ -37,8 +38,10 @@ class TransferBetweenWalletsUseCase @Inject constructor(
     ): Result<Unit> = try {
         require(fromWalletId != toWalletId) { "Cannot transfer to the same wallet" }
         require(amount.amountInCents > 0L) { "Transfer amount must be positive" }
+        require(fromWalletId > 0L && toWalletId > 0L) { "Wallet IDs must be positive" }
 
         withContext(ioDispatcher) {
+            val groupId = UUID.randomUUID().toString()
             transactionRepository.upsertTransferPair(
                 outgoing = Transaction(
                     amount = amount,
@@ -48,6 +51,7 @@ class TransferBetweenWalletsUseCase @Inject constructor(
                     occurredAt = occurredAt,
                     walletId = fromWalletId,
                     isInternalTransfer = true,
+                    transferGroupId = groupId,
                 ),
                 incoming = Transaction(
                     amount = amount,
@@ -57,6 +61,7 @@ class TransferBetweenWalletsUseCase @Inject constructor(
                     occurredAt = occurredAt,
                     walletId = toWalletId,
                     isInternalTransfer = true,
+                    transferGroupId = groupId,
                 ),
             )
             Result.success(Unit)

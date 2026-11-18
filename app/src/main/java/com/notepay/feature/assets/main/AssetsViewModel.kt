@@ -5,42 +5,38 @@ import com.notepay.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.money.Money
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletStats
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.TransferBetweenWalletsUseCase
+import com.notepay.domain.usecase.debt.DebtSummary
 import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.number
-import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 import kotlin.math.abs
-
-/**
- * Số ngày của cửa sổ so sánh dùng cho badge biến động số dư trên thẻ Ink
- * (tính cả hôm nay, khớp 30 mốc ngày của biểu đồ xu hướng trước đây).
- */
-private const val COMPARISON_WINDOW_DAYS = 29L
 
 @HiltViewModel
 class AssetsViewModel @Inject constructor(
@@ -56,133 +52,101 @@ class AssetsViewModel @Inject constructor(
      * không phải khởi động lại mỗi lần người dùng gõ số tiền.
      */
     private val _transferForm = MutableStateFlow(TransferFormState())
+    private val retryVersion = MutableStateFlow(0)
+
+    /** Form chuyển khoản là một nguồn riêng, không chép lại từng trường sang [AssetsUiState]. */
+    val transferForm: StateFlow<TransferFormState> = _transferForm.asStateFlow()
 
     /**
      * Dữ liệu tài sản dẫn xuất từ Room. `WhileSubscribed(5_000)` giữ kết nối thêm 5 giây
      * sau khi UI ngừng quan sát (đổi tab, xoay màn hình) rồi mới huỷ, nên khi app xuống
      * background sẽ không còn tốn CPU để dựng lại phân bổ tài sản.
      */
-    private val assetData: StateFlow<AssetsUiState> = observeAssets()
+    val state: StateFlow<AssetsUiState> = observeAssets()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = AssetsUiState(),
         )
 
-    /** Ghép dữ liệu Room với form để UI chỉ cần observe một nguồn duy nhất. */
-    val state: StateFlow<AssetsUiState> = combine(assetData, _transferForm) { data, form ->
-        data.copy(
-            isTransferSheetVisible = form.isVisible,
-            transferFromWalletId = form.fromWalletId,
-            transferToWalletId = form.toWalletId,
-            transferAmountInput = form.amountInput,
-            transferNote = form.note,
-            isTransferSubmitting = form.isSubmitting,
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AssetsUiState(),
-    )
-
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
-    private fun observeAssets(): Flow<AssetsUiState> {
-        val tz = TimeZone.currentSystemDefault()
-        val nowInstant = Clock.System.now()
-        val now = nowInstant.toLocalDateTime(tz)
-
-        val firstDate = LocalDate(now.year, now.month.number, 1)
-        val nextMonth = firstDate.plus(1, DateTimeUnit.MONTH)
-        val monthStartMillis = firstDate.atStartOfDayIn(tz).toEpochMilliseconds()
-        val monthEndMillis = nextMonth.atStartOfDayIn(tz).toEpochMilliseconds() - 1
-
-        val oneDayMs = 86_400_000L
-        val sinceMillis = nowInstant.toEpochMilliseconds() - (COMPARISON_WINDOW_DAYS * oneDayMs)
-
-        return combine(
+    /**
+     * Kỳ tháng đi vào như một tham số của query: sang ngày mới thì kỳ được phát lại và
+     * thống kê tháng tự nạp lại, thay vì đóng băng ở tháng lúc mở màn hình.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeAssets(): Flow<AssetsUiState> = combine(assetsPeriodFlow(), retryVersion) { period, _ ->
+        period
+    }.flatMapLatest { period ->
+        combine(
             walletRepository.observeAll(),
-            transactionRepository.observeWalletStats(monthStartMillis, monthEndMillis),
-            transactionRepository.observeRecentNonTransfers(sinceMillis),
-            getDebtSummaryUseCase()
+            transactionRepository.observeWalletStats(period.monthStartMillis, period.monthEndMillis),
+            transactionRepository.observeRecentNonTransfers(period.comparisonStartMillis),
+            getDebtSummaryUseCase(),
         ) { wallets, walletStats, nonTransferTxs, debtSummary ->
-            var totalCents = 0L
-
-            val items = wallets.map { wallet ->
-                val stats = walletStats.find { it.walletId == wallet.id }
-                val incomeCents = stats?.allTimeIncome?.amountInCents ?: 0L
-                val expenseCents = stats?.allTimeExpense?.amountInCents ?: 0L
-                val monthlyIncomeCents = stats?.currentMonthIncome?.amountInCents ?: 0L
-                val monthlyExpenseCents = stats?.currentMonthExpense?.amountInCents ?: 0L
-                val txCount = stats?.txCount ?: 0
-
-                val netBalanceCents = wallet.initialBalance.amountInCents + incomeCents - expenseCents
-                totalCents += netBalanceCents
-
-                WalletAssetItem(
-                    wallet = wallet,
-                    balance = Money(netBalanceCents),
-                    monthlyIncome = Money(monthlyIncomeCents),
-                    monthlyExpense = Money(monthlyExpenseCents),
-                    transactionCount = txCount,
-                )
+            buildAssetsState(wallets, walletStats, nonTransferTxs, debtSummary)
+        }.onStart { emit(AssetsUiState()) }
+            .catch { error ->
+                if (error is CancellationException) throw error
+                emit(AssetsUiState(isLoading = false, hasError = true))
             }
+    }
 
-            // 1. Phân bổ tài sản (Asset Allocation)
-            val positiveWallets = items.filter { it.balance.amountInCents > 0L }
-            val positiveTotalCents = positiveWallets.sumOf { it.balance.amountInCents }
-            val allocationItems = if (positiveTotalCents > 0L) {
-                positiveWallets
-                    .sortedByDescending { it.balance.amountInCents }
-                    .map { item ->
-                        WalletAllocationItem(
-                            walletId = item.wallet.id,
-                            name = item.wallet.name,
-                            colorKey = item.wallet.colorKey,
-                            iconKey = item.wallet.iconKey,
-                            balance = item.balance,
-                            percentage = item.balance.amountInCents.toFloat() / positiveTotalCents.toFloat()
-                        )
-                    }
-            } else if (items.isNotEmpty()) {
-                items.map { item ->
-                    WalletAllocationItem(
-                        walletId = item.wallet.id,
-                        name = item.wallet.name,
-                        colorKey = item.wallet.colorKey,
-                        iconKey = item.wallet.iconKey,
-                        balance = item.balance,
-                        percentage = 1f / items.size
-                    )
-                }
-            } else {
-                emptyList()
-            }
+    fun retryLoading() {
+        retryVersion.update { it + 1 }
+    }
 
-            // 2. Biến động số dư trong cửa sổ so sánh = dòng tiền ròng của các giao dịch
-            // không phải chuyển khoản nội bộ. Chuỗi điểm theo ngày không còn cần dựng vì
-            // biểu đồ xu hướng đã được thay bằng thanh phân bổ trên thẻ Ink.
-            val netFlowCents = nonTransferTxs.fold(0L) { acc, tx ->
-                when (tx.type) {
-                    TransactionType.INCOME -> acc + tx.amount.amountInCents
-                    TransactionType.EXPENSE -> acc - tx.amount.amountInCents
-                }
-            }
-            val startBalanceCents = totalCents - netFlowCents
-            val netWorthChangePercentage = if (startBalanceCents != 0L) {
-                (netFlowCents.toFloat() / abs(startBalanceCents).toFloat()) * 100f
-            } else 0f
+    private fun buildAssetsState(
+        wallets: List<Wallet>,
+        walletStats: List<WalletStats>,
+        nonTransferTxs: List<Transaction>,
+        debtSummary: DebtSummary,
+    ): AssetsUiState {
+        // Một lượt tra cứu dùng chung thay vì find() lặp lại cho từng ví.
+        val statsByWallet = walletStats.associateBy { it.walletId }
+        var totalBalance = Money.ZERO
 
-            AssetsUiState(
-                totalNetWorth = Money(totalCents),
-                wallets = items,
-                isLoading = false,
-                allocationItems = allocationItems,
-                netWorthChangePercentage = netWorthChangePercentage,
-                debtSummary = debtSummary,
+        val items = wallets.map { wallet ->
+            val stats = statsByWallet[wallet.id]
+            val netBalance = wallet.initialBalance +
+                (stats?.allTimeIncome ?: Money.ZERO) -
+                (stats?.allTimeExpense ?: Money.ZERO)
+            totalBalance += netBalance
+
+            WalletAssetItem(
+                wallet = wallet,
+                balance = netBalance,
+                monthlyIncome = stats?.currentMonthIncome ?: Money.ZERO,
+                monthlyExpense = stats?.currentMonthExpense ?: Money.ZERO,
+                transactionCount = stats?.txCount ?: 0,
             )
         }
+
+        // Dòng tiền ròng của cửa sổ so sánh = các giao dịch không phải chuyển khoản nội bộ.
+        val netFlow = nonTransferTxs.fold(Money.ZERO) { acc, tx ->
+            when (tx.type) {
+                TransactionType.INCOME -> acc + tx.amount
+                TransactionType.EXPENSE -> acc - tx.amount
+            }
+        }
+        val startBalance = totalBalance - netFlow
+        // Số dư đầu kỳ bằng 0 thì tỷ lệ không xác định (null), khác hẳn "không thay đổi".
+        val netWorthChangePercentage = if (startBalance.amountInCents != 0L) {
+            (netFlow.amountInCents.toDouble() / abs(startBalance.amountInCents.toDouble()) * 100.0).toFloat()
+        } else {
+            null
+        }
+
+        return AssetsUiState(
+            totalNetWorth = totalBalance,
+            wallets = items,
+            isLoading = false,
+            allocationItems = buildAllocation(items),
+            netWorthChangePercentage = netWorthChangePercentage,
+            debtSummary = debtSummary,
+        )
     }
 
     fun setActiveWallet(walletId: Long) {
@@ -193,13 +157,15 @@ class AssetsViewModel @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (e: Exception) {
-                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_switch_failed, e.message.orEmpty()), type = FeedbackType.Error))
+                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_switch_failed), type = FeedbackType.Error))
             }
         }
     }
 
     fun openTransferSheet(fromWalletId: Long? = null) {
-        val currentWallets = assetData.value.wallets
+        // Đang gửi thì không mở form mới: kết quả lần gửi trước sẽ ghi đè form này.
+        if (_transferForm.value.isSubmitting) return
+        val currentWallets = state.value.wallets
         val fromId = fromWalletId ?: currentWallets.firstOrNull()?.wallet?.id
         val toId = currentWallets.firstOrNull { it.wallet.id != fromId }?.wallet?.id
         _transferForm.value = TransferFormState(
@@ -210,77 +176,118 @@ class AssetsViewModel @Inject constructor(
     }
 
     fun closeTransferSheet() {
-        _transferForm.update { it.copy(isVisible = false) }
+        // Đang gửi thì giữ sheet lại để kết quả không rơi vào hư không.
+        _transferForm.update { form ->
+            if (form.isSubmitting) form else form.copy(isVisible = false)
+        }
     }
 
     fun onTransferFromWalletChanged(walletId: Long) {
-        val walletIds = assetData.value.wallets.map { it.wallet.id }
+        val walletIds = state.value.wallets.map { it.wallet.id }
         _transferForm.update { form ->
+            if (form.isSubmitting) return@update form
             val toId = if (form.toWalletId == walletId) {
                 walletIds.firstOrNull { it != walletId }
             } else {
                 form.toWalletId
             }
-            form.copy(fromWalletId = walletId, toWalletId = toId)
+            form.copy(
+                fromWalletId = walletId,
+                toWalletId = toId,
+                submitError = null,
+            )
         }
     }
 
     fun onTransferToWalletChanged(walletId: Long) {
-        _transferForm.update { it.copy(toWalletId = walletId) }
+        _transferForm.update { form ->
+            if (form.isSubmitting) {
+                form
+            } else {
+                form.copy(toWalletId = walletId, submitError = null)
+            }
+        }
     }
 
+    /**
+     * Chỉ nhận chữ số: [VietnamCurrencyVisualTransformation] định dạng chuỗi thô thành
+     * "5.000.000 đ", nên state phải giữ dạng chữ số thuần.
+     */
     fun onTransferAmountChanged(input: String) {
-        val clean = input.filter(Char::isDigit)
-        _transferForm.update { it.copy(amountInput = clean) }
+        _transferForm.update { form ->
+            if (form.isSubmitting) {
+                form
+            } else {
+                form.copy(
+                    amountInput = input.filter(Char::isDigit),
+                    submitError = null,
+                )
+            }
+        }
     }
 
     fun onTransferNoteChanged(note: String) {
-        _transferForm.update { it.copy(note = note) }
+        _transferForm.update { form ->
+            if (form.isSubmitting) form else form.copy(note = note)
+        }
     }
 
     fun executeTransfer() {
         val form = _transferForm.value
-        val fromId = form.fromWalletId ?: return
-        val toId = form.toWalletId ?: return
-        if (fromId == toId) {
-            _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_same_wallet), type = FeedbackType.Error))
-            return
-        }
-        val amountCents = form.amountInput.toLongOrNull()?.let { it * 100 } ?: 0L
-        if (amountCents <= 0L) {
-            _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_invalid_amount), type = FeedbackType.Error))
-            return
-        }
+        // Chống bấm đúp: nút trên UI chỉ tắt sau khi recompose, ViewModel phải tự chặn.
+        if (form.isSubmitting) return
 
-        val wallets = assetData.value.wallets
-        val fromWallet = wallets.firstOrNull { it.wallet.id == fromId }?.wallet
-        val toWallet = wallets.firstOrNull { it.wallet.id == toId }?.wallet
-        val noteText = form.note.ifBlank { context.getString(R.string.transfer_note_default) }
-        val otherWallet = context.getString(R.string.transfer_wallet_other)
+        when (val validation = validateTransfer(
+            fromWalletId = form.fromWalletId,
+            toWalletId = form.toWalletId,
+            amountInput = form.amountInput,
+            wallets = state.value.wallets,
+        )) {
+            // Lỗi nhập liệu đã hiện ngay tại trường tương ứng nên không báo thêm lần nữa.
+            is TransferValidation.Invalid -> Unit
+            is TransferValidation.Valid -> submitTransfer(validation, form.note)
+        }
+    }
 
-        _transferForm.update { it.copy(isSubmitting = true) }
+    private fun submitTransfer(transfer: TransferValidation.Valid, rawNote: String) {
+        val noteText = rawNote.ifBlank { context.getString(R.string.transfer_note_default) }
+        _transferForm.update { it.copy(isSubmitting = true, submitError = null) }
+
         viewModelScope.launch {
-            val result = transferBetweenWalletsUseCase(
-                fromWalletId = fromId,
-                toWalletId = toId,
-                amount = Money(amountCents),
-                outgoingNote = context.getString(R.string.transfer_note_to, toWallet?.name ?: otherWallet, noteText),
-                incomingNote = context.getString(R.string.transfer_note_from, fromWallet?.name ?: otherWallet, noteText),
-            )
-            if (result.isSuccess) {
-                _transferForm.value = TransferFormState()
-                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_transfer_success), type = FeedbackType.Success))
-            } else {
-                _transferForm.update { it.copy(isSubmitting = false) }
-                _feedback.tryEmit(
-                    UiFeedback(
-                        message = context.getString(
-                            R.string.feedback_transfer_failed,
-                            result.exceptionOrNull()?.message.orEmpty(),
-                        ),
-                        type = FeedbackType.Error,
-                    ),
+            try {
+                val result = transferBetweenWalletsUseCase(
+                    fromWalletId = transfer.from.wallet.id,
+                    toWalletId = transfer.to.wallet.id,
+                    amount = transfer.amount,
+                    outgoingNote = TransactionNotePolicy.truncate(context.getString(
+                        R.string.transfer_note_to,
+                        transfer.to.wallet.name,
+                        noteText,
+                    )),
+                    incomingNote = TransactionNotePolicy.truncate(context.getString(
+                        R.string.transfer_note_from,
+                        transfer.from.wallet.name,
+                        noteText,
+                    )),
                 )
+                if (result.isSuccess) {
+                    _transferForm.value = TransferFormState()
+                    _feedback.tryEmit(
+                        UiFeedback(
+                            message = context.getString(R.string.feedback_transfer_success),
+                            type = FeedbackType.Success,
+                        ),
+                    )
+                } else {
+                    _transferForm.update { it.copy(submitError = TransferError.Failed) }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                _transferForm.update { it.copy(submitError = TransferError.Failed) }
+            } finally {
+                // Không để form kẹt ở trạng thái "đang gửi" dù use case trả Result hay ném lỗi.
+                _transferForm.update { it.copy(isSubmitting = false) }
             }
         }
     }

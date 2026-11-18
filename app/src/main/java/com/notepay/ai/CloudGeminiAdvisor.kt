@@ -152,7 +152,7 @@ class CloudGeminiAdvisor @Inject constructor(
                 lastException = e
             }
         }
-        throw Exception(sanitizeAiErrorMessage(lastException), lastException)
+        throw IllegalStateException(sanitizeAiErrorMessage(lastException), lastException)
     }
 
     suspend fun extractReceiptInfo(ocrText: String): SmartReceiptExtractionResult? = withContext(ioDispatcher) {

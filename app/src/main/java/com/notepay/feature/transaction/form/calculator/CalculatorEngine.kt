@@ -60,6 +60,7 @@ object CalculatorEngine {
         }
     }
 
+    @Suppress("WrongEqualsTypeParameter")
     fun equals(state: CalculatorState): CalculatorState {
         val current = state.currentOperand.toLongOrNull() ?: 0L
         return if (state.leftOperand != null && state.pendingOperator != null) {

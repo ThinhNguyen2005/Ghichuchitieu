@@ -5,6 +5,7 @@ import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.mapper.TransactionMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
@@ -13,6 +14,7 @@ import com.notepay.core.platform.widget.WidgetUpdateHelper
 import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
@@ -99,23 +101,79 @@ class TransactionRepositoryImpl @Inject constructor(
         dao.getById(id)?.let(mapper::toDomain)
 
     override suspend fun upsert(transaction: Transaction): Long {
-        val id = dao.upsert(mapper.toEntity(transaction))
-        WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+        val id = database.withTransaction {
+            require(!transaction.isInternalTransfer && transaction.transferGroupId == null) {
+                "Transfers can only be created as a pair"
+            }
+            if (transaction.id != 0L) {
+                val existing = dao.getById(transaction.id)
+                require(existing?.isInternalTransfer != true && existing?.transferGroupId == null) {
+                    "Cannot edit an internal transfer"
+                }
+            }
+            dao.upsert(mapper.toEntity(transaction))
+        }
+        notifyWidgetsSafely()
         return id
     }
 
     override suspend fun upsertTransferPair(outgoing: Transaction, incoming: Transaction) =
         withContext(dispatcher) {
+            require(outgoing.id == 0L && incoming.id == 0L) { "Transfers must be new transactions" }
+            requireValidTransferPair(outgoing, incoming)
             database.withTransaction {
+                require(dao.getByTransferGroupId(requireNotNull(outgoing.transferGroupId)).isEmpty()) {
+                    "Transfer group ID already exists"
+                }
                 dao.upsert(mapper.toEntity(outgoing))
                 dao.upsert(mapper.toEntity(incoming))
             }
-            WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+            notifyWidgetsSafely()
         }
 
     override suspend fun delete(id: Long) {
-        dao.delete(id)
-        WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+        database.withTransaction {
+            val transaction = dao.getById(id) ?: return@withTransaction
+            if (transaction.isInternalTransfer || transaction.transferGroupId != null) {
+                val groupId = requireNotNull(transaction.transferGroupId?.takeIf { it.isNotBlank() }) {
+                    "Legacy transfers cannot be deleted without a verified pair"
+                }
+                val pair = dao.getByTransferGroupId(groupId)
+                require(pair.size == 2) { "Incomplete transfer pair" }
+                val outgoing = pair.singleOrNull { it.type == TransactionType.EXPENSE.name }
+                val incoming = pair.singleOrNull { it.type == TransactionType.INCOME.name }
+                require(outgoing != null && incoming != null) { "Invalid transfer pair" }
+                requireValidTransferPair(mapper.toDomain(outgoing), mapper.toDomain(incoming))
+                dao.deleteTransferGroup(groupId)
+            } else {
+                dao.delete(id)
+            }
+        }
+        notifyWidgetsSafely()
+    }
+
+    private fun requireValidTransferPair(outgoing: Transaction, incoming: Transaction) {
+        require(outgoing.isInternalTransfer && incoming.isInternalTransfer) { "Transfer flag missing" }
+        require(outgoing.walletId > 0L && incoming.walletId > 0L) { "Transfer wallet IDs must be positive" }
+        require(outgoing.amount.amountInCents > 0L) { "Transfer amount must be positive" }
+        require(outgoing.type == TransactionType.EXPENSE && incoming.type == TransactionType.INCOME) {
+            "Transfer types must be expense and income"
+        }
+        require(outgoing.walletId != incoming.walletId) { "Transfer wallets must differ" }
+        require(outgoing.amount == incoming.amount) { "Transfer amounts must match" }
+        require(outgoing.transferGroupId?.isNotBlank() == true && outgoing.transferGroupId == incoming.transferGroupId) {
+            "Transfer group ID must be shared"
+        }
+    }
+
+    private fun notifyWidgetsSafely() {
+        try {
+            WidgetUpdateHelper.notifyWidgetsDataChanged(context)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Database commit succeeded. Widget refresh must not make callers retry the transfer.
+        }
     }
 
     override suspend fun findRecentSimilar(

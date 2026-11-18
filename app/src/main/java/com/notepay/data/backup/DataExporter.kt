@@ -80,7 +80,7 @@ class DataExporter @Inject constructor(
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
             BufferedReader(InputStreamReader(stream)).readText()
-        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
+        } ?: throw java.io.IOException(context.getString(R.string.backup_file_read_error))
     }
 
     private fun backupToJson(backup: BackupPackage): String {
@@ -124,6 +124,7 @@ class DataExporter @Inject constructor(
                 put("createdAt", t.createdAt)
                 put("isAutoCapture", t.isAutoCapture)
                 put("isInternalTransfer", t.isInternalTransfer)
+                put("transferGroupId", t.transferGroupId ?: JSONObject.NULL)
             })
         }
         data.put("transactions", txArr)

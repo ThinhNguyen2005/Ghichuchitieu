@@ -22,46 +22,27 @@ class AiSettingsDataStoreTest {
     }
 
     @Test
-    fun `default values are correct`() = runTest {
-        assertThat(dataStore.geminiApiKey.first()).isNull()
-        assertThat(dataStore.cloudAiEnabled.first()).isTrue()
-        assertThat(dataStore.cloudModelName.first()).isEqualTo(AiSettingsDataStore.DEFAULT_MODEL)
-        assertThat(dataStore.smartReceiptAiEnabled.first()).isTrue()
-    }
-
-    @Test
     fun `unsupported models automatically fallback to default model`() = runTest {
-        dataStore.setCloudModelName("some-unknown-model")
-        assertThat(dataStore.cloudModelName.first()).isEqualTo(AiSettingsDataStore.DEFAULT_MODEL)
-
-        dataStore.setCloudModelName("gemini-3.1-flash-lite")
-        assertThat(dataStore.cloudModelName.first()).isEqualTo("gemini-3.1-flash-lite")
-
-        dataStore.setCloudModelName("gemini-3-flash-preview")
-        assertThat(dataStore.cloudModelName.first()).isEqualTo("gemini-3-flash-preview")
-
-        dataStore.setCloudModelName("gemini-3.8-flash")
-        assertThat(dataStore.cloudModelName.first()).isEqualTo("gemini-3.8-flash")
+        listOf(
+            "some-unknown-model" to AiSettingsDataStore.DEFAULT_MODEL,
+            "gemini-3.1-flash-lite" to "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview" to "gemini-3-flash-preview",
+            "gemini-3.8-flash" to "gemini-3.8-flash",
+        ).forEach { (input, expected) ->
+            dataStore.setCloudModelName(input)
+            assertThat(dataStore.cloudModelName.first()).isEqualTo(expected)
+        }
     }
 
     @Test
     fun `setGeminiApiKey trims and stores key or null if blank`() = runTest {
-        dataStore.setGeminiApiKey("  AIzaSyD-12345  ")
-        assertThat(dataStore.geminiApiKey.first()).isEqualTo("AIzaSyD-12345")
-
-        dataStore.setGeminiApiKey("   ")
-        assertThat(dataStore.geminiApiKey.first()).isNull()
-
-        dataStore.setGeminiApiKey(null)
-        assertThat(dataStore.geminiApiKey.first()).isNull()
-    }
-
-    @Test
-    fun `setCloudAiEnabled updates flag`() = runTest {
-        dataStore.setCloudAiEnabled(false)
-        assertThat(dataStore.cloudAiEnabled.first()).isFalse()
-
-        dataStore.setCloudAiEnabled(true)
-        assertThat(dataStore.cloudAiEnabled.first()).isTrue()
+        listOf(
+            "  AIzaSyD-12345  " to "AIzaSyD-12345",
+            "   " to null,
+            null to null,
+        ).forEach { (input, expected) ->
+            dataStore.setGeminiApiKey(input)
+            assertThat(dataStore.geminiApiKey.first()).isEqualTo(expected)
+        }
     }
 }

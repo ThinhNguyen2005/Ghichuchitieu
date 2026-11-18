@@ -207,7 +207,11 @@ class BillSplitViewModel @Inject constructor(
         markDebtorAsPaidWithReconciliation(debtorName, splitIds, null)
     }
 
-    fun markDebtorAsPaidWithReconciliation(debtorName: String, splitIds: List<Long>, incomeTxId: Long?) {
+    fun markDebtorAsPaidWithReconciliation(
+        @Suppress("UnusedParameter") debtorName: String,
+        splitIds: List<Long>,
+        incomeTxId: Long?,
+    ) {
         viewModelScope.launch {
             val result = settleBillSplitsUseCase(splitIds)
             if (result.isFailure) {

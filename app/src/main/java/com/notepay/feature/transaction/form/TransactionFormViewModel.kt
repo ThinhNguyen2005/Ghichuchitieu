@@ -359,6 +359,10 @@ class TransactionFormViewModel @Inject constructor(
         val current = _state.value
         if (current.isSaving) return
         val tx = originalTransaction ?: return
+        if (tx.isInternalTransfer) {
+            _feedback.tryEmit(UiFeedback(context.getString(R.string.error_transfer_read_only), type = FeedbackType.Error))
+            return
+        }
 
         val cents = if (current.isAutoCapture) {
             tx.amount.amountInCents

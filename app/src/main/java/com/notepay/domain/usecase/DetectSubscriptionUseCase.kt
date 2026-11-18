@@ -51,12 +51,9 @@ object DetectSubscriptionUseCase {
         for ((_, txList) in groupedExpenses) {
             if (txList.size < 2) continue
             val sorted = txList.sortedBy { it.occurredAt }
-            for (i in 0 until sorted.size - 1) {
-                val first = sorted[i]
-                val second = sorted[i + 1]
+            // Một khoản chi chỉ đề xuất một lần, tránh trùng lặp trong cùng nhóm.
+            val candidate = sorted.zipWithNext().firstNotNullOfOrNull { (first, second) ->
                 val daysBetween = (second.occurredAt - first.occurredAt).inWholeDays
-                if (daysBetween !in MIN_CYCLE_DAYS..MAX_CYCLE_DAYS) continue
-
                 val possibleName = cleanName(
                     second.note.ifBlank { displayNameOf(second.category) },
                 )
@@ -64,17 +61,20 @@ object DetectSubscriptionUseCase {
                     name.contains(possibleName, ignoreCase = true) ||
                         possibleName.contains(name, ignoreCase = true)
                 }
-                if (alreadyRegistered) continue
-
-                candidates += SubscriptionCandidate(
-                    name = possibleName,
-                    amountInCents = second.amount.amountInCents,
-                    category = second.category,
-                    repeatMonths = 1,
-                    nextDueEpochMs = second.occurredAt.plus(DatePeriod(months = 1), zone).toEpochMilliseconds(),
-                )
-                // Một khoản chi chỉ đề xuất một lần, tránh trùng lặp trong cùng nhóm.
-                break
+                if (daysBetween in MIN_CYCLE_DAYS..MAX_CYCLE_DAYS && !alreadyRegistered) {
+                    SubscriptionCandidate(
+                        name = possibleName,
+                        amountInCents = second.amount.amountInCents,
+                        category = second.category,
+                        repeatMonths = 1,
+                        nextDueEpochMs = second.occurredAt.plus(DatePeriod(months = 1), zone).toEpochMilliseconds(),
+                    )
+                } else {
+                    null
+                }
+            }
+            if (candidate != null) {
+                candidates += candidate
             }
         }
 

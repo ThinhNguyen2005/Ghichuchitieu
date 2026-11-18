@@ -34,20 +34,21 @@ data class AssetsUiState(
     val totalNetWorth: Money = Money.ZERO,
     val wallets: List<WalletAssetItem> = emptyList(),
     val isLoading: Boolean = true,
+    val hasError: Boolean = false,
     val allocationItems: List<WalletAllocationItem> = emptyList(),
-    val netWorthChangePercentage: Float = 0f,
-    val isTransferSheetVisible: Boolean = false,
-    val transferFromWalletId: Long? = null,
-    val transferToWalletId: Long? = null,
-    val transferAmountInput: String = "",
-    val transferNote: String = "",
-    val isTransferSubmitting: Boolean = false,
+    /**
+     * Biến động số dư trong cửa sổ so sánh, tính theo phần trăm.
+     *
+     * null nghĩa là **không có cơ sở tính** (số dư đầu kỳ bằng 0), khác hẳn 0f là
+     * "đã tính được và không thay đổi".
+     */
+    val netWorthChangePercentage: Float? = null,
     val debtSummary: DebtSummary? = null,
 )
 
 /**
- * Trạng thái tức thời của form chuyển khoản nội bộ. Tách khỏi [AssetsUiState] để
- * ViewModel có thể ghép nó với luồng dữ liệu Room mà không phải restart luồng query.
+ * Trạng thái tức thời của form chuyển khoản, do ViewModel phát song song với [AssetsUiState]
+ * để gõ số tiền không phải restart luồng query và không phải chép lại từng trường.
  */
 @Immutable
 data class TransferFormState(
@@ -57,4 +58,11 @@ data class TransferFormState(
     val amountInput: String = "",
     val note: String = "",
     val isSubmitting: Boolean = false,
+    /**
+     * Lỗi từ tầng lưu trữ, hiển thị phía trên nút xác nhận.
+     *
+     * Lỗi nhập liệu không nằm ở đây: chúng được suy ra từ [validateTransfer] ngay trên UI để
+     * không bao giờ lệch với danh sách ví hiện tại.
+     */
+    val submitError: TransferError? = null,
 )

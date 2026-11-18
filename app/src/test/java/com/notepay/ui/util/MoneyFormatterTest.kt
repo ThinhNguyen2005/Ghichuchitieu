@@ -30,4 +30,9 @@ class MoneyFormatterTest {
         val eurAfter = MoneyFormatter.formatCustom(money, currencySymbol = "€", symbolPosition = "after", thousandSeparator = "dot")
         assertThat(eurAfter).isEqualTo("1.250.000 €")
     }
+
+    @Test
+    fun format_usesUnadornedDongSymbol() {
+        assertThat(MoneyFormatter.format(Money(500_000L))).isEqualTo("5.000 đ")
+    }
 }

@@ -153,10 +153,15 @@ class TransactionRepositoryImplTest {
             monthEndMillis: Long,
         ): Flow<List<WalletStatsProjection>> = flow.map { emptyList() }
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
+        override suspend fun getByTransferGroupId(groupId: String): List<TransactionEntity> =
+            flow.value.filter { it.transferGroupId == groupId }
+        override suspend fun hasInternalTransfer(walletId: Long): Boolean =
+            flow.value.any { it.walletId == walletId && it.isInternalTransfer }
         override fun observeById(id: Long): Flow<TransactionEntity?> =
             flow.map { entities -> entities.find { it.id == id } }
         override suspend fun upsert(entity: TransactionEntity): Long = 0L
         override suspend fun delete(id: Long) = Unit
+        override suspend fun deleteTransferGroup(groupId: String) = Unit
 
         override suspend fun findRecentSimilar(
             noteKeyword: String,

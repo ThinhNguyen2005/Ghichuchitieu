@@ -596,5 +596,6 @@ data class StatsAddSubscriptionFormState(
     val nextDueEpochMs: Long = Clock.System.now().toEpochMilliseconds(),
     val isVisible: Boolean = false
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && amountInput.isNotEmpty()
+    val isValidAmount: Boolean get() = AmountParser.parse(amountInput).amount != null
+    val canSave: Boolean get() = name.isNotBlank() && isValidAmount
 }

@@ -259,7 +259,6 @@ fun CategoryGridPicker(
 
     if (showAddDialog && onCreateCategory != null) {
         AddCategoryDialog(
-            isIncome = isIncome,
             onDismiss = { showAddDialog = false },
             onConfirm = { name, color, iconId ->
                 onCreateCategory(name, color, iconId, isIncome)
@@ -434,7 +433,6 @@ private fun AddCategoryCell(
 
 @Composable
 private fun AddCategoryDialog(
-    isIncome: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (name: String, color: Long, iconId: String) -> Unit,
 ) {

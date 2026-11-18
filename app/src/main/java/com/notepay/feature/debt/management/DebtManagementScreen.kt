@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -90,6 +91,7 @@ fun DebtManagementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     var showCreateSheet by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -118,17 +120,17 @@ fun DebtManagementScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is DebtUiEvent.DebtCreated -> {
-                    Toast.makeText(context, context.getString(R.string.debt_create_success), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, resources.getString(R.string.debt_create_success), Toast.LENGTH_SHORT).show()
                     showCreateSheet = false
                 }
                 is DebtUiEvent.PaymentRecorded -> {
-                    Toast.makeText(context, context.getString(R.string.debt_payment_success), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, resources.getString(R.string.debt_payment_success), Toast.LENGTH_SHORT).show()
                 }
                 is DebtUiEvent.DebtDeleted -> {
-                    Toast.makeText(context, context.getString(R.string.debt_delete_success), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, resources.getString(R.string.debt_delete_success), Toast.LENGTH_SHORT).show()
                 }
                 is DebtUiEvent.ShowToast -> {
-                    Toast.makeText(context, context.getString(event.messageResId), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, resources.getString(event.messageResId), Toast.LENGTH_SHORT).show()
                 }
             }
         }

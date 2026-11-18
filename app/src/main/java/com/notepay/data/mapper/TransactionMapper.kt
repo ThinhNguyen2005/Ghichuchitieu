@@ -20,6 +20,7 @@ class TransactionMapper @Inject constructor() {
         walletId = entity.walletId,
         isAutoCapture = entity.isAutoCapture,
         isInternalTransfer = entity.isInternalTransfer,
+        transferGroupId = entity.transferGroupId,
         createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
     )
 
@@ -33,6 +34,7 @@ class TransactionMapper @Inject constructor() {
         walletId = transaction.walletId,
         isAutoCapture = transaction.isAutoCapture,
         isInternalTransfer = transaction.isInternalTransfer,
+        transferGroupId = transaction.transferGroupId,
         createdAt = transaction.createdAt.toEpochMilliseconds(),
     )
 }

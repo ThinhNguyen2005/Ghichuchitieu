@@ -8,4 +8,4 @@ import kotlinx.coroutines.flow.flowOf
  * Bản play không tự ghi chi tiêu từ thông báo ngân hàng nên luôn trả về 0,
  * khiến dải trạng thái Auto-Capture trên màn Home không hiển thị.
  */
-fun autoCaptureSourceCount(context: Context): Flow<Int> = flowOf(0)
+fun autoCaptureSourceCount(@Suppress("UnusedParameter") context: Context): Flow<Int> = flowOf(0)

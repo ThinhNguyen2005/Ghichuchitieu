@@ -248,14 +248,14 @@ class TransactionListViewModel internal constructor(
             val result = deleteTransaction(transaction.id)
             actionState.update {
                 if (result.isSuccess) {
-                    it.copy(pendingUndoTransaction = transaction)
+                    it.copy(pendingUndoTransaction = transaction.takeUnless { tx -> tx.isInternalTransfer })
                 } else {
                     val message = getString(R.string.feedback_transaction_delete_failed)
                     _feedback.tryEmit(UiFeedback(message, type = FeedbackType.Error))
                     it
                 }
             }
-            if (result.isSuccess) {
+            if (result.isSuccess && !transaction.isInternalTransfer) {
                 _feedback.emit(
                     UiFeedback(
                         message = getString(R.string.transaction_deleted),
@@ -265,11 +265,14 @@ class TransactionListViewModel internal constructor(
                         onAction = { undoDelete(transaction) }
                     )
                 )
+            } else if (result.isSuccess) {
+                _feedback.emit(UiFeedback(getString(R.string.transaction_deleted), type = FeedbackType.Success))
             }
         }
     }
 
     private fun undoDelete(transaction: Transaction) {
+        if (transaction.isInternalTransfer) return
         viewModelScope.launch(ioDispatcher) {
             val result = addTransaction(transaction.copy(id = 0L))
             actionState.update {
@@ -313,75 +316,70 @@ private fun filterTransactions(
     getString: (Int) -> String,
 ): List<Transaction> {
     val tz = TimeZone.currentSystemDefault()
-    val now = Clock.System.now().toLocalDateTime(tz)
-    val today = now.date
+    val today = Clock.System.now().toLocalDateTime(tz).date
     val normalizedQuery = filters.query.trim().lowercase()
 
     return transactions.filter { tx ->
-        // 1. Wallet isolation filter
-        if (filters.selectedWalletId != null && tx.walletId != filters.selectedWalletId) {
-            return@filter false
-        }
+        matchesFilters(tx, filters, normalizedQuery, tz, today, getString)
+    }
+}
 
-        // 2. Query filter
-        if (normalizedQuery.isNotBlank()) {
-            val locName = categoryNameRes(tx.category.id)?.let(getString) ?: tx.category.displayName
-            val matches = tx.note.lowercase().contains(normalizedQuery) ||
-                tx.category.displayName.lowercase().contains(normalizedQuery) ||
-                locName.lowercase().contains(normalizedQuery) ||
-                (tx.amount.amountInCents / 100).toString().contains(normalizedQuery)
-            if (!matches) return@filter false
-        }
+private fun matchesFilters(
+    tx: Transaction,
+    filters: TransactionListFilters,
+    normalizedQuery: String,
+    tz: TimeZone,
+    today: LocalDate,
+    getString: (Int) -> String,
+): Boolean {
+    val walletOk = filters.selectedWalletId == null || tx.walletId == filters.selectedWalletId
+    val categoryOk = filters.selectedCategoryIds.isEmpty() || tx.category.id in filters.selectedCategoryIds
+    val typeOk = when {
+        filters.isTransferOnly -> tx.isInternalTransfer
+        filters.selectedType != null -> tx.type == filters.selectedType && !tx.isInternalTransfer
+        else -> true
+    }
+    return walletOk &&
+        categoryOk &&
+        typeOk &&
+        matchesQuery(tx, normalizedQuery, getString) &&
+        matchesDateRange(tx.occurredAt.toLocalDateTime(tz).date, today, filters)
+}
 
-        // 3. Category filter
-        if (filters.selectedCategoryIds.isNotEmpty()) {
-            if (tx.category.id !in filters.selectedCategoryIds) return@filter false
-        }
+private fun matchesQuery(
+    tx: Transaction,
+    normalizedQuery: String,
+    getString: (Int) -> String,
+): Boolean {
+    if (normalizedQuery.isBlank()) return true
+    val locName = categoryNameRes(tx.category.id)?.let(getString) ?: tx.category.displayName
+    return tx.note.lowercase().contains(normalizedQuery) ||
+        tx.category.displayName.lowercase().contains(normalizedQuery) ||
+        locName.lowercase().contains(normalizedQuery) ||
+        (tx.amount.amountInCents / 100).toString().contains(normalizedQuery)
+}
 
-        // 4. Transaction type & transfer filter
-        if (filters.isTransferOnly) {
-            if (!tx.isInternalTransfer) return@filter false
-        } else if (filters.selectedType != null) {
-            if (tx.type != filters.selectedType || tx.isInternalTransfer) return@filter false
-        }
-
-        // 5. Date range filter
-        val txDate = tx.occurredAt.toLocalDateTime(tz).date
-        when (filters.dateRangePreset) {
-            DateRangePreset.ALL_TIME -> true
-            DateRangePreset.THIS_MONTH -> {
-                txDate.year == today.year && txDate.month.number == today.month.number
-            }
-            DateRangePreset.LAST_MONTH -> {
-                val lastMonth = if (today.month.number == 1) 12 else today.month.number - 1
-                val lastMonthYear = if (today.month.number == 1) today.year - 1 else today.year
-                txDate.year == lastMonthYear && txDate.month.number == lastMonth
-            }
-            DateRangePreset.LAST_30_DAYS -> {
-                (today.toEpochDays() - txDate.toEpochDays()) in 0..30
-            }
-            DateRangePreset.LAST_3_MONTHS -> {
-                (today.toEpochDays() - txDate.toEpochDays()) in 0..90
-            }
-            DateRangePreset.LAST_6_MONTHS -> {
-                (today.toEpochDays() - txDate.toEpochDays()) in 0..180
-            }
-            DateRangePreset.THIS_YEAR -> {
-                txDate.year == today.year
-            }
-            DateRangePreset.LAST_YEAR -> {
-                txDate.year == today.year - 1
-            }
-            DateRangePreset.CUSTOM -> {
-                val start = filters.customStartDate
-                val end = filters.customEndDate
-                if (start != null && end != null) {
-                    txDate in start..end
-                } else {
-                    true
-                }
-            }
-        }
+private fun matchesDateRange(
+    txDate: LocalDate,
+    today: LocalDate,
+    filters: TransactionListFilters,
+): Boolean = when (filters.dateRangePreset) {
+    DateRangePreset.ALL_TIME -> true
+    DateRangePreset.THIS_MONTH -> txDate.year == today.year && txDate.month.number == today.month.number
+    DateRangePreset.LAST_MONTH -> {
+        val lastMonth = if (today.month.number == 1) 12 else today.month.number - 1
+        val lastMonthYear = if (today.month.number == 1) today.year - 1 else today.year
+        txDate.year == lastMonthYear && txDate.month.number == lastMonth
+    }
+    DateRangePreset.LAST_30_DAYS -> (today.toEpochDays() - txDate.toEpochDays()) in 0..30
+    DateRangePreset.LAST_3_MONTHS -> (today.toEpochDays() - txDate.toEpochDays()) in 0..90
+    DateRangePreset.LAST_6_MONTHS -> (today.toEpochDays() - txDate.toEpochDays()) in 0..180
+    DateRangePreset.THIS_YEAR -> txDate.year == today.year
+    DateRangePreset.LAST_YEAR -> txDate.year == today.year - 1
+    DateRangePreset.CUSTOM -> {
+        val start = filters.customStartDate
+        val end = filters.customEndDate
+        start == null || end == null || txDate in start..end
     }
 }
 

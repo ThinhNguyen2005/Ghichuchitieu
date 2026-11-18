@@ -135,7 +135,13 @@ fun TransactionDetailContent(
                     
                     MetaCard(transaction = tx, walletName = state.walletName)
 
-                    if (state.isAutoCapture) {
+                    if (tx.isInternalTransfer) {
+                        Text(
+                            text = stringResource(R.string.error_transfer_read_only),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (state.isAutoCapture) {
                         val isLightTheme = !isAppDarkTheme()
                         val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
 

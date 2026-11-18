@@ -49,7 +49,7 @@ class BackupRestoreViewModel @Inject constructor(
                 val json = dataExporter.exportToJson()
                 context.contentResolver.openOutputStream(uri)?.use { stream ->
                     stream.bufferedWriter().use { it.write(json) }
-                } ?: throw Exception(context.getString(R.string.backup_file_write_error))
+                } ?: throw java.io.IOException(context.getString(R.string.backup_file_write_error))
 
                 saveLastBackupDate()
                 _state.update {

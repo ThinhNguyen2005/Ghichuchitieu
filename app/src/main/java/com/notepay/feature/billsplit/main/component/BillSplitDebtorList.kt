@@ -117,6 +117,38 @@ internal fun LazyListScope.billSplitDebtorListItems(
         )
     }
 
+    addParticipantControlsItems(
+        newDebtorName = newDebtorName,
+        availableSuggestions = availableSuggestions,
+        debtorsCount = debtors.size,
+        onNewDebtorNameChange = onNewDebtorNameChange,
+        onAddDebtor = onAddDebtor,
+        onSplitEvenly = onSplitEvenly,
+    )
+
+    itemsIndexed(
+        items = debtors,
+        key = { _, entry -> entry.name },
+    ) { index, entry ->
+        SelectedDebtorCard(
+            entry = entry,
+            onAmountChange = { input ->
+                onAmountChange(index, input)
+            },
+            onRemove = { onRemoveDebtor(index) },
+            currencyTransformation = currencyTransformation,
+        )
+    }
+}
+
+private fun LazyListScope.addParticipantControlsItems(
+    newDebtorName: String,
+    availableSuggestions: List<String>,
+    debtorsCount: Int,
+    onNewDebtorNameChange: (String) -> Unit,
+    onAddDebtor: (String) -> Unit,
+    onSplitEvenly: () -> Unit,
+) {
     item {
         OutlinedTextField(
             value = newDebtorName,
@@ -211,13 +243,13 @@ internal fun LazyListScope.billSplitDebtorListItems(
                 )
 
                 Text(
-                    text = if (debtors.isEmpty()) {
+                    text = if (debtorsCount == 0) {
                         stringResource(R.string.billsplit_no_debtor_yet)
                     } else {
                         pluralStringResource(
                             R.plurals.billsplit_debtor_added_count,
-                            debtors.size,
-                            debtors.size,
+                            debtorsCount,
+                            debtorsCount,
                         )
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -227,26 +259,12 @@ internal fun LazyListScope.billSplitDebtorListItems(
 
             FilledTonalButton(
                 onClick = onSplitEvenly,
-                enabled = debtors.isNotEmpty(),
+                enabled = debtorsCount > 0,
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(stringResource(R.string.billsplit_split_evenly))
             }
         }
-    }
-
-    itemsIndexed(
-        items = debtors,
-        key = { _, entry -> entry.name },
-    ) { index, entry ->
-        SelectedDebtorCard(
-            entry = entry,
-            onAmountChange = { input ->
-                onAmountChange(index, input)
-            },
-            onRemove = { onRemoveDebtor(index) },
-            currencyTransformation = currencyTransformation,
-        )
     }
 }
 

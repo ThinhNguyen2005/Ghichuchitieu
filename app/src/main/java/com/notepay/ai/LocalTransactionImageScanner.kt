@@ -201,7 +201,8 @@ class LocalTransactionImageScanner @Inject constructor(
                 val hasCurrency = currencyPattern.containsMatchIn(raw)
                 val hasStructure = raw.any { it == '.' || it == ',' || it == ' ' }
                 val hasAmountContext = amountMarkers.any { it in normalizedLine }
-                if (value !in 1..9_999_999_999L || (!hasCurrency && !hasStructure && !hasAmountContext)) {
+                val hasEvidence = hasCurrency || hasStructure || hasAmountContext
+                if (value !in 1..9_999_999_999L || !hasEvidence) {
                     return@mapNotNull null
                 }
                 var score = 0
