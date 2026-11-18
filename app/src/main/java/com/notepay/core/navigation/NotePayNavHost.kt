@@ -79,6 +79,7 @@ fun NotePayNavHost(
     authUser: AuthUser? = null,
     startDestination: String = Route.Home.path,
     liquidGlassEnabled: Boolean = false,
+    hapticFeedbackEnabled: Boolean = true,
     pendingRoute: String? = null,
     onRouteHandled: () -> Unit = {},
     onCompleteWelcome: () -> Unit = {},
@@ -199,6 +200,7 @@ fun NotePayNavHost(
         CompositionLocalProvider(
             LocalNotePayBackdrop provides backdrop,
             LocalAuthUser provides authUser,
+            LocalHapticFeedbackEnabled provides hapticFeedbackEnabled,
         ) {
             Box(
                 modifier = Modifier

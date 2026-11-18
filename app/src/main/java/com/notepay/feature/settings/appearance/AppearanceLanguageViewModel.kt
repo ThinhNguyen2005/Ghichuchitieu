@@ -43,7 +43,7 @@ class AppearanceLanguageViewModel @Inject constructor(
             liquidGlassEnabled = glassEnabled,
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
             hapticFeedbackEnabled = hapticEnabled,
-            appLanguage = lang,
+            appLanguage = LocaleHelper.normalizeLanguageCode(lang),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -79,8 +79,9 @@ class AppearanceLanguageViewModel @Inject constructor(
 
     fun setLanguage(language: String) {
         viewModelScope.launch {
-            appSettingsDataStore.setAppLanguage(language)
-            LocaleHelper.applyLocale(context, language)
+            val normalized = LocaleHelper.normalizeLanguageCode(language)
+            appSettingsDataStore.setAppLanguage(normalized)
+            LocaleHelper.applyLocale(context, normalized)
         }
     }
 }

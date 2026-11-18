@@ -292,6 +292,8 @@
     <string name="stats_subscription_amount_monthly_format">%1$s / tháng</string>
     <string name="stats_add_subscription">Thêm hóa đơn</string>
     <string name="stats_action_analyze">Phân tích</string>
+    <string name="stats_action_local_analysis">Xem phân tích cục bộ</string>
+    <string name="stats_action_set_budget">Đặt hạn mức</string>
     <string name="stats_action_ai_settings">Cài đặt AI</string>
     <string name="bank_linked">Ngân hàng liên kết</string>
     <string name="wallet_default">Mặc định</string>
@@ -359,16 +361,16 @@
     <string name="stats_banner_income_decrease">Giảm %1$s so với cùng kỳ tháng trước</string>
     <string name="stats_allocation_no_data">Chưa có phân bổ danh mục</string>
     <string name="stats_total_allocation">Tổng phân bổ</string>
+    <string name="stats_amounts_mask">••••••</string>
     <string name="stats_forecast_legend">Vùng mờ: dự báo cuối tháng</string>
-    <string name="stats_forecast_reached">Đã đạt dự báo cuối tháng</string>
-    <string name="stats_forecast_exceeded">Đã vượt dự báo cuối tháng</string>
+    <string name="stats_forecast_passed">Đã qua mốc dự báo cuối tháng</string>
+    <string name="stats_forecast_within_budget">Dự báo vẫn trong hạn mức tháng</string>
+    <string name="stats_forecast_over_budget">Dự báo vượt hạn mức tháng</string>
     <string name="stats_month_label_format">T%1$d</string>
     <string name="stats_trend_point_cd_format">Tháng %1$d: %2$s</string>
     <string name="stats_trend_average_label">Trung bình / tháng</string>
     <string name="stats_trend_window_short_format">%1$dT</string>
-    <string name="stats_trend_window_cd_format">Xem xu hướng %1$d tháng</string>
     <string name="stats_allocation_chart_cd_format">Biểu đồ phân bổ: %1$s</string>
-    <string name="stats_allocation_chart_empty_cd">Biểu đồ phân bổ: chưa có dữ liệu</string>
     <string name="stats_advisor_title">Trợ lý chi tiêu</string>
     <string name="stats_advisor_privacy">Riêng tư · Trên thiết bị</string>
 
@@ -423,6 +425,9 @@
     <string name="feedback_transaction_save_failed">Không thể lưu giao dịch</string>
     <string name="feedback_transaction_updated">Đã cập nhật giao dịch</string>
     <string name="feedback_transaction_update_failed">Không thể cập nhật giao dịch</string>
+    <string name="assets_load_failed">Không thể tải tài sản. Vui lòng thử lại.</string>
+    <string name="action_retry_assets">Thử lại</string>
+    <string name="error_transfer_read_only">Giao dịch chuyển ví chỉ có thể quản lý theo cặp.</string>
     <string name="feedback_transaction_delete_failed">Không thể xóa giao dịch</string>
     <string name="feedback_transaction_restored">Đã khôi phục giao dịch</string>
     <string name="feedback_transaction_restore_failed">Không thể khôi phục giao dịch</string>
@@ -688,6 +693,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="subscription_popular_services">Dịch vụ phổ biến</string>
     <string name="subscription_recent_suggestions">Gợi ý từ giao dịch gần đây</string>
     <string name="subscription_name_label">Tên dịch vụ</string>
+    <string name="subscription_error_empty_name">Vui lòng nhập tên dịch vụ</string>
     <string name="subscription_amount_label">Số tiền (đ)</string>
     <string name="subscription_yearly_cost_format">Dịch vụ này tốn khoảng %1$s mỗi năm</string>
     <string name="subscription_schedule_title">Lịch thanh toán &amp; Gia hạn</string>
@@ -791,8 +797,11 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
     <!-- Assets screen -->
     <string name="assets_total_balance">Tổng tài sản ròng</string>
-    <string name="assets_net_worth_title">Tổng tài sản ròng</string>
-    <string name="assets_negative_balance_hint">Tổng tài sản đang âm (dư nợ vượt quá số dư ví)</string>
+    <!-- Thẻ Ink chỉ cộng số dư các ví; công nợ không cộng/trừ vì thanh toán nợ đã đi qua ví. -->
+    <string name="assets_net_worth_title">Tổng số dư ví</string>
+    <string name="assets_negative_balance_hint">Tổng số dư đang âm: các ví đã chi vượt số tiền hiện có</string>
+    <string name="asset_negative_balance_badge">Số dư âm</string>
+    <string name="assets_positive_allocation_title">Phân bổ tài sản dương theo ví</string>
     <string name="assets_wallets_header">Danh sách ví</string>
     <string name="assets_wallet_balance">Số dư</string>
     <string name="assets_view_transactions">Xem giao dịch</string>
@@ -814,6 +823,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="assets_transfer_note">Ghi chú (tùy chọn):</string>
     <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền…</string>
     <string name="assets_transfer_confirm_btn">Xác nhận chuyển</string>
+    <string name="assets_transfer_need_two_wallets">Cần ít nhất 2 ví để chuyển tiền</string>
     <string name="assets_balance_stable">Số dư ổn định</string>
     <string name="assets_allocation_other">Khác</string>
     <string name="assets_monthly_flow_format">Tháng này: +%1$s · -%2$s</string>
@@ -870,7 +880,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="settings_ai_engine_subtitle">Phân cấp thông minh: Gemini Nano -&gt; Cloud Gemini -&gt; Thống kê</string>
     <string name="settings_ai_engine_subtitle_local">100% Ngoại tuyến: Gemini Nano on-device &amp; Cố vấn Thống kê nội bộ</string>
     <string name="settings_ai_local_offline_title">Phiên bản Local (100% Ngoại tuyến)</string>
-    <string name="settings_ai_local_offline_desc">Bản cài đặt này đã loại bỏ hoàn toàn quyền Internet cấp hệ điều hành (Manifest level) để đảm bảo dữ liệu tài chính không bao giờ rời khỏi thiết bị. Mọi phân tích chi tiêu và quét hóa đơn hoạt động 100% cục bộ trên máy.</string>
+    <string name="settings_ai_local_offline_desc" formatted="false">Bản cài đặt này đã loại bỏ hoàn toàn quyền Internet cấp hệ điều hành (Manifest level) để đảm bảo dữ liệu tài chính không bao giờ rời khỏi thiết bị. Mọi phân tích chi tiêu và quét hóa đơn hoạt động 100% cục bộ trên máy.</string>
     <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Đã sẵn sàng (100% Offline)</string>
     <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Không hỗ trợ trên thiết bị này</string>
     <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
@@ -1219,15 +1229,14 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="ui_samplenegative">-%1$s</string>
     <!-- Feedback: Wallet operations (AssetsViewModel) -->
     <string name="feedback_wallet_set_active">Đã chọn làm ví chính</string>
-    <string name="feedback_wallet_switch_failed">Không thể đổi ví: %1$s</string>
+    <string name="feedback_wallet_switch_failed">Không thể đổi ví chính</string>
     <string name="feedback_transfer_same_wallet">Ví gửi và ví nhận phải khác nhau</string>
     <string name="feedback_transfer_invalid_amount">Vui lòng nhập số tiền hợp lệ</string>
     <string name="feedback_transfer_success">Chuyển tiền thành công!</string>
-    <string name="feedback_transfer_failed">Lỗi khi chuyển tiền: %1$s</string>
+    <string name="feedback_transfer_failed">Không thể chuyển tiền, vui lòng thử lại</string>
     <string name="transfer_note_default">Chuyển tiền nội bộ</string>
     <string name="transfer_note_to">Chuyển đến %1$s: %2$s</string>
     <string name="transfer_note_from">Nhận từ %1$s: %2$s</string>
-    <string name="transfer_wallet_other">ví khác</string>
     <string name="stats_expense">Chi tiêu</string>
     <string name="stats_income">Thu nhập</string>
     <string name="stats_banner_income_increase">Thu nhập tăng %1$s</string>

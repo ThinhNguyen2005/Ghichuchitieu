@@ -2,6 +2,8 @@ package com.notepay.core.platform
 
 import android.app.LocaleManager
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.Configuration
 import android.os.Build
 import android.os.LocaleList
 import androidx.core.content.edit
@@ -38,6 +40,19 @@ object LocaleHelper {
             LANG_VI -> LANG_VI
             LANG_EN -> LANG_EN
             else -> LANG_SYSTEM
+        }
+    }
+
+    fun localizedContext(base: Context, language: String): Context {
+        val normalized = normalizeLanguageCode(language)
+        if (normalized == LANG_SYSTEM) return base
+        val configuration = Configuration(base.resources.configuration)
+        configuration.setLocales(LocaleList.forLanguageTags(normalized))
+        configuration.setLayoutDirection(Locale.forLanguageTag(normalized))
+        val localizedContext = base.createConfigurationContext(configuration)
+        return object : ContextWrapper(base) {
+            override fun getResources() = localizedContext.resources
+            override fun getAssets() = localizedContext.assets
         }
     }
 
@@ -102,15 +117,13 @@ object LocaleHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val localeManager = context.getSystemService(LocaleManager::class.java) ?: return
             val localeList = when (target) {
-                LANG_VI -> LocaleList.forLanguageTags("vi-VN")
-                LANG_EN -> LocaleList.forLanguageTags("en")
+                LANG_VI, LANG_EN -> LocaleList.forLanguageTags(target)
                 else -> LocaleList.getEmptyLocaleList()
             }
             localeManager.applicationLocales = localeList
         } else {
             val targetLocale = when (target) {
-                LANG_VI -> Locale.forLanguageTag("vi-VN")
-                LANG_EN -> Locale.US
+                LANG_VI, LANG_EN -> Locale.forLanguageTag(target)
                 else -> Locale.getDefault()
             }
             Locale.setDefault(targetLocale)

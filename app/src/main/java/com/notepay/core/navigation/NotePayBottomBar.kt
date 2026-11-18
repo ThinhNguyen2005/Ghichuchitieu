@@ -59,7 +59,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -188,7 +187,7 @@ fun BoxScope.NotePayBottomBar(
     navigationBarOffsetProvider: () -> Float = { 0f },
     selectedTabIndex: Int? = null,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val performHaptic = rememberNotePayHaptic()
     val coroutineScope = rememberCoroutineScope()
     val navTabs = remember { bottomTabs }
     val tabLabels = bottomTabs.map { tab -> stringResource(tab.labelRes) }
@@ -285,7 +284,7 @@ fun BoxScope.NotePayBottomBar(
                             contentColor = if (isSelected) AppTheme.colors.onSand else AppTheme.colors.onInkMuted,
                             reducedMotion = reducedMotion,
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                performHaptic(HapticFeedbackType.TextHandleMove)
                                 onTabSelected(tab.route)
                             },
                         )
@@ -332,7 +331,7 @@ fun BoxScope.NotePayBottomBar(
                         onDragStarted = {},
                         onDragStopped = {
                             val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            performHaptic(HapticFeedbackType.TextHandleMove)
                             onTabSelected(navTabs[targetIndex].route)
                             coroutineScope.launch {
                                 if (reducedMotion) {
@@ -438,7 +437,7 @@ fun BoxScope.NotePayBottomBar(
                             contentColor = unselectedColor,
                             reducedMotion = reducedMotion,
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                performHaptic(HapticFeedbackType.TextHandleMove)
                                 dampedDragAnimation.animateToValue(index.toFloat())
                                 onTabSelected(tab.route)
                             }
@@ -562,7 +561,7 @@ fun BoxScope.NotePayBottomBar(
             expanded = showQuickAddSheet,
             contentDescription = fabContentDesc,
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                performHaptic(HapticFeedbackType.TextHandleMove)
                 onToggleQuickAdd()
             },
         )

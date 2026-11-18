@@ -7,6 +7,7 @@ import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
 import com.notepay.core.platform.widget.WidgetConstants
+import com.notepay.core.platform.LocaleHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,7 @@ import javax.inject.Inject
  *
  * Đảm bảo:
  * 1. Lưu trữ và bảo toàn [pendingRoute] trước các biến cố vòng đời (xoay màn hình, recreate).
- * 2. Cung cấp trạng thái reactive duy nhất cho Theme (themeMode, themeColor, liquidGlassEnabled)
+ * 2. Chờ cấu hình appearance từ DataStore trước khi rời splash screen.
  *    từ AppSettingsDataStore (Single Source of Truth), loại bỏ hoàn toàn SharedPreferences tĩnh.
  * 3. Xác định [startDestination] không chớp nháy (no-flicker) bằng cách đồng bộ với SplashScreen.
  */
@@ -31,6 +32,28 @@ class MainViewModel @Inject constructor(
     private val appSettingsDataStore: AppSettingsDataStore,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
+
+    data class InitialAppearance(
+        val themeMode: String,
+        val themeColor: String,
+        val appLanguage: String,
+    )
+
+    val initialAppearance: StateFlow<InitialAppearance?> = combine(
+        appSettingsDataStore.themeMode,
+        appSettingsDataStore.themeColor,
+        appSettingsDataStore.appLanguage,
+    ) { mode, color, language ->
+        InitialAppearance(
+            themeMode = mode,
+            themeColor = color,
+            appLanguage = LocaleHelper.normalizeLanguageCode(language),
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null,
+    )
 
     private val _pendingRoute = MutableStateFlow<String?>(null)
     val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
@@ -62,22 +85,16 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    val themeMode: StateFlow<String> = appSettingsDataStore.themeMode.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "system",
-    )
-
-    val themeColor: StateFlow<String> = appSettingsDataStore.themeColor.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "sand",
-    )
-
     val liquidGlassEnabled: StateFlow<Boolean> = appSettingsDataStore.liquidGlassEnabled.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false,
+    )
+
+    val hapticFeedbackEnabled: StateFlow<Boolean> = appSettingsDataStore.hapticFeedbackEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
     )
 
     fun handleIncomingIntent(intent: Intent?) {

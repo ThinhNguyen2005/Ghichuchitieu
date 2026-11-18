@@ -108,8 +108,9 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(languageCode = code) }
         viewModelScope.launch {
             try {
-                appSettingsDataStore.setAppLanguage(code)
-                LocaleHelper.applyLocale(context, code)
+                val normalized = LocaleHelper.normalizeLanguageCode(code)
+                appSettingsDataStore.setAppLanguage(normalized)
+                LocaleHelper.applyLocale(context, normalized)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

@@ -1,17 +1,19 @@
 package com.notepay.core.designsystem.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import com.notepay.core.platform.LocaleHelper
 
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
@@ -32,9 +34,14 @@ fun NotePayTheme(
         "dark" -> true
         else -> isSystemInDarkTheme()
     },
+    appLanguage: String = LocaleHelper.LANG_SYSTEM,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
+    val baseContext = LocalContext.current
+    val context = remember(baseContext, appLanguage) {
+        LocaleHelper.localizedContext(baseContext, appLanguage)
+    }
 
     // remember: dynamic color scheme cấp phát đối tượng mới mỗi lần gọi, không được chạy lại mỗi recomposition.
     val materialColorScheme = remember(darkTheme, themeColor, context) {
@@ -46,47 +53,68 @@ fun NotePayTheme(
     }
 
     val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
-    val appColors = remember(baseAppColors, materialColorScheme) {
-        baseAppColors.copy(
-            primary = materialColorScheme.primary,
-            secondary = materialColorScheme.secondary,
-            background = materialColorScheme.background,
-            surface = materialColorScheme.surface
-        )
-    }
+    val animationSpec: FiniteAnimationSpec<androidx.compose.ui.graphics.Color> =
+        if (reduceMotion) snap() else tween(durationMillis = 250)
+    val animatedBackground by animateColorAsState(
+        baseAppColors.background,
+        animationSpec = animationSpec,
+        label = "theme-background",
+    )
+    val animatedSurface by animateColorAsState(
+        baseAppColors.surface,
+        animationSpec = animationSpec,
+        label = "theme-surface",
+    )
+    val animatedSurfaceContainer by animateColorAsState(
+        materialColorScheme.surfaceContainer,
+        animationSpec = animationSpec,
+        label = "theme-surface-container",
+    )
+    val animatedInk by animateColorAsState(
+        baseAppColors.ink,
+        animationSpec = animationSpec,
+        label = "theme-ink",
+    )
+    val animatedSand by animateColorAsState(
+        baseAppColors.sand,
+        animationSpec = animationSpec,
+        label = "theme-sand",
+    )
+    val animatedColorScheme = materialColorScheme.copy(
+        background = animatedBackground,
+        surface = animatedSurface,
+        surfaceContainer = animatedSurfaceContainer,
+    )
+    val appColors = baseAppColors.copy(
+        primary = materialColorScheme.primary,
+        secondary = materialColorScheme.secondary,
+        background = animatedBackground,
+        surface = animatedSurface,
+        ink = animatedInk,
+        sand = animatedSand,
+    )
 
     val appTypography = DefaultAppTypography
     val appShapes = DefaultAppShapes
     val appDimensions = DefaultAppDimensions
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as? Activity)?.window ?: return@SideEffect
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                window.isNavigationBarContrastEnforced = false
-            }
-
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
-        }
-    }
-
     CompositionLocalProvider(
-        LocalDarkTheme provides darkTheme,
-        LocalAppColors provides appColors,
-        LocalAppTypography provides appTypography,
-        LocalAppShapes provides appShapes,
-        LocalAppDimensions provides appDimensions
+        LocalContext provides context,
+        LocalConfiguration provides context.resources.configuration,
     ) {
-        MaterialTheme(
-            colorScheme = materialColorScheme,
-            typography = NotePayTypography,
-            shapes = NotePayShapes,
-            content = content,
-        )
+        CompositionLocalProvider(
+            LocalDarkTheme provides darkTheme,
+            LocalAppColors provides appColors,
+            LocalAppTypography provides appTypography,
+            LocalAppShapes provides appShapes,
+            LocalAppDimensions provides appDimensions
+        ) {
+            MaterialTheme(
+                colorScheme = animatedColorScheme,
+                typography = NotePayTypography,
+                shapes = NotePayShapes,
+                content = content,
+            )
+        }
     }
 }

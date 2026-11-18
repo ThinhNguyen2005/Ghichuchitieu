@@ -28,7 +28,7 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateNewBottomSheet(
-    sheetState: SheetState,
+    @Suppress("UnusedParameter") sheetState: SheetState,
     onDismissRequest: () -> Unit,
     onNavigateToAddTransaction: () -> Unit,
     onNavigateToBillSplit: () -> Unit,

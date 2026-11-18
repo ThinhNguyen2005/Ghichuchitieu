@@ -41,11 +41,6 @@ fun NavGraphBuilder.utilitiesGraph(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToAssets = {
-                    navController.navigate(Route.Assets.path) {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToCurrencySettings = {
                     navController.navigate(Route.CurrencySettings.path) {
                         launchSingleTop = true

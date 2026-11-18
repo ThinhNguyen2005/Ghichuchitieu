@@ -77,6 +77,11 @@ fun MainTabPager(
                 onConfigureLocalModel = {
                     navController.navigate(Route.AiSettings.path)
                 },
+                onConfigureBudget = { walletId ->
+                    navController.navigate(
+                        walletId?.let { Route.EditWallet(it).path } ?: Route.Assets.path
+                    ) { launchSingleTop = true }
+                },
             )
             2 -> AssetsScreen(
                 onAddWallet = { navController.navigate(Route.AddWallet.path) },
@@ -101,14 +106,6 @@ fun MainTabPager(
                 onNavigateToSubscription = {
                     navController.navigate(Route.Subscription.path) {
                         launchSingleTop = true
-                    }
-                },
-                onNavigateToAssets = {
-                    rootTabIndexForRoute(Route.Assets.path)?.let { assetsTabIndex ->
-                        coroutineScope.launch {
-                            if (reducedMotion) pagerState.scrollToPage(assetsTabIndex)
-                            else pagerState.animateScrollToPage(assetsTabIndex)
-                        }
                     }
                 },
                 onNavigateToCurrencySettings = {

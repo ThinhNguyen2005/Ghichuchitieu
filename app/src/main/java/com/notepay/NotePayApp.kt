@@ -7,6 +7,7 @@ import androidx.work.Configuration
 import com.notepay.worker.NotificationWatchdog
 import com.notepay.worker.ReminderScheduler
 import com.notepay.worker.SubscriptionReminderWorker
+import com.notepay.core.platform.LocaleHelper
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class NotePayApp : Application(), Configuration.Provider {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     override fun onCreate() {
         super.onCreate()
+        LocaleHelper.initializeOnAppStart(this)
         if (!isRunningInRobolectric) {
             applicationScope.launch {
                 try {
