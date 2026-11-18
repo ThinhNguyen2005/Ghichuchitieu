@@ -211,7 +211,7 @@ jobs:
           )
 
       - name: Upload Release Artifacts & Mapping Files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: notepay-release-${{ github.ref_name }}
           path: dist/*
