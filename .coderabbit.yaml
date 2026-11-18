@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "vi-VN"
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  request_changes_workflow: false
+  auto_review:
+    enabled: true
+    drafts: false
+  tools:
+    detekt:
+      enabled: true
+    gitleaks:
+      enabled: true
+  path_instructions:
+    - path: "app/src/**/feature/**/*.kt"
+      instructions: |
+        Kiểm tra nghiêm ngặt chuẩn Material Design 3, DESIGN.md (v4 Sand & Ink) và ui-ux-audit-guide.md:
+        1. Tái sử dụng component chuẩn M3 (ListItem, SingleChoiceSegmentedButtonRow/SegmentedButton, FilterChip, ModalBottomSheet/BottomSheetGlass) thay vì tự dựng Row/Box/Surface thủ công hoặc dùng Dialog toàn màn hình cho form/danh sách chọn.
+        2. Trợ năng (a11y): Mọi thành phần tương tác đạt vùng chạm tối thiểu 48.dp (minimumInteractiveComponentSize / heightIn(min = 48.dp) / defaultMinSize(minHeight = 48.dp)), mọi Icon/Image chức năng có contentDescription qua stringResource(), icon trang trí đi kèm chữ dùng contentDescription = null, gắn semantics(mergeDescendants = true) và đúng Role/stateDescription/onClickLabel cho card/accordion tương tác, đảm bảo co giãn font 1.3x-2.0x (không cố định .height() trên container chữ).
+        3. Motion & Micro-interactions: Sử dụng helper tập trung trong NotePayMotion (NotePayMotion easing, NotePayStaggeredEntrance, rememberNotePayReducedMotion(), rememberNotePayHaptic(), Modifier.shakeOnError), bắt buộc tôn trọng rememberNotePayReducedMotion() và cờ hapticFeedbackEnabled; không gọi LocalView bừa bãi để rung.
+        4. Token & Luồng: Chỉ dùng token từ AppTheme.colors / AppTheme.shapes / MaterialTheme.colorScheme (cấm hardcode Color(0xFF...), kích thước .sp tùy tiện hoặc chuỗi UI cứng không qua R.string). Mỗi màn hình giữ đúng 1 thẻ Ink tâm điểm (AppTheme.colors.ink) và 1 hành động chính (Primary CTA), không trùng nút chức năng.
+    - path: "app/src/**/domain/**/*.kt"
+      instructions: |
+        Kiểm tra kiến trúc Clean Architecture và an toàn dữ liệu tài chính:
+        1. Coroutines & Flow: Đảm bảo thao tác I/O chạy trên Dispatchers.IO / dispatcher được inject, tuyệt đối không nuốt CancellationException trong khối try/catch.
+        2. Toàn vẹn tiền tệ: Mọi phép tính tiền tệ phải dùng lớp Money (đơn vị xu/cents Long), tránh dùng Float/Double cho số dư hoặc chia tỷ lệ gây sai số làm tròn không kiểm soát.
+        3. Không tạo các file stub, wrapper 1 dòng vô nghĩa hoặc file typealias chuyển tiếp thừa thãi không có giá trị nghiệp vụ; không log dữ liệu giao dịch nhạy cảm của người dùng.
+    - path: "app/src/**/data/**/*.kt"
+      instructions: |
+        Kiểm tra an toàn tầng dữ liệu local-first:
+        1. Coroutines & Room: Truy vấn/DAO/Backup chạy an toàn trên Dispatchers.IO, không nuốt CancellationException, các thao tác đồng bộ nhiều bảng dùng withTransaction.
+        2. Room Migration: Khi thay đổi @Entity hoặc tăng version NotePayDatabase, bắt buộc phải có Migration tường minh kèm cập nhật schema export trong app/schemas/ (tuyệt đối không fallbackToDestructiveMigration trên dữ liệu người dùng).
+        3. Bảo mật & Dữ liệu nhạy cảm: Không log nội dung giao dịch, thông báo ngân hàng, ảnh OCR, API key hay khóa bí mật; không để sót stub/typealias thừa.
+    - path: "app/src/test/**/*.kt"
+      instructions: |
+        Kiểm tra chất lượng Unit Test theo chuẩn QA của NotePay:
+        1. Chặn các bài test vô nghĩa (Tautology/Trivial tests): không chấp nhận @Test chỉ kiểm tra giá trị mặc định của data class, copy()/equals()/enum thuần túy, getter hằng số hoặc test thiếu assertion có ý nghĩa.
+        2. Chặn test Mock gọi Mock trên pass-through wrapper không chứa rẽ nhánh; ưu tiên StateFlow/UiState/kết quả đầu ra qua StandardTestDispatcher/runTest thay vì ép cứng thứ tự gọi nội bộ hay delay thời gian thực.
+        3. Với các hàm parser/validator/formatter/calculator có nhiều bộ đầu vào, yêu cầu gom thành kịch bản dạng bảng (listOf(...).forEach) thay vì nhân bản hàng chục hàm @Test rời rạc.
+    - path: "app/src/testFull/**/*.kt"
+      instructions: |
+        Kiểm tra chất lượng Unit Test cho flavor full (Auto-Capture & Notification):
+        1. Đảm bảo test kiểm chứng logic phân tích thông báo ngân hàng, dedupe, phân loại và đối soát công nợ thực chất thay vì mock quá đà hoặc test không có assertion rõ ràng.
+        2. Gom các mẫu thông báo ngân hàng / bộ dữ liệu thử tương đồng bằng cấu trúc bảng (listOf(...).forEach) để giữ file test gọn và dễ bảo trì.

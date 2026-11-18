@@ -10,7 +10,7 @@ kotlinxDatetime = "0.8.0"
 coreKtx = "1.19.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
-composeBom = "2026.06.00"
+composeBom = "2026.09.00"
 materialIcons = "1.7.8"
 navigationCompose = "2.10.1"
 room = "2.8.5"
@@ -41,6 +41,7 @@ firebaseBom = "33.10.0"
 credentials = "1.3.0"
 googleid = "1.1.1"
 googleServices = "4.4.2"
+detekt = "2.0.0-alpha.6"
 
 [libraries]
 backdrop = { group = "io.github.kyant0", name = "backdrop-android", version.ref = "backdrop" }
@@ -62,7 +63,7 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
 
 # Navigation
@@ -105,7 +106,6 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 # Adaptive layouts (tablet / foldable)
 androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "material3Adaptive" }
@@ -129,3 +129,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
