@@ -197,75 +197,101 @@ object StatsInsightsCalculator {
         )
     }
 
-    fun computeAdvices(input: StatsAdviceInput): List<StatsAdviceSignal> {
-        val signals = mutableListOf<StatsAdviceSignal>()
-        val feedbacks = input.feedbacks
+    fun computeAdvices(input: StatsAdviceInput): List<StatsAdviceSignal> = buildList {
+        addFoodShareSignal(input)
+        addUpcomingSubscriptionSignals(input)
+        addSpendingSpikeSignal(input)
+        addTrendChangeSignal(input)
+        addSavingSignal(input)
+    }
+
+    private fun MutableList<StatsAdviceSignal>.addFoodShareSignal(input: StatsAdviceInput) {
         val foodShare = input.categoryShares.firstOrNull { it.categoryId == Category.FOOD.id }
-        if (foodShare != null && foodShare.share > 0.35f && (feedbacks["advice_food"] ?: 0) == 0) {
-            signals += StatsAdviceSignal.FoodShare(
-                feedback = feedbacks["advice_food"] ?: 0,
-                percentage = foodShare.share,
+        if (foodShare != null && foodShare.share > 0.35f && !isDismissed(input.feedbacks, "advice_food")) {
+            add(
+                StatsAdviceSignal.FoodShare(
+                    feedback = input.feedbacks["advice_food"] ?: 0,
+                    percentage = foodShare.share,
+                ),
             )
         }
+    }
 
-        val upcomingSubscriptions = input.subscriptions.filter { subscription ->
-            subscription.isActive && (subscription.nextDueDate - input.now).inWholeDays in 0..3
-        }
+    private fun MutableList<StatsAdviceSignal>.addUpcomingSubscriptionSignals(input: StatsAdviceInput) {
         val balanceInCents = input.incomeInCents - input.expenseInCents
-        upcomingSubscriptions.forEach { subscription ->
-            val id = "advice_bill_balance_${subscription.id}"
-            if (balanceInCents < subscription.amount.amountInCents && (feedbacks[id] ?: 0) == 0) {
-                signals += StatsAdviceSignal.UpcomingSubscription(
-                    id = id,
-                    feedback = feedbacks[id] ?: 0,
-                    name = subscription.name,
-                    amountInCents = subscription.amount.amountInCents,
-                )
+        input.subscriptions
+            .filter { subscription ->
+                subscription.isActive && (subscription.nextDueDate - input.now).inWholeDays in 0..3
             }
-        }
+            .forEach { subscription ->
+                val id = "advice_bill_balance_${subscription.id}"
+                if (balanceInCents < subscription.amount.amountInCents && !isDismissed(input.feedbacks, id)) {
+                    add(
+                        StatsAdviceSignal.UpcomingSubscription(
+                            id = id,
+                            feedback = input.feedbacks[id] ?: 0,
+                            name = subscription.name,
+                            amountInCents = subscription.amount.amountInCents,
+                        ),
+                    )
+                }
+            }
+    }
 
-        if (input.remainingDays >= 3 && input.currentDay > 1 && (feedbacks["advice_spike"] ?: 0) == 0) {
-            val dailyAverage = input.currentMonthExpenseInCents / input.currentDay
-            if (dailyAverage > 0L && input.spentTodayInCents > dailyAverage * 2L) {
-                signals += StatsAdviceSignal.SpendingSpike(
-                    feedback = feedbacks["advice_spike"] ?: 0,
+    private fun MutableList<StatsAdviceSignal>.addSpendingSpikeSignal(input: StatsAdviceInput) {
+        if (input.remainingDays < 3 || input.currentDay <= 1 || isDismissed(input.feedbacks, "advice_spike")) {
+            return
+        }
+        val dailyAverage = input.currentMonthExpenseInCents / input.currentDay
+        if (dailyAverage > 0L && input.spentTodayInCents > dailyAverage * 2L) {
+            add(
+                StatsAdviceSignal.SpendingSpike(
+                    feedback = input.feedbacks["advice_spike"] ?: 0,
                     ratioPercent = input.spentTodayInCents * 100 / dailyAverage,
                     spentTodayInCents = input.spentTodayInCents,
                     dailyAverageInCents = dailyAverage,
-                )
-            }
+                ),
+            )
         }
+    }
 
-        val previousAverage = input.previousMonthDailyAverageInCents
-        if (previousAverage != null && previousAverage > 0L && input.currentDay > 3
-            && (feedbacks["advice_trend"] ?: 0) == 0 && input.limitInCents != null && input.limitInCents > 0L
-        ) {
-            val currentAverage = input.currentMonthExpenseInCents / input.currentDay
-            val changePercent = ((currentAverage - previousAverage).toFloat() / previousAverage * 100)
-            if (changePercent > 20f || changePercent < -20f) {
-                signals += StatsAdviceSignal.TrendChange(
-                    feedback = feedbacks["advice_trend"] ?: 0,
+    private fun MutableList<StatsAdviceSignal>.addTrendChangeSignal(input: StatsAdviceInput) {
+        val previousAverage = input.previousMonthDailyAverageInCents ?: return
+        val limit = input.limitInCents ?: return
+        val canEvaluate = previousAverage > 0L && limit > 0L && input.currentDay > 3
+        if (!canEvaluate || isDismissed(input.feedbacks, "advice_trend")) return
+
+        val currentAverage = input.currentMonthExpenseInCents / input.currentDay
+        val changePercent = ((currentAverage - previousAverage).toFloat() / previousAverage * 100)
+        if (changePercent > 20f || changePercent < -20f) {
+            add(
+                StatsAdviceSignal.TrendChange(
+                    feedback = input.feedbacks["advice_trend"] ?: 0,
                     changePercent = changePercent,
                     isIncrease = changePercent > 20f,
-                )
-            }
+                ),
+            )
         }
+    }
 
-        val limit = input.limitInCents
-        if (limit != null && limit > 0L && input.remainingDays >= 5 && input.currentDay > 1
-            && (feedbacks["advice_saving"] ?: 0) == 0
-        ) {
-            val initialDailyBudget = limit / input.daysInMonth.coerceAtLeast(1)
-            val currentDailyAverage =
-                (input.currentMonthExpenseInCents - input.spentTodayInCents) / (input.currentDay - 1)
-            if (currentDailyAverage in 1 until (initialDailyBudget * 85 / 100)) {
-                signals += StatsAdviceSignal.Saving(
-                    feedback = feedbacks["advice_saving"] ?: 0,
+    private fun MutableList<StatsAdviceSignal>.addSavingSignal(input: StatsAdviceInput) {
+        val limit = input.limitInCents ?: return
+        val canEvaluate = limit > 0L && input.remainingDays >= 5 && input.currentDay > 1
+        if (!canEvaluate || isDismissed(input.feedbacks, "advice_saving")) return
+
+        val initialDailyBudget = limit / input.daysInMonth.coerceAtLeast(1)
+        val currentDailyAverage =
+            (input.currentMonthExpenseInCents - input.spentTodayInCents) / (input.currentDay - 1)
+        if (currentDailyAverage in 1 until (initialDailyBudget * 85 / 100)) {
+            add(
+                StatsAdviceSignal.Saving(
+                    feedback = input.feedbacks["advice_saving"] ?: 0,
                     currentDailyAverageInCents = currentDailyAverage,
                     percentageOfInitialBudget = currentDailyAverage * 100 / initialDailyBudget,
-                )
-            }
+                ),
+            )
         }
-        return signals
     }
+
+    private fun isDismissed(feedbacks: Map<String, Int>, key: String): Boolean = (feedbacks[key] ?: 0) != 0
 }

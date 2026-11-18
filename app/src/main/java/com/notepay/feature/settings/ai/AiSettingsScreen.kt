@@ -79,7 +79,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.data.preferences.AiSettingsDataStore
+import com.notepay.data.datastore.AiSettingsDataStore
 import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.launch
 

@@ -12,13 +12,17 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.notepay.BuildConfig
 import com.notepay.R
 import com.notepay.domain.repository.AuthRepository
+import com.notepay.domain.repository.AuthUnavailableException
 import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.FeedbackDuration
 import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,8 +35,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
-import java.util.UUID
+import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -55,10 +58,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Bắt đầu luồng đăng nhập Google qua Credential Manager.
-     * Cần [activityContext] để Credential Manager hiển thị BottomSheet đăng nhập trên giao diện.
-     */
+    /** Mở bottom sheet chọn tài khoản Google do Credential Manager cung cấp. */
     fun signInWithGoogle(
         activityContext: Context,
         overrideClientId: String? = null,
@@ -70,7 +70,8 @@ class AuthViewModel @Inject constructor(
             _feedback.tryEmit(
                 UiFeedback(
                     message = appContext.getString(R.string.auth_error_missing_client_id),
-                    type = FeedbackType.Error
+                    type = FeedbackType.Error,
+                    duration = FeedbackDuration.Long
                 )
             )
             return
@@ -80,167 +81,64 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Tạo raw nonce ngẫu nhiên và băm SHA-256 để chống tấn công replay attack
-                val rawNonce = UUID.randomUUID().toString()
-                val bytes = rawNonce.toByteArray()
-                val md = MessageDigest.getInstance("SHA-256")
-                val digest = md.digest(bytes)
-                val hashedNonce = digest.fold("") { str, byte -> str + "%02x".format(byte) }
-
                 val credentialManager = CredentialManager.create(activityContext)
-                val credential = requestGoogleCredential(
-                    credentialManager = credentialManager,
-                    activityContext = activityContext,
-                    webClientId = webClientId,
-                    hashedNonce = hashedNonce
-                )
+                val credential = requestGoogleCredential(webClientId) { request ->
+                    credentialManager.getCredential(request = request, context = activityContext).credential
+                }
                 if (credential is CustomCredential &&
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 ) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleIdTokenCredential.idToken
 
-                    val signInResult = authRepository.signInWithGoogle(
-                        idToken = idToken,
-                        rawNonce = rawNonce
-                    )
-
-                    signInResult.fold(
-                        onSuccess = {
-                            // Thành công, state sẽ được tự động cập nhật qua observeAuthState()
-                        },
-                        onFailure = { error ->
-                            val msg = error.localizedMessage ?: error.javaClass.simpleName
-                            _feedback.emit(
-                                UiFeedback(
-                                    message = appContext.getString(R.string.auth_error_sign_in_failed, msg),
-                                    type = FeedbackType.Error
-                                )
-                            )
-                        }
-                    )
+                    val user = authRepository.signInWithGoogle(idToken).getOrThrow()
+                    _uiState.update { it.copy(user = user) }
                 } else {
-                    _feedback.emit(
-                        UiFeedback(
-                            message = appContext.getString(R.string.auth_error_sign_in_failed, "Unsupported credential"),
-                            type = FeedbackType.Error
-                        )
-                    )
+                    emitError(appContext.getString(R.string.auth_error_unsupported_credential))
                 }
             } catch (e: GetCredentialCancellationException) {
-                // Play Services trả "[16] Account reauth failed" cũng dưới dạng cancellation:
-                // phải phân biệt với thao tác huỷ thật vì cách xử lý của người dùng khác hẳn.
+                // Google Play services có thể ánh xạ lỗi [16] thành cancellation.
+                // Mã này cũng có thể xuất hiện khi OAuth/SHA hoặc quyền truy cập thử nghiệm
+                // bị cấu hình sai; không thể kết luận chắc chắn tài khoản cần đăng nhập lại.
                 if (e.isAccountReauthRequired()) {
-                    Log.e(TAG, "Google account on this device requires re-authentication", e)
-                    _feedback.emit(
-                        UiFeedback(
-                            message = appContext.getString(R.string.auth_error_account_reauth),
-                            type = FeedbackType.Error
-                        )
-                    )
+                    Log.e(TAG, "Google Play services failed to reauthenticate (check OAuth configuration)", e)
+                    emitError(appContext.getString(R.string.auth_error_account_reauth))
                 } else {
                     Log.w(TAG, "Sign in cancelled: ${e.message}")
                     _feedback.emit(
                         UiFeedback(
                             message = appContext.getString(R.string.auth_error_canceled),
-                            type = FeedbackType.Info
+                            type = FeedbackType.Info,
+                            duration = FeedbackDuration.Long
                         )
                     )
                 }
             } catch (e: NoCredentialException) {
-                Log.e(TAG, "No credentials on device: ${e.message}", e)
-                _feedback.emit(
-                    UiFeedback(
-                        message = appContext.getString(R.string.auth_error_no_credentials),
-                        type = FeedbackType.Error
-                    )
-                )
+                Log.e(TAG, "Google sign-in returned no credentials in sheet or button flow; check Google account, sign-in prompts, and OAuth configuration", e)
+                emitError(appContext.getString(R.string.auth_error_no_credentials))
             } catch (e: GetCredentialException) {
                 Log.e(TAG, "GetCredentialException: ${e.message}", e)
-                val msg = e.localizedMessage ?: e.javaClass.simpleName
-                _feedback.emit(
-                    UiFeedback(
-                        message = appContext.getString(R.string.auth_error_sign_in_failed, msg),
-                        type = FeedbackType.Error
-                    )
-                )
+                emitError(appContext.getString(R.string.auth_error_google_services))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AuthUnavailableException) {
+                Log.e(TAG, "Firebase Authentication is unavailable", e)
+                emitError(appContext.getString(R.string.auth_error_firebase_unavailable))
+            } catch (e: FirebaseAuthInvalidCredentialsException) {
+                Log.e(TAG, "Firebase rejected Google credentials", e)
+                emitError(appContext.getString(R.string.auth_error_invalid_credentials))
+            } catch (e: FirebaseNetworkException) {
+                Log.e(TAG, "Firebase authentication network failure", e)
+                emitError(appContext.getString(R.string.auth_error_network))
+            } catch (e: IOException) {
+                Log.e(TAG, "Google sign-in network failure", e)
+                emitError(appContext.getString(R.string.auth_error_network))
             } catch (e: Exception) {
                 Log.e(TAG, "Sign in unexpected error: ${e.message}", e)
-                val msg = e.localizedMessage ?: e.javaClass.simpleName
-                _feedback.emit(
-                    UiFeedback(
-                        message = appContext.getString(R.string.auth_error_sign_in_failed, msg),
-                        type = FeedbackType.Error
-                    )
-                )
+                emitError(appContext.getString(R.string.auth_error_generic))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
-        }
-    }
-
-    /**
-     * Lấy credential từ Credential Manager, tự phục hồi một lần khi Google Play Services báo
-     * phiên đăng nhập của thiết bị đã hỏng ("[16] Account reauth failed"). Xoá credential state
-     * rồi gọi lại là cách Google khuyến nghị để thoát khỏi cache phiên cũ trên máy.
-     */
-    private suspend fun requestGoogleCredential(
-        credentialManager: CredentialManager,
-        activityContext: Context,
-        webClientId: String,
-        hashedNonce: String,
-    ): Credential {
-        return try {
-            requestCredentialOnce(credentialManager, activityContext, webClientId, hashedNonce)
-        } catch (e: GetCredentialCancellationException) {
-            if (!e.isAccountReauthRequired()) throw e
-            Log.w(TAG, "Credential state is stale (account reauth failed), clearing and retrying once", e)
-            clearCredentialStateQuietly(credentialManager)
-            requestCredentialOnce(credentialManager, activityContext, webClientId, hashedNonce)
-        }
-    }
-
-    private suspend fun requestCredentialOnce(
-        credentialManager: CredentialManager,
-        activityContext: Context,
-        webClientId: String,
-        hashedNonce: String,
-    ): Credential {
-        // Sử dụng GetGoogleIdOption để hiển thị Bottom Sheet chuẩn hiện đại (như Cue)
-        // thay vì hộp thoại Center Dialog của GetSignInWithGoogleOption cũ.
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setServerClientId(webClientId)
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
-            .setNonce(hashedNonce)
-            .build()
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        return try {
-            credentialManager.getCredential(request = request, context = activityContext).credential
-        } catch (e: NoCredentialException) {
-            // Máy chưa có tài khoản nào uỷ quyền cho app: mở luồng đăng nhập đầy đủ.
-            Log.i(TAG, "No authorized credential, trying GetSignInWithGoogleOption: ${e.message}")
-            val fallbackOption = GetSignInWithGoogleOption.Builder(serverClientId = webClientId)
-                .setNonce(hashedNonce)
-                .build()
-            val fallbackRequest = GetCredentialRequest.Builder()
-                .addCredentialOption(fallbackOption)
-                .build()
-            credentialManager.getCredential(request = fallbackRequest, context = activityContext).credential
-        }
-    }
-
-    private suspend fun clearCredentialStateQuietly(credentialManager: CredentialManager) {
-        try {
-            credentialManager.clearCredentialState(ClearCredentialStateRequest())
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (e: Exception) {
-            // Không xoá được cache không chặn được lần thử lại, chỉ ghi log lại để debug.
-            Log.w(TAG, "Could not clear credential state: ${e.message}")
         }
     }
 
@@ -254,31 +152,89 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                authRepository.signOut()
+                authRepository.signOut().getOrThrow()
+                _uiState.update { it.copy(user = null) }
                 // Xóa trạng thái lựa chọn tài khoản để lần sau người dùng có thể chọn tài khoản khác
-                val credentialManager = CredentialManager.create(context)
-                credentialManager.clearCredentialState(ClearCredentialStateRequest())
-            } catch (e: Exception) {
-                val msg = e.localizedMessage ?: e.javaClass.simpleName
-                _feedback.emit(
-                    UiFeedback(
-                        message = msg,
-                        type = FeedbackType.Error
+                try {
+                    val credentialManager = CredentialManager.create(context)
+                    credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Signed out, but could not clear credential selection", e)
+                    _feedback.emit(
+                        UiFeedback(
+                            message = appContext.getString(R.string.auth_error_clear_credential),
+                            type = FeedbackType.Info,
+                            duration = FeedbackDuration.Long
+                        )
                     )
-                )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Firebase sign out failed", e)
+                emitError(appContext.getString(R.string.auth_error_sign_out_failed))
             } finally {
                 _uiState.update { it.copy(isSigningOut = false) }
             }
         }
     }
+
+    private suspend fun emitError(message: String) {
+        _feedback.emit(
+            UiFeedback(message = message, type = FeedbackType.Error, duration = FeedbackDuration.Long)
+        )
+    }
 }
 
 private const val TAG = "AuthViewModel"
 
+/** Prefer the Google account sheet, then use the explicit button flow if it is unavailable. */
+internal suspend fun requestGoogleCredential(
+    webClientId: String,
+    getCredential: suspend (GetCredentialRequest) -> Credential,
+): Credential {
+    try {
+        return getCredential(googleSheetCredentialRequest(webClientId, authorizedOnly = true))
+    } catch (e: NoCredentialException) {
+        Log.i(TAG, "No authorized Google credentials; trying all accounts")
+    }
+
+    try {
+        return getCredential(googleSheetCredentialRequest(webClientId, authorizedOnly = false))
+    } catch (e: NoCredentialException) {
+        // Google documents that disabled Sign-in prompts can suppress the bottom sheet.
+        Log.w(TAG, "Google bottom sheet has no credentials; trying explicit button sign-in")
+    }
+
+    return getCredential(
+        GetCredentialRequest.Builder()
+            .addCredentialOption(GetSignInWithGoogleOption.Builder(webClientId).build())
+            .build()
+    )
+}
+
+/** Yêu cầu Google ID Token qua bottom sheet; có thể lọc tài khoản đã cấp quyền. */
+internal fun googleSheetCredentialRequest(
+    webClientId: String,
+    authorizedOnly: Boolean,
+): GetCredentialRequest =
+    GetCredentialRequest.Builder()
+        .addCredentialOption(
+            GetGoogleIdOption.Builder()
+                .setServerClientId(webClientId)
+                .setFilterByAuthorizedAccounts(authorizedOnly)
+                .setAutoSelectEnabled(false)
+                .build()
+        )
+        .build()
+
 /**
  * Google Play Services nhét mã lỗi nội bộ vào message, ví dụ "[16] Account reauth failed.",
  * và Credential Manager ánh xạ nó thành [GetCredentialCancellationException] giống hệt khi
- * người dùng bấm huỷ. Vì vậy phải đọc message mới phân biệt được hai trường hợp này.
+ * người dùng bấm huỷ. Đây là lỗi từ Google Play services và có thể liên quan OAuth,
+ * không nhất thiết là phiên tài khoản hết hạn.
  */
 internal fun GetCredentialException.isAccountReauthRequired(): Boolean {
     val message = message.orEmpty()

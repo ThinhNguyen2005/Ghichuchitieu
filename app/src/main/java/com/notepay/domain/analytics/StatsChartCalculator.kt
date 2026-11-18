@@ -15,7 +15,28 @@ data class TrendAxisScale(
     val unit: TrendAxisUnit,
 )
 
-enum class ForecastDisplayState { HIDDEN, PROJECTION, REACHED, EXCEEDED }
+/**
+ * Trạng thái hiển thị của dự báo chi tiêu cuối tháng.
+ *
+ * Dự báo không phải ngân sách: chạm hay vượt mốc dự báo là thông tin trung tính.
+ * Chỉ [OVER_BUDGET] mới là cảnh báo, và chỉ xuất hiện khi thực sự có ngân sách tháng.
+ */
+enum class ForecastDisplayState {
+    /** Không đủ điều kiện hiển thị dự báo. */
+    HIDDEN,
+
+    /** Chưa có ngân sách, thực tế còn dưới mốc dự báo. */
+    PROJECTION,
+
+    /** Chưa có ngân sách, thực tế đã chạm hoặc vượt mốc dự báo. */
+    PASSED,
+
+    /** Có ngân sách và dự báo cuối tháng vẫn nằm trong ngân sách. */
+    WITHIN_BUDGET,
+
+    /** Có ngân sách và dự báo cuối tháng vượt ngân sách. */
+    OVER_BUDGET,
+}
 
 object StatsChartCalculator {
     fun average(values: List<Long>): Long = if (values.isEmpty()) 0L else values.sum() / values.size
@@ -77,25 +98,31 @@ object StatsChartCalculator {
         isSelectedMonthCurrent: Boolean,
         actualAmountInCents: Long,
         forecast: Money?,
+        budgetInCents: Long?,
     ): ForecastDisplayState {
         if (!shouldShowForecast(isExpense, isSelectedMonthCurrent, forecast)) {
             return ForecastDisplayState.HIDDEN
         }
+        val forecastInCents = forecast?.amountInCents ?: return ForecastDisplayState.HIDDEN
         return when {
-            forecast!!.amountInCents > actualAmountInCents -> ForecastDisplayState.PROJECTION
-            forecast.amountInCents == actualAmountInCents -> ForecastDisplayState.REACHED
-            else -> ForecastDisplayState.EXCEEDED
+            budgetInCents != null && forecastInCents > budgetInCents -> ForecastDisplayState.OVER_BUDGET
+            budgetInCents != null -> ForecastDisplayState.WITHIN_BUDGET
+            actualAmountInCents >= forecastInCents -> ForecastDisplayState.PASSED
+            else -> ForecastDisplayState.PROJECTION
         }
     }
 
+    /**
+     * Vị trí mốc dự báo trên cột, chỉ vẽ khi cột thực tế đã chạm mốc.
+     * Khi thực tế còn thấp hơn dự báo thì phần chênh lệch đã được thể hiện bằng vùng mờ.
+     */
     fun forecastMarkerFraction(
-        state: ForecastDisplayState,
+        actualAmountInCents: Long,
         forecast: Money?,
         axisTopInCents: Long,
     ): Float? {
-        if (state != ForecastDisplayState.REACHED && state != ForecastDisplayState.EXCEEDED) return null
         val forecastAmountInCents = forecast?.amountInCents ?: return null
-        if (axisTopInCents <= 0L) return null
+        if (axisTopInCents <= 0L || actualAmountInCents < forecastAmountInCents) return null
         return (forecastAmountInCents.toFloat() / axisTopInCents).coerceIn(0f, 1f)
     }
 }

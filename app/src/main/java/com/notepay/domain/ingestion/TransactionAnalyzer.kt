@@ -181,16 +181,19 @@ object TransactionAnalyzer {
 
     private fun suggestCategory(note: String): String? {
         val lower = note.lowercase()
-        return when {
-            lower.contains("ăn") || lower.contains("an") || lower.contains("cơm") || lower.contains("com") || lower.contains("bún") || lower.contains("phở") -> "FOOD"
-            lower.contains("cafe") || lower.contains("cà phê") || lower.contains("trà sữa") -> "COFFEE"
-            lower.contains("xăng") || lower.contains("xang") || lower.contains("petrolimex") -> "GAS"
-            lower.contains("grab") || lower.contains("be") || lower.contains("xe") -> "TRANSPORT"
-            lower.contains("lương") || lower.contains("luong") || lower.contains("thưởng") || lower.contains("thuong") -> "SALARY"
-            lower.contains("điện") || lower.contains("dien") -> "ELECTRICITY"
-            lower.contains("nước") || lower.contains("nuoc") -> "WATER"
-            lower.contains("internet") || lower.contains("wifi") -> "INTERNET"
-            else -> null
-        }
+        return CATEGORY_KEYWORDS
+            .firstOrNull { (_, keywords) -> keywords.any(lower::contains) }
+            ?.first
     }
+
+    private val CATEGORY_KEYWORDS = listOf(
+        "FOOD" to listOf("ăn", "an", "cơm", "com", "bún", "phở"),
+        "COFFEE" to listOf("cafe", "cà phê", "trà sữa"),
+        "GAS" to listOf("xăng", "xang", "petrolimex"),
+        "TRANSPORT" to listOf("grab", "be", "xe"),
+        "SALARY" to listOf("lương", "luong", "thưởng", "thuong"),
+        "ELECTRICITY" to listOf("điện", "dien"),
+        "WATER" to listOf("nước", "nuoc"),
+        "INTERNET" to listOf("internet", "wifi"),
+    )
 }

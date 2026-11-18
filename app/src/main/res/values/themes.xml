@@ -13,6 +13,7 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/note_pay_splash_background_light</item>
     </style>
 
     <style name="Theme.NotePay.Starting" parent="Theme.SplashScreen">

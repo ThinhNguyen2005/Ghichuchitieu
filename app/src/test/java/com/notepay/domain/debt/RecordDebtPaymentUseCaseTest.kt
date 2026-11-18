@@ -59,7 +59,7 @@ class RecordDebtPaymentUseCaseTest {
         coEvery { addTransactionUseCase(capture(txSlot)) } returns Result.success(99L)
         coEvery { debtRepo.recordPayment(any()) } returns 201L
 
-        val result = useCase(debt, payment, syncWithWallet = true)
+        val result = useCase(debt, payment, syncWithWallet = true, transactionNote = "Thu nợ từ Minh Tri (Tra dot 1)")
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.getOrNull()).isEqualTo(201L)
@@ -68,7 +68,7 @@ class RecordDebtPaymentUseCaseTest {
         assertThat(tx.type).isEqualTo(TransactionType.INCOME)
         assertThat(tx.category).isEqualTo(Category.INCOME_OTHER)
         assertThat(tx.amount).isEqualTo(Money(400_000_00L))
-        assertThat(tx.note).contains("Minh Tri")
+        assertThat(tx.note).isEqualTo("Thu nợ từ Minh Tri (Tra dot 1)")
 
         coVerify(exactly = 1) {
             debtRepo.recordPayment(match { it.transactionId == 99L && it.amount == Money(400_000_00L) })
@@ -103,7 +103,7 @@ class RecordDebtPaymentUseCaseTest {
         coEvery { addTransactionUseCase(capture(txSlot)) } returns Result.success(100L)
         coEvery { debtRepo.recordPayment(any()) } returns 202L
 
-        val result = useCase(debt, payment, syncWithWallet = true)
+        val result = useCase(debt, payment, syncWithWallet = true, transactionNote = "Trả nợ cho Anh Hoang (Tra nua tien)")
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.getOrNull()).isEqualTo(202L)
@@ -112,7 +112,7 @@ class RecordDebtPaymentUseCaseTest {
         assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
         assertThat(tx.category).isEqualTo(Category.BILL)
         assertThat(tx.amount).isEqualTo(Money(2_500_000_00L))
-        assertThat(tx.note).contains("Anh Hoang")
+        assertThat(tx.note).isEqualTo("Trả nợ cho Anh Hoang (Tra nua tien)")
     }
 
     @Test

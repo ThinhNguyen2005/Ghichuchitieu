@@ -7,7 +7,9 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
+import com.notepay.domain.repository.AuthUnavailableException
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -72,24 +74,26 @@ class AuthRepositoryImpl internal constructor(
     override val currentUser: AuthUser?
         get() = authProvider()?.currentUser?.toDomainModel()
 
-    override suspend fun signInWithGoogle(idToken: String, rawNonce: String?): Result<AuthUser> =
+    override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
         withContext(ioDispatcher) {
             runCatching {
                 val auth = authProvider()
-                    ?: throw IllegalStateException("Firebase chưa được khởi tạo. Vui lòng thêm google-services.json vào project.")
-                val credential = GoogleAuthProvider.getCredential(idToken, rawNonce)
+                    ?: throw AuthUnavailableException()
+                // Tham số thứ hai là OAuth access token, KHÔNG phải raw nonce.
+                val credential = GoogleAuthProvider.getCredential(idToken, null)
                 val authResult = auth.signInWithCredential(credential).await()
                 val user = authResult.user
                     ?: throw IllegalStateException("Không tìm thấy thông tin người dùng sau khi xác thực.")
                 user.toDomainModel()
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     override suspend fun signOut(): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
-            authProvider()?.signOut()
+            val auth = authProvider() ?: throw AuthUnavailableException()
+            auth.signOut()
             Unit
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     private fun com.google.firebase.auth.FirebaseUser.toDomainModel(): AuthUser {

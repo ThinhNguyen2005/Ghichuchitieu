@@ -1,5 +1,15 @@
 package com.notepay.feature.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,11 +51,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +63,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -68,6 +81,11 @@ import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.navigation.NotePayStaggeredEntrance
+import com.notepay.core.navigation.rememberNotePayHaptic
+import com.notepay.core.navigation.rememberNotePayReducedMotion
+import com.notepay.feature.auth.main.AuthViewModel
+import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
 import com.notepay.feature.home.component.SmartInsightsCard
 import com.notepay.feature.home.component.HomeDaySection
 import com.notepay.feature.home.component.HomeHeroBlock
@@ -77,13 +95,11 @@ import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.util.localizedName
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 // ── Design tokens của màn Home (bội số của 4) ────────────────────────────────
-private val ListBottomClearance = 112.dp // chừa chỗ cho thanh điều hướng nổi
-private val InsightsDismissDelay = 250.milliseconds
+private val ListBottomClearance = 120.dp
+
+private enum class HomeContentState { LOADING, EMPTY_WALLETS, CONTENT }
 
 private object HomeListKeys {
     const val HERO_ASSETS = "home_item_hero_assets"
@@ -103,18 +119,26 @@ fun HomeScreen(
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = onTransactionClick,
     viewModel: HomeViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
+    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     // Tự động reset trạng thái ẩn khi người dùng đổi sang ví khác
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
     var isWalletPickerOpen by remember { mutableStateOf(false) }
+    var showAccountDetails by rememberSaveable { mutableStateOf(false) }
 
-    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val reducedMotion = rememberNotePayReducedMotion()
     val listState = rememberLazyListState()
     // Tablet: lề bù để nội dung một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
+    val listBottomClearance = maxOf(
+        ListBottomClearance,
+        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+    )
     // Expanded: chuyển sang 2 cột — hero bên trái, danh sách giao dịch bên phải.
     val isTwoPane = LocalWindowLayout.current == WindowLayout.Expanded
 
@@ -145,6 +169,16 @@ fun HomeScreen(
         )
     }
     val walletChipLabel = selectedWallet?.wallet?.name ?: stringResource(R.string.home_all_wallets)
+    val contentState = when {
+        state.isLoading -> HomeContentState.LOADING
+        state.wallets.isEmpty() -> HomeContentState.EMPTY_WALLETS
+        else -> HomeContentState.CONTENT
+    }
+    val openAccountSheet: (() -> Unit)? = if (authUiState.user != null) {
+        { showAccountDetails = true }
+    } else {
+        null
+    }
 
     // Toàn trang dùng nền `background` của app; thẻ trắng (nhóm giao dịch) nổi lên trên.
     Box(
@@ -152,216 +186,235 @@ fun HomeScreen(
             .fillMaxSize()
             .background(AppTheme.colors.background)
     ) {
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = AppTheme.colors.primary)
-            }
-            return@Box
-        }
-
-        if (state.wallets.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(ScreenHorizontalPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                EmptyStateWithAction(
-                    icon = Icons.Outlined.AccountBalanceWallet,
-                    title = emptyWalletTitle,
-                    description = emptyWalletDesc,
-                    actionLabel = createWalletLabel,
-                    onClick = onAddWallet,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            return@Box
-        }
-
-        // ==================== EXPANDED: BỐ CỤC 2 CỘT ====================
-        if (isTwoPane) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = contentGutter)
-            ) {
-                // Cột trái: nền trang trí, lời chào, bộ chọn ví, số dư và thẻ gợi ý.
-                Column(
-                    modifier = Modifier
-                        .weight(0.45f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = 12.dp, bottom = 24.dp)
-                ) {
-                    HomeHeroBlock(
-                        streakDays = state.streakDays,
-                        walletLabel = walletChipLabel,
-                        balanceLabel = balanceLabel,
-                        balance = displayBalance,
-                        income = displayIncome,
-                        expense = displayExpense,
-                        onOpenWalletPicker = { isWalletPickerOpen = true },
-                        topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    HomeInsightCard(
-                        streakDays = state.streakDays,
-                        budgetProjection = state.budgetProjection,
-                        budgetLimit = selectedWallet?.wallet?.budgetLimit,
-                        walletName = selectedWallet?.wallet?.name.orEmpty(),
-                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
-                        isAllWallets = isAllWallets,
-                        isBudgetCardDismissed = isBudgetProjectionDismissed,
-                        isInsightsDismissed = state.isSmartInsightsDismissed,
-                        isBudgetExceeded = state.isBudgetExceeded,
-                        onDismissBudget = { isBudgetProjectionDismissed = true },
-                        onDismissInsights = {
-                            coroutineScope.launch {
-                                delay(InsightsDismissDelay)
-                                viewModel.dismissSmartInsights()
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
-                    )
+        AnimatedContent(
+            targetState = contentState,
+            transitionSpec = {
+                if (reducedMotion) {
+                    EnterTransition.None togetherWith ExitTransition.None
+                } else {
+                    fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(160))
+                }
+            },
+            label = "homeContentState",
+            modifier = Modifier.fillMaxSize(),
+        ) { targetState ->
+            when (targetState) {
+                HomeContentState.LOADING -> {
+                    Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        CircularProgressIndicator(color = AppTheme.colors.primary)
+                    }
                 }
 
-                // Cột phải: feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
-                Column(
-                    modifier = Modifier
-                        .weight(0.55f)
-                        .fillMaxHeight()
-                        .statusBarsPadding()
-                        .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp)
-                ) {
-                    RecentTransactionsHeader(
-                        title = recentLabel,
-                        seeAllLabel = seeAllLabel,
-                        onSeeAll = onSeeAll,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                HomeContentState.EMPTY_WALLETS -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .padding(ScreenHorizontalPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyStateWithAction(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            title = emptyWalletTitle,
+                            description = emptyWalletDesc,
+                            actionLabel = createWalletLabel,
+                            onClick = onAddWallet,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
 
-                    if (dayGroups.isEmpty()) {
-                        Box(
+                HomeContentState.CONTENT -> {
+                    // ==================== EXPANDED: BỐ CỤC 2 CỘT ====================
+                    if (isTwoPane) {
+                        Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
+                                .fillMaxSize()
+                                .padding(horizontal = contentGutter)
                         ) {
-                            EmptyStateWithAction(title = emptyTx)
+                            // Cột trái: nền trang trí, lời chào, bộ chọn ví, số dư và thẻ gợi ý.
+                            Column(
+                                modifier = Modifier
+                                    .weight(0.45f)
+                                    .fillMaxHeight()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(top = 12.dp, bottom = listBottomClearance)
+                            ) {
+                                NotePayStaggeredEntrance(index = 0) {
+                                    HomeHeroBlock(
+                                        streakDays = state.streakDays,
+                                        walletLabel = walletChipLabel,
+                                        balanceLabel = balanceLabel,
+                                        balance = displayBalance,
+                                        income = displayIncome,
+                                        expense = displayExpense,
+                                        onOpenWalletPicker = { isWalletPickerOpen = true },
+                                        topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                                        onAvatarClick = openAccountSheet,
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                NotePayStaggeredEntrance(index = 1) {
+                                    HomeInsightCard(
+                                        streakDays = state.streakDays,
+                                        budgetProjection = state.budgetProjection,
+                                        budgetLimit = selectedWallet?.wallet?.budgetLimit,
+                                        walletName = selectedWallet?.wallet?.name.orEmpty(),
+                                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
+                                        isAllWallets = isAllWallets,
+                                        isBudgetCardDismissed = isBudgetProjectionDismissed,
+                                        isInsightsDismissed = state.isSmartInsightsDismissed,
+                                        isBudgetExceeded = state.isBudgetExceeded,
+                                        reducedMotion = reducedMotion,
+                                        onDismissBudget = { isBudgetProjectionDismissed = true },
+                                        onDismissInsights = viewModel::dismissSmartInsights,
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
+                                    )
+                                }
+                            }
+
+                            // Cột phải: feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
+                            Column(
+                                modifier = Modifier
+                                    .weight(0.55f)
+                                    .fillMaxHeight()
+                                    .statusBarsPadding()
+                                    .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp)
+                            ) {
+                                RecentTransactionsHeader(
+                                    title = recentLabel,
+                                    seeAllLabel = seeAllLabel,
+                                    onSeeAll = onSeeAll,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+
+                                if (dayGroups.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        EmptyStateWithAction(title = emptyTx)
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        state = listState,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(bottom = listBottomClearance)
+                                    ) {
+                                        items(
+                                            items = dayGroups,
+                                            key = { HomeDayKeyPrefix + it.key }
+                                        ) { group ->
+                                            HomeDaySection(
+                                                group = group,
+                                                walletNames = walletNames,
+                                                hapticEnabled = hapticFeedbackEnabled,
+                                                onTransactionClick = onTransactionClick,
+                                                onEditTransaction = onEditTransaction,
+                                                onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                                                modifier = Modifier
+                                                    .then(if (reducedMotion) Modifier else Modifier.animateItem())
+                                                    .padding(start = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 24.dp)
+                            contentPadding = PaddingValues(
+                                start = contentGutter,
+                                end = contentGutter,
+                                bottom = listBottomClearance,
+                            ),
                         ) {
-                            items(
-                                items = dayGroups,
-                                key = { HomeDayKeyPrefix + it.key }
-                            ) { group ->
-                                HomeDaySection(
-                                    group = group,
-                                    walletNames = walletNames,
-                                    hapticEnabled = hapticFeedbackEnabled,
-                                    onTransactionClick = onTransactionClick,
-                                    onEditTransaction = onEditTransaction,
-                                    onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
-                                    modifier = Modifier.padding(start = 4.dp)
+                            // ==================== KHỐI HERO + NỀN TRANG TRÍ ====================
+                            item(key = HomeListKeys.HERO_ASSETS) {
+                                NotePayStaggeredEntrance(index = 0) {
+                                    HomeHeroBlock(
+                                        streakDays = state.streakDays,
+                                        walletLabel = walletChipLabel,
+                                        balanceLabel = balanceLabel,
+                                        balance = displayBalance,
+                                        income = displayIncome,
+                                        expense = displayExpense,
+                                        onOpenWalletPicker = { isWalletPickerOpen = true },
+                                        topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                                        modifier = Modifier.padding(top = 12.dp),
+                                        onAvatarClick = openAccountSheet,
+                                    )
+                                }
+                            }
+
+                            // 3. Thẻ dự báo ngân sách hoặc gợi ý thông minh (dùng chung với bố cục 2 cột).
+                            item(key = HomeListKeys.INSIGHT) {
+                                NotePayStaggeredEntrance(index = 1) {
+                                    HomeInsightCard(
+                                        streakDays = state.streakDays,
+                                        budgetProjection = state.budgetProjection,
+                                        budgetLimit = selectedWallet?.wallet?.budgetLimit,
+                                        walletName = selectedWallet?.wallet?.name.orEmpty(),
+                                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
+                                        isAllWallets = isAllWallets,
+                                        isBudgetCardDismissed = isBudgetProjectionDismissed,
+                                        isInsightsDismissed = state.isSmartInsightsDismissed,
+                                        isBudgetExceeded = state.isBudgetExceeded,
+                                        reducedMotion = reducedMotion,
+                                        onDismissBudget = { isBudgetProjectionDismissed = true },
+                                        onDismissInsights = viewModel::dismissSmartInsights,
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
+                                    )
+                                }
+                            }
+
+                            // 4. Feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
+                            item(key = HomeListKeys.RECENT_HEADER) {
+                                RecentTransactionsHeader(
+                                    title = recentLabel,
+                                    seeAllLabel = seeAllLabel,
+                                    onSeeAll = onSeeAll,
+                                    modifier = Modifier.padding(start = ScreenHorizontalPadding, end = 4.dp, top = 8.dp)
                                 )
+                            }
+
+                            if (dayGroups.isEmpty()) {
+                                item(key = HomeListKeys.RECENT_EMPTY) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp, horizontal = ScreenHorizontalPadding),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        EmptyStateWithAction(title = emptyTx)
+                                    }
+                                }
+                            } else {
+                                items(
+                                    items = dayGroups,
+                                    key = { HomeDayKeyPrefix + it.key }
+                                ) { group ->
+                                    HomeDaySection(
+                                        group = group,
+                                        walletNames = walletNames,
+                                        hapticEnabled = hapticFeedbackEnabled,
+                                        onTransactionClick = onTransactionClick,
+                                        onEditTransaction = onEditTransaction,
+                                        onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
+                                        modifier = Modifier
+                                            .then(if (reducedMotion) Modifier else Modifier.animateItem())
+                                            .padding(horizontal = ScreenHorizontalPadding)
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            }
-
-            return@Box
-        }
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = contentGutter,
-                end = contentGutter,
-                bottom = ListBottomClearance,
-            ),
-        ) {
-            // ==================== KHỐI HERO + NỀN TRANG TRÍ ====================
-            item(key = HomeListKeys.HERO_ASSETS) {
-                HomeHeroBlock(
-                    streakDays = state.streakDays,
-                    walletLabel = walletChipLabel,
-                    balanceLabel = balanceLabel,
-                    balance = displayBalance,
-                    income = displayIncome,
-                    expense = displayExpense,
-                    onOpenWalletPicker = { isWalletPickerOpen = true },
-                    topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-            }
-
-            // 3. Thẻ dự báo ngân sách hoặc gợi ý thông minh (dùng chung với bố cục 2 cột).
-            item(key = HomeListKeys.INSIGHT) {
-                HomeInsightCard(
-                    streakDays = state.streakDays,
-                    budgetProjection = state.budgetProjection,
-                    budgetLimit = selectedWallet?.wallet?.budgetLimit,
-                    walletName = selectedWallet?.wallet?.name.orEmpty(),
-                    budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
-                    isAllWallets = isAllWallets,
-                    isBudgetCardDismissed = isBudgetProjectionDismissed,
-                    isInsightsDismissed = state.isSmartInsightsDismissed,
-                    isBudgetExceeded = state.isBudgetExceeded,
-                    onDismissBudget = { isBudgetProjectionDismissed = true },
-                    onDismissInsights = {
-                        coroutineScope.launch {
-                            delay(InsightsDismissDelay)
-                            viewModel.dismissSmartInsights()
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
-                )
-            }
-
-            // 4. Feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
-            item(key = HomeListKeys.RECENT_HEADER) {
-                RecentTransactionsHeader(
-                    title = recentLabel,
-                    seeAllLabel = seeAllLabel,
-                    onSeeAll = onSeeAll,
-                    modifier = Modifier.padding(start = ScreenHorizontalPadding, end = 4.dp, top = 8.dp)
-                )
-            }
-
-            if (dayGroups.isEmpty()) {
-                item(key = HomeListKeys.RECENT_EMPTY) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp, horizontal = ScreenHorizontalPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EmptyStateWithAction(title = emptyTx)
-                    }
-                }
-            } else {
-                items(
-                    items = dayGroups,
-                    key = { HomeDayKeyPrefix + it.key }
-                ) { group ->
-                    HomeDaySection(
-                        group = group,
-                        walletNames = walletNames,
-                        hapticEnabled = hapticFeedbackEnabled,
-                        onTransactionClick = onTransactionClick,
-                        onEditTransaction = onEditTransaction,
-                        onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
-                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-                    )
                 }
             }
         }
@@ -374,6 +427,20 @@ fun HomeScreen(
             onWalletSelected = viewModel::selectWallet,
             onAllWalletsSelected = { viewModel.selectWallet(null) },
             onDismiss = { isWalletPickerOpen = false }
+        )
+    }
+
+    val currentUser = authUiState.user
+    if (showAccountDetails && currentUser != null) {
+        val accountSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        AccountDetailsBottomSheet(
+            user = currentUser,
+            sheetState = accountSheetState,
+            onDismissRequest = { showAccountDetails = false },
+            onSignOut = {
+                authViewModel.signOut(context)
+                showAccountDetails = false
+            },
         )
     }
 
@@ -439,27 +506,54 @@ private fun HomeInsightCard(
     isBudgetCardDismissed: Boolean,
     isInsightsDismissed: Boolean,
     isBudgetExceeded: Boolean,
+    reducedMotion: Boolean,
     onDismissBudget: () -> Unit,
     onDismissInsights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val budgetStatus = budgetProjection?.let(::budgetStatusOf)
-
-    if (!isAllWallets &&
+    val showBudgetProjection = !isAllWallets &&
         !isBudgetCardDismissed &&
         budgetProjection != null &&
         budgetLimit != null &&
         budgetLimit.amountInCents > 0L &&
         budgetStatus != BudgetStatus.Safe
+    val showSmartInsights = !showBudgetProjection &&
+        !isInsightsDismissed &&
+        (budgetStatus == null || budgetStatus == BudgetStatus.Safe)
+
+    val enterTransition = if (reducedMotion) {
+        EnterTransition.None
+    } else {
+        fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(220))
+    }
+    val exitTransition = if (reducedMotion) {
+        ExitTransition.None
+    } else {
+        fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(200))
+    }
+
+    AnimatedVisibility(
+        visible = showBudgetProjection,
+        enter = enterTransition,
+        exit = exitTransition,
     ) {
+        val projection = budgetProjection ?: return@AnimatedVisibility
+        val limit = budgetLimit ?: return@AnimatedVisibility
         BudgetProjectionCard(
-            projection = budgetProjection,
-            budgetLimit = budgetLimit,
+            projection = projection,
+            budgetLimit = limit,
             walletName = walletName,
             onDismiss = onDismissBudget,
             modifier = modifier
         )
-    } else if (!isInsightsDismissed && (budgetStatus == null || budgetStatus == BudgetStatus.Safe)) {
+    }
+
+    AnimatedVisibility(
+        visible = showSmartInsights,
+        enter = enterTransition,
+        exit = exitTransition,
+    ) {
         SmartInsightsCard(
             streakDays = streakDays,
             isBudgetExceeded = isBudgetExceeded,
@@ -556,6 +650,7 @@ private fun BudgetProjectionCard(
     val adviceMessage = remember(rawAdvice, highlightAmount) {
         highlightedText(rawAdvice, highlightAmount)
     }
+    val performHaptic = rememberNotePayHaptic()
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -605,7 +700,12 @@ private fun BudgetProjectionCard(
                 }
 
                 // IconButton đảm bảo vùng chạm tối thiểu 48dp (trước đây icon 18dp bấm rất khó).
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = {
+                        performHaptic(HapticFeedbackType.TextHandleMove)
+                        onDismiss()
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.action_close),

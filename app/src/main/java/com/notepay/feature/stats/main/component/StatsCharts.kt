@@ -8,10 +8,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,9 +36,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,7 +69,15 @@ import com.notepay.core.designsystem.util.localizedName
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
+
+/** Nét vòng chưa chọn / đang chọn, dùng chung cho cả Canvas và vùng chạm. */
+private val RingStrokeWidth = 32.dp
+private val RingSelectedStrokeWidth = 40.dp
+
+/** Lát mỏng hơn ngưỡng này coi như 0% để không chiếm điểm chạm ở biên. */
+private const val MinSweepEpsilon = 0.01f
 
 @Composable
 internal fun AllocationChartContent(
@@ -77,50 +87,67 @@ internal fun AllocationChartContent(
     selectedCategory: Category?,
     onCategorySelected: (Category?) -> Unit,
 ) {
-    var centerItem by remember(selectedCategory, breakdown) {
-        mutableStateOf(breakdown.find { it.category == selectedCategory })
-    }
-    val legendItems = breakdown.take(5)
+    // Donut và legend phải cùng một thứ tự → sắp xếp một lần rồi dùng chung.
+    val items = remember(breakdown) { breakdown.sortedByDescending { it.amount.amountInCents } }
+    // Chỉ một nguồn sự thật cho lựa chọn: selectedCategory do màn hình cha giữ.
+    val selectedItem = items.find { it.category == selectedCategory }
     // MaterialTheme không đọc được bên trong DrawScope → hoist token ra ngoài Canvas.
     val emptyRingColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-    val chartDescription = if (breakdown.isEmpty()) {
-        stringResource(R.string.stats_allocation_chart_empty_cd)
+    val chartDescription = if (items.isEmpty()) {
+        stringResource(R.string.stats_allocation_no_data)
     } else {
-        val shares = legendItems.map { item ->
-            "${item.category.localizedName()} ${(item.percentage * 100).toInt()}%"
+        val shareLabels = ArrayList<String>(5)
+        for (item in items.take(5)) {
+            shareLabels.add("${item.category.localizedName()} ${(item.percentage * 100).roundToInt()}%")
         }
-        stringResource(R.string.stats_allocation_chart_cd_format, shares.joinToString(", "))
+        stringResource(R.string.stats_allocation_chart_cd_format, shareLabels.joinToString(", "))
     }
+    // pointerInput không khởi động lại khi tham số đổi → luôn dùng tham chiếu mới nhất.
+    val currentSelection by rememberUpdatedState(selectedCategory)
+    val currentOnSelect by rememberUpdatedState(onCategorySelected)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(208.dp)
+            // Không cố định chiều cao: legend hiện đủ danh mục nên thẻ cao theo nội dung.
+            .heightIn(min = 208.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1.05f)
-                .fillMaxHeight(),
+                .aspectRatio(1f),
             contentAlignment = Alignment.Center,
         ) {
+            // Tâm co theo đường kính vòng, trừ đúng nét dày nhất để không đè lên vòng.
+            val ringDiameter = maxWidth * .76f
+            val centerDiameter = (ringDiameter - RingSelectedStrokeWidth).coerceAtLeast(0.dp)
+
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .semantics { contentDescription = chartDescription }
-                    .pointerInput(breakdown) {
+                    .pointerInput(items) {
                         detectTapGestures { offset ->
-                            val tapped = findAllocationItem(offset, size.width.toFloat(), size.height.toFloat(), 34.dp.toPx(), breakdown)
-                            centerItem = if (tapped == centerItem) null else tapped
-                            onCategorySelected(centerItem?.category)
+                            // Chạm ngoài vòng hoặc vào giữa vòng: giữ nguyên lựa chọn.
+                            val tapped = findAllocationItem(
+                                tap = offset,
+                                width = size.width.toFloat(),
+                                height = size.height.toFloat(),
+                                ringStrokePx = RingSelectedStrokeWidth.toPx(),
+                                breakdown = items,
+                            ) ?: return@detectTapGestures
+                            currentOnSelect(
+                                if (tapped.category == currentSelection) null else tapped.category,
+                            )
                         }
                     },
             ) {
                 val diameter = min(size.width, size.height) * .76f
                 val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
                 var startAngle = 270f
-                if (breakdown.isEmpty()) {
+                if (items.isEmpty()) {
                     drawArc(
                         color = emptyRingColor,
                         startAngle = 0f,
@@ -128,10 +155,10 @@ internal fun AllocationChartContent(
                         useCenter = false,
                         topLeft = topLeft,
                         size = Size(diameter, diameter),
-                        style = Stroke(width = 30.dp.toPx(), cap = StrokeCap.Round),
+                        style = Stroke(width = RingStrokeWidth.toPx(), cap = StrokeCap.Round),
                     )
                 } else {
-                    breakdown.forEach { item ->
+                    items.forEach { item ->
                         val sweep = item.percentage * 360f
                         val isSelected = item.category == selectedCategory
                         drawArc(
@@ -142,7 +169,7 @@ internal fun AllocationChartContent(
                             topLeft = topLeft,
                             size = Size(diameter, diameter),
                             style = Stroke(
-                                width = if (isSelected) 40.dp.toPx() else 32.dp.toPx(),
+                                width = if (isSelected) RingSelectedStrokeWidth.toPx() else RingStrokeWidth.toPx(),
                                 cap = StrokeCap.Butt,
                             ),
                         )
@@ -151,77 +178,41 @@ internal fun AllocationChartContent(
                 }
             }
             AllocationCenter(
-                item = centerItem ?: breakdown.find { it.category == selectedCategory },
+                item = selectedItem,
                 total = total,
                 showAmounts = showAmounts,
-                isEmpty = breakdown.isEmpty(),
+                isEmpty = items.isEmpty(),
+                modifier = Modifier.size(centerDiameter),
             )
         }
         Column(
             Modifier
                 .weight(.95f)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.Center,
+                .padding(start = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (legendItems.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.PieChart,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.stats_allocation_no_data),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+            if (items.isEmpty()) {
+                Icon(
+                    Icons.Rounded.PieChart,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.size(32.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.stats_allocation_no_data),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    legendItems.forEach { item ->
-                        val selected = item.category == selectedCategory
-                        val color = Color(item.category.colorArgb)
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(AppTheme.shapes.corner12)
-                                .selectable(
-                                    selected = selected,
-                                    role = Role.Button,
-                                    onClick = { onCategorySelected(if (selected) null else item.category) },
-                                ),
-                            shape = AppTheme.shapes.corner12,
-                            color = color.copy(alpha = if (selected) .18f else .08f),
-                        ) {
-                            Row(
-                                Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(
-                                    Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(color),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "${item.category.localizedName()} — ${(item.percentage * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
+                // Hiện đủ danh mục: lát bánh nào cũng có dòng tương ứng để đọc và chọn.
+                items.forEach { item ->
+                    val selected = item.category == selectedCategory
+                    AllocationLegendRow(
+                        item = item,
+                        selected = selected,
+                        onClick = { currentOnSelect(if (selected) null else item.category) },
+                    )
                 }
             }
         }
@@ -234,6 +225,7 @@ private fun AllocationCenter(
     total: Money,
     showAmounts: Boolean,
     isEmpty: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val tint = item?.let { Color(it.category.colorArgb) } ?: MaterialTheme.colorScheme.primary
     val bg = if (isEmpty) {
@@ -244,46 +236,101 @@ private fun AllocationCenter(
         MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f)
     }
 
-    Surface(
-        shape = CircleShape,
-        color = bg,
-    ) {
+    Surface(modifier = modifier, shape = CircleShape, color = bg) {
         Column(
             modifier = Modifier
-                .size(104.dp)
+                .fillMaxSize()
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = if (isEmpty) stringResource(R.string.stats_no_data) else (item?.category?.localizedName() ?: stringResource(R.string.stats_total_allocation)),
+                text = if (isEmpty) {
+                    stringResource(R.string.stats_no_data)
+                } else {
+                    item?.category?.localizedName() ?: stringResource(R.string.stats_total_allocation)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isEmpty) MaterialTheme.colorScheme.onSurfaceVariant else if (item != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (item != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (showAmounts) MoneyFormatter.format(item?.amount ?: total) else "••••••",
+                text = if (showAmounts) {
+                    MoneyFormatter.format(item?.amount ?: total)
+                } else {
+                    stringResource(R.string.stats_amounts_mask)
+                },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (item != null) {
-                Spacer(Modifier.height(4.dp))
-                Surface(
-                    shape = AppTheme.shapes.capsule,
-                    color = tint.copy(alpha = 0.18f),
-                ) {
-                    Text(
-                        text = "${(item.percentage * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = tint,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        }
+    }
+}
+
+/**
+ * Một dòng trong chú giải phân bổ: chấm màu nhận diện, tên danh mục, tỷ trọng và dấu chọn.
+ * Vùng chạm tối thiểu 48dp; trạng thái chọn có thêm icon nên không chỉ dựa vào màu.
+ */
+@Composable
+private fun AllocationLegendRow(
+    item: CategoryBreakdownItem,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val color = Color(item.category.colorArgb)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.corner12)
+            .selectable(selected = selected, role = Role.Button, onClick = onClick),
+        shape = AppTheme.shapes.corner12,
+        color = color.copy(alpha = if (selected) .18f else .08f),
+    ) {
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minHeight = 48.dp)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+            Text(
+                text = item.category.localizedName(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(
+                    R.string.percent_format,
+                    (item.percentage * 100).roundToInt(),
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+            )
+            // Giữ chỗ cho dấu chọn để chữ không nhảy khi đổi trạng thái.
+            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
@@ -297,12 +344,13 @@ internal fun TrendChartContent(
     metric: StatsMetric,
     isSelectedMonthCurrent: Boolean,
     forecast: Money?,
+    budget: Money?,
     showAmounts: Boolean,
     trendWindow: TrendWindow,
     onTrendWindowSelected: (TrendWindow) -> Unit,
     onPointClick: (MonthlyTrendPoint) -> Unit,
 ) {
-    val chartColor = if (metric == StatsMetric.CHI_TIEU) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val chartColor = if (metric == StatsMetric.CHI_TIEU) AppTheme.colors.error else AppTheme.colors.success
     val values = points.map { point ->
         if (metric == StatsMetric.CHI_TIEU) point.expense.amountInCents else point.income.amountInCents
     }
@@ -312,18 +360,28 @@ internal fun TrendChartContent(
         isSelectedMonthCurrent = isSelectedMonthCurrent,
         actualAmountInCents = values.lastOrNull() ?: 0L,
         forecast = forecast,
+        budgetInCents = budget?.amountInCents,
     )
     val hasForecast = forecastDisplayState != ForecastDisplayState.HIDDEN
     val axisScale = StatsChartCalculator.trendAxisScale(values, if (hasForecast) forecast else null)
+    // Ẩn số tiền thì trục Y cũng phải ẩn, nếu không vẫn đọc được quy mô tiền qua nhãn trục.
+    val hiddenAmount = stringResource(R.string.stats_amounts_hidden)
     // Lưới Y tinh gọn: chỉ 2 mốc (đỉnh và 50% đỉnh) với nhãn tiền viết gọn.
-    val topAxisLabel = MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents))
-    val middleAxisLabel = MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents / 2))
+    val topAxisLabel = if (showAmounts) {
+        MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents))
+    } else {
+        hiddenAmount
+    }
+    val middleAxisLabel = if (showAmounts) {
+        MoneyFormatter.formatCompactVietnamese(Money(axisScale.topInCents / 2))
+    } else {
+        hiddenAmount
+    }
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f)
     // 12 cột thì giãn nhịp nhãn tháng để "T1..T12" không chồng lên nhau.
     val xLabelStride = if (points.size > 6) 2 else 1
     val barHorizontalPadding = if (points.size > 6) 4.dp else 8.dp
     val barShape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
-    val barContentDescriptionHidden = stringResource(R.string.stats_amounts_hidden)
 
     Column(
         modifier = Modifier
@@ -337,7 +395,7 @@ internal fun TrendChartContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = if (showAmounts) MoneyFormatter.format(averageAmount) else barContentDescriptionHidden,
+            text = if (showAmounts) MoneyFormatter.format(averageAmount) else hiddenAmount,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -351,13 +409,17 @@ internal fun TrendChartContent(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TrendWindowSelector(
                 selected = trendWindow,
                 onSelected = onTrendWindowSelected,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
                 Box(
                     modifier = Modifier
                         .size(8.dp)
@@ -369,6 +431,8 @@ internal fun TrendChartContent(
                     text = if (metric == StatsMetric.CHI_TIEU) stringResource(R.string.stats_expense) else stringResource(R.string.stats_income),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -440,14 +504,20 @@ internal fun TrendChartContent(
                             label = "trend-bar$index",
                         )
                         val isCurrent = index == points.lastIndex
-                        val forecastFraction = if (isCurrent && hasForecast && forecast != null) {
-                            (forecast.amountInCents.toFloat() / axisScale.topInCents).coerceIn(0f, 1f)
+                        val forecastAmountInCents = forecast?.amountInCents
+                        val forecastFraction = if (isCurrent && hasForecast && forecastAmountInCents != null) {
+                            (forecastAmountInCents.toFloat() / axisScale.topInCents).coerceIn(0f, 1f)
                         } else {
                             null
                         }
-                        val forecastMarkerFraction = if (isCurrent) {
+                        // Vùng mờ chỉ có nghĩa khi thực tế còn nằm dưới mốc dự báo.
+                        val showsForecastZone = forecastAmountInCents != null &&
+                            forecastFraction != null &&
+                            pointValueInCents < forecastAmountInCents
+                        // Chú giải đã ẩn thì cũng không vẽ mốc dự báo trên cột.
+                        val forecastMarkerFraction = if (isCurrent && hasForecast) {
                             StatsChartCalculator.forecastMarkerFraction(
-                                state = forecastDisplayState,
+                                actualAmountInCents = pointValueInCents,
                                 forecast = forecast,
                                 axisTopInCents = axisScale.topInCents,
                             )
@@ -461,7 +531,7 @@ internal fun TrendChartContent(
                             if (showAmounts) {
                                 MoneyFormatter.format(Money(pointValueInCents))
                             } else {
-                                barContentDescriptionHidden
+                                hiddenAmount
                             },
                         )
 
@@ -485,7 +555,7 @@ internal fun TrendChartContent(
                                 contentAlignment = Alignment.BottomCenter,
                             ) {
                                 // Faded projection column (Vùng mờ dự đoán tiêu - chạm đỉnh forecast)
-                                if (forecastDisplayState == ForecastDisplayState.PROJECTION && forecastFraction != null) {
+                                if (showsForecastZone) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -559,19 +629,17 @@ internal fun TrendChartContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (forecastDisplayState) {
-                    ForecastDisplayState.PROJECTION -> Box(
+                    // Chưa có ngân sách để so: dự báo chỉ là vùng mờ trung tính.
+                    ForecastDisplayState.PROJECTION,
+                    ForecastDisplayState.PASSED,
+                    ForecastDisplayState.WITHIN_BUDGET -> Box(
                         modifier = Modifier
                             .size(12.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(chartColor.copy(alpha = 0.25f)),
                     )
-                    ForecastDisplayState.REACHED -> Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = chartColor,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    ForecastDisplayState.EXCEEDED -> Icon(
+                    // Chỉ dự báo vượt ngân sách thật mới dùng ngôn ngữ cảnh báo.
+                    ForecastDisplayState.OVER_BUDGET -> Icon(
                         imageVector = Icons.Rounded.Warning,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
@@ -583,13 +651,18 @@ internal fun TrendChartContent(
                     text = stringResource(
                         when (forecastDisplayState) {
                             ForecastDisplayState.PROJECTION -> R.string.stats_forecast_legend
-                            ForecastDisplayState.REACHED -> R.string.stats_forecast_reached
-                            ForecastDisplayState.EXCEEDED -> R.string.stats_forecast_exceeded
+                            ForecastDisplayState.PASSED -> R.string.stats_forecast_passed
+                            ForecastDisplayState.WITHIN_BUDGET -> R.string.stats_forecast_within_budget
+                            ForecastDisplayState.OVER_BUDGET -> R.string.stats_forecast_over_budget
                             ForecastDisplayState.HIDDEN -> R.string.stats_forecast_legend
                         },
                     ),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (forecastDisplayState == ForecastDisplayState.OVER_BUDGET) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         }
@@ -597,8 +670,7 @@ internal fun TrendChartContent(
 }
 
 /**
- * Chip chọn khung thời gian xu hướng (3T / 6T / 12T).
- * Mỗi chip cao tối thiểu 48dp và đọc rõ số tháng qua contentDescription.
+ * Bộ chọn khung thời gian xu hướng (3T / 6T / 12T) bằng segmented buttons của Material 3.
  */
 @Composable
 private fun TrendWindowSelector(
@@ -606,60 +678,45 @@ private fun TrendWindowSelector(
     onSelected: (TrendWindow) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        TrendWindow.entries.forEach { window ->
-            val isSelected = window == selected
-            val windowDescription = stringResource(R.string.stats_trend_window_cd_format, window.months)
-            Surface(
-                modifier = Modifier
-                    .clip(AppTheme.shapes.capsule)
-                    .semantics { contentDescription = windowDescription }
-                    .selectable(
-                        selected = isSelected,
-                        role = Role.Tab,
-                        onClick = { onSelected(window) },
-                    ),
-                shape = AppTheme.shapes.capsule,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.stats_trend_window_short_format, window.months),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
+    val options = TrendWindow.entries.map { window ->
+        window to stringResource(R.string.stats_trend_window_short_format, window.months)
     }
+    StatsSegmentedButtonRow(
+        options = options,
+        selected = selected,
+        onSelected = onSelected,
+        modifier = modifier,
+    )
 }
 
-private fun findAllocationItem(tap: Offset, width: Float, height: Float, strokePx: Float, breakdown: List<CategoryBreakdownItem>): CategoryBreakdownItem? {
+/**
+ * Xác định lát bánh tại điểm chạm.
+ *
+ * Vùng chạm trùng với nét vẽ dày nhất và góc được tính liên tục từ 0° tại đỉnh vòng,
+ * nên lát chiếm 100% khớp toàn vòng và lát 0% không nhận nhầm điểm chạm ở biên.
+ */
+private fun findAllocationItem(
+    tap: Offset,
+    width: Float,
+    height: Float,
+    ringStrokePx: Float,
+    breakdown: List<CategoryBreakdownItem>,
+): CategoryBreakdownItem? {
     if (breakdown.isEmpty()) return null
     val diameter = min(width, height) * .76f
     val radius = diameter / 2f
-    val center = Offset(width / 2f, height / 2f)
-    val dx = tap.x - center.x
-    val dy = tap.y - center.y
-    if (sqrt(dx * dx + dy * dy) !in (radius - strokePx * .75f)..(radius + strokePx * .75f)) return null
-    val angle = ((atan2(dy, dx) * 180f / PI.toFloat()) + 360f) % 360f
-    var start = 270f
+    val dx = tap.x - width / 2f
+    val dy = tap.y - height / 2f
+    val distance = sqrt(dx * dx + dy * dy)
+    if (distance < radius - ringStrokePx / 2f || distance > radius + ringStrokePx / 2f) return null
+
+    // Vòng bắt đầu ở 270° (đỉnh) và chạy theo chiều kim đồng hồ; quy về [0, 360).
+    val angleFromStart = (((atan2(dy, dx) * 180f / PI.toFloat()) - 270f) % 360f + 360f) % 360f
+    var sweepStart = 0f
     breakdown.forEach { item ->
         val sweep = item.percentage * 360f
-        val end = (start + sweep) % 360f
-        if (if (start <= end) angle in start..end else angle >= start || angle <= end) return item
-        start = end
+        if (sweep > MinSweepEpsilon && angleFromStart < sweepStart + sweep) return item
+        sweepStart += sweep
     }
     return null
 }

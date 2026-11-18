@@ -111,8 +111,8 @@ internal fun HomeDaySection(
                         transaction = transaction,
                         walletName = walletName,
                         onClick = { onTransactionClick(transaction.id) },
-                        onEdit = { onEditTransaction(transaction.id) },
-                        onDelete = { onDeleteTransaction(transaction) },
+                        onEdit = if (transaction.isInternalTransfer) null else ({ onEditTransaction(transaction.id) }),
+                        onDelete = if (transaction.isInternalTransfer && transaction.transferGroupId == null) null else ({ onDeleteTransaction(transaction) }),
                         hapticEnabled = hapticEnabled,
                         shape = RectangleShape,
                     ) {

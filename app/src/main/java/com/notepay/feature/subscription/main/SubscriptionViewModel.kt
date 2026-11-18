@@ -8,6 +8,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
+import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -47,7 +48,8 @@ data class AddSubscriptionDialogState(
     val prefillName: String? = null,
     val prefillAmountCents: Long? = null,
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && amountInput.isNotEmpty()
+    val isValidAmount: Boolean get() = AmountParser.parse(amountInput).amount != null
+    val canSave: Boolean get() = name.isNotBlank() && isValidAmount
 }
 
 @HiltViewModel
@@ -131,13 +133,13 @@ class SubscriptionViewModel @Inject constructor(
     fun saveSubscription() {
         val dialog = _dialogState.value
         if (!dialog.canSave) return
+        val amount = AmountParser.parse(dialog.amountInput).amount ?: return
 
         viewModelScope.launch {
             try {
-                val cents = (dialog.amountInput.toLongOrNull() ?: 0L) * 100
                 val subscription = Subscription(
                     name = dialog.name.trim(),
-                    amount = Money(cents),
+                    amount = amount,
                     category = dialog.category,
                     nextDueDate = Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
                     repeatMonths = dialog.repeatMonths,

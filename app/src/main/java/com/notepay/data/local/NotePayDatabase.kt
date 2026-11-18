@@ -23,7 +23,7 @@ import com.notepay.data.local.entity.DebtPaymentEntity
         DebtEntity::class,
         DebtPaymentEntity::class,
     ],
-    version = 6, // Nâng cấp lên phiên bản 6 hỗ trợ quản lý công nợ chuyên biệt
+    version = 7,
     exportSchema = true,
 )
 abstract class NotePayDatabase : RoomDatabase() {
@@ -137,6 +137,11 @@ abstract class NotePayDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debt_id` ON `debt_payments` (`debt_id`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_transaction_id` ON `debt_payments` (`transaction_id`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paid_at` ON `debt_payments` (`paid_at`)")
+            }
+        }
+        val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN transfer_group_id TEXT")
             }
         }
     }

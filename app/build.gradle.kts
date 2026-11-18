@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.detekt)
 }
 
 // Áp dụng google-services plugin có điều kiện: chỉ kích hoạt khi có file google-services.json
@@ -163,6 +164,21 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+detekt {
+    toolVersion = libs.versions.detekt.get()
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    parallel = true
+    source.setFrom(
+        "src/main/java",
+        "src/full/java",
+        "src/play/java",
+        "src/test/java",
+        "src/testFull/java",
+        "src/androidTest/java",
+    )
+}
+
 dependencies {
     // Core
     implementation(libs.androidx.core.ktx)
@@ -181,7 +197,6 @@ dependencies {
 
     // Splash screen
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.material3)
 
     // Adaptive layout (tablet / foldable): WindowSizeClass + Posture
     implementation(libs.androidx.compose.material3.adaptive)

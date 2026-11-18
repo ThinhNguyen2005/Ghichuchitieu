@@ -19,6 +19,8 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.notepay", appContext.packageName)
+        // So với applicationId thực tế của flavor đang chạy thay vì hằng chuỗi cố định:
+        // mỗi flavor/debug suffix lại có applicationId riêng.
+        assertEquals(BuildConfig.APPLICATION_ID, appContext.packageName)
     }
 }

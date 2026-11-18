@@ -1,16 +1,18 @@
 package com.notepay.feature.transaction.list
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,49 +21,41 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,34 +65,31 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Category
-import com.notepay.domain.money.Money
+import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.WindowLayout
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.calendar.CompactMonthCalendar
+import com.notepay.core.designsystem.component.calendar.buildMonthGrid
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.core.designsystem.adaptive.LocalWindowLayout
-import com.notepay.core.designsystem.adaptive.WindowLayout
-import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
-import com.notepay.core.designsystem.feedback.UiFeedback
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.formatter.MoneyFormatter
-import com.notepay.core.designsystem.util.WalletUiHelper
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.ui.focus.FocusRequester
-import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
-import com.notepay.core.designsystem.component.dialog.DayDetailDialog
-import com.notepay.core.designsystem.component.bar.GradientTopAppBar
-import com.notepay.core.designsystem.component.calendar.MonthlyCalendarView
+import com.notepay.domain.money.Money
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
+import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.feature.transaction.detail.TransactionDetailContent
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel
-import com.notepay.feature.transaction.component.DateRangePreset
+import com.notepay.feature.transaction.list.sheet.DateRangeBottomSheet
+import com.notepay.feature.transaction.list.sheet.FilterBottomSheet
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import com.notepay.core.designsystem.util.localizedName
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,13 +104,50 @@ fun TransactionListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
+
+    // Xuất CSV của đúng danh sách đang nhìn thấy. Dựng nội dung ngay trước khi mở hộp chọn
+    // tệp nên tệp luôn khớp bộ lọc hiện tại, không phải đọc lại cơ sở dữ liệu.
+    val onExportCsv = rememberCsvExporter(
+        transactions = state.transactions,
+        walletsMap = state.walletsMap,
+        onFeedback = onFeedback,
+    )
+
     val dateRangeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val walletPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var isSearchActive by remember { mutableStateOf(false) }
-    var selectedDayForDetail by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedCalendarDate by remember { mutableStateOf<LocalDate?>(null) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
+
+    // Thanh hành động gập lại khi thẻ thống kê (mục đầu của danh sách) đã cuộn khỏi đỉnh.
+    // derivedStateOf chỉ phát recomposition khi vượt ngưỡng thay vì mỗi pixel cuộn nên không
+    // có chi phí recompose theo từng khung hình.
+    val listState = rememberLazyListState()
+    // Chế độ lịch có cấu trúc mục khác hẳn (lịch đứng trước danh sách) nên phải giữ vị trí
+    // cuộn riêng; dùng chung listState sẽ khiến đổi chế độ là nhảy sang một vị trí lạ.
+    val calendarListState = rememberLazyListState()
+    val isActionBarCollapsed by remember(listState) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 24
+        }
+    }
+    val coroutineScope = rememberCoroutineScope()
+    val searchFocusRequester = remember { FocusRequester() }
+    var pendingSearchFocus by remember { mutableStateOf(false) }
+
+    // Ô nhập chỉ tồn tại khi thanh đã mở nên chỉ xin focus sau khi header bung ra.
+    LaunchedEffect(pendingSearchFocus, isActionBarCollapsed) {
+        if (pendingSearchFocus && !isActionBarCollapsed) {
+            searchFocusRequester.requestFocus()
+            pendingSearchFocus = false
+        }
+    }
+
+    // Đổi tháng thì bỏ chọn ngày: highlight cũ không còn thuộc lưới đang xem.
+    LaunchedEffect(state.calendarYear, state.calendarMonth) {
+        selectedCalendarDate = null
+    }
 
     // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
     // xoay máy và resize cửa sổ nên dùng rememberSaveable thay vì remember.
@@ -155,23 +183,30 @@ fun TransactionListScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Gradient Top Bar mờ dần tích hợp tìm kiếm và chuyển đổi 1 chạm Lịch / Danh sách
+            // Gradient Top Bar mờ dần: điều hướng, phạm vi ví và chuyển đổi 1 chạm Lịch / Danh sách
             TransactionTopBar(
-                isSearchActive = isSearchActive,
-                searchQuery = state.query,
-                onQueryChange = { viewModel.onQueryChanged(it) },
-                onToggleSearch = { active ->
-                    isSearchActive = active
-                    if (!active) {
-                        viewModel.onQueryChanged("")
-                    }
-                },
                 isCalendarView = state.isCalendarView,
                 onToggleCalendar = { viewModel.toggleViewMode() },
                 selectedWalletId = state.selectedWalletId,
                 wallets = state.wallets,
                 onBack = onBack,
                 onOpenWalletPicker = { viewModel.openWalletPicker(true) }
+            )
+
+            // Tìm kiếm, thời gian và bộ lọc gộp trong một khung duy nhất, ngay dưới top bar
+            TransactionActionBar(
+                query = state.query,
+                onQueryChange = viewModel::onQueryChanged,
+                dateLabel = stringResource(state.selectedDateRangePreset.labelRes),
+                activeFilterCount = state.activeFilterCount,
+                collapsed = isActionBarCollapsed && !state.isCalendarView,
+                onExpandSearch = {
+                    pendingSearchFocus = true
+                    coroutineScope.launch { listState.animateScrollToItem(0) }
+                },
+                onOpenDateRange = { viewModel.openDateRangeSheet(true) },
+                onOpenFilter = { viewModel.openFilterSheet(true) },
+                searchFocusRequester = searchFocusRequester,
             )
 
             Row(
@@ -182,14 +217,24 @@ fun TransactionListScreen(
                 // Ở Compact/Medium pane này chiếm trọn bề rộng; ở Expanded chia 45/55.
                 TransactionListPane(
                     state = state,
-                    selectedDay = selectedDayForDetail,
+                    listState = listState,
+                    calendarListState = calendarListState,
+                    selectedCalendarDate = selectedCalendarDate,
                     selectedTransactionId = resolvedTransactionId,
                     bottomPadding = if (isTwoPane) 24.dp else 100.dp,
-                    onDayClick = { date -> selectedDayForDetail = date },
+                    onCalendarDayClick = { date ->
+                        selectedCalendarDate = date
+                        // Lịch là mục 0 của danh sách nên nhóm ngày thứ n nằm ở mục n + 1.
+                        val groupIndex = state.dayGroups.indexOfFirst { it.date == date }
+                        if (groupIndex >= 0) {
+                            coroutineScope.launch {
+                                calendarListState.animateScrollToItem(groupIndex + 1)
+                            }
+                        }
+                    },
+                    onGoToToday = viewModel::onGoToToday,
                     onPreviousMonth = viewModel::onPreviousMonth,
                     onNextMonth = viewModel::onNextMonth,
-                    onOpenDateRange = { viewModel.openDateRangeSheet(true) },
-                    onOpenFilter = { viewModel.openFilterSheet(true) },
                     onTransactionClick = { txId ->
                         // Expanded: chọn tại chỗ thay vì đẩy route chi tiết lên back stack.
                         if (isTwoPane) selectedTransactionId = txId else onTransactionClick(txId)
@@ -197,6 +242,7 @@ fun TransactionListScreen(
                     onEditTransaction = onEditTransaction,
                     onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
                     hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    onExport = onExportCsv,
                     modifier = Modifier
                         .weight(if (isTwoPane) 0.45f else 1f)
                         .fillMaxHeight(),
@@ -214,16 +260,6 @@ fun TransactionListScreen(
                     )
                 }
             }
-        }
-
-        // Dialog chi tiết ngày (khi tap vào một ngày trên lịch)
-        val dayDetail = selectedDayForDetail
-        if (dayDetail != null) {
-            DayDetailDialog(
-                date = dayDetail,
-                transactions = state.transactionsByDate[dayDetail] ?: emptyList(),
-                onDismiss = { selectedDayForDetail = null }
-            )
         }
 
         // Bottom Sheet: Khoảng thời gian (Ảnh 3)
@@ -255,14 +291,13 @@ fun TransactionListScreen(
 
         // Bottom Sheet: Chọn tài khoản
         if (state.isWalletPickerOpen) {
-            WalletPickerBottomSheet(
+            WalletPickerSheet(
                 wallets = state.wallets,
                 selectedWalletId = state.selectedWalletId,
                 sheetState = walletPickerSheetState,
+                onWalletSelected = { walletId -> viewModel.selectWallet(walletId) },
+                onAllWalletsSelected = { viewModel.selectWallet(null) },
                 onDismiss = { viewModel.openWalletPicker(false) },
-                onSelectWallet = { walletId ->
-                    viewModel.selectWallet(walletId)
-                }
             )
         }
 
@@ -286,64 +321,114 @@ fun TransactionListScreen(
 }
 
 /**
- * Pane trái: tìm kiếm đã nằm ở top bar dùng chung, phần này chỉ chứa bộ lọc + danh sách
- * (hoặc lịch). Tách khỏi [TransactionListScreen] để bố cục một cột và hai cột dùng chung
+ * Pane trái: thanh hành động đã nằm ở trên dùng chung, phần này chỉ chứa thẻ thống kê + danh
+ * sách (hoặc lịch). Tách khỏi [TransactionListScreen] để bố cục một cột và hai cột dùng chung
  * đúng một bản triển khai.
  */
 @Composable
 private fun TransactionListPane(
     state: TransactionListUiState,
-    selectedDay: LocalDate?,
+    listState: LazyListState,
+    calendarListState: LazyListState,
+    selectedCalendarDate: LocalDate?,
     selectedTransactionId: Long?,
     bottomPadding: Dp,
-    onDayClick: (LocalDate) -> Unit,
+    onCalendarDayClick: (LocalDate) -> Unit,
+    onGoToToday: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onOpenDateRange: () -> Unit,
-    onOpenFilter: () -> Unit,
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     hapticFeedbackEnabled: Boolean,
+    onExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        if (state.isCalendarView) {
-            // CHẾ ĐỘ LỊCH: Xem theo lịch tháng 1 chạm
-            MonthlyCalendarView(
+    // CHẾ ĐỘ LỊCH: lưới chọn ngày gọn ở trên, danh sách giao dịch cuộn liền ngay bên dưới.
+    // Gộp cả hai vào một LazyColumn để lịch không chiếm trọn màn hình và để chạm một ngày là
+    // cuộn tới đúng nhóm ngày đó thay vì mở dialog.
+    if (state.isCalendarView) {
+        val grid = remember(state.calendarYear, state.calendarMonth, state.transactionsByDate) {
+            buildMonthGrid(
                 year = state.calendarYear,
                 month = state.calendarMonth,
-                transactions = state.transactions,
-                selectedDate = selectedDay,
-                onDayClick = onDayClick,
-                onPreviousMonth = onPreviousMonth,
-                onNextMonth = onNextMonth,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                transactionsByDate = state.transactionsByDate,
             )
-        } else {
-            // CHẾ ĐỘ DANH SÁCH: Thống kê và nhóm giao dịch theo ngày
-            // Dual Filter Buttons: [Khoảng thời gian v] [Bộ lọc]
-            FilterButtonsRow(
-                currentPreset = state.selectedDateRangePreset,
-                hasActiveFilters = state.selectedTransactionType != null ||
-                        state.isTransferOnly ||
-                        state.selectedCategoryIds.isNotEmpty(),
-                onOpenDateRange = onOpenDateRange,
-                onOpenFilter = onOpenFilter
-            )
+        }
 
-            // Summary Card (Thu Nhập / Chi Tiêu)
-            SummaryStatisticsCard(
-                totalIncome = state.totalIncome,
-                totalExpense = state.totalExpense,
-                transactionCount = state.transactionCount,
-                netBalance = state.netBalance,
-            )
+        LazyColumn(
+            state = calendarListState,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 8.dp,
+                bottom = bottomPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item(key = "calendar") {
+                CompactMonthCalendar(
+                    grid = grid,
+                    selectedDate = selectedCalendarDate,
+                    onDayClick = onCalendarDayClick,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onGoToToday = onGoToToday,
+                )
+            }
 
-            // Transaction Day Groups
-            if (state.isLoading) {
+            if (state.dayGroups.isEmpty()) {
+                item(key = "calendar-empty") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tx_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.tx_empty_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            } else {
+                items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
+                    DayGroupSection(
+                        dayGroup = dayGroup,
+                        walletsMap = state.walletsMap,
+                        selectedTransactionId = selectedTransactionId,
+                        onTransactionClick = onTransactionClick,
+                        onEditTransaction = onEditTransaction,
+                        onDeleteTransaction = onDeleteTransaction,
+                        hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    Column(modifier = modifier) {
+        when {
+            state.isLoading -> {
+                // Chưa có gì để cuộn nên thẻ thống kê đứng yên như trước, tránh khoảng
+                // trống giữa thanh hành động và vòng xoay chờ.
+                SummaryStatisticsCard(
+                    totalIncome = state.totalIncome,
+                    totalExpense = state.totalExpense,
+                    transactionCount = state.transactionCount,
+                    netBalance = state.netBalance,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -352,7 +437,16 @@ private fun TransactionListPane(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            } else if (state.isEmpty) {
+            }
+
+            state.isEmpty -> {
+                SummaryStatisticsCard(
+                    totalIncome = state.totalIncome,
+                    totalExpense = state.totalExpense,
+                    transactionCount = state.transactionCount,
+                    netBalance = state.netBalance,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -377,8 +471,13 @@ private fun TransactionListPane(
                         )
                     }
                 }
-            } else {
+            }
+
+            else -> {
+                // Thẻ thống kê là mục đầu của danh sách nên cuộn xuống là nó trượt lên và
+                // biến mất, đúng lúc thanh hành động gập lại.
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -390,6 +489,15 @@ private fun TransactionListPane(
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item(key = "summary") {
+                        SummaryStatisticsCard(
+                            totalIncome = state.totalIncome,
+                            totalExpense = state.totalExpense,
+                            transactionCount = state.transactionCount,
+                            netBalance = state.netBalance,
+                            onExport = onExport,
+                        )
+                    }
                     items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
                         DayGroupSection(
                             dayGroup = dayGroup,
@@ -444,11 +552,64 @@ private fun TransactionDetailPane(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun rememberCsvExporter(
+    transactions: List<Transaction>,
+    walletsMap: Map<Long, String>,
+    onFeedback: suspend (UiFeedback) -> Boolean,
+): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val header = stringResource(R.string.tx_export_csv_header)
+    val expenseLabel = stringResource(R.string.filter_type_expense)
+    val incomeLabel = stringResource(R.string.filter_type_income)
+    val transferLabel = stringResource(R.string.filter_type_transfer)
+    val successTemplate = stringResource(R.string.tx_export_success)
+    val failedMessage = stringResource(R.string.tx_export_failed)
+    val fileName = stringResource(R.string.tx_export_file_name, csvFileNameStem())
+
+    var pendingCsv by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(CsvMimeType),
+    ) { uri ->
+        val csv = pendingCsv
+        pendingCsv = null
+        if (uri != null && csv != null) {
+            scope.launch {
+                val written = writeCsvToUri(context.contentResolver, uri, csv)
+                onFeedback(
+                    if (written) {
+                        UiFeedback(
+                            message = String.format(Locale.ROOT, successTemplate, transactions.size),
+                            type = FeedbackType.Success,
+                        )
+                    } else {
+                        UiFeedback(message = failedMessage, type = FeedbackType.Error)
+                    }
+                )
+            }
+        }
+    }
+
+    return {
+        pendingCsv = buildTransactionsCsv(
+            transactions = transactions,
+            walletsMap = walletsMap,
+            header = header,
+            typeLabels = mapOf(
+                TransactionType.EXPENSE to expenseLabel,
+                TransactionType.INCOME to incomeLabel,
+            ),
+            transferLabel = transferLabel,
+        )
+        launcher.launch(fileName)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun TransactionTopBar(
-    isSearchActive: Boolean,
-    searchQuery: String,
-    onQueryChange: (String) -> Unit,
-    onToggleSearch: (Boolean) -> Unit,
     isCalendarView: Boolean,
     onToggleCalendar: () -> Unit,
     selectedWalletId: Long?,
@@ -461,220 +622,104 @@ private fun TransactionTopBar(
     } else {
         wallets.firstOrNull { it.id == selectedWalletId }?.name ?: stringResource(R.string.wallet_fallback)
     }
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            focusRequester.requestFocus()
-        }
-    }
 
     GradientTopAppBar(
         navigationIcon = {
-            if (isSearchActive) {
-                IconButton(onClick = { onToggleSearch(false) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            } else {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.action_back),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         },
         title = {
-            if (isSearchActive) {
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onQueryChange,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    singleLine = true,
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.filter_search_hint),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .focusRequester(focusRequester)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.transactions_header_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = stringResource(R.string.transactions_header_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.5.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
-                    Surface(
-                        onClick = onOpenWalletPicker,
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AccountBalanceWallet,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = selectedWalletName,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = Icons.Rounded.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                    }
+                // Một ví thì không có gì để lọc: ẩn hẳn để top bar trả chỗ cho tiêu đề và nút
+                // đổi chế độ xem, thay vì giữ một control không đổi được kết quả nào.
+                if (wallets.size > 1) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    WalletFilterChip(label = selectedWalletName, onClick = onOpenWalletPicker)
                 }
             }
         },
         actions = {
-            if (isSearchActive) {
-                if (searchQuery.isNotBlank()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Clear,
-                            contentDescription = stringResource(R.string.cd_clear_search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                IconButton(onClick = { onToggleSearch(false) }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            } else {
-                IconButton(onClick = { onToggleSearch(true) }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = stringResource(R.string.action_search),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onToggleCalendar) {
-                    Icon(
-                        imageVector = if (isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
-                        contentDescription = if (isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
-                        tint = if (isCalendarView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            IconButton(onClick = onToggleCalendar) {
+                Icon(
+                    imageVector = if (isCalendarView) Icons.AutoMirrored.Rounded.List else Icons.Rounded.CalendarMonth,
+                    contentDescription = if (isCalendarView) stringResource(R.string.cd_switch_to_list) else stringResource(R.string.cd_switch_to_calendar),
+                    tint = if (isCalendarView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     )
 }
 
+/**
+ * Chip lọc theo ví ở thanh trên cùng.
+ *
+ * Vùng chạm bọc ngoài đạt 48dp theo ngưỡng tiếp cận, còn pill bên trong giữ chiều cao 40dp
+ * đúng đặc tả `wallet-selector-chip` trong DESIGN.md nên thanh không cao thêm.
+ */
 @Composable
-private fun FilterButtonsRow(
-    currentPreset: DateRangePreset,
-    hasActiveFilters: Boolean,
-    onOpenDateRange: () -> Unit,
-    onOpenFilter: () -> Unit,
-) {
-    Row(
+private fun WalletFilterChip(label: String, onClick: () -> Unit) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clip(AppTheme.shapes.corner12)
+            .clickable(
+                onClickLabel = stringResource(R.string.tx_select_wallet_sheet_title),
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        // Date Range Button
-        OutlinedButton(
-            onClick = onOpenDateRange,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+        Surface(
+            shape = AppTheme.shapes.corner12,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            border = BorderStroke(1.dp, AppTheme.colors.hairline),
         ) {
-            Icon(
-                imageVector = Icons.Rounded.CalendarMonth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = currentPreset.labelVi,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-
-        // Advanced Filter Button
-        OutlinedButton(
-            onClick = onOpenFilter,
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            BadgedBox(
-                badge = {
-                    if (hasActiveFilters) {
-                        Badge(containerColor = MaterialTheme.colorScheme.primary)
-                    }
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 40.dp)
+                    .padding(horizontal = 10.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.FilterList,
+                    imageVector = Icons.Rounded.AccountBalanceWallet,
                     contentDescription = null,
-                    tint = if (hasActiveFilters) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.filter_advanced),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (hasActiveFilters) FontWeight.Bold else FontWeight.SemiBold
-            )
         }
     }
 }
@@ -685,11 +730,11 @@ private fun SummaryStatisticsCard(
     totalExpense: Money,
     transactionCount: Int,
     netBalance: Money,
+    modifier: Modifier = Modifier,
+    onExport: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -758,6 +803,9 @@ private fun SummaryStatisticsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val netPrefix = if (netBalance.amountInCents >= 0) "+" else ""
+                // weight(1f) giữ cho nút xuất file luôn còn chỗ: nếu để Text tự do chiếm
+                // chiều rộng, ở font scale 2.0 nó ép cụm bên phải xuống 0dp khiến nhãn bị
+                // xuống dòng từng ký tự và làm thẻ cao vọt.
                 Text(
                     text = stringResource(
                         R.string.summary_sub_format,
@@ -765,29 +813,40 @@ private fun SummaryStatisticsCard(
                         "$netPrefix${MoneyFormatter.format(netBalance)}"
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {}
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.FileDownload,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.summary_export_file),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                if (transactionCount > 0 && onExport != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            // Hành động thật thì phải bấm trúng được: vùng chạm 48dp thay cho
+                            // hàng chữ ~20dp trước đây.
+                            .defaultMinSize(minHeight = 48.dp)
+                            .clip(AppTheme.shapes.corner12)
+                            .clickable(
+                                onClickLabel = stringResource(R.string.summary_export_file),
+                                onClick = onExport,
+                            )
+                            .padding(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.FileDownload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.summary_export_file),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -839,434 +898,11 @@ private fun DayGroupSection(
                 transaction = tx,
                 walletName = walletsMap[tx.walletId] ?: stringResource(R.string.wallet_fallback),
                 onClick = { onTransactionClick(tx.id) },
-                onEdit = { onEditTransaction(tx.id) },
-                onDelete = { onDeleteTransaction(tx) },
+                onEdit = if (tx.isInternalTransfer) null else ({ onEditTransaction(tx.id) }),
+                onDelete = if (tx.isInternalTransfer && tx.transferGroupId == null) null else ({ onDeleteTransaction(tx) }),
                 hapticEnabled = hapticFeedbackEnabled,
                 isSelected = tx.id == selectedTransactionId,
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DateRangeBottomSheet(
-    currentPreset: DateRangePreset,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onSelectPreset: (DateRangePreset) -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_time_period),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Clear,
-                        contentDescription = stringResource(R.string.action_close)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            DateRangePreset.entries.forEach { preset ->
-                val isSelected = preset == currentPreset
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectPreset(preset) }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = preset.labelVi,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun FilterBottomSheet(
-    currentType: TransactionType?,
-    isTransferOnly: Boolean,
-    currentCategoryIds: Set<String>,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onClearAll: () -> Unit,
-    onApply: (TransactionType?, Boolean, Set<String>) -> Unit,
-) {
-    var selectedType by remember { mutableStateOf(currentType) }
-    var selectedTransferOnly by remember { mutableStateOf(isTransferOnly) }
-    var selectedCategories by remember { mutableStateOf(currentCategoryIds) }
-
-    val expenseCategories = remember { Category.getAll().filter { !it.isIncome } }
-    val incomeCategories = remember { Category.getAll().filter { it.isIncome } }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_advanced),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = {
-                        selectedType = null
-                        selectedTransferOnly = false
-                        selectedCategories = emptySet()
-                        onClearAll()
-                    }) {
-                        Text(
-                            text = stringResource(R.string.filter_clear_all),
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Rounded.Clear,
-                            contentDescription = stringResource(R.string.action_close)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Phân loại: [ Tất cả ] [ Chi tiêu ] [ Thu nhập ] [ Chuyển khoản ]
-            Text(
-                text = stringResource(R.string.filter_classification),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val isAllSelected = selectedType == null && !selectedTransferOnly
-                FilterChip(
-                    selected = isAllSelected,
-                    onClick = {
-                        selectedType = null
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_all)) }
-                )
-                FilterChip(
-                    selected = selectedType == TransactionType.EXPENSE && !selectedTransferOnly,
-                    onClick = {
-                        selectedType = TransactionType.EXPENSE
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_expense)) }
-                )
-                FilterChip(
-                    selected = selectedType == TransactionType.INCOME && !selectedTransferOnly,
-                    onClick = {
-                        selectedType = TransactionType.INCOME
-                        selectedTransferOnly = false
-                    },
-                    label = { Text(stringResource(R.string.filter_type_income)) }
-                )
-                FilterChip(
-                    selected = selectedTransferOnly,
-                    onClick = {
-                        selectedType = null
-                        selectedTransferOnly = true
-                    },
-                    label = { Text(stringResource(R.string.filter_type_transfer)) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Danh mục Chi tiêu Grid
-            Text(
-                text = stringResource(R.string.filter_category_expense),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                expenseCategories.take(12).forEach { category ->
-                    val isCatSelected = category.id in selectedCategories
-                    FilterChip(
-                        selected = isCatSelected,
-                        onClick = {
-                            selectedCategories = if (isCatSelected) {
-                                selectedCategories - category.id
-                            } else {
-                                selectedCategories + category.id
-                            }
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(category.colorArgb))
-                            )
-                        },
-                        label = { Text(category.localizedName(), fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Danh mục Thu nhập Grid
-            Text(
-                text = stringResource(R.string.filter_category_income),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                incomeCategories.forEach { category ->
-                    val isCatSelected = category.id in selectedCategories
-                    FilterChip(
-                        selected = isCatSelected,
-                        onClick = {
-                            selectedCategories = if (isCatSelected) {
-                                selectedCategories - category.id
-                            } else {
-                                selectedCategories + category.id
-                            }
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(category.colorArgb))
-                            )
-                        },
-                        label = { Text(category.localizedName(), fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Nút Áp dụng lớn
-            Button(
-                onClick = {
-                    onApply(selectedType, selectedTransferOnly, selectedCategories)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_apply),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WalletPickerBottomSheet(
-    wallets: List<Wallet>,
-    selectedWalletId: Long?,
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
-    onSelectWallet: (Long?) -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.tx_select_wallet_sheet_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Clear,
-                        contentDescription = stringResource(R.string.action_close)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // "Tất cả tài khoản" option
-            val isAllSelected = selectedWalletId == null
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onSelectWallet(null) }
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.filter_all_accounts),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (isAllSelected) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
-
-            // Individual wallets
-            wallets.forEach { wallet ->
-                val isSelected = wallet.id == selectedWalletId
-                val icon = WalletUiHelper.getIcon(wallet.iconKey)
-                val color = WalletUiHelper.getColor(wallet.colorKey)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSelectWallet(wallet.id) }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(color.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = color,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = wallet.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
         }
     }
 }

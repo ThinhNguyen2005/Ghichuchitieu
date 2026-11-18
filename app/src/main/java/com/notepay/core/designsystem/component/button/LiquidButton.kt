@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -51,8 +51,9 @@ fun LiquidButton(
                 .clip(AppTheme.shapes.capsule)
                 .background(surface)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .height(52.dp)
-                .padding(horizontal = 20.dp),
+                // Không cố định height: nhãn 14sp ở font scale 2.0 cần nở chiều cao thay vì bị cắt.
+                .defaultMinSize(minHeight = 52.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
             content = content,

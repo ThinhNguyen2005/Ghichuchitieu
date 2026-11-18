@@ -3,7 +3,7 @@ package com.notepay.feature.onboarding
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.core.platform.LocaleHelper
@@ -108,8 +108,9 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(languageCode = code) }
         viewModelScope.launch {
             try {
-                appSettingsDataStore.setAppLanguage(code)
-                LocaleHelper.applyLocale(context, code)
+                val normalized = LocaleHelper.normalizeLanguageCode(code)
+                appSettingsDataStore.setAppLanguage(normalized)
+                LocaleHelper.applyLocale(context, normalized)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

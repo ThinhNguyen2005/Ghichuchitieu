@@ -5,20 +5,11 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.usecase.debt.DebtSummary
 
-enum class AssetChartRange {
-    WEEK,
-    MONTH,
-    HALF_YEAR,
-    YEAR
-}
-
-@Immutable
-data class AssetTrendPoint(
-    val timestampMs: Long,
-    val dateLabel: String,
-    val amount: Money,
-)
-
+/**
+ * Một phân đoạn của thanh phân bổ tài sản trên thẻ Ink.
+ *
+ * [percentage] nằm trong khoảng 0.0f - 1.0f và chỉ tính trên các ví có số dư dương.
+ */
 @Immutable
 data class WalletAllocationItem(
     val walletId: Long,
@@ -43,23 +34,21 @@ data class AssetsUiState(
     val totalNetWorth: Money = Money.ZERO,
     val wallets: List<WalletAssetItem> = emptyList(),
     val isLoading: Boolean = true,
-    val selectedChartRange: AssetChartRange = AssetChartRange.MONTH,
-    val trendPoints: List<AssetTrendPoint> = emptyList(),
+    val hasError: Boolean = false,
     val allocationItems: List<WalletAllocationItem> = emptyList(),
-    val netWorthChangeInPeriod: Money = Money.ZERO,
-    val netWorthChangePercentage: Float = 0f,
-    val isTransferSheetVisible: Boolean = false,
-    val transferFromWalletId: Long? = null,
-    val transferToWalletId: Long? = null,
-    val transferAmountInput: String = "",
-    val transferNote: String = "",
-    val isTransferSubmitting: Boolean = false,
+    /**
+     * Biến động số dư trong cửa sổ so sánh, tính theo phần trăm.
+     *
+     * null nghĩa là **không có cơ sở tính** (số dư đầu kỳ bằng 0), khác hẳn 0f là
+     * "đã tính được và không thay đổi".
+     */
+    val netWorthChangePercentage: Float? = null,
     val debtSummary: DebtSummary? = null,
 )
 
 /**
- * Trạng thái tức thời của form chuyển khoản nội bộ. Tách khỏi [AssetsUiState] để
- * ViewModel có thể ghép nó với luồng dữ liệu Room mà không phải restart luồng query.
+ * Trạng thái tức thời của form chuyển khoản, do ViewModel phát song song với [AssetsUiState]
+ * để gõ số tiền không phải restart luồng query và không phải chép lại từng trường.
  */
 @Immutable
 data class TransferFormState(
@@ -69,4 +58,11 @@ data class TransferFormState(
     val amountInput: String = "",
     val note: String = "",
     val isSubmitting: Boolean = false,
+    /**
+     * Lỗi từ tầng lưu trữ, hiển thị phía trên nút xác nhận.
+     *
+     * Lỗi nhập liệu không nằm ở đây: chúng được suy ra từ [validateTransfer] ngay trên UI để
+     * không bao giờ lệch với danh sách ví hiện tại.
+     */
+    val submitError: TransferError? = null,
 )

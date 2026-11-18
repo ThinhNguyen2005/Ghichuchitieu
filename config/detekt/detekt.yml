@@ -1,0 +1,87 @@
+config:
+  validation: true
+  warningsAsErrors: false
+
+empty-blocks:
+  EmptyKotlinFile:
+    active: true
+
+naming:
+  FunctionNaming:
+    active: true
+    excludes:
+      - '**/test/**'
+      - '**/testFull/**'
+      - '**/testPlay/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    active: true
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+  InvalidPackageDeclaration:
+    active: false
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongMethod:
+    active: true
+    allowedLines: 120
+    ignoreAnnotated: ['Composable', 'Preview']
+  LargeClass:
+    active: true
+    allowedLines: 700
+  TooManyFunctions:
+    active: true
+    excludes:
+      - '**/test/**'
+      - '**/testFull/**'
+      - '**/testPlay/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+    allowedFunctionsPerFile: 25
+    allowedFunctionsPerClass: 30
+    allowedFunctionsPerInterface: 20
+    ignoreOverridden: true
+    ignoreAnnotatedFunctions: ['Composable', 'Preview']
+  LongParameterList:
+    active: true
+    allowedFunctionParameters: 12
+    allowedConstructorParameters: 8
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 25
+    ignoreSimpleWhenEntries: true
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    active: false
+  ReturnCount:
+    active: false
+  UnusedPrivateFunction:
+    active: true
+    ignoreAnnotated: ['Preview']
+  UnusedPrivateProperty:
+    active: true
+    ignoreAnnotated: ['Preview']
+  UnusedParameter:
+    active: true
+    excludes:
+      - '**/core/navigation/**'
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: false

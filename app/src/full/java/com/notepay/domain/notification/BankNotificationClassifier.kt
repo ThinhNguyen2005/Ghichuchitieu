@@ -1,6 +1,6 @@
 package com.notepay.domain.notification
 
-import com.notepay.data.preferences.KnownBankApps
+import com.notepay.data.datastore.KnownBankApps
 import java.security.MessageDigest
 import java.util.Locale
 

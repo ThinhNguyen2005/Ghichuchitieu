@@ -1,7 +1,7 @@
 package com.notepay.ai
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.data.preferences.AiSettingsDataStore
+import com.notepay.data.datastore.AiSettingsDataStore
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf

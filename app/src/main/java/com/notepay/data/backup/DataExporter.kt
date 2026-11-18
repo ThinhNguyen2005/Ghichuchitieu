@@ -7,7 +7,7 @@ import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
 import com.notepay.R
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -53,7 +53,7 @@ class DataExporter @Inject constructor(
         val settings = try {
             budgetSettingsStore.settings.first()
         } catch (_: Exception) {
-            com.notepay.data.preferences.BudgetSettings()
+            com.notepay.data.datastore.BudgetSettings()
         }
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
@@ -80,7 +80,7 @@ class DataExporter @Inject constructor(
     suspend fun readFromFile(uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { stream ->
             BufferedReader(InputStreamReader(stream)).readText()
-        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
+        } ?: throw java.io.IOException(context.getString(R.string.backup_file_read_error))
     }
 
     private fun backupToJson(backup: BackupPackage): String {
@@ -124,6 +124,7 @@ class DataExporter @Inject constructor(
                 put("createdAt", t.createdAt)
                 put("isAutoCapture", t.isAutoCapture)
                 put("isInternalTransfer", t.isInternalTransfer)
+                put("transferGroupId", t.transferGroupId ?: JSONObject.NULL)
             })
         }
         data.put("transactions", txArr)

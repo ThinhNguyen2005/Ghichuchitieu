@@ -27,6 +27,7 @@ data class Transaction(
      *  Khi true, giao dịch được lưu nhưng không tính vào biểu đồ Stats để tránh tính trùng. */
     val isInternalTransfer: Boolean = false,
     val createdAt: Instant = Clock.System.now(),
+    val transferGroupId: String? = null,
 ) {
     init {
         require(amount.amountInCents > 0L) { "Transaction amount must be positive" }

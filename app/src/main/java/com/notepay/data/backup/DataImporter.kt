@@ -14,7 +14,7 @@ import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.data.local.entity.WalletEntity
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.model.Category
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,7 +47,7 @@ class DataImporter @Inject constructor(
                 output.write(buffer, 0, count)
             }
             output.toString(Charsets.UTF_8.name())
-        } ?: throw Exception(context.getString(R.string.backup_file_read_error))
+        } ?: throw java.io.IOException(context.getString(R.string.backup_file_read_error))
     }
 
     /**
@@ -105,6 +105,7 @@ class DataImporter @Inject constructor(
                         createdAt = obj.getLong("createdAt"),
                         isAutoCapture = obj.optBoolean("isAutoCapture", false),
                         isInternalTransfer = obj.optBoolean("isInternalTransfer", false),
+                        transferGroupId = obj.optString("transferGroupId").takeIf { it.isNotBlank() && it != "null" },
                     ),
                 )
             }

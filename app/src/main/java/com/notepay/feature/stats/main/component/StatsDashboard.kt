@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,19 +23,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NorthEast
-import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.SouthEast
 import androidx.compose.material.icons.rounded.Warning
@@ -59,8 +61,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,6 +71,7 @@ import com.notepay.domain.money.Money
 import com.notepay.feature.stats.main.MonthlyTrendPoint
 import com.notepay.feature.stats.main.StatsUiState
 import com.notepay.feature.stats.main.TrendWindow
+import com.notepay.feature.stats.main.resolve
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
@@ -92,15 +93,29 @@ internal fun StatsDashboard(
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     onTrendWindowSelected: (TrendWindow) -> Unit,
+    onViewTypeChanged: (StatsViewType) -> Unit,
     supportingContent: @Composable (StatsMetric) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
+    // Đổi tab Thu/Chi phải đóng danh mục đang mở ngay trong handler: danh mục của tab cũ
+    // không tồn tại trong breakdown của tab mới. Để LaunchedEffect đuổi theo sẽ dư một frame
+    // hiển thị sai và thêm một lần recompose.
+    val handleMetricChanged: (StatsMetric) -> Unit = { newMetric ->
+        if (newMetric != metric) {
+            metric = newMetric
+            if (state.selectedCategory != null) onCategorySelected(null)
+        }
+    }
+
     // Tablet: lề bù để nội dung không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
     val windowLayout = LocalWindowLayout.current
     // Compact/Medium có thanh điều hướng nổi ở đáy nên phải chừa chỗ; chế độ rail thì không.
-    val bottomClearance = if (windowLayout.usesNavigationRail) 24.dp else 120.dp
+    val bottomClearance = if (windowLayout.usesNavigationRail) 24.dp else maxOf(
+        120.dp,
+        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+    )
 
     if (windowLayout == WindowLayout.Expanded) {
         // Expanded: biểu đồ + bộ lọc thời gian bên trái, phân tích chi tiết/insights bên phải.
@@ -123,13 +138,14 @@ internal fun StatsDashboard(
                         metric = metric,
                         viewType = viewType,
                         showAmounts = showAmounts,
-                        onMetricChanged = { metric = it },
+                        onMetricChanged = handleMetricChanged,
                         onPreviousMonth = onPreviousMonth,
                         onNextMonth = onNextMonth,
                         onSelectRange = onSelectRange,
                         onMonthSelected = onMonthSelected,
                         onCategorySelected = onCategorySelected,
                         onTrendWindowSelected = onTrendWindowSelected,
+                        onViewTypeChanged = onViewTypeChanged,
                     )
                 }
             }
@@ -161,13 +177,14 @@ internal fun StatsDashboard(
                     metric = metric,
                     viewType = viewType,
                     showAmounts = showAmounts,
-                    onMetricChanged = { metric = it },
+                    onMetricChanged = handleMetricChanged,
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
                     onSelectRange = onSelectRange,
                     onMonthSelected = onMonthSelected,
                     onCategorySelected = onCategorySelected,
                     onTrendWindowSelected = onTrendWindowSelected,
+                    onViewTypeChanged = onViewTypeChanged,
                 )
             }
             item { supportingContent(metric) }
@@ -189,11 +206,25 @@ private fun StatsChartPane(
     onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
     onTrendWindowSelected: (TrendWindow) -> Unit,
+    onViewTypeChanged: (StatsViewType) -> Unit,
 ) {
     val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
     val previousTotal = if (metric == StatsMetric.CHI_TIEU) state.previousExpense else state.previousIncome
     val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
     val breakdown = if (metric == StatsMetric.CHI_TIEU) state.breakdown else state.incomeBreakdown
+
+    // Bộ chuyển Phân bổ / Xu hướng nằm ngay trên biểu đồ nó điều khiển, không chiếm chỗ
+    // trên TopAppBar để tranh chỗ với tiêu đề màn hình.
+    val chartHeader: @Composable () -> Unit = {
+        if (state.currentPeriod?.range == StatsRange.MONTH) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                ViewModeToggle(viewType = viewType, onChanged = onViewTypeChanged)
+            }
+        }
+    }
 
     when (viewType) {
         StatsViewType.PHAN_BO -> OverviewCard(
@@ -205,6 +236,7 @@ private fun StatsChartPane(
             onPreviousMonth = onPreviousMonth,
             onNextMonth = onNextMonth,
             onSelectRange = onSelectRange,
+            chartHeader = chartHeader,
         ) {
             AllocationChartContent(
                 breakdown = breakdown,
@@ -224,6 +256,7 @@ private fun StatsChartPane(
             onPreviousMonth = onPreviousMonth,
             onNextMonth = onNextMonth,
             onSelectRange = onSelectRange,
+            chartHeader = chartHeader,
         ) {
             if (state.currentPeriod?.range == StatsRange.MONTH) {
                 TrendChartContent(
@@ -231,6 +264,8 @@ private fun StatsChartPane(
                     metric = metric,
                     isSelectedMonthCurrent = state.isCurrentMonth,
                     forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
+                    // Dự báo chỉ được cảnh báo khi có hạn mức tháng thật để so sánh.
+                    budget = state.budgetLimit,
                     showAmounts = showAmounts,
                     trendWindow = state.trendWindow,
                     onTrendWindowSelected = onTrendWindowSelected,
@@ -249,128 +284,66 @@ private fun StatsChartPane(
     }
 }
 
+/** Bộ chọn đơn Material 3 dùng chung cho các bộ lọc trên màn Thống kê. */
 @Composable
-internal fun StatsHeader(
-    viewType: StatsViewType,
-    onViewTypeChanged: (StatsViewType) -> Unit,
+internal fun <T> StatsSegmentedButtonRow(
+    options: List<Pair<T, String>>,
+    selected: T?,
+    onSelected: (T) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ViewModeToggle(
-        viewType = viewType,
-        onChanged = onViewTypeChanged,
-    )
+    SingleChoiceSegmentedButtonRow(modifier = modifier) {
+        options.forEachIndexed { index, (value, label) ->
+            val isSelected = value == selected
+            SegmentedButton(
+                selected = isSelected,
+                onClick = { onSelected(value) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                // M3 mặc định tô segment đang chọn bằng secondaryContainer (#F4F1EC) trên
+                // segment chưa chọn màu trắng: 1.13:1, dưới ngưỡng 3:1 của WCAG 1.4.11 nên
+                // không nhận ra được đang chọn mục nào. Tô bằng ink để đạt 17.5:1 và nâng
+                // vùng chạm lên 48dp (mặc định M3 là 40dp).
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                ),
+                modifier = Modifier.heightIn(min = 48.dp),
+                icon = {},
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
 }
 
-/**
- * Bộ chuyển chế độ xem (Phân bổ / Xu hướng):
- * Tab chưa chọn chỉ hiển thị icon, tab đang chọn mở rộng thành [Icon] + [Text] trên nền token Sand.
- * Mỗi tab dùng [Role.Tab], trạng thái selected và vùng chạm tối thiểu 48dp.
- */
+/** Bộ chọn một chế độ hiển thị bằng segmented buttons của Material 3. */
 @Composable
 private fun ViewModeToggle(
     viewType: StatsViewType,
     onChanged: (StatsViewType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = MaterialTheme.colorScheme.surfaceContainer
-    val selectedColor = MaterialTheme.colorScheme.surface
-    val selectedContentColor = MaterialTheme.colorScheme.onSurface
+    val options = listOf(
+        StatsViewType.PHAN_BO to stringResource(R.string.stats_view_allocation),
+        StatsViewType.XU_HUONG to stringResource(R.string.stats_view_trend),
+    )
 
-    Surface(
+    StatsSegmentedButtonRow(
+        options = options,
+        selected = viewType,
+        onSelected = onChanged,
         modifier = modifier,
-        shape = AppTheme.shapes.corner16,
-        color = trackColor,
-        shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            val isPhanBo = viewType == StatsViewType.PHAN_BO
-            val allocationLabel = stringResource(R.string.stats_view_allocation)
-
-            // 1. Tab Phân bổ
-            Surface(
-                modifier = Modifier
-                    .clip(AppTheme.shapes.corner12)
-                    .semantics { contentDescription = allocationLabel }
-                    .selectable(
-                        selected = isPhanBo,
-                        role = Role.Tab,
-                        onClick = { onChanged(StatsViewType.PHAN_BO) },
-                    ),
-                shape = AppTheme.shapes.corner12,
-                color = if (isPhanBo) selectedColor else Color.Transparent,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .padding(horizontal = if (isPhanBo) 12.dp else 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.PieChart,
-                        contentDescription = null,
-                        tint = if (isPhanBo) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    if (isPhanBo) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            allocationLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = selectedContentColor,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-
-            // 2. Tab Xu hướng
-            val isXuHuong = viewType == StatsViewType.XU_HUONG
-            val trendLabel = stringResource(R.string.stats_view_trend)
-            Surface(
-                modifier = Modifier
-                    .clip(AppTheme.shapes.corner12)
-                    .semantics { contentDescription = trendLabel }
-                    .selectable(
-                        selected = isXuHuong,
-                        role = Role.Tab,
-                        onClick = { onChanged(StatsViewType.XU_HUONG) },
-                    ),
-                shape = AppTheme.shapes.corner12,
-                color = if (isXuHuong) selectedColor else Color.Transparent,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .padding(horizontal = if (isXuHuong) 12.dp else 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.BarChart,
-                        contentDescription = null,
-                        tint = if (isXuHuong) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    if (isXuHuong) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            trendLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = selectedContentColor,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -383,6 +356,7 @@ private fun OverviewCard(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectRange: (StatsRange) -> Unit,
+    chartHeader: (@Composable () -> Unit)? = null,
     chartContent: (@Composable () -> Unit)? = null,
 ) {
     val previousExpense = state.previousExpense
@@ -404,21 +378,14 @@ private fun OverviewCard(
                 StatsRange.YEAR to stringResource(R.string.stats_range_year),
                 StatsRange.ALL to stringResource(R.string.stats_range_all)
             )
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
-                for (index in ranges.indices) {
-                    val (range, label) = ranges[index]
-                    SegmentedButton(
-                        selected = state.currentPeriod?.range == range,
-                        onClick = { onSelectRange(range) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ranges.size),
-                        icon = {},
-                    ) {
-                        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                    }
-                }
-            }
+            StatsSegmentedButtonRow(
+                options = ranges,
+                selected = state.currentPeriod?.range,
+                onSelected = onSelectRange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+            )
 
             // Month navigation row
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -439,7 +406,8 @@ private fun OverviewCard(
                     Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month) else state.dateRangeLabel,
+                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month)
+                        else state.dateRangeLabel.resolve(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -454,7 +422,12 @@ private fun OverviewCard(
             }
 
             // 2 Metric Cards: Chi tiêu | Thu nhập
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectableGroup(),
+            ) {
                 MetricCard(
                     title = stringResource(R.string.stats_expense),
                     amount = state.totalExpense,
@@ -548,6 +521,7 @@ private fun OverviewCard(
             }
 
             chartContent?.let { content ->
+                chartHeader?.invoke()
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f))
                 content()
             }
@@ -607,7 +581,7 @@ private fun MetricCard(
             .clip(shape)
             .selectable(
                 selected = active,
-                role = Role.Tab,
+                role = Role.RadioButton,
                 onClick = onClick,
             ),
         shape = shape,

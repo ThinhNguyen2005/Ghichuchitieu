@@ -21,9 +21,10 @@ val InterFontFamily = FontFamily(
 /**
  * Lớp kiểu chữ ngữ nghĩa của v4 "Sand & Ink" (DESIGN.md §3).
  *
- * Thang chữ chung (title / body / label) nằm ở [NotePayTypography]; lớp này chỉ giữ những
- * style đặc thù của v4: tiêu đề serif, nhãn eyebrow và bộ số tiền bật `tnum`.
+ * Tích hợp toàn bộ thang chữ NotePay vào AppTheme.typography để các component
+ * không phải trộn lẫn giữa MaterialTheme và AppTheme.
  * Số tiền luôn dùng Inter + `tnum`, không dùng font serif.
+ * Toàn bộ kiểu chữ đều tuân thủ kích thước tối thiểu >= 12sp.
  */
 @Immutable
 data class AppTypography(
@@ -31,7 +32,22 @@ data class AppTypography(
     val eyebrow: TextStyle,
     val amountHero: TextStyle,
     val amountCard: TextStyle,
-    val amountRow: TextStyle
+    val amountRow: TextStyle,
+    val displayLarge: TextStyle = NotePayTypography.displayLarge,
+    val displayMedium: TextStyle = NotePayTypography.displayMedium,
+    val displaySmall: TextStyle = NotePayTypography.displaySmall,
+    val headlineLarge: TextStyle = NotePayTypography.headlineLarge,
+    val headlineMedium: TextStyle = NotePayTypography.headlineMedium,
+    val headlineSmall: TextStyle = NotePayTypography.headlineSmall,
+    val titleLarge: TextStyle = NotePayTypography.titleLarge,
+    val titleMedium: TextStyle = NotePayTypography.titleMedium,
+    val titleSmall: TextStyle = NotePayTypography.titleSmall,
+    val bodyLarge: TextStyle = NotePayTypography.bodyLarge,
+    val bodyMedium: TextStyle = NotePayTypography.bodyMedium,
+    val bodySmall: TextStyle = NotePayTypography.bodySmall,
+    val labelLarge: TextStyle = NotePayTypography.labelLarge,
+    val labelMedium: TextStyle = NotePayTypography.labelMedium,
+    val labelSmall: TextStyle = NotePayTypography.labelSmall,
 )
 
 val DefaultAppTypography = AppTypography(
@@ -43,9 +59,9 @@ val DefaultAppTypography = AppTypography(
     ),
     eyebrow = TextStyle(
         fontFamily = InterFontFamily,
-        fontSize = 11.sp,
+        fontSize = 12.sp, // Tối thiểu 12sp theo chuẩn WCAG
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 14.sp,
+        lineHeight = 16.sp,
         letterSpacing = 0.08.em
     ),
     amountHero = TextStyle(

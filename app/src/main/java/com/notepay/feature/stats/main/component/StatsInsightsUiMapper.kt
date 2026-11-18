@@ -4,9 +4,7 @@ import com.notepay.R
 import com.notepay.domain.analytics.DynamicDailyBudgetResult
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceSignal
-import com.notepay.domain.analytics.StatsAdviceType
 import com.notepay.domain.analytics.StatsEarlyWarning
-import com.notepay.domain.analytics.StatsForecastResult
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.feature.stats.main.AiAdviceItem
@@ -18,63 +16,38 @@ import java.util.Locale
 import kotlin.math.abs
 
 object StatsInsightsUiMapper {
-    fun mapForecast(result: StatsForecastResult, limitInCents: Long?): BudgetForecast {
-        val parts = buildList {
-            add(
-                StatsUiText.Resource(
-                    R.string.stats_insight_forecast_format,
-                    listOf(
-                        MoneyFormatter.format(Money(result.dailyAverageInCents)),
-                        MoneyFormatter.format(Money(result.projectedSpendInCents)),
-                    ),
-                ),
-            )
-            if (result.isProjectedToExceed && limitInCents != null) {
-                add(
-                    StatsUiText.Resource(
-                        R.string.stats_insight_forecast_exceeded,
-                        listOf(MoneyFormatter.format(Money(limitInCents))),
-                    ),
-                )
-            }
-            result.previousMonthDailyAverageInCents
-                ?.takeIf { it > 0L }
-                ?.let { previous ->
-                    add(
-                        StatsUiText.Resource(
-                            R.string.stats_insight_forecast_previous,
-                            listOf(MoneyFormatter.format(Money(previous))),
-                        ),
-                    )
-                }
-        }
-        return BudgetForecast(
-            dailyAverage = Money(result.dailyAverageInCents),
-            projectedSpend = Money(result.projectedSpendInCents),
-            forecastMessage = StatsUiText.Composite(parts),
-            isProjectedToExceed = result.isProjectedToExceed,
-            previousMonthDailyAverage = result.previousMonthDailyAverageInCents?.let(::Money),
-            trendPercent = result.trendPercent,
-            trendMessage = mapTrend(result.trendPercent),
-        )
-    }
-
+    /**
+     * [overBudgetProbabilityPercent] là phần trăm (0-100) đã nhân sẵn để tài nguyên hiển thị đúng
+     * ngôn ngữ; `null` khi mô hình không đủ dữ liệu để ước lượng.
+     */
     fun mapPrediction(
         prediction: SpendingPrediction,
         limitInCents: Long?,
-        probabilitySuffix: String = "",
+        overBudgetProbabilityPercent: Int? = null,
     ): BudgetForecast {
+        val messageParts = buildList {
+            add(
+                StatsUiText.Resource(
+                    R.string.stats_forecast_message,
+                    listOf(
+                        MoneyFormatter.format(Money(prediction.dailyRunRateInCents)),
+                        MoneyFormatter.format(Money(prediction.predictedMonthTotalInCents)),
+                    ),
+                ),
+            )
+            overBudgetProbabilityPercent?.let { percent ->
+                add(
+                    StatsUiText.Resource(
+                        R.string.stats_forecast_probability_suffix,
+                        listOf(percent),
+                    ),
+                )
+            }
+        }
         return BudgetForecast(
             dailyAverage = Money(prediction.dailyRunRateInCents),
             projectedSpend = Money(prediction.predictedMonthTotalInCents),
-            forecastMessage = StatsUiText.Resource(
-                R.string.stats_forecast_message,
-                listOf(
-                    MoneyFormatter.format(Money(prediction.dailyRunRateInCents)),
-                    MoneyFormatter.format(Money(prediction.predictedMonthTotalInCents)),
-                    probabilitySuffix,
-                ),
-            ),
+            forecastMessage = StatsUiText.Composite(messageParts),
             isProjectedToExceed = limitInCents != null && prediction.predictedMonthTotalInCents > limitInCents,
             trendPercent = prediction.trendVsPreviousMonth?.times(100)?.toFloat(),
             prediction = prediction,
@@ -117,7 +90,7 @@ object StatsInsightsUiMapper {
         when (signal) {
             is StatsAdviceSignal.FoodShare -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_advice_food_title),
                 content = StatsUiText.Resource(
                     R.string.stats_advice_food_content,
@@ -128,7 +101,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.UpcomingSubscription -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_advice_bill_title),
                 content = StatsUiText.Resource(
                     R.string.stats_advice_bill_content,
@@ -138,7 +111,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.SpendingSpike -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_engine_advice_spike_title),
                 content = StatsUiText.Resource(
                     R.string.stats_engine_advice_spike_content,
@@ -152,7 +125,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.TrendChange -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(
                     if (signal.isIncrease) R.string.stats_engine_advice_trend_up_title
                     else R.string.stats_engine_advice_trend_down_title,
@@ -166,7 +139,7 @@ object StatsInsightsUiMapper {
             )
             is StatsAdviceSignal.Saving -> AiAdviceItem(
                 id = signal.id,
-                type = signal.type.asUiType(),
+                type = signal.type,
                 title = StatsUiText.Resource(R.string.stats_engine_advice_saving_title),
                 content = StatsUiText.Resource(
                     R.string.stats_engine_advice_saving_content,
@@ -176,19 +149,4 @@ object StatsInsightsUiMapper {
             )
         }
     }
-
-    private fun mapTrend(trendPercent: Float?): StatsUiText? = when {
-        trendPercent == null -> null
-        trendPercent > 5f -> StatsUiText.Resource(
-            R.string.stats_insight_trend_up,
-            listOf("%.0f".format(Locale.ROOT, trendPercent)),
-        )
-        trendPercent < -5f -> StatsUiText.Resource(
-            R.string.stats_insight_trend_down,
-            listOf("%.0f".format(Locale.ROOT, -trendPercent)),
-        )
-        else -> StatsUiText.Resource(R.string.stats_insight_trend_stable)
-    }
-
-    private fun StatsAdviceType.asUiType(): String = name.lowercase(Locale.ROOT)
 }

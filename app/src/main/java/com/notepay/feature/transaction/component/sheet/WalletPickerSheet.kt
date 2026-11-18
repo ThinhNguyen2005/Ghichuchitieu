@@ -2,36 +2,40 @@ package com.notepay.feature.transaction.component.sheet
 
 import com.notepay.core.designsystem.theme.AppTheme
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.R
@@ -78,7 +82,12 @@ fun WalletPickerSheet(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.action_close),
+                    )
+                }
             }
             if (wallets.isEmpty()) {
                 Text(
@@ -97,7 +106,9 @@ fun WalletPickerSheet(
                     if (onAllWalletsSelected != null) {
                         item(key = "wallet_picker_all") {
                             WalletPickerRow(
-                                label = stringResource(R.string.home_all_wallets),
+                                title = stringResource(R.string.home_all_wallets),
+                                icon = Icons.Rounded.AccountBalanceWallet,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 isSelected = selectedWalletId == null,
                                 onClick = {
                                     onAllWalletsSelected()
@@ -111,7 +122,10 @@ fun WalletPickerSheet(
                     }
                     items(wallets, key = { it.id }) { wallet ->
                         WalletPickerRow(
-                            wallet = wallet,
+                            title = wallet.name,
+                            subtitle = wallet.bankBin?.takeIf { it.isNotBlank() },
+                            icon = WalletUiHelper.getIcon(wallet.iconKey),
+                            iconTint = WalletUiHelper.getColor(wallet.colorKey),
                             isSelected = wallet.id == selectedWalletId,
                             onClick = {
                                 onWalletSelected(wallet.id)
@@ -130,96 +144,63 @@ fun WalletPickerSheet(
 
 @Composable
 private fun WalletPickerRow(
-    label: String,
+    title: String,
+    icon: ImageVector,
+    iconTint: Color,
     isSelected: Boolean,
     onClick: () -> Unit,
+    subtitle: String? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(AppTheme.shapes.corner12)
-            // Trạng thái đang chọn dùng nền sand nhạt (điểm sáng của v4), không dùng viền.
-            .background(if (isSelected) selectedRowColor() else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.AccountBalanceWallet,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (isSelected) {
-            Icon(
-                imageVector = Icons.Rounded.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun selectedRowColor(): Color =
-    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-
-@Composable
-private fun WalletPickerRow(
-    wallet: Wallet,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(AppTheme.shapes.corner12)
-            .background(if (isSelected) selectedRowColor() else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(AppTheme.shapes.corner12)
-                .padding(2.dp),
-        ) {
-            Icon(
-                imageVector = WalletUiHelper.getIcon(wallet.iconKey),
-                contentDescription = null,
-                tint = WalletUiHelper.getColor(wallet.colorKey),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
+    ListItem(
+        headlineContent = {
             Text(
-                text = wallet.name,
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
             )
-            if (!wallet.bankBin.isNullOrBlank()) {
+        },
+        supportingContent = subtitle?.let { text ->
+            {
                 Text(
-                    text = wallet.bankBin,
+                    text = text,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        if (isSelected) {
+        },
+        leadingContent = {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = iconTint,
             )
-        }
-    }
+        },
+        trailingContent = if (isSelected) {
+            {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else null,
+        colors = ListItemDefaults.colors(
+            containerColor = if (isSelected) selectedRowColor() else Color.Transparent,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(AppTheme.shapes.corner12)
+            .selectable(
+                selected = isSelected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            ),
+    )
 }
+
+@Composable
+private fun selectedRowColor(): Color =
+    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)

@@ -6,6 +6,7 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.analytics.SpendingPrediction
+import com.notepay.domain.analytics.StatsAdviceType
 import com.notepay.domain.analytics.BudgetAdvisorResult
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.StatsPeriod
@@ -79,7 +80,8 @@ data class DynamicDailyBudgetData(
 @Immutable
 data class AiAdviceItem(
     val id: String,
-    val type: String, // "warning", "info", "success"
+    /** Mức độ của tín hiệu lấy thẳng từ enum domain, không qua chuỗi trung gian. */
+    val type: StatsAdviceType,
     val title: StatsUiText,
     val content: StatsUiText,
     val categoryId: String? = null,
@@ -117,7 +119,8 @@ data class StatsUiState(
     // Thuộc tính mới phục vụ bộ lọc & hạn mức
     val wallets: List<Wallet> = emptyList(),
     val selectedWallet: Wallet? = null,
-    val dateRangeLabel: String = "",
+    /** Nhãn kỳ đang xem, dạng tài nguyên để đổi ngôn ngữ là giao diện cập nhật ngay. */
+    val dateRangeLabel: StatsUiText = StatsUiText.Plain(""),
     val budgetLimit: Money? = null,
     val budgetSpent: Money = Money.ZERO,
     val budgetPercentage: Float = 0f,

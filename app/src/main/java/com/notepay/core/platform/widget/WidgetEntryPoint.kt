@@ -1,6 +1,6 @@
 package com.notepay.core.platform.widget
 
-import com.notepay.data.preferences.BudgetSettingsStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase

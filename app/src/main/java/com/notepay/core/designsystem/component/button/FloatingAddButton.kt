@@ -9,14 +9,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import com.notepay.core.designsystem.theme.isAppDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -28,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.notepay.core.designsystem.theme.AppTheme
 
 @Composable
 fun FloatingAddButton(
@@ -54,12 +53,7 @@ fun FloatingAddButton(
         label = "addPressScale",
     )
     val shape = CircleShape
-    val darkTheme = isAppDarkTheme()
-    val buttonSurface = if (darkTheme) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
-    } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
-    }
+    val buttonSurface = AppTheme.colors.ink
 
     Box(
         modifier = modifier
@@ -70,7 +64,7 @@ fun FloatingAddButton(
                 scaleY = scale
             }
             .clip(shape)
-            .background(buttonSurface.copy(alpha = 1f))
+            .background(buttonSurface)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = interactionSource,
@@ -83,7 +77,7 @@ fun FloatingAddButton(
         Icon(
             imageVector = Icons.Rounded.Add,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onPrimary,
+            tint = AppTheme.colors.onInk,
             modifier = Modifier
                 .size(30.dp)
                 .graphicsLayer { rotationZ = iconRotation },

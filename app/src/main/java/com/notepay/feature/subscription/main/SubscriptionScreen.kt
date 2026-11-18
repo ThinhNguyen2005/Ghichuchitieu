@@ -98,7 +98,7 @@ private enum class ReminderFilter {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionScreen(
-    navigationBarOffset: Float = 0f,
+    @Suppress("UnusedParameter") navigationBarOffset: Float = 0f,
     initialShowCreate: Boolean = false,
     onClearShowCreate: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -269,7 +269,6 @@ fun SubscriptionScreen(
                     1 -> ReminderListTab(
                         subscriptions = state.allSubscriptions,
                         query = searchQuery,
-                        isSearchActive = isSearchActive,
                         onDelete = { viewModel.deleteSubscription(it.id) },
                         bottomPadding = bottomPadding,
                     )
@@ -461,7 +460,6 @@ private fun CalendarTab(
 private fun ReminderListTab(
     subscriptions: List<Subscription>,
     query: String,
-    isSearchActive: Boolean,
     onDelete: (Subscription) -> Unit,
     bottomPadding: Dp,
 ) {

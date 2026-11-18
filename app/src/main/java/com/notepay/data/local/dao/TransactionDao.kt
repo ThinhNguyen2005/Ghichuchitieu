@@ -40,14 +40,23 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM transactions WHERE transfer_group_id = :groupId")
+    suspend fun getByTransferGroupId(groupId: String): List<TransactionEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE wallet_id = :walletId AND (is_internal_transfer = 1 OR transfer_group_id IS NOT NULL))")
+    suspend fun hasInternalTransfer(walletId: Long): Boolean
+
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     fun observeById(id: Long): Flow<TransactionEntity?>
 
     @Upsert
     suspend fun upsert(entity: TransactionEntity): Long
 
-    @Query("DELETE FROM transactions WHERE id = :id")
+    @Query("DELETE FROM transactions WHERE id = :id AND is_internal_transfer = 0 AND transfer_group_id IS NULL")
     suspend fun delete(id: Long)
+
+    @Query("DELETE FROM transactions WHERE transfer_group_id = :groupId")
+    suspend fun deleteTransferGroup(groupId: String)
 
     /**
      * Tìm giao dịch có note chứa chuỗi [noteKeyword] trong khoảng thời gian chỉ định.

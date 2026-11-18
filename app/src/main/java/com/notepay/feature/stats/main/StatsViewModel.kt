@@ -1,43 +1,43 @@
 package com.notepay.feature.stats.main
 
 import android.content.Context
-import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.util.localizedName
+import com.notepay.data.datastore.AdvisorFeedbackStore
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.CategoryExpenseShare
-import com.notepay.domain.analytics.DailyExpense
 import com.notepay.domain.analytics.SpendingForecastEngine
+import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceInput
 import com.notepay.domain.analytics.StatsInsightsCalculator
 import com.notepay.domain.analytics.StatsPeriod
 import com.notepay.domain.analytics.StatsRange
+import com.notepay.domain.analytics.StatsSnapshotCalculator
+import com.notepay.domain.analytics.StatsSnapshotInput
 import com.notepay.domain.analytics.StatsSummaryCalculator
-import com.notepay.domain.analytics.comparablePreviousRange
 import com.notepay.domain.analytics.customPeriod
-import com.notepay.domain.analytics.hasComparableData
 import com.notepay.domain.analytics.periodFor
 import com.notepay.domain.analytics.shift
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Subscription
-import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.DetectSubscriptionUseCase
 import com.notepay.feature.stats.main.component.StatsInsightsUiMapper
-import com.notepay.core.designsystem.formatter.PresentationDateFormatter
-import com.notepay.core.designsystem.util.localizedName
+import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,33 +49,40 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
-import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
-import kotlin.collections.iterator
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-@OptIn(ExperimentalCoroutinesApi::class)
+/**
+ * Trạng thái màn hình Thống kê.
+ *
+ * Toàn bộ số liệu tiền tệ được tính bởi [StatsSnapshotCalculator] và các calculator trong
+ * `domain/analytics`; ViewModel chỉ ánh xạ chúng sang [StatsUiState] và điều phối sự kiện.
+ * `Context` chỉ dùng để tra chuỗi đa ngôn ngữ (tên danh mục cho trợ lý AI), không dùng cho
+ * phép tính hay lưu trữ.
+ */
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val transactionRepo: TransactionRepository,
     private val walletRepo: WalletRepository,
     private val subscriptionRepo: SubscriptionRepository,
+    private val advisorFeedbackStore: AdvisorFeedbackStore,
     @param:ApplicationContext private val context: Context,
     private val budgetAdvisor: OnDeviceBudgetAdvisor,
 ) : ViewModel() {
 
-    private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    private val zone = TimeZone.currentSystemDefault()
+    private val today: LocalDate = Clock.System.now().toLocalDateTime(zone).date
+
     private val _currentPeriod = MutableStateFlow(
-        periodFor(LocalDate(now.year, now.month, 1), StatsRange.MONTH)
+        periodFor(LocalDate(today.year, today.month.number, 1), StatsRange.MONTH)
     )
     val currentPeriod: StateFlow<StatsPeriod> = _currentPeriod.asStateFlow()
 
@@ -104,12 +111,25 @@ class StatsViewModel @Inject constructor(
         FilterState(period, walletId, window)
     }.distinctUntilChanged()
 
-    private val advicePrefs = context.getSharedPreferences("notepay_ai_feedback", Context.MODE_PRIVATE)
-    private val _adviceFeedbacks = MutableStateFlow<Map<String, Int>>(
-        advicePrefs.all.mapValues { it.value as? Int ?: 0 }
-    )
+    /**
+     * Đầu vào đã tính sẵn của trợ lý AI. Tên danh mục chỉ được tra cứu vào lúc người dùng bấm
+     * "Gợi ý", nhờ vậy pipeline tính toán không phụ thuộc ngôn ngữ đang hiển thị.
+     */
+    private data class AdvisorRequest(
+        val prediction: SpendingPrediction,
+        val budgetLimitInCents: Long?,
+        val incomeInCents: Long,
+        val categoryShares: List<CategoryShare>,
+    ) {
+        data class CategoryShare(
+            val category: Category,
+            val amountInCents: Long,
+            val share: Float,
+        )
+    }
+
     private val _localAdvisor = MutableStateFlow(LocalAdvisorUiState())
-    @Volatile private var latestAdvisorInput: BudgetAdvisorInput? = null
+    @Volatile private var latestAdvisorRequest: AdvisorRequest? = null
 
     init {
         viewModelScope.launch {
@@ -118,9 +138,8 @@ class StatsViewModel @Inject constructor(
     }
 
     fun sendAdviceFeedback(adviceId: String, score: Int) {
-        advicePrefs.edit { putInt(adviceId, score) }
-        _adviceFeedbacks.update { current ->
-            current.toMutableMap().apply { this[adviceId] = score }
+        viewModelScope.launch {
+            advisorFeedbackStore.setFeedback(adviceId, score)
         }
     }
 
@@ -128,70 +147,27 @@ class StatsViewModel @Inject constructor(
         transactionRepo.observeAll(),
         walletRepo.observeAll(),
         subscriptionRepo.observeAll(),
-        _adviceFeedbacks,
-        filterState
+        advisorFeedbackStore.feedbacks,
+        filterState,
     ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
-        val selectedWalletId = filters.selectedWalletId
         val period = filters.period
 
-        val zone = TimeZone.currentSystemDefault()
-        
-        // 1. Tạo date range label hiển thị trên UI từ period
-        val dateRangeLabel = when (period.range) {
-            StatsRange.MONTH -> {
-                val anchor = period.start ?: now.date
-                context.getString(R.string.stats_date_month_format, anchor.month.number, anchor.year)
-            }
-            StatsRange.WEEK -> {
-                val s = period.start ?: now.date
-                val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
-                context.getString(R.string.stats_date_week_format, s.day, s.month.number, e.day, e.month.number)
-            }
-            StatsRange.YEAR -> {
-                val anchor = period.start ?: now.date
-                context.getString(R.string.stats_date_year_format, anchor.year)
-            }
-            StatsRange.ALL -> context.getString(R.string.stats_date_all_time)
-            StatsRange.CUSTOM -> {
-                val s = period.start ?: now.date
-                val e = period.endExclusive?.minus(DatePeriod(days = 1)) ?: now.date
-                "${s.day}/${s.month.number}/${s.year} - ${e.day}/${e.month.number}/${e.year}"
-            }
-        }
+        // 1. Số liệu gốc: lọc theo kỳ + ví, so sánh kỳ trước, hạn mức, chi tiêu hôm nay.
+        val snapshot = StatsSnapshotCalculator.snapshot(
+            StatsSnapshotInput(
+                transactions = allTransactions,
+                wallets = wallets,
+                period = period,
+                selectedWalletId = filters.selectedWalletId,
+                trendWindowMonths = filters.trendWindow.months,
+                today = today,
+                zone = zone,
+            ),
+        )
+        val limitInCents = snapshot.budgetLimitInCents
 
-        // 2. Lọc danh sách giao dịch theo period
-        val filteredTxs = allTransactions.filter { tx ->
-            val txDate = tx.occurredAt.toLocalDateTime(zone).date
-            val matchesTime = period.contains(txDate)
-            val matchesWallet = selectedWalletId == null || tx.walletId == selectedWalletId
-            matchesTime && matchesWallet
-        }
-
-        // 2.5 Tính toán so sánh với kỳ trước
-        val firstTxDate = allTransactions.minByOrNull { it.occurredAt }?.occurredAt?.toLocalDateTime(zone)?.date
-        val prevRange = comparablePreviousRange(period, now.date)
-        val hasData = hasComparableData(prevRange, firstTxDate)
-        
-        var previousExpense: Money? = null
-        var previousIncome: Money? = null
-        if (hasData && prevRange != null) {
-            var pExp = 0L
-            var pInc = 0L
-            allTransactions.forEach { tx ->
-                val txDate = tx.occurredAt.toLocalDateTime(zone).date
-                if (txDate in prevRange) {
-                    if (selectedWalletId == null || tx.walletId == selectedWalletId) {
-                        if (tx.type == TransactionType.EXPENSE) pExp += tx.amount.amountInCents
-                        else if (tx.type == TransactionType.INCOME) pInc += tx.amount.amountInCents
-                    }
-                }
-            }
-            previousExpense = Money(pExp)
-            previousIncome = Money(pInc)
-        }
-
-        // 4. Tính toán thu nhập, chi tiêu, breakdown
-        val summary = StatsSummaryCalculator.summarize(filteredTxs)
+        // 2. Tổng thu/chi và cơ cấu danh mục của kỳ đang xem.
+        val summary = StatsSummaryCalculator.summarize(snapshot.filteredTransactions)
         val income = Money(summary.totalIncomeInCents)
         val expense = Money(summary.totalExpenseInCents)
         val breakdown = summary.expenseBreakdown.map { item ->
@@ -209,141 +185,66 @@ class StatsViewModel @Inject constructor(
             )
         }
 
-        // 5. Xác định ví được chọn
-        val selectedWallet = wallets.find { it.id == selectedWalletId }
-
-        // 6. Tính toán hạn mức (Budget Progress)
-        val currentMonthStartEnd = getMonthRange(now.year, now.month.number)
-        val currentMonthTxs = allTransactions.filter {
-            val txMillis = it.occurredAt.toEpochMilliseconds()
-            txMillis >= currentMonthStartEnd.first && txMillis <= currentMonthStartEnd.second
-        }
-        val walletExpenseInCurrentMonth = currentMonthTxs.filter {
-            it.type == TransactionType.EXPENSE &&
-            (selectedWalletId == null || it.walletId == selectedWalletId)
-        }.fold(Money.ZERO) { acc, t -> acc + t.amount }
-
-        val limit = if (selectedWalletId != null) {
-            selectedWallet?.budgetLimit
-        } else {
-            val totalLimitCents = wallets.mapNotNull { it.budgetLimit?.amountInCents }.sum()
-            if (totalLimitCents > 0) Money(totalLimitCents) else null
-        }
-
-        val budgetPercentage = if (limit != null && limit.amountInCents > 0) {
-            walletExpenseInCurrentMonth.amountInCents.toFloat() / limit.amountInCents
-        } else {
-            0f
-        }
-
-        // 7. Dự báo chi tiêu cuối tháng (Forecast)
-        val isViewingCurrentMonth = period.range == StatsRange.MONTH && period.contains(now.date)
-        
-        val prediction = if (isViewingCurrentMonth) {
-            val dailyExpenses = allTransactions.asSequence()
-                .filter {
-                    it.type == TransactionType.EXPENSE &&
-                        (selectedWalletId == null || it.walletId == selectedWalletId)
-                }
-                .groupBy { it.occurredAt.toLocalDateTime(zone).date }
-                .map { (date, rows) ->
-                    DailyExpense(date, rows.sumOf { it.amount.amountInCents })
-                }
+        // 3. Dự báo chi tiêu cuối tháng.
+        val prediction = if (snapshot.isViewingCurrentMonth) {
             SpendingForecastEngine.forecast(
-                expenses = dailyExpenses,
-                today = now.date,
-                daysInMonth = monthLength(now.year, now.month.number),
-                budgetLimitInCents = limit?.amountInCents,
+                expenses = snapshot.dailyExpenses,
+                today = today,
+                daysInMonth = snapshot.daysInMonth,
+                budgetLimitInCents = limitInCents,
             )
-        } else null
-
+        } else {
+            null
+        }
         val forecast = prediction?.let { value ->
-            val probabilityText = value.overBudgetProbability?.let {
-                context.getString(R.string.stats_forecast_probability_suffix, (it * 100).toInt())
-            }.orEmpty()
-            StatsInsightsUiMapper.mapPrediction(value, limit?.amountInCents, probabilityText)
+            StatsInsightsUiMapper.mapPrediction(
+                prediction = value,
+                limitInCents = limitInCents,
+                overBudgetProbabilityPercent = value.overBudgetProbability
+                    ?.let { (it * 100).toInt() },
+            )
         }
 
-        // 8. Tính toán Dynamic Daily Budget
-        val daysInMonth = monthLength(now.year, now.month.number)
-        val currentDay = now.day.coerceIn(1, daysInMonth)
-
-        val todayStart = LocalDateTime(now.year, now.month.number, currentDay, 0, 0)
-            .toInstant(zone).toEpochMilliseconds()
-        val todayEnd = LocalDateTime(now.year, now.month.number, currentDay, 23, 59, 59, 999000000)
-            .toInstant(zone).toEpochMilliseconds()
-
-        val spentToday = currentMonthTxs.filter {
-            it.type == TransactionType.EXPENSE &&
-            (selectedWalletId == null || it.walletId == selectedWalletId) &&
-            it.occurredAt.toEpochMilliseconds() in todayStart..todayEnd
-        }.fold(Money.ZERO) { acc, t -> acc + t.amount }
-
-        val remainingDays = daysInMonth - currentDay + 1
-        val spentExceptToday = (walletExpenseInCurrentMonth.amountInCents - spentToday.amountInCents).coerceAtLeast(0L)
-        
-        val dynamicDailyBudget = if (limit != null && limit.amountInCents > 0 && isViewingCurrentMonth) {
+        // 4. Hạn mức chi tiêu linh hoạt cho riêng hôm nay.
+        val dynamicDailyBudget = if (limitInCents != null && limitInCents > 0L && snapshot.isViewingCurrentMonth) {
             StatsInsightsUiMapper.mapDynamicDailyBudget(
                 StatsInsightsCalculator.computeDynamicDailyBudget(
-                    limitInCents = limit.amountInCents,
-                    spentExceptTodayInCents = spentExceptToday,
-                    spentTodayInCents = spentToday.amountInCents,
-                    remainingDays = remainingDays,
-                    daysInMonth = daysInMonth,
-                    currentDay = currentDay,
-                    currentMonthExpenseInCents = walletExpenseInCurrentMonth.amountInCents,
+                    limitInCents = limitInCents,
+                    spentExceptTodayInCents =
+                        (snapshot.currentMonthExpenseInCents - snapshot.spentTodayInCents).coerceAtLeast(0L),
+                    spentTodayInCents = snapshot.spentTodayInCents,
+                    remainingDays = snapshot.remainingDays,
+                    daysInMonth = snapshot.daysInMonth,
+                    currentDay = snapshot.currentDay,
+                    currentMonthExpenseInCents = snapshot.currentMonthExpenseInCents,
                 ),
             )
         } else {
             null
         }
 
-        // 9. Smart Subscription Detection
-        val detectedSubscriptions = mutableListOf<DetectedSubscription>()
-        if (isViewingCurrentMonth) {
-            val expenses = allTransactions.filter { it.type == TransactionType.EXPENSE }
-            val groupedExpenses = expenses.groupBy { 
-                it.category.id to (it.amount.amountInCents / 500000L) // Group within 5,000 VND range
+        // 5. Phát hiện khoản chi định kỳ chưa được đăng ký.
+        val detectedSubscriptions = if (snapshot.isViewingCurrentMonth) {
+            DetectSubscriptionUseCase(
+                transactions = allTransactions,
+                activeSubscriptionNames = subscriptions.filter { it.isActive }.map { it.name },
+                displayNameOf = { category -> category.localizedName(context) },
+                zone = zone,
+            ).map { candidate ->
+                DetectedSubscription(
+                    name = candidate.name,
+                    amount = Money(candidate.amountInCents),
+                    category = candidate.category,
+                    repeatMonths = candidate.repeatMonths,
+                    possibleNextDueDate = candidate.nextDueEpochMs,
+                )
             }
-
-            for ((_, txList) in groupedExpenses) {
-                if (txList.size >= 2) {
-                    val sortedTx = txList.sortedBy { it.occurredAt }
-                    for (i in 0 until sortedTx.size - 1) {
-                        val tx1 = sortedTx[i]
-                        val tx2 = sortedTx[i + 1]
-                        val daysBetween = (tx2.occurredAt - tx1.occurredAt).inWholeDays
-                        if (daysBetween in 27..33) {
-                            val possibleName = cleanSubscriptionName(tx2.note.ifBlank { tx2.category.localizedName(context) })
-                            
-                            val alreadyRegistered = subscriptions.any { sub ->
-                                sub.isActive && (
-                                    sub.name.contains(possibleName, ignoreCase = true) || 
-                                    possibleName.contains(sub.name, ignoreCase = true)
-                                )
-                            }
-                            
-                            if (!alreadyRegistered) {
-                                val nextDueDateEpoch = tx2.occurredAt.plus(DatePeriod(months = 1), zone)
-                                detectedSubscriptions.add(
-                                    DetectedSubscription(
-                                        name = possibleName,
-                                        amount = tx2.amount,
-                                        category = tx2.category,
-                                        repeatMonths = 1,
-                                        possibleNextDueDate = nextDueDateEpoch.toEpochMilliseconds()
-                                    )
-                                )
-                                break
-                            }
-                        }
-                    }
-                }
-            }
+        } else {
+            emptyList()
         }
 
-        // 10. Rule Engine Lời khuyên tài chính thông minh
-        val aiAdvices = if (isViewingCurrentMonth) {
+        // 6. Bộ luật gợi ý tài chính.
+        val aiAdvices = if (snapshot.isViewingCurrentMonth) {
             StatsInsightsUiMapper.mapAdviceSignals(
                 StatsInsightsCalculator.computeAdvices(
                     StatsAdviceInput(
@@ -357,12 +258,12 @@ class StatsViewModel @Inject constructor(
                         expenseInCents = expense.amountInCents,
                         incomeInCents = income.amountInCents,
                         subscriptions = subscriptions,
-                        currentMonthExpenseInCents = walletExpenseInCurrentMonth.amountInCents,
-                        spentTodayInCents = spentToday.amountInCents,
-                        currentDay = currentDay,
-                        daysInMonth = daysInMonth,
-                        remainingDays = remainingDays,
-                        limitInCents = limit?.amountInCents,
+                        currentMonthExpenseInCents = snapshot.currentMonthExpenseInCents,
+                        spentTodayInCents = snapshot.spentTodayInCents,
+                        currentDay = snapshot.currentDay,
+                        daysInMonth = snapshot.daysInMonth,
+                        remainingDays = snapshot.remainingDays,
+                        limitInCents = limitInCents,
                         previousMonthDailyAverageInCents = null,
                         feedbacks = feedbacks,
                         now = Clock.System.now(),
@@ -373,92 +274,69 @@ class StatsViewModel @Inject constructor(
             emptyList()
         }
 
-        val advisorInput = prediction?.let { value ->
-            BudgetAdvisorInput(
-                prediction = value,
-                budgetLimitInCents = limit?.amountInCents,
-                incomeThisMonthInCents = income.amountInCents,
-                categories = breakdown.map {
-                    AdvisorCategorySummary(
-                        name = it.category.localizedName(context),
-                        amountInCents = it.amount.amountInCents,
-                        share = it.percentage.toDouble(),
-                    )
-                },
-            )
-        }
-        if (latestAdvisorInput != advisorInput) {
-            latestAdvisorInput = advisorInput
-            _localAdvisor.update { current ->
-                LocalAdvisorUiState(
-                    availability = current.availability,
+        // 7. Ghi lại đầu vào trợ lý AI; đổi dữ liệu thì kết quả cũ không còn giá trị.
+        updateAdvisorRequest(
+            prediction?.let { value ->
+                AdvisorRequest(
+                    prediction = value,
+                    budgetLimitInCents = limitInCents,
+                    incomeInCents = income.amountInCents,
+                    categoryShares = breakdown.map {
+                        AdvisorRequest.CategoryShare(
+                            category = it.category,
+                            amountInCents = it.amount.amountInCents,
+                            share = it.percentage,
+                        )
+                    },
                 )
-            }
-        }
+            },
+        )
 
-        // Keep the trend chart deterministic and tied to the same wallet filter as this screen.
-        val anchor = period.start ?: now.date
-        val anchorYear = anchor.year
-        val anchorMonth = anchor.month.number
-        val recentMonths = ((filters.trendWindow.months - 1) downTo 0).map { offset ->
-            val absoluteMonth = anchorYear * 12 + (anchorMonth - 1) - offset
-            val trendYear = absoluteMonth / 12
-            val trendMonth = absoluteMonth % 12 + 1
-            val monthTransactions = allTransactions.asSequence().filter { transaction ->
-                val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
-                (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
-                    localDateTime.year == trendYear && localDateTime.month.number == trendMonth
-            }
-            val trendExpense = monthTransactions
-                .filter { it.type == TransactionType.EXPENSE }
-                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
-            val trendIncome = allTransactions.asSequence()
-                .filter { transaction ->
-                    val localDateTime = transaction.occurredAt.toLocalDateTime(zone)
-                    (selectedWalletId == null || transaction.walletId == selectedWalletId) &&
-                        localDateTime.year == trendYear &&
-                        localDateTime.month.number == trendMonth &&
-                        transaction.type == TransactionType.INCOME
-                }
-                .fold(Money.ZERO) { total, transaction -> total + transaction.amount }
-            MonthlyTrendPoint(trendYear, trendMonth, trendExpense, trendIncome)
+        // 8. Biểu đồ xu hướng dùng cùng bộ lọc ví với phần còn lại của màn hình.
+        val recentMonths = snapshot.trendMonths.map { month ->
+            MonthlyTrendPoint(
+                year = month.year,
+                month = month.month,
+                expense = Money(month.expenseInCents),
+                income = Money(month.incomeInCents),
+            )
         }
 
         StatsUiState(
             totalIncome = income,
             totalExpense = expense,
             balance = income - expense,
-            previousExpense = previousExpense,
-            previousIncome = previousIncome,
+            previousExpense = snapshot.previousExpenseInCents?.let(::Money),
+            previousIncome = snapshot.previousIncomeInCents?.let(::Money),
             currentPeriod = period,
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
             recentMonths = recentMonths,
             trendWindow = filters.trendWindow,
             isLoading = false,
-            isCurrentMonth = period.range == StatsRange.MONTH && period.contains(now.date),
-            isLatestPeriod = period.contains(now.date),
+            isCurrentMonth = snapshot.isViewingCurrentMonth,
+            isLatestPeriod = period.contains(today),
             selectedCategory = null,
-            transactions = filteredTxs,
+            transactions = snapshot.filteredTransactions,
             hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
-            selectedWallet = selectedWallet,
-            dateRangeLabel = dateRangeLabel,
-            budgetLimit = limit,
-            budgetSpent = walletExpenseInCurrentMonth,
-            budgetPercentage = budgetPercentage,
+            selectedWallet = wallets.find { it.id == filters.selectedWalletId },
+            dateRangeLabel = rangeLabel(period),
+            budgetLimit = limitInCents?.let(::Money),
+            budgetSpent = Money(snapshot.currentMonthExpenseInCents),
+            budgetPercentage = snapshot.budgetUsedRatio,
             spendingForecast = forecast,
             dynamicDailyBudget = dynamicDailyBudget,
             aiAdvices = aiAdvices,
-            detectedSubscriptions = detectedSubscriptions
+            detectedSubscriptions = detectedSubscriptions,
         )
     }
-    .flowOn(Dispatchers.Default)
-    .stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = StatsUiState(),
-    )
+        .flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = StatsUiState(),
+        )
 
     val state: StateFlow<StatsUiState> = combine(
         baseState,
@@ -479,7 +357,7 @@ class StatsViewModel @Inject constructor(
     )
 
     fun generateLocalAdvice() {
-        val input = latestAdvisorInput ?: return
+        val request = latestAdvisorRequest ?: return
         if (_localAdvisor.value.status == LocalAdvisorStatus.RUNNING) return
         _localAdvisor.value = _localAdvisor.value.copy(
             status = LocalAdvisorStatus.RUNNING,
@@ -487,8 +365,8 @@ class StatsViewModel @Inject constructor(
         )
         viewModelScope.launch {
             try {
-                val result = budgetAdvisor.generate(input)
-                if (latestAdvisorInput == input) {
+                val result = budgetAdvisor.generate(request.toAdvisorInput())
+                if (latestAdvisorRequest == request) {
                     _localAdvisor.value = LocalAdvisorUiState(
                         status = LocalAdvisorStatus.READY,
                         result = result,
@@ -503,16 +381,16 @@ class StatsViewModel @Inject constructor(
                     )
                 }
             } catch (cancelled: CancellationException) {
-                resetLocalAdviceAfterFailure(input)
+                resetLocalAdviceAfterFailure(request)
                 throw cancelled
             } catch (_: Throwable) {
-                resetLocalAdviceAfterFailure(input)
+                resetLocalAdviceAfterFailure(request)
             }
         }
     }
 
-    private fun resetLocalAdviceAfterFailure(input: BudgetAdvisorInput) {
-        if (latestAdvisorInput == input) {
+    private fun resetLocalAdviceAfterFailure(request: AdvisorRequest) {
+        if (latestAdvisorRequest == request) {
             _localAdvisor.update { current ->
                 current.copy(
                     status = LocalAdvisorStatus.NOT_REQUESTED,
@@ -531,9 +409,30 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    private fun updateAdvisorRequest(request: AdvisorRequest?) {
+        if (latestAdvisorRequest == request) return
+        latestAdvisorRequest = request
+        // Dữ liệu đã đổi: bỏ kết quả AI cũ nhưng giữ trạng thái khả dụng của model trên máy.
+        _localAdvisor.update { current -> LocalAdvisorUiState(availability = current.availability) }
+    }
+
+    private fun AdvisorRequest.toAdvisorInput(): BudgetAdvisorInput = BudgetAdvisorInput(
+        prediction = prediction,
+        budgetLimitInCents = budgetLimitInCents,
+        incomeThisMonthInCents = incomeInCents,
+        categories = categoryShares.map { share ->
+            AdvisorCategorySummary(
+                name = share.category.localizedName(context),
+                amountInCents = share.amountInCents,
+                share = share.share.toDouble(),
+            )
+        },
+    )
+
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
     }
+
     fun selectWallet(walletId: Long?) {
         _selectedWalletId.value = walletId
     }
@@ -548,7 +447,6 @@ class StatsViewModel @Inject constructor(
     fun nextPeriod() {
         val current = _currentPeriod.value
         val next = current.shift(1) ?: return
-        val today = now.date
         if (next.start != null && next.start > today) return
         _currentPeriod.value = next
         _selectedCategory.value = null
@@ -557,7 +455,7 @@ class StatsViewModel @Inject constructor(
     /** Select a historical trend bar without navigating away from the statistics screen. */
     fun selectMonth(year: Int, month: Int) {
         val candidate = MonthYear(year, month)
-        val latest = MonthYear(now.year, now.month.number)
+        val latest = MonthYear(today.year, today.month.number)
         if (candidate.year > latest.year || (candidate.year == latest.year && candidate.month > latest.month)) return
         _currentPeriod.value = periodFor(LocalDate(year, month, 1), StatsRange.MONTH)
         _selectedCategory.value = null
@@ -565,7 +463,7 @@ class StatsViewModel @Inject constructor(
 
     fun selectRange(range: StatsRange) {
         if (range == StatsRange.CUSTOM) return
-        _currentPeriod.value = periodFor(now.date, range)
+        _currentPeriod.value = periodFor(today, range)
         _selectedCategory.value = null
     }
 
@@ -583,51 +481,50 @@ class StatsViewModel @Inject constructor(
         _selectedTab.value = index
     }
 
-    private fun getMonthRange(year: Int, month: Int): Pair<Long, Long> {
-        val zone = TimeZone.currentSystemDefault()
-        val firstDate = LocalDate(year, month, 1)
-        val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
-        val first = LocalDateTime(firstDate.year, firstDate.month.number, firstDate.day, 0, 0)
-            .toInstant(zone)
-        val lastExclusive = LocalDateTime(nextMonth.year, nextMonth.month.number, nextMonth.day, 0, 0)
-            .toInstant(zone)
-        return first.toEpochMilliseconds() to (lastExclusive.toEpochMilliseconds() - 1)
-    }
-
-    private fun formatEpochMillis(millis: Long): String {
-        return PresentationDateFormatter.formatDate(Instant.fromEpochMilliseconds(millis))
-    }
-
-    private fun monthLength(year: Int, month: Int): Int {
-        val monthStart = LocalDate(year, month, 1)
-        return (monthStart.plus(1, DateTimeUnit.MONTH).toEpochDays() - monthStart.toEpochDays()).toInt()
-    }
-
-    private fun cleanSubscriptionName(note: String): String {
-        val lower = note.lowercase()
-        return when {
-            lower.contains("netflix") -> "Netflix"
-            lower.contains("spotify") -> "Spotify"
-            lower.contains("youtube") -> "YouTube Premium"
-            lower.contains("icloud") -> "iCloud"
-            lower.contains("google") -> "Google One"
-            lower.contains("canva") -> "Canva"
-            lower.contains("microsoft") || lower.contains("office365") -> "Microsoft 365"
-            else -> note.trim().replaceFirstChar { it.uppercase() }
+    /**
+     * Nhãn kỳ đang xem dưới dạng tài nguyên, không phải chuỗi đã dịch: đổi ngôn ngữ lúc app đang
+     * chạy sẽ cập nhật ngay mà không cần chờ một lần phát state mới.
+     */
+    private fun rangeLabel(period: StatsPeriod): StatsUiText {
+        val anchor = period.start ?: today
+        val endInclusive = period.endExclusive?.minus(DatePeriod(days = 1)) ?: today
+        return when (period.range) {
+            StatsRange.MONTH -> StatsUiText.Resource(
+                R.string.stats_date_month_format,
+                listOf(anchor.month.number, anchor.year),
+            )
+            StatsRange.WEEK -> StatsUiText.Resource(
+                R.string.stats_date_week_format,
+                listOf(anchor.day, anchor.month.number, endInclusive.day, endInclusive.month.number),
+            )
+            StatsRange.YEAR -> StatsUiText.Resource(
+                R.string.stats_date_year_format,
+                listOf(anchor.year),
+            )
+            StatsRange.ALL -> StatsUiText.Resource(R.string.stats_date_all_time)
+            StatsRange.CUSTOM -> StatsUiText.Resource(
+                R.string.stats_date_range_format,
+                listOf(formatDate(anchor), formatDate(endInclusive)),
+            )
         }
+    }
+
+    private fun formatDate(date: LocalDate): String {
+        val instant = LocalDateTime(date.year, date.month.number, date.day, 0, 0).toInstant(zone)
+        return PresentationDateFormatter.formatDate(instant, zone)
     }
 
     private val _addSubForm = MutableStateFlow(StatsAddSubscriptionFormState())
     val addSubForm: StateFlow<StatsAddSubscriptionFormState> = _addSubForm.asStateFlow()
 
-    fun showAddSubscription(name: String, amountCents: Long, categoryId: String, nextDueMs: Long) {
-        val amountStr = (amountCents / 100).toString()
+    /** Nhận thẳng model gợi ý: tránh truyền nhầm thứ tự 4 tham số rời (hai tham số Long cạnh nhau). */
+    fun showAddSubscription(subscription: DetectedSubscription) {
         _addSubForm.value = StatsAddSubscriptionFormState(
-            name = name,
-            amountInput = amountStr,
-            category = categoryId,
-            nextDueEpochMs = nextDueMs,
-            isVisible = true
+            name = subscription.name,
+            amountInput = (subscription.amount.amountInCents / 100).toString(),
+            category = subscription.category.id,
+            nextDueEpochMs = subscription.possibleNextDueDate,
+            isVisible = true,
         )
     }
 
@@ -666,22 +563,22 @@ class StatsViewModel @Inject constructor(
     fun saveSubscription() {
         val form = _addSubForm.value
         if (!form.canSave) return
-        
+        // Dùng chung bộ phân tích số tiền với form Giao dịch: sai định dạng thì không lưu,
+        // tránh tạo Subscription với amount <= 0 (ràng buộc require trong domain model).
+        val amount = AmountParser.parse(form.amountInput).amount ?: return
+
         viewModelScope.launch {
-            val cleanAmountInput = form.amountInput.replace(Regex("[^0-9]"), "")
-            val cents = (cleanAmountInput.toLongOrNull() ?: 0L) * 100
-            val newSub = Subscription(
-                id = 0L,
-                name = form.name,
-                amount = Money(cents),
-                category = form.category,
-                nextDueDate = Instant.fromEpochMilliseconds(form.nextDueEpochMs),
-                repeatMonths = form.repeatMonths,
-                remindDaysBefore = form.remindDaysBefore,
-                note = form.note,
-                isActive = true
+            subscriptionRepo.upsert(
+                Subscription(
+                    name = form.name.trim(),
+                    amount = amount,
+                    category = form.category,
+                    nextDueDate = Instant.fromEpochMilliseconds(form.nextDueEpochMs),
+                    repeatMonths = form.repeatMonths,
+                    remindDaysBefore = form.remindDaysBefore,
+                    note = form.note,
+                ),
             )
-            subscriptionRepo.upsert(newSub)
             dismissSubForm()
         }
     }
@@ -699,5 +596,6 @@ data class StatsAddSubscriptionFormState(
     val nextDueEpochMs: Long = Clock.System.now().toEpochMilliseconds(),
     val isVisible: Boolean = false
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && amountInput.isNotEmpty()
+    val isValidAmount: Boolean get() = AmountParser.parse(amountInput).amount != null
+    val canSave: Boolean get() = name.isNotBlank() && isValidAmount
 }

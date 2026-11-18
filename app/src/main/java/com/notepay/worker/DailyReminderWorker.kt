@@ -12,7 +12,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.notepay.MainActivity
 import com.notepay.R
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.util.StreakTrackerHelper
 import com.notepay.core.platform.notification.NotificationHelper

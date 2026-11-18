@@ -93,9 +93,9 @@ internal val NotePayTypography = Typography(
     ),
     labelSmall = TextStyle(
         fontFamily = InterFontFamily,
-        fontSize = 11.sp,
+        fontSize = 12.sp, // Tối thiểu 12sp theo chuẩn WCAG và UX Playbook
         fontWeight = FontWeight.Bold,
-        lineHeight = 14.sp,
+        lineHeight = 16.sp,
         letterSpacing = 0.08.sp
     ),
 )

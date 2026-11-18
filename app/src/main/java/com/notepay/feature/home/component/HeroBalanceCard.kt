@@ -1,6 +1,12 @@
 package com.notepay.feature.home.component
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,6 +40,7 @@ import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.NotePayTheme
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 /**
  * Thẻ số dư Hero — thẻ ink nguyên khối của v4 (DESIGN.md §6, `ink-balance-card`).
@@ -48,6 +56,7 @@ internal fun HeroBalanceCard(
     expense: Money,
     modifier: Modifier = Modifier,
 ) {
+    val reducedMotion = rememberNotePayReducedMotion()
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppTheme.shapes.corner28,
@@ -73,6 +82,13 @@ internal fun HeroBalanceCard(
 
             AnimatedContent(
                 targetState = balance,
+                transitionSpec = {
+                    if (reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        fadeIn(tween(200)) togetherWith fadeOut(tween(150))
+                    }
+                },
                 label = "BalanceAnimation",
             ) { targetBalance ->
                 Text(
@@ -116,6 +132,7 @@ private fun CashFlowAmount(
     color: Color,
 ) {
     Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {

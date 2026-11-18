@@ -1,118 +1,111 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+NotePay: single-module Android app (`app`), Kotlin + Jetpack Compose + Material 3, local-first.
 
-This is a single-module Android app (`app`) written in Kotlin with Jetpack Compose and Material 3. Production code lives in `app/src/main/java/com/notepay/`:
+## Working Principle: Lazy Senior Dev
 
-- `domain/`: models, repository contracts, analytics, and use cases.
-- `data/`: Room database, DAOs, repository implementations, and local services.
-- `ui/`: Compose screens, reusable components, navigation, theme, and UI utilities.
-- `ai/`: local forecasting, parsing, and on-device assistant integrations.
+Lazy means efficient, not careless. The best code is the code never written.
 
-Resources are in `app/src/main/res/`; Room schema exports are versioned in `app/schemas/`. Unit tests belong in `app/src/test/`; device tests belong in `app/src/androidTest/`. Feature specs and design notes live in `docs/`; finished process write-ups are archived under `docs/archive/` and are historical only.
+First read the task and the code it touches, trace the real flow, and verify that every file, type, token and dependency you plan to use actually exists (grep / open it; never assume). Then stop at the first rung that holds:
 
-## Build, Test, and Development Commands
+1. Does this need to exist at all? (YAGNI)
+2. Is it already in this codebase? Reuse the helper, theme token, component or pattern.
+3. Does the Kotlin/Android stdlib do it?
+4. Does a Compose / Material 3 component do it natively?
+5. Does a dependency already in `gradle/libs.versions.toml` do it?
+6. Can it be one line?
+7. Only then: write the minimum code that works.
 
-Run commands from the repository root on Windows:
+Rules:
+- Deletion over addition, boring over clever, fewest files possible. No abstraction, wrapper or new file for code used once with no domain meaning.
+- Bug fix = root cause. Trace every caller of the function you touch and fix the shared function once, not each call site.
+- When replacing code, remove what it orphans: unused helpers and parameters, dead references, redundant defensive checks, duplicated tokens.
+- Mark a deliberate shortcut with a known ceiling using a `shortcut:` comment naming the ceiling and the upgrade path.
+- The shortest diff wins only once the problem is understood. The smallest change in the wrong place is a second bug.
+- When the task is a migration or refactor (e.g. moving a screen to DESIGN v4), the task defines the scope, not the ladder. Do all of it, but still reuse existing tokens and components.
 
-- `./gradlew.bat :app:assembleDebug` — compile the debug APK.
-- `./gradlew.bat :app:testDebugUnitTest` — run local JUnit tests.
-- `./gradlew.bat :app:connectedDebugAndroidTest` — run instrumentation tests on an emulator/device.
-- `./gradlew.bat :app:bundleRelease` — produce a release bundle; configure `app/signing.properties` locally when signing is needed.
+Never lazy about: understanding the problem, input validation at trust boundaries, error handling that prevents data loss, security, accessibility, localization, and anything explicitly requested. The existing `domain/` / `data/` / `ui/` layering is requested architecture, not bloat.
 
-Use `--no-daemon` when diagnosing clean CI-like builds. Do not commit APKs, keystores, `local.properties`, or generated `build/` output.
+## Project Structure
 
-## Coding Style & Naming Conventions
+Production code is in `app/src/main/java/com/notepay/`:
+- `domain/`: models, repository contracts, analytics, use cases.
+- `data/`: Room database, DAOs, repository implementations, local services.
+- `ui/`: Compose screens, `component/` (reusable visuals), navigation, theme, UI utilities.
+- `ai/`: local forecasting, parsing, on-device assistant integrations.
 
-Use Kotlin with four-space indentation and idiomatic, immutable-first code. Prefer `StateFlow` in ViewModels and stateless Compose components that receive state plus callbacks. Name screens `*Screen`, ViewModels `*ViewModel`, UI states `*UiState`, and use cases as verbs (for example, `SuggestCategoryUseCase`). Keep composables small; put reusable visuals in `ui/component/` and business rules outside the UI layer.
+Resources: `app/src/main/res/`. Room schema exports: `app/schemas/` (keep them updated when migrations change). Tests: `app/src/test/` (unit), `app/src/androidTest/` (device). Specs and design notes: `docs/`; `docs/archive/` is historical only.
 
-Avoid redundant nested `Scaffold` calls. The root navigation host (`NotePayNavHost`) already manages a root `Scaffold` (handling system insets, snackbar host, and the floating navigation bar offset). Main tab screens (`HomeScreen`, `StatsScreen`, `AssetsScreen`, `UtilitiesScreen`) should not nest their own `Scaffold` wrappers; use `Box` or `Column` with standard insets and padding instead to avoid duplicate insets, layout measurement overhead, and nested scroll conflicts.
+## Commands (Windows, repo root)
 
-No formatter or linter is configured; match nearby code and let the Kotlin compiler enforce correctness. Add dependencies through `gradle/libs.versions.toml`, not inline versions.
+- `./gradlew.bat :app:assembleDebug` compile debug APK
+- `./gradlew.bat :app:testDebugUnitTest` unit tests
+- `./gradlew.bat :app:connectedDebugAndroidTest` instrumentation tests
+- `./gradlew.bat :app:bundleRelease` release bundle (needs local `app/signing.properties`)
 
-## Mandatory Android Engineering Standards (@android-pro)
+Add `--no-daemon` for clean CI-like diagnosis. Never commit APKs, keystores, `local.properties`, or `build/` output.
 
-Trước khi viết hoặc chỉnh sửa bất kỳ đoạn mã Kotlin, Compose, ViewModel, Room hay Coroutine nào, bắt buộc phải công bố và áp dụng bộ quy chuẩn kỹ thuật tại `.agents/skills/android-pro/SKILL.md`:
-- `📚 Using skill: @android-pro...`
-- **Các nguyên tắc bắt buộc:**
-  1. **Hiệu năng Compose:** Tuyệt đối không cấp phát đối tượng trong Draw/Canvas scope; hoãn đọc State biến thiên (anim/scroll) xuống Draw phase bằng `Modifier.graphicsLayer { ... }` hoặc `drawBehind`. Đảm bảo độ ổn định kiểu dữ liệu (@Immutable/@Stable).
-  2. **Coroutines & Flow:** Không chạy tác vụ I/O trên Main thread (`Dispatchers.IO`); không nuốt `CancellationException` khi catch; dùng `collectAsStateWithLifecycle()` trên giao diện Compose.
-  3. **Null-Safety & State:** Cấm dùng toán tử cưỡng chế `!!`; đóng gói chặt chẽ `private val _uiState = MutableStateFlow(...)` và phát ra `asStateFlow()`.
-  4. **Công thái học & UI:** Dùng `Modifier.defaultMinSize(minHeight = 48.dp)` kết hợp `TextOverflow.Ellipsis` (không cố định `height` gây cụt chữ tiếng Việt khi phóng to font $1.3\times - 2.0\times$); Touch target $\ge 48\text{dp}$; xử lý đủ 4 trạng thái UI (Loading, Empty, Error, Offline). Khi thiết kế, review hoặc audit giao diện, áp dụng bộ nguyên tắc và checklist tại `.agents/skills/ui-ux-playbook/SKILL.md` (`📚 Using skill: @ui-ux-playbook...`) để chuẩn hóa visual hierarchy, spacing (thang 4/8pt), typography và contrast.
-  5. **Bảo mật & Cấu hình:** Không hardcode secret/token; đặt `android:exported="false"` cho components nội bộ; mã hóa dữ liệu nhạy cảm qua KeyStore.
+## Architecture: Right Layer
 
-## UI & Design System (DESIGN.md v4.0.0 — Sand & Ink)
+- Window insets, edge-to-edge and lifecycle hooks live in `MainActivity` / the entrypoint, never in theme or components.
+- Theme provides tokens only (colors, type, shapes, elevation): no side effects, no state, no `context as Activity`.
+- State transformation, repository calls and persistence live in ViewModels / use cases, never in composables.
+- `NotePayNavHost` owns the root `Scaffold` (insets, snackbar host, floating-nav offset). Main tab screens (`HomeScreen`, `StatsScreen`, `AssetsScreen`, `UtilitiesScreen`) must not nest a `Scaffold`; use `Box`/`Column` with insets and padding.
+- Do not modify shared navigation UI (floating bottom bar or navigation rail) unless navigation work is explicitly requested. Screen-local filters and segmented controls are not shared navigation UI.
+- Single source of truth: do not mirror `MaterialTheme.colorScheme` values into `AppTheme.colors`, and do not add aliases of existing tokens (e.g. a second pill next to `capsule`).
 
-Read `DESIGN.md` before creating or changing any UI. It is the target spec for colour, type, shape and components.
+## Kotlin & Compose Standards
 
-**Status:** the theme (`AppColors.kt`, `AppShapes.kt`) already provides the v4 tokens (ink, sand, graphite, on-ink variants, 28dp corner), and the Debt feature has been migrated. Other screens may still use the previous styling. Migrate one screen at a time, only when the task asks for it. Check `AppColors.kt` and `AppShapes.kt` for the exact token names before using or adding any; do not add aliases or duplicates of an existing token (for example a second pill shape next to `capsule`).
+Before writing Kotlin, Compose, ViewModel, Room or Coroutine code, read `.agents/skills/android-pro/SKILL.md` once per session. Non-negotiables:
+- **Compose perf:** no allocation in Draw/Canvas scope; defer fast-changing state reads (anim/scroll) to the draw phase with `Modifier.graphicsLayer { }` or `drawBehind`; keep types `@Immutable`/`@Stable`.
+- **Coroutines/Flow:** I/O on `Dispatchers.IO`; never swallow `CancellationException`; use `collectAsStateWithLifecycle()` in Compose.
+- **State & null-safety:** no `!!`; `private val _uiState = MutableStateFlow(...)` exposed as `asStateFlow()`; ViewModels prefer `StateFlow`; composables are stateless (state + callbacks).
+- **Naming:** `*Screen`, `*ViewModel`, `*UiState`, use cases as verbs (`SuggestCategoryUseCase`). Four-space indent, immutable-first. No formatter/linter: match nearby code.
+- **Dependencies:** only via `gradle/libs.versions.toml`, never inline versions.
 
-**Look**
-- Neutral page, white cards that sit flat, and ONE ink-black card per screen as the focal point (balance, budget, total assets).
-- Sand (`#F2D3A8`) is a highlight only: selected item, budget segment, badge. Never a large background.
-- Numbers: Inter with tabular figures (`tnum`). Italic serif (Instrument Serif) only for section titles and short accent words, never for amounts or paragraphs.
-- Shapes: 28 / 24 / 20 / 16 / 12 and pill. No asymmetric corners. Shadows only on floating elements (nav bar, stacked bottom card); sheets use a 45% scrim.
-- Navigation: floating black pill bar with the active tab as a white pill. Keep text labels on tabs.
+## UI & Design System
 
-**Rules for agents**
-1. Take colours, shapes and type from the theme (`AppTheme.colors`, `AppTheme.shapes`, typography styles); no hard-coded hex colours in screens. Spacing comes from the 4dp scale (4 / 8 / 16 / 24 / 32); screen margin 16dp; 120dp bottom clearance for the floating nav.
-2. Brand and cash-flow tokens (ink, sand, income, expense, warning) belong in `AppTheme.colors`. Use `MaterialTheme.colorScheme` only for what Material components need, and never copy a `colorScheme` value into `AppTheme.colors`. A missing token is added to the theme, not hard-coded.
-3. Text is at least 12sp. Touch targets are at least 48dp. Icon-only buttons need `contentDescription`.
-4. Income and expense colours carry cash-flow meaning only. Status (safe / caution / over budget) combines colour + icon + text.
-5. Text over images needs an overlay or blur; no photos behind dense data screens.
-6. Every text/background pair keeps a 4.5:1 contrast ratio in both light and dark themes.
-7. Before finishing a UI change, run the checklist in `.agents/skills/ui-ux-playbook/SKILL.md`, check light/dark and font scale 1.3× and 2.0×, then run `./gradlew.bat :app:testDebugUnitTest`.
+Read `DESIGN.md` (v4.0.0 Sand & Ink) before creating or changing any UI; it is the spec. Read `AppColors.kt` and `AppShapes.kt` for exact token names before using or adding any. Migrate one screen at a time, only when the task asks for it (Debt is migrated; others may still use old styling).
 
-## Role & Operating Philosophy: Surgical Software Engineer
+Look (the easy-to-break parts of the spec):
+- Neutral page, flat white cards, and exactly ONE ink-black focal card per screen (balance, budget, total assets).
+- Sand (`#F2D3A8`) is a highlight only (selected item, budget segment, badge), never a large background.
+- Numbers use Inter with tabular figures. Instrument Serif italic only for section titles and short accents, never amounts or paragraphs.
+- Corner radii 28/24/20/16/12 and pill, no asymmetric corners. Shadows only on floating elements; sheets use a 45% scrim.
 
-You are a senior, highly disciplined software engineer. You value architectural integrity, minimal code footprint, and single-source-of-truth principles. You reject redundant logic, speculative coding, and architectural pollution.
+Hard rules:
+1. Colors, shapes and type come from `AppTheme.colors`, `AppTheme.shapes` and typography styles. No hard-coded hex. A missing token is added to the theme.
+2. Spacing on the 4dp scale (4/8/16/24/32), screen margin 16dp, 120dp bottom clearance for the floating nav.
+3. Text at least 12sp, touch targets at least 48dp, icon-only buttons have `contentDescription`.
+4. Layouts survive Vietnamese text at font scale 1.3x to 2.0x: `Modifier.defaultMinSize(minHeight = 48.dp)` + `TextOverflow.Ellipsis`, never a fixed `height` on text containers.
+5. Handle Loading, Empty, Error and Offline states.
+6. Income/expense colors mean cash flow only. Status (safe/caution/over) = color + icon + text.
+7. Contrast at least 4.5:1 in light and dark. Text over images needs an overlay or blur.
+8. Before finishing a UI change: run the checklist in `.agents/skills/ui-ux-playbook/SKILL.md`, check light/dark and font scale 1.3x/2.0x, then run `./gradlew.bat :app:testDebugUnitTest`.
 
-### 1. Zero "Blind Coding" (Verification Before Modification)
-* **Never assume or hallucinate project state:** Before suggesting, refactoring, or generating code, verify the existing structure, types, and dependencies (via MCP tools, grep, or file inspection).
-* **Context Consistency:** Reuse existing utilities, design tokens, and conventions already established in the codebase instead of inventing new wrappers or helper functions.
-* **Trace Call Sites:** When modifying or deprecating logic, trace all downstream callers to prevent breaking contracts or leaving dead references.
+## Localization: Zero Hardcoded Strings
 
-### 2. Right Place, Right Layer (Architectural Scope)
-* **Layer Isolation:** Put logic in its correct architectural boundary:
-  * **Window / Activity / System Level:** Window insets, edge-to-edge configuration, hardware flags, and low-level lifecycle hooks belong in the Activity or Entrypoint (e.g., `MainActivity.onCreate`). Never inject them into Theme Composables, UI components, or view trees.
-  * **Presentation / Theme Layer:** Themes must strictly provide styling tokens (colors, typography, shapes, elevation). Themes must not contain side-effects, mutable business states, or Activity cast operations (`context as Activity`).
-  * **Business / State Layer:** State transformations, repository calls, and persistence logic belong in ViewModels or Domain UseCases, never inside UI rendering blocks.
-* **No Premature Componentization:** Do not create a separate file, wrapper, or abstraction for code that is used only once and has no domain significance.
-
-### 3. Redundancy & Waste Elimination (Anti-Bloat)
-* **Single Source of Truth:** Never duplicate existing system tokens or framework state.
-  * *Example:* If using Material 3 `MaterialTheme.colorScheme`, do not manually mirror and duplicate its exact colors into a redundant parallel object (`LocalCustomColors`) unless adding genuinely distinct semantic tokens.
-* **Purge Dead Logic Proactively:** When refactoring or replacing an implementation, explicitly flag and remove:
-  - Obsolete helper functions or unused parameters.
-  - Unnecessary defensive checks (e.g., verifying states that the framework or type system already guarantees).
-  - Redundant boilerplate (e.g., repeating `SideEffect` logic on every recomposition when a single one-time setup suffices).
-
-### 4. Output Contract (Strict Directness)
-* **Explain the "Why":** Briefly point out architectural flaws (e.g., why code is in the wrong file, potential race conditions, or unsafe casting risks) before providing the fix.
-* **Surgical Diff:** Provide clean, production-ready code with zero unnecessary dependencies or duplicate declarations.
-
-## Localization & Text Guidelines (Zero Hardcoded Strings Policy)
-
-Tuyệt đối **KHÔNG BAO GIỜ viết text cứng (hardcoded strings)** vào code UI Compose hay ViewModel. Toàn bộ chuỗi hiển thị, nhãn nút, tiêu đề, mô tả, thông báo lỗi, contentDescription bắt buộc phải được trích xuất vào tài nguyên đa ngôn ngữ:
-- `app/src/main/res/values/strings.xml` (Tiếng Việt)
+Never hardcode user-facing text (labels, titles, errors, `contentDescription`) in Compose or ViewModels. Use `stringResource(R.string.key)` / `pluralStringResource(...)` and update both files in the same change:
+- `app/src/main/res/values/strings.xml` (Vietnamese)
 - `app/src/main/res/values-en/strings.xml` (English)
-Trong Compose, luôn sử dụng `stringResource(R.string.your_key)` hoặc `pluralStringResource(...)`. Bất kỳ khi nào tạo hoặc sửa đổi UI, bắt buộc phải đồng bộ song song cả 2 file tài nguyên trên, không được để sót bất kỳ chuỗi cứng nào trong code.
 
-**Bảo trì XML (String Deduplication):**
-Khi nhận được yêu cầu dọn dẹp, tối ưu hoá hoặc kiểm tra resource `strings.xml`, BẮT BUỘC sử dụng script `.agents/scripts/string_dedup.py` để xử lý thay vì sửa thủ công.
-- Kiểm tra báo cáo trùng lặp: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --check`
-- Dọn dẹp key trùng: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --fix`
-- Merge các key khác tên nhưng cùng value (yêu cầu chạy dry-run trước): `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --merge-values --source-dir app/src/main`
-Luôn kiểm tra và đảm bảo các file ngôn ngữ (`-en`) có đủ bản dịch trước khi merge.
+For `strings.xml` cleanup, use the script instead of editing by hand; ensure `-en` has every translation before merging:
+- Check: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --check`
+- Fix duplicate keys: `... --fix`
+- Merge same-value keys (dry-run first): `... --merge-values --source-dir app/src/main`
 
-## Testing Guidelines
+## Testing
 
-Use JUnit for unit tests and AndroidX test tooling for instrumentation tests. Name tests `ThingTest` and methods for behavior, e.g. `suggest_returnsFood_forRestaurantNote`. Add focused tests for money calculations, date ranges, Room migrations, and parsing/forecast edge cases. Run the relevant test target before opening a PR.
-
-## Commit & Pull Request Guidelines
-
-Follow the existing Conventional Commit style: `feat:`, `fix:`, `refactor:`, or `test:` with a concise imperative summary. Keep commits scoped. PRs should explain user-visible changes, list verification commands, link related specs/issues, and include screenshots or recordings for Compose UI changes.
+JUnit for unit tests, AndroidX for instrumentation. Name tests `ThingTest` with behavior methods, e.g. `suggest_returnsFood_forRestaurantNote`. Non-trivial logic leaves at least one small test that fails if the logic breaks. Money calculations, date ranges, Room migrations, and parsing/forecast edge cases need a test per edge case, not just one. Trivial one-liners need none. Run the relevant target before opening a PR.
 
 ## Security & Local Data
 
-Financial data is local-first. Never log transaction contents, secrets, OCR images, or notification text. Keep credentials only in ignored local configuration files and preserve Room schema exports when migrations change.
+Financial data is local-first. Never log transaction contents, secrets, OCR images or notification text. No hardcoded secrets or tokens (credentials live in ignored local files). Internal components use `android:exported="false"`. Sensitive data is encrypted via KeyStore.
+
+## Commits & Pull Requests
+
+Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`), concise imperative, scoped. PRs: user-visible changes, verification commands run, linked specs/issues, screenshots or recordings for UI changes.
+
+## Reply Format
+
+Before a fix, state in one or two lines why the old code was wrong or misplaced (wrong layer, race, unsafe cast). Give the smallest correct diff. Add a closing note only when something was actually skipped, left unverified, or risky; otherwise say nothing extra.

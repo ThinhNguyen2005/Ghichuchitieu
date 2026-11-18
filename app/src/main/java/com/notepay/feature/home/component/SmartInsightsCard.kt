@@ -1,15 +1,14 @@
 package com.notepay.feature.home.component
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,12 +29,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.rememberNotePayHaptic
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 /**
  * Thẻ gợi ý & nhận định tài chính thông minh (Smart Financial Insights).
@@ -48,96 +53,104 @@ fun SmartInsightsCard(
     modifier: Modifier = Modifier,
     onDismiss: (() -> Unit)? = null,
 ) {
-    var isVisible by rememberSaveable { mutableStateOf(true) }
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    val performHaptic = rememberNotePayHaptic()
+    val reducedMotion = rememberNotePayReducedMotion()
+    val expandStateDescription = stringResource(
+        if (isExpanded) R.string.stats_expand_state_open else R.string.stats_expand_state_closed
+    )
 
     val (iconColor, title, description) = when {
             isBudgetExceeded -> Triple(
-                Color(0xFFE57373),
+                AppTheme.colors.error,
                 stringResource(R.string.insight_budget_exceeded_title),
                 stringResource(R.string.insight_budget_exceeded_description)
             )
             budgetSpentPercentage >= 0.8f -> Triple(
-                Color(0xFFFFB74D),
+                AppTheme.colors.warning,
                 stringResource(R.string.insight_budget_near_limit_title, (budgetSpentPercentage * 100).toInt()),
                 stringResource(R.string.insight_budget_near_limit_description)
             )
             streakDays >= 3 -> Triple(
-                Color(0xFFFF9800),
+                AppTheme.colors.clay,
                 stringResource(R.string.insight_streak_title, streakDays),
                 stringResource(R.string.insight_streak_description)
             )
             else -> Triple(
-                Color(0xFF64B5F6),
+                AppTheme.colors.primary,
                 stringResource(R.string.insight_default_title),
                 stringResource(R.string.insight_default_description)
             )
     }
 
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut(),
+    Card(
         modifier = modifier
+            .fillMaxWidth()
+            .then(if (reducedMotion) Modifier else Modifier.animateContentSize()),
+        shape = AppTheme.shapes.corner20,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppTheme.shapes.corner20,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .size(40.dp)
+                    .background(iconColor.copy(alpha = 0.15f), AppTheme.shapes.circle),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(iconColor.copy(alpha = 0.15f), AppTheme.shapes.circle),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Lightbulb,
-                        contentDescription = null,
-                        tint = iconColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.Lightbulb,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
 
-                Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget)
+                    .semantics { stateDescription = expandStateDescription }
+                    .clickable(role = Role.Button) { isExpanded = !isExpanded },
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (isExpanded) {
+                    Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = description,
+                        text = "$title · $description",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
 
-                IconButton(
-                    onClick = {
-                        isVisible = false
-                        onDismiss?.invoke()
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.content_description_close_suggestion),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+            IconButton(
+                onClick = {
+                    performHaptic(HapticFeedbackType.TextHandleMove)
+                    onDismiss?.invoke()
+                },
+                modifier = Modifier.size(AppTheme.dimensions.minTouchTarget)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.content_description_close_suggestion),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

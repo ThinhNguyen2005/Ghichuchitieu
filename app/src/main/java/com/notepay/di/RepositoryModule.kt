@@ -5,7 +5,7 @@ import com.notepay.data.repository.WalletRepositoryImpl
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.data.repository.BillSplitRepositoryImpl
 import com.notepay.data.repository.SubscriptionRepositoryImpl
-import com.notepay.data.preferences.CategoryLearningStoreImpl
+import com.notepay.data.datastore.CategoryLearningStoreImpl
 import com.notepay.domain.repository.CategoryLearningStore
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository

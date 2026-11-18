@@ -39,4 +39,6 @@
 -keep class com.google.android.gms.vision.** { *; }
 -dontwarn com.google.mlkit.**
 
-
+# Credential Manager & Google ID (Tránh R8 làm mất cấu trúc data khi minifyEnabled)
+-keep class androidx.credentials.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }

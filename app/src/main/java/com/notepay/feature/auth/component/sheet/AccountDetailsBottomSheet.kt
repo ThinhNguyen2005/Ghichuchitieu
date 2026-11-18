@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,6 +52,7 @@ import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.rememberNotePayHaptic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +64,7 @@ fun AccountDetailsBottomSheet(
     modifier: Modifier = Modifier
 ) {
     var showSignOutConfirmDialog by remember { mutableStateOf(false) }
+    val performHaptic = rememberNotePayHaptic()
 
     if (showSignOutConfirmDialog) {
         AlertDialog(
@@ -93,8 +97,8 @@ fun AccountDetailsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        dragHandle = null,
-        shape = AppTheme.shapes.corner24,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        shape = AppTheme.shapes.sheetTop,
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier
     ) {
@@ -244,7 +248,10 @@ fun AccountDetailsBottomSheet(
 
             // Sign out button
             OutlinedButton(
-                onClick = { showSignOutConfirmDialog = true },
+                onClick = {
+                    performHaptic(HapticFeedbackType.TextHandleMove)
+                    showSignOutConfirmDialog = true
+                },
                 shape = CircleShape,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error

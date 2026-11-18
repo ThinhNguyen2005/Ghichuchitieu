@@ -5,132 +5,88 @@ import com.notepay.domain.money.Money
 import org.junit.Test
 
 class StatsChartCalculatorTest {
-    @Test fun `average returns zero for empty values`() { assertThat(StatsChartCalculator.average(emptyList())).isEqualTo(0L) }
-    @Test fun `average calculates integer mean`() { assertThat(StatsChartCalculator.average(listOf(100L, 200L, 400L))).isEqualTo(233L) }
 
-    @Test fun `axis uses thousand labels for small real amounts`() {
-        val axis = StatsChartCalculator.trendAxisScale(listOf(20_000_000L), null)
-        assertThat(axis.unit).isEqualTo(TrendAxisUnit.THOUSANDS)
-        assertThat(axis.labels).containsExactly(200f, 150f, 100f, 50f, 0f).inOrder()
-    }
+    @Test
+    fun `average and percentageChange handle empty values baselines and deltas`() {
+        assertThat(StatsChartCalculator.average(emptyList())).isEqualTo(0L)
+        assertThat(StatsChartCalculator.average(listOf(100L, 200L, 400L))).isEqualTo(233L)
 
-    @Test fun `forecast expands chart top without changing its unit`() {
-        val axis = StatsChartCalculator.trendAxisScale(listOf(5_000_000L), Money(150_000_000L))
-        assertThat(axis.unit).isEqualTo(TrendAxisUnit.MILLIONS)
-        assertThat(axis.topInCents).isAtLeast(150_000_000L)
-    }
-
-    @Test fun `percentage change handles increase decrease and zero baseline`() {
         assertThat(StatsChartCalculator.percentageChange(120L, 100L)).isWithin(.01f).of(20f)
         assertThat(StatsChartCalculator.percentageChange(80L, 100L)).isWithin(.01f).of(-20f)
         assertThat(StatsChartCalculator.percentageChange(20L, 0L)).isNull()
     }
 
-    @Test fun `forecast is only shown for current expense with a value`() {
-        assertThat(StatsChartCalculator.shouldShowForecast(isExpense = true, isSelectedMonthCurrent = true, Money(1L))).isTrue()
-        assertThat(StatsChartCalculator.shouldShowForecast(isExpense = false, isSelectedMonthCurrent = true, Money(1L))).isFalse()
-        assertThat(StatsChartCalculator.shouldShowForecast(isExpense = true, isSelectedMonthCurrent = false, Money(1L))).isFalse()
-        assertThat(StatsChartCalculator.shouldShowForecast(isExpense = true, isSelectedMonthCurrent = true, null)).isFalse()
+    @Test
+    fun `trendAxisScale picks thousands or millions unit and expands for forecast`() {
+        val smallAxis = StatsChartCalculator.trendAxisScale(listOf(20_000_000L), null)
+        assertThat(smallAxis.unit).isEqualTo(TrendAxisUnit.THOUSANDS)
+        assertThat(smallAxis.labels).containsExactly(200f, 150f, 100f, 50f, 0f).inOrder()
+
+        val forecastAxis = StatsChartCalculator.trendAxisScale(listOf(5_000_000L), Money(150_000_000L))
+        assertThat(forecastAxis.unit).isEqualTo(TrendAxisUnit.MILLIONS)
+        assertThat(forecastAxis.topInCents).isAtLeast(150_000_000L)
     }
 
-    @Test fun `forecast display keeps projection when forecast is above actual`() {
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = true,
-                isSelectedMonthCurrent = true,
-                actualAmountInCents = 100L,
-                forecast = Money(150L),
-            ),
-        ).isEqualTo(ForecastDisplayState.PROJECTION)
+    @Test
+    fun `shouldShowForecast only activates for current expense with positive forecast`() {
+        data class Case(val isExpense: Boolean, val currentMonth: Boolean, val forecast: Money?, val expected: Boolean)
+        listOf(
+            Case(true, true, Money(1L), true),
+            Case(false, true, Money(1L), false),
+            Case(true, false, Money(1L), false),
+            Case(true, true, null, false),
+        ).forEach { c ->
+            assertThat(StatsChartCalculator.shouldShowForecast(c.isExpense, c.currentMonth, c.forecast))
+                .isEqualTo(c.expected)
+        }
     }
 
-    @Test fun `forecast display marks forecast reached when forecast equals actual`() {
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = true,
-                isSelectedMonthCurrent = true,
-                actualAmountInCents = 150L,
-                forecast = Money(150L),
-            ),
-        ).isEqualTo(ForecastDisplayState.REACHED)
+    @Test
+    fun `forecastDisplayState classifies projection passed budget and hidden states`() {
+        data class Case(
+            val isExpense: Boolean,
+            val currentMonth: Boolean,
+            val actual: Long,
+            val forecast: Money?,
+            val budget: Long?,
+            val expected: ForecastDisplayState,
+        )
+        listOf(
+            Case(true, true, 100L, Money(150L), null, ForecastDisplayState.PROJECTION),
+            Case(true, true, 150L, Money(150L), null, ForecastDisplayState.PASSED),
+            Case(true, true, 200L, Money(150L), null, ForecastDisplayState.PASSED),
+            Case(true, true, 100L, Money(150L), 150L, ForecastDisplayState.WITHIN_BUDGET),
+            Case(true, true, 200L, Money(150L), 300L, ForecastDisplayState.WITHIN_BUDGET),
+            Case(true, true, 100L, Money(150L), 100L, ForecastDisplayState.OVER_BUDGET),
+            Case(false, true, 100L, Money(150L), null, ForecastDisplayState.HIDDEN),
+            Case(true, false, 100L, Money(150L), null, ForecastDisplayState.HIDDEN),
+            Case(true, true, 100L, Money.ZERO, null, ForecastDisplayState.HIDDEN),
+        ).forEach { c ->
+            assertThat(
+                StatsChartCalculator.forecastDisplayState(
+                    isExpense = c.isExpense,
+                    isSelectedMonthCurrent = c.currentMonth,
+                    actualAmountInCents = c.actual,
+                    forecast = c.forecast,
+                    budgetInCents = c.budget,
+                ),
+            ).isEqualTo(c.expected)
+        }
     }
 
-    @Test fun `forecast display marks forecast exceeded when actual is above forecast`() {
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = true,
-                isSelectedMonthCurrent = true,
-                actualAmountInCents = 200L,
-                forecast = Money(150L),
-            ),
-        ).isEqualTo(ForecastDisplayState.EXCEEDED)
-    }
+    @Test
+    fun `forecastMarkerFraction computes position when actual reaches forecast and hides otherwise`() {
+        assertThat(StatsChartCalculator.forecastMarkerFraction(150L, Money(150L), 300L))
+            .isWithin(.0001f).of(.5f)
+        assertThat(StatsChartCalculator.forecastMarkerFraction(500L, Money(500L), 300L))
+            .isWithin(.0001f).of(1f)
 
-    @Test fun `forecast display hides ineligible forecasts`() {
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = false,
-                isSelectedMonthCurrent = true,
-                actualAmountInCents = 100L,
-                forecast = Money(150L),
-            ),
-        ).isEqualTo(ForecastDisplayState.HIDDEN)
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = true,
-                isSelectedMonthCurrent = false,
-                actualAmountInCents = 100L,
-                forecast = Money(150L),
-            ),
-        ).isEqualTo(ForecastDisplayState.HIDDEN)
-        assertThat(
-            StatsChartCalculator.forecastDisplayState(
-                isExpense = true,
-                isSelectedMonthCurrent = true,
-                actualAmountInCents = 100L,
-                forecast = Money.ZERO,
-            ),
-        ).isEqualTo(ForecastDisplayState.HIDDEN)
-    }
-
-    @Test fun `forecast marker returns bounded fraction for reached and exceeded states`() {
-        assertThat(
-            StatsChartCalculator.forecastMarkerFraction(
-                state = ForecastDisplayState.REACHED,
-                forecast = Money(150L),
-                axisTopInCents = 300L,
-            ),
-        ).isWithin(.0001f).of(.5f)
-        assertThat(
-            StatsChartCalculator.forecastMarkerFraction(
-                state = ForecastDisplayState.EXCEEDED,
-                forecast = Money(500L),
-                axisTopInCents = 300L,
-            ),
-        ).isWithin(.0001f).of(1f)
-    }
-
-    @Test fun `forecast marker is hidden for projection and invalid inputs`() {
-        assertThat(
-            StatsChartCalculator.forecastMarkerFraction(
-                state = ForecastDisplayState.PROJECTION,
-                forecast = Money(150L),
-                axisTopInCents = 300L,
-            ),
-        ).isNull()
-        assertThat(
-            StatsChartCalculator.forecastMarkerFraction(
-                state = ForecastDisplayState.EXCEEDED,
-                forecast = null,
-                axisTopInCents = 300L,
-            ),
-        ).isNull()
-        assertThat(
-            StatsChartCalculator.forecastMarkerFraction(
-                state = ForecastDisplayState.REACHED,
-                forecast = Money(150L),
-                axisTopInCents = 0L,
-            ),
-        ).isNull()
+        listOf(
+            Triple(100L, Money(150L), 300L),
+            Triple(200L, null, 300L),
+            Triple(200L, Money(150L), 0L),
+        ).forEach { (actual, forecast, top) ->
+            assertThat(StatsChartCalculator.forecastMarkerFraction(actual, forecast, top)).isNull()
+        }
     }
 }

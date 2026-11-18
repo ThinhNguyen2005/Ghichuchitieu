@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,34 +44,62 @@ import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 /**
  * Thẻ tổng quan nợ v4 Sand & Ink:
- * - Nền thẻ ink bo 28dp phẳng, viền 1px ở dark mode.
- * - Icon handshake với nền inkRaised và tint sand.
- * - Cần thu dùng màu [AppTheme.colors.onInkIncome], Cần trả dùng màu [AppTheme.colors.onInkExpense].
- * - Thanh tỉ lệ thu/trả: đoạn 1 [AppTheme.colors.sand], đoạn 2 [AppTheme.colors.graphite].
- * - Bỏ tương tác click khi không truyền [onClick].
+ * - Khi [isHero] = true (màn Quản lý nợ): nền thẻ ink bo 28dp phẳng, viền 1px ở dark mode.
+ * - Khi [isHero] = false (nhúng phụ trên màn Tài sản): hạ cấp sang `surfaceContainerHigh`
+ *   để nhường vị trí thẻ Ink tâm điểm duy nhất cho `AssetsInkHeroCard`.
  */
 @Composable
 fun DebtSummaryCard(
     summary: DebtSummary?,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    isHero: Boolean = onClick == null,
 ) {
     val isLight = AppTheme.colors.isLight
-    val cardModifier = if (onClick != null) {
-        modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+    val cardContainerColor = if (isHero) {
+        AppTheme.colors.ink
     } else {
-        modifier.fillMaxWidth()
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val cardBorder = when {
+        isHero && !isLight -> BorderStroke(1.dp, AppTheme.colors.inkBorder)
+        !isHero -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        else -> null
+    }
+    val iconBgColor = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.secondaryContainer
+    val iconTint = if (isHero) AppTheme.colors.sand else MaterialTheme.colorScheme.onSecondaryContainer
+    val titleColor = if (isHero) AppTheme.colors.onInk else AppTheme.colors.textPrimary
+    val mutedColor = if (isHero) AppTheme.colors.onInkMuted else AppTheme.colors.textSecondary
+    val collectColor = if (isHero) AppTheme.colors.onInkIncome else AppTheme.colors.success
+    val payColor = if (isHero) AppTheme.colors.onInkExpense else AppTheme.colors.error
+    val subTileBg = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.surfaceContainer
+    val ratioBarBg = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.surfaceVariant
+    val ratioCollectColor = if (isHero) AppTheme.colors.sand else AppTheme.colors.primary
+    val ratioPayColor = if (isHero) AppTheme.colors.graphite else MaterialTheme.colorScheme.outline
+
+    val clickLabel = stringResource(R.string.debt_nav_title)
+    val baseModifier = modifier
+        .fillMaxWidth()
+        .semantics(mergeDescendants = true) {}
+    val cardModifier = if (onClick != null) {
+        baseModifier
+            .clip(AppTheme.shapes.corner28)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = clickLabel,
+                onClick = onClick,
+            )
+    } else {
+        baseModifier
     }
 
     Card(
         modifier = cardModifier,
         shape = AppTheme.shapes.corner28,
         colors = CardDefaults.cardColors(
-            containerColor = AppTheme.colors.ink
+            containerColor = cardContainerColor
         ),
-        border = if (!isLight) BorderStroke(1.dp, AppTheme.colors.inkBorder) else null,
+        border = cardBorder,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -87,13 +117,13 @@ fun DebtSummaryCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(AppTheme.shapes.capsule)
-                        .background(AppTheme.colors.inkRaised),
+                        .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Handshake,
                         contentDescription = null,
-                        tint = AppTheme.colors.sand,
+                        tint = iconTint,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -103,7 +133,7 @@ fun DebtSummaryCard(
                         text = stringResource(R.string.debt_summary_card_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.onInk
+                        color = titleColor
                     )
                     if (summary != null) {
                         Text(
@@ -115,9 +145,9 @@ fun DebtSummaryCard(
                                 fontFeatureSettings = "tnum"
                             ),
                             color = if (summary.netBalance.amountInCents >= 0) {
-                                AppTheme.colors.onInkIncome
+                                collectColor
                             } else {
-                                AppTheme.colors.onInkExpense
+                                payColor
                             },
                             fontWeight = FontWeight.SemiBold
                         )
@@ -127,13 +157,13 @@ fun DebtSummaryCard(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                         contentDescription = null,
-                        tint = AppTheme.colors.onInkMuted,
+                        tint = mutedColor,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            // Thanh tỉ lệ thu/trả (đoạn 1 sand, đoạn 2 graphite)
+            // Thanh tỉ lệ thu/trả
             val collectCents = summary?.totalToCollect?.amountInCents?.coerceAtLeast(0L) ?: 0L
             val payCents = summary?.totalToPay?.amountInCents?.coerceAtLeast(0L) ?: 0L
             val totalCents = collectCents + payCents
@@ -144,14 +174,14 @@ fun DebtSummaryCard(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(AppTheme.shapes.corner12)
-                        .background(AppTheme.colors.inkRaised)
+                        .background(ratioBarBg)
                 ) {
                     if (collectCents > 0L) {
                         Box(
                             modifier = Modifier
                                 .weight(collectCents.toFloat())
                                 .fillMaxHeight()
-                                .background(AppTheme.colors.sand)
+                                .background(ratioCollectColor)
                         )
                     }
                     if (payCents > 0L) {
@@ -159,7 +189,7 @@ fun DebtSummaryCard(
                             modifier = Modifier
                                 .weight(payCents.toFloat())
                                 .fillMaxHeight()
-                                .background(AppTheme.colors.graphite)
+                                .background(ratioPayColor)
                         )
                     }
                 }
@@ -169,11 +199,11 @@ fun DebtSummaryCard(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(AppTheme.shapes.corner12)
-                        .background(AppTheme.colors.inkRaised)
+                        .background(ratioBarBg)
                 )
             }
 
-            // Numbers: Cần thu (onInkIncome) & Cần trả (onInkExpense)
+            // Numbers: Cần thu & Cần trả
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -183,7 +213,7 @@ fun DebtSummaryCard(
                     modifier = Modifier
                         .weight(1f)
                         .clip(AppTheme.shapes.corner16)
-                        .background(AppTheme.colors.inkRaised)
+                        .background(subTileBg)
                         .padding(14.dp)
                 ) {
                     Column {
@@ -191,14 +221,14 @@ fun DebtSummaryCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
-                                tint = AppTheme.colors.onInkIncome,
+                                tint = collectColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.debt_collect),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = AppTheme.colors.onInkMuted,
+                                color = mutedColor,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -207,7 +237,7 @@ fun DebtSummaryCard(
                             text = summary?.let { MoneyFormatter.format(it.totalToCollect) }
                                 ?: MoneyFormatter.format(Money.ZERO),
                             style = AppTheme.typography.amountCard,
-                            color = AppTheme.colors.onInkIncome
+                            color = collectColor
                         )
                     }
                 }
@@ -217,7 +247,7 @@ fun DebtSummaryCard(
                     modifier = Modifier
                         .weight(1f)
                         .clip(AppTheme.shapes.corner16)
-                        .background(AppTheme.colors.inkRaised)
+                        .background(subTileBg)
                         .padding(14.dp)
                 ) {
                     Column {
@@ -225,14 +255,14 @@ fun DebtSummaryCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                                 contentDescription = null,
-                                tint = AppTheme.colors.onInkExpense,
+                                tint = payColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.debt_tab_borrow),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = AppTheme.colors.onInkMuted,
+                                color = mutedColor,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -241,7 +271,7 @@ fun DebtSummaryCard(
                             text = summary?.let { MoneyFormatter.format(it.totalToPay) }
                                 ?: MoneyFormatter.format(Money.ZERO),
                             style = AppTheme.typography.amountCard,
-                            color = AppTheme.colors.onInkExpense
+                            color = payColor
                         )
                     }
                 }

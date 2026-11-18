@@ -70,7 +70,7 @@ fun DebtRemindBottomSheet(
     debtWithHistory: DebtWithHistory,
     wallets: List<Wallet>,
     banks: List<VietQrBank>,
-    sheetState: SheetState,
+    @Suppress("UnusedParameter") sheetState: SheetState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -100,23 +100,21 @@ fun DebtRemindBottomSheet(
 
     val hasBankConfig = receivingWallet != null && !receivingWallet.bankBin.isNullOrBlank() && !accountNumber.isBlank()
 
-    val reminderMessage = remember(hasBankConfig, debt.personName, amountFormatted, accountNumber, bankName, accountName) {
-        if (hasBankConfig) {
-            context.getString(
-                R.string.debt_share_remind_text_format,
-                debt.personName,
-                amountFormatted,
-                accountNumber,
-                bankName,
-                accountName
-            )
-        } else {
-            context.getString(
-                R.string.debt_share_remind_simple_format,
-                debt.personName,
-                amountFormatted
-            )
-        }
+    val reminderMessage = if (hasBankConfig) {
+        stringResource(
+            R.string.debt_share_remind_text_format,
+            debt.personName,
+            amountFormatted,
+            accountNumber,
+            bankName,
+            accountName,
+        )
+    } else {
+        stringResource(
+            R.string.debt_share_remind_simple_format,
+            debt.personName,
+            amountFormatted,
+        )
     }
 
     val qrImageUrl = remember(hasBankConfig, receivingWallet, debtWithHistory.remainingAmount, memo) {
@@ -317,7 +315,8 @@ fun DebtRemindBottomSheet(
 
             // Action Buttons
             val debtReminderTitle = stringResource(R.string.ui_debt_reminder)
-            val debtCopiedToast = context.getString(R.string.debt_copied_reminder)
+            val debtCopiedToast = stringResource(R.string.debt_copied_reminder)
+            val noSmsAppMsg = stringResource(R.string.error_no_sms_app)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -396,7 +395,7 @@ fun DebtRemindBottomSheet(
                             try {
                                 context.startActivity(smsIntent)
                             } catch (_: Exception) {
-                                Toast.makeText(context, context.getString(R.string.error_no_sms_app), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, noSmsAppMsg, Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = AppTheme.shapes.corner16,

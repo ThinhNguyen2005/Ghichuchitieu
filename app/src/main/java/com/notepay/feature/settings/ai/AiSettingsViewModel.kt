@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.ai.CloudGeminiAdvisor
 import com.notepay.ai.GeminiNanoBudgetAdvisor
-import com.notepay.data.preferences.AiSettingsDataStore
+import com.notepay.data.datastore.AiSettingsDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

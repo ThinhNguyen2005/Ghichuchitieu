@@ -1,8 +1,12 @@
 package com.notepay.core.platform.notification
 
+import android.Manifest
 import android.content.Context
-import com.notepay.data.preferences.AppSettingsDataStore
-import com.notepay.data.preferences.BudgetSettingsStore
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
@@ -63,6 +67,11 @@ class BudgetAlertNotifier @Inject constructor(
         val spentCents = totalExpense.amountInCents
         val limitCents = effectiveBudget.amountInCents
         val percent = ((spentCents.toDouble() / limitCents.toDouble()) * 100).toInt()
+
+        val canNotify = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!canNotify) return
 
         if (percent >= 100 && lastNotifiedThreshold < 100) {
             NotificationHelper.sendBudgetAlert(

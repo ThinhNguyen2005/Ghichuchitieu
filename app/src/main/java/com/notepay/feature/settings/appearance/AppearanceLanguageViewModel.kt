@@ -3,7 +3,7 @@ package com.notepay.feature.settings.appearance
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.preferences.AppSettingsDataStore
+import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.core.platform.LocaleHelper
 import com.notepay.core.platform.OsCompatHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +43,7 @@ class AppearanceLanguageViewModel @Inject constructor(
             liquidGlassEnabled = glassEnabled,
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
             hapticFeedbackEnabled = hapticEnabled,
-            appLanguage = lang,
+            appLanguage = LocaleHelper.normalizeLanguageCode(lang),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -79,8 +79,9 @@ class AppearanceLanguageViewModel @Inject constructor(
 
     fun setLanguage(language: String) {
         viewModelScope.launch {
-            appSettingsDataStore.setAppLanguage(language)
-            LocaleHelper.applyLocale(context, language)
+            val normalized = LocaleHelper.normalizeLanguageCode(language)
+            appSettingsDataStore.setAppLanguage(normalized)
+            LocaleHelper.applyLocale(context, normalized)
         }
     }
 }

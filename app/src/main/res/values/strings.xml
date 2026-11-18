@@ -55,9 +55,26 @@
     <string name="home_day_yesterday">HÔM QUA</string>
     <!-- %1$d = ngày, %2$s = tên tháng viết tắt (bản tiếng Anh), %3$d = số tháng (bản tiếng Việt) -->
     <string name="home_day_other">%1$d THÁNG %3$d</string>
-    <string name="home_income_month">Thu</string>
-    <string name="home_expense_month">Chi</string>
+    <string name="home_income_month">Thu nhập tháng</string>
+    <string name="home_expense_month">Chi tiêu tháng</string>
     <string name="home_add_wallet">Thêm ví</string>
+
+    <!-- Khối hero + dải tác vụ nhanh màn Home (bản "Mint") -->
+    <string name="home_hide_balance">Ẩn số dư</string>
+    <string name="home_show_balance">Hiện số dư</string>
+    <!-- %1$s = dấu biến động, %2$d = phần trăm thuần của tháng -->
+    <string name="home_net_change_format">%1$s%2$d%%</string>
+    <string name="home_budget_used_percent">Đã dùng %1$d%% ngân sách</string>
+    <!-- %1$s = số đã chi, %2$s = hạn mức tháng -->
+    <string name="home_budget_spent_limit_format">%1$s / %2$s</string>
+    <string name="home_auto_capture_on">Tự ghi: %1$d nguồn</string>
+    <string name="home_ai_assistant_label">Trợ lý tài chính</string>
+    <string name="home_open_analytics">Xem phân tích chi tiết</string>
+    <string name="home_local_forecast_note">Dự báo ngay trên máy</string>
+    <string name="home_action_quick_add">Ghi nhanh</string>
+    <string name="home_action_scan_bill">Quét bill AI</string>
+    <string name="home_action_debt_book">Sổ nợ</string>
+    <string name="home_action_split_group">Chia nhóm</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 Bạn đã tiêu quá hạn mức ví %1$s!</string>
@@ -275,6 +292,8 @@
     <string name="stats_subscription_amount_monthly_format">%1$s / tháng</string>
     <string name="stats_add_subscription">Thêm hóa đơn</string>
     <string name="stats_action_analyze">Phân tích</string>
+    <string name="stats_action_local_analysis">Xem phân tích cục bộ</string>
+    <string name="stats_action_set_budget">Đặt hạn mức</string>
     <string name="stats_action_ai_settings">Cài đặt AI</string>
     <string name="bank_linked">Ngân hàng liên kết</string>
     <string name="wallet_default">Mặc định</string>
@@ -342,16 +361,16 @@
     <string name="stats_banner_income_decrease">Giảm %1$s so với cùng kỳ tháng trước</string>
     <string name="stats_allocation_no_data">Chưa có phân bổ danh mục</string>
     <string name="stats_total_allocation">Tổng phân bổ</string>
+    <string name="stats_amounts_mask">••••••</string>
     <string name="stats_forecast_legend">Vùng mờ: dự báo cuối tháng</string>
-    <string name="stats_forecast_reached">Đã đạt dự báo cuối tháng</string>
-    <string name="stats_forecast_exceeded">Đã vượt dự báo cuối tháng</string>
+    <string name="stats_forecast_passed">Đã qua mốc dự báo cuối tháng</string>
+    <string name="stats_forecast_within_budget">Dự báo vẫn trong hạn mức tháng</string>
+    <string name="stats_forecast_over_budget">Dự báo vượt hạn mức tháng</string>
     <string name="stats_month_label_format">T%1$d</string>
     <string name="stats_trend_point_cd_format">Tháng %1$d: %2$s</string>
     <string name="stats_trend_average_label">Trung bình / tháng</string>
     <string name="stats_trend_window_short_format">%1$dT</string>
-    <string name="stats_trend_window_cd_format">Xem xu hướng %1$d tháng</string>
     <string name="stats_allocation_chart_cd_format">Biểu đồ phân bổ: %1$s</string>
-    <string name="stats_allocation_chart_empty_cd">Biểu đồ phân bổ: chưa có dữ liệu</string>
     <string name="stats_advisor_title">Trợ lý chi tiêu</string>
     <string name="stats_advisor_privacy">Riêng tư · Trên thiết bị</string>
 
@@ -406,6 +425,9 @@
     <string name="feedback_transaction_save_failed">Không thể lưu giao dịch</string>
     <string name="feedback_transaction_updated">Đã cập nhật giao dịch</string>
     <string name="feedback_transaction_update_failed">Không thể cập nhật giao dịch</string>
+    <string name="assets_load_failed">Không thể tải tài sản. Vui lòng thử lại.</string>
+    <string name="action_retry_assets">Thử lại</string>
+    <string name="error_transfer_read_only">Giao dịch chuyển ví chỉ có thể quản lý theo cặp.</string>
     <string name="feedback_transaction_delete_failed">Không thể xóa giao dịch</string>
     <string name="feedback_transaction_restored">Đã khôi phục giao dịch</string>
     <string name="feedback_transaction_restore_failed">Không thể khôi phục giao dịch</string>
@@ -515,6 +537,10 @@
     <string name="wallet_picker_title">Chọn ví</string>
     <string name="wallet_picker_empty">Chưa có ví nào. Vui lòng tạo ví trước.</string>
     <string name="calendar_month_year_format">Tháng %1$d / %2$d</string>
+    <string name="calendar_today_action">Hôm nay</string>
+    <string name="calendar_month_totals_format">Tháng %1$d · Chi %2$s · Thu %3$s</string>
+    <string name="calendar_day_cd">Ngày %1$d</string>
+    <string name="calendar_day_activity_cd">Ngày %1$d, có giao dịch</string>
     <string name="calendar_weekday_monday">Th 2</string>
     <string name="calendar_weekday_tuesday">Th 3</string>
     <string name="calendar_weekday_wednesday">Th 4</string>
@@ -525,13 +551,13 @@
     <string name="amount_input_title">Nhập số tiền</string>
     <string name="numeric_keypad_title">Bàn phím nhập số</string>
     <string name="content_description_collapse_keypad">Thu gọn bàn phím</string>
-    <string name="insight_budget_exceeded_title">⚠️ Vượt quá hạn mức tháng</string>
+    <string name="insight_budget_exceeded_title">Vượt quá hạn mức tháng</string>
     <string name="insight_budget_exceeded_description">Bạn đã chi tiêu vượt ngân sách đề ra. Hãy rà soát lại các khoản chi không cần thiết nhé.</string>
-    <string name="insight_budget_near_limit_title">⚠️ Đã dùng %1$d%% hạn mức</string>
+    <string name="insight_budget_near_limit_title">Đã dùng %1$d%% hạn mức</string>
     <string name="insight_budget_near_limit_description">Gần chạm ngưỡng chi tiêu dự kiến của tháng này. Hãy cân nhắc trước các khoản mua sắm mới.</string>
-    <string name="insight_streak_title">🔥 Chuỗi %1$d ngày ghi chép!</string>
+    <string name="insight_streak_title">Chuỗi %1$d ngày ghi chép</string>
     <string name="insight_streak_description">Thói quen tài chính của bạn đang rất tốt. Tiếp tục duy trì phong độ này nhé!</string>
-    <string name="insight_default_title">💡 Mẹo tài chính thông minh</string>
+    <string name="insight_default_title">Mẹo tài chính thông minh</string>
     <string name="insight_default_description">Ghi chép lại ngay sau khi chi tiêu giúp bạn không bao giờ bỏ sót các khoản tiền nhỏ.</string>
 
     <!-- Local notification and background worker copy -->
@@ -667,6 +693,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="subscription_popular_services">Dịch vụ phổ biến</string>
     <string name="subscription_recent_suggestions">Gợi ý từ giao dịch gần đây</string>
     <string name="subscription_name_label">Tên dịch vụ</string>
+    <string name="subscription_error_empty_name">Vui lòng nhập tên dịch vụ</string>
     <string name="subscription_amount_label">Số tiền (đ)</string>
     <string name="subscription_yearly_cost_format">Dịch vụ này tốn khoảng %1$s mỗi năm</string>
     <string name="subscription_schedule_title">Lịch thanh toán &amp; Gia hạn</string>
@@ -726,6 +753,8 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_feedback_question">Gợi ý này hữu ích?</string>
     <string name="stats_feedback_helpful">Hữu ích</string>
     <string name="stats_feedback_not_helpful">Không hữu ích</string>
+    <string name="stats_expand_state_open">Đang mở</string>
+    <string name="stats_expand_state_closed">Đã thu gọn</string>
     <string name="stats_subscription_expense">Khoản chi định kỳ</string>
     <string name="stats_subscription_detected_history">Được phát hiện từ lịch sử giao dịch</string>
     <string name="stats_subscription_monthly_format">%1$s mỗi tháng</string>
@@ -736,7 +765,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="stats_date_year_format">Năm %1$d</string>
     <string name="stats_date_range_format">%1$s - %2$s</string>
     <string name="stats_forecast_probability_suffix"> Khả năng vượt định mức khoảng %1$d%%.</string>
-    <string name="stats_forecast_message">Nhịp chi gần đây %1$s/ngày; dự báo cuối tháng khoảng %2$s.%3$s</string>
+    <string name="stats_forecast_message">Nhịp chi gần đây %1$s/ngày; dự báo cuối tháng khoảng %2$s.</string>
     <string name="stats_advice_food_title">Cảnh báo ăn uống</string>
     <string name="stats_advice_food_content">Chi tiêu ăn uống của bạn chiếm %1$s tổng chi tiêu tháng này. Hãy thử tự nấu ăn tại nhà để tiết kiệm chi phí nhé!</string>
     <string name="stats_advice_bill_title">Chuẩn bị tiền đóng phí</string>
@@ -768,12 +797,21 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="detail_timestamp_format">%1$02d/%2$02d/%3$d · %4$02d:%5$02d</string>
     <!-- Assets screen -->
     <string name="assets_total_balance">Tổng tài sản ròng</string>
+    <!-- Thẻ Ink chỉ cộng số dư các ví; công nợ không cộng/trừ vì thanh toán nợ đã đi qua ví. -->
+    <string name="assets_net_worth_title">Tổng số dư ví</string>
+    <string name="assets_negative_balance_hint">Tổng số dư đang âm: các ví đã chi vượt số tiền hiện có</string>
+    <string name="asset_negative_balance_badge">Số dư âm</string>
+    <string name="assets_positive_allocation_title">Phân bổ tài sản dương theo ví</string>
     <string name="assets_wallets_header">Danh sách ví</string>
     <string name="assets_wallet_balance">Số dư</string>
     <string name="assets_view_transactions">Xem giao dịch</string>
     <string name="assets_view_ledger">Xem sổ cái</string>
     <string name="assets_add_wallet_btn">Thêm ví</string>
     <string name="assets_transfer_btn">Chuyển tiền</string>
+    <string name="action_transfer">Chuyển tiền</string>
+    <string name="action_add_wallet">Thêm ví</string>
+    <string name="wallet_tx_count">%1$d giao dịch</string>
+    <string name="badge_stable">Ổn định</string>
     <string name="wallets_count_label">tài khoản</string>
     <string name="transactions_count_label">giao dịch</string>
     <string name="wallet_badge_active">Ví chính</string>
@@ -785,16 +823,9 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="assets_transfer_note">Ghi chú (tùy chọn):</string>
     <string name="assets_transfer_note_hint">Nhập lý do chuyển tiền…</string>
     <string name="assets_transfer_confirm_btn">Xác nhận chuyển</string>
-    <string name="assets_trend_chart_title">Xu hướng tài sản</string>
-    <string name="assets_chart_range_7d">7 ngày</string>
-    <string name="assets_chart_range_30d">30 ngày</string>
-    <string name="assets_chart_range_1y">1 năm</string>
-    <string name="assets_trend_no_data">Chưa đủ dữ liệu biến động</string>
+    <string name="assets_transfer_need_two_wallets">Cần ít nhất 2 ví để chuyển tiền</string>
     <string name="assets_balance_stable">Số dư ổn định</string>
-    <string name="assets_trend_no_change_caption">Chưa có biến động</string>
-    <string name="assets_scrubber_at_date">Vào %1$s</string>
-    <string name="assets_allocation_title">Phân bổ tài sản</string>
-    <string name="assets_allocation_no_balance">Chưa có số dư để phân bổ</string>
+    <string name="assets_allocation_other">Khác</string>
     <string name="assets_monthly_flow_format">Tháng này: +%1$s · -%2$s</string>
     <string name="tx_empty_title">Không tìm thấy giao dịch nào</string>
     <string name="tx_empty_subtitle">Hãy thử thay đổi tiêu chí lọc hoặc khoảng thời gian</string>
@@ -806,16 +837,30 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="transactions_header_title">GIAO DỊCH</string>
     <string name="filter_all_accounts">Tất cả tài khoản</string>
     <string name="filter_time_period">Khoảng thời gian</string>
+    <string name="date_range_this_month">Tháng này</string>
+    <string name="date_range_last_month">Tháng trước</string>
+    <string name="date_range_last_30_days">30 ngày qua</string>
+    <string name="date_range_last_3_months">3 tháng qua</string>
+    <string name="date_range_last_6_months">6 tháng qua</string>
+    <string name="date_range_this_year">Từ đầu năm</string>
+    <string name="date_range_last_year">Năm trước</string>
+    <string name="date_range_all_time">Toàn bộ thời gian</string>
+    <string name="date_range_custom">Tùy chỉnh</string>
+    <string name="cd_filter_active_count">Bộ lọc, đang bật %1$d mục</string>
     <string name="filter_advanced">Bộ lọc</string>
     <string name="filter_clear_all">Xóa tất cả</string>
     <string name="filter_apply">Áp dụng</string>
     <string name="filter_classification">Phân loại</string>
     <string name="filter_category_expense">Danh mục Chi tiêu</string>
     <string name="filter_category_income">Danh mục Thu nhập</string>
-    <string name="filter_search_hint">Tìm ghi chú, danh mục, số tiền…</string>
+    <string name="tx_search_hint">Tìm kiếm…</string>
     <string name="summary_income_header">THU NHẬP</string>
     <string name="summary_expense_header">CHI TIÊU</string>
     <string name="summary_export_file">Xuất file</string>
+    <string name="tx_export_file_name">giao-dich-%1$s</string>
+    <string name="tx_export_csv_header">Ngày,Giờ,Danh mục,Ví,Loại,Số tiền,Ghi chú</string>
+    <string name="tx_export_success">Đã xuất %1$d giao dịch</string>
+    <string name="tx_export_failed">Không thể xuất file</string>
     <string name="summary_sub_format">%1$d giao dịch · ròng %2$s</string>
 
     <string name="utilities_title">Tiện ích</string>
@@ -823,13 +868,19 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="utilities_bill_split_description">Ghi nhận các khoản chi tiêu chung nhóm, tự động tính toán chia đều và sinh mã VietQR để đòi nợ nhanh chóng.</string>
     <string name="utilities_subscription_description">Quản lý các khoản phí định kỳ (Netflix, Spotify, tiền nhà, bảo hiểm…), tự động thông báo trước ngày hết hạn.</string>
     <string name="home_streak_format">🔥 %1$dd</string>
+    <!-- Dòng ngày nhỏ phía trên lời chào: %1$s = thứ, %2$d = ngày, %3$s = tháng viết tắt. -->
+    <string name="home_greeting_date_format">%1$s, %2$d %3$s</string>
+    <!-- Số ngày ghi chép liên tiếp; hiển thị trong huy hiệu cạnh lời chào. -->
+    <plurals name="home_streak_days">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
     <string name="wallet_fallback">Ví</string>
     <string name="transaction_income_label">Thu vào</string>
     <string name="transaction_expense_label">Đã chi</string>
     <string name="settings_ai_engine_subtitle">Phân cấp thông minh: Gemini Nano -&gt; Cloud Gemini -&gt; Thống kê</string>
     <string name="settings_ai_engine_subtitle_local">100% Ngoại tuyến: Gemini Nano on-device &amp; Cố vấn Thống kê nội bộ</string>
     <string name="settings_ai_local_offline_title">Phiên bản Local (100% Ngoại tuyến)</string>
-    <string name="settings_ai_local_offline_desc">Bản cài đặt này đã loại bỏ hoàn toàn quyền Internet cấp hệ điều hành (Manifest level) để đảm bảo dữ liệu tài chính không bao giờ rời khỏi thiết bị. Mọi phân tích chi tiêu và quét hóa đơn hoạt động 100% cục bộ trên máy.</string>
+    <string name="settings_ai_local_offline_desc" formatted="false">Bản cài đặt này đã loại bỏ hoàn toàn quyền Internet cấp hệ điều hành (Manifest level) để đảm bảo dữ liệu tài chính không bao giờ rời khỏi thiết bị. Mọi phân tích chi tiêu và quét hóa đơn hoạt động 100% cục bộ trên máy.</string>
     <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Đã sẵn sàng (100% Offline)</string>
     <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Không hỗ trợ trên thiết bị này</string>
     <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
@@ -878,6 +929,10 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_account_step">Tài khoản</string>
     <string name="stats_category_percentage_cd">%1$s phần trăm</string>
     <string name="stats_category_selected_cd">đang mở</string>
+    <!-- Mô tả screen reader cho thẻ danh mục: %1$s tên, %2$s số tiền, %3$s tỷ lệ -->
+    <string name="stats_category_row_cd">%1$s, %2$s, chiếm %3$s</string>
+    <string name="stats_category_row_open_cd">%1$s, %2$s, chiếm %3$s, %4$s</string>
+    <string name="stats_show_more_transactions">Xem thêm %1$d giao dịch</string>
     <string name="subscription_service_electricity">Tiền điện</string>
     <string name="subscription_service_water">Tiền nước</string>
     <string name="subscription_service_rent">Tiền nhà</string>
@@ -1174,15 +1229,14 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="ui_samplenegative">-%1$s</string>
     <!-- Feedback: Wallet operations (AssetsViewModel) -->
     <string name="feedback_wallet_set_active">Đã chọn làm ví chính</string>
-    <string name="feedback_wallet_switch_failed">Không thể đổi ví: %1$s</string>
+    <string name="feedback_wallet_switch_failed">Không thể đổi ví chính</string>
     <string name="feedback_transfer_same_wallet">Ví gửi và ví nhận phải khác nhau</string>
     <string name="feedback_transfer_invalid_amount">Vui lòng nhập số tiền hợp lệ</string>
     <string name="feedback_transfer_success">Chuyển tiền thành công!</string>
-    <string name="feedback_transfer_failed">Lỗi khi chuyển tiền: %1$s</string>
+    <string name="feedback_transfer_failed">Không thể chuyển tiền, vui lòng thử lại</string>
     <string name="transfer_note_default">Chuyển tiền nội bộ</string>
     <string name="transfer_note_to">Chuyển đến %1$s: %2$s</string>
     <string name="transfer_note_from">Nhận từ %1$s: %2$s</string>
-    <string name="transfer_wallet_other">ví khác</string>
     <string name="stats_expense">Chi tiêu</string>
     <string name="stats_income">Thu nhập</string>
     <string name="stats_banner_income_increase">Thu nhập tăng %1$s</string>
@@ -1212,7 +1266,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="billsplit_paid_note_format">Đã trả nợ cho %1$s</string>
 
     <!-- Added to fix ExtraTranslation lint errors -->
-    <string name="assets_chart_range_6m">6T</string>
     <string name="currency_primary_unit_title">Tiền tệ chính</string>
     <string name="category_badge_default">Mặc định</string>
     <string name="category_field_name">Tên danh mục</string>
@@ -1261,9 +1314,17 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="auth_signing_out">Đang đăng xuất…</string>
     <string name="auth_error_sign_in_failed">Đăng nhập thất bại: %1$s</string>
     <string name="auth_error_canceled">Đã hủy đăng nhập.</string>
-    <string name="auth_error_no_credentials">Không tìm thấy tài khoản Google khả dụng trên thiết bị.</string>
-    <string name="auth_error_account_reauth">Tài khoản Google trên thiết bị đang yêu cầu xác thực lại. Vui lòng vào Cài đặt › Tài khoản, đăng nhập lại Google rồi thử lại.</string>
-    <string name="auth_error_missing_client_id">Chưa cấu hình Google Web Client ID. Vui lòng cấu hình notepay.webClientId trong gradle.properties.</string>
+    <string name="auth_error_no_credentials">Google không cung cấp tài khoản để đăng nhập. Hãy kiểm tra tài khoản trên thiết bị và bật Lời nhắc đăng nhập trong Cài đặt tài khoản Google > Đăng nhập bằng Google. Nếu vẫn lỗi, hãy kiểm tra cấu hình OAuth của ứng dụng.</string>
+    <string name="auth_error_account_reauth">Google không thể xác thực tài khoản (lỗi 16). Hãy cập nhật Dịch vụ Google Play rồi thử lại. Nếu vẫn lỗi, nhà phát triển cần kiểm tra cấu hình đăng nhập Google của ứng dụng.</string>
+    <string name="auth_error_missing_client_id">Ứng dụng chưa được cấu hình đăng nhập Google. Vui lòng liên hệ nhà phát triển.</string>
+    <string name="auth_error_unsupported_credential">Google trả về thông tin đăng nhập không được hỗ trợ. Vui lòng chọn tài khoản Google và thử lại.</string>
+    <string name="auth_error_google_services">Không thể mở cửa sổ đăng nhập Google. Hãy cập nhật Dịch vụ Google Play và thử lại.</string>
+    <string name="auth_error_invalid_credentials">Phiên xác thực Google không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.</string>
+    <string name="auth_error_network">Không thể kết nối để đăng nhập. Hãy kiểm tra mạng Internet và thử lại.</string>
+    <string name="auth_error_generic">Không thể đăng nhập bằng Google. Vui lòng thử lại; nếu lỗi tiếp diễn, hãy kiểm tra cấu hình tài khoản Google trên thiết bị.</string>
+    <string name="auth_error_firebase_unavailable">Phiên bản ứng dụng này chưa được cấu hình dịch vụ đăng nhập Google. Vui lòng liên hệ nhà phát triển.</string>
+    <string name="auth_error_sign_out_failed">Không thể đăng xuất lúc này. Vui lòng thử lại.</string>
+    <string name="auth_error_clear_credential">Đã đăng xuất khỏi NotePay nhưng không thể xóa thông tin chọn tài khoản Google. Bạn có thể cần chọn lại tài khoản khi đăng nhập.</string>
     <string name="auth_avatar_description">Ảnh đại diện người dùng</string>
     <string name="auth_sign_out_confirm_title">Xác nhận đăng xuất</string>
     <string name="auth_sign_out_confirm_message">Bạn có chắc chắn muốn đăng xuất tài khoản Google này khỏi NotePay?</string>
@@ -1286,12 +1347,12 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="auth_details_status_connected">Đã kết nối</string>
 
     <!-- Personalized Greetings -->
-    <string name="greeting_morning_with_name">Chào buổi sáng, %1$s ☀️</string>
-    <string name="greeting_afternoon_with_name">Chào buổi chiều, %1$s 🌤️</string>
-    <string name="greeting_evening_with_name">Chào buổi tối, %1$s 🌙</string>
-    <string name="greeting_morning_generic">Chào buổi sáng ☀️</string>
-    <string name="greeting_afternoon_generic">Chào buổi chiều 🌤️</string>
-    <string name="greeting_evening_generic">Chào buổi tối 🌙</string>
+    <string name="greeting_morning_with_name">Chào buổi sáng, %1$s</string>
+    <string name="greeting_afternoon_with_name">Chào buổi chiều, %1$s</string>
+    <string name="greeting_evening_with_name">Chào buổi tối, %1$s</string>
+    <string name="greeting_morning_generic">Chào buổi sáng</string>
+    <string name="greeting_afternoon_generic">Chào buổi chiều</string>
+    <string name="greeting_evening_generic">Chào buổi tối</string>
 
     <string name="stats_date_all_time">Tất cả thời gian</string>
     <string name="stats_range_week">Tuần</string>

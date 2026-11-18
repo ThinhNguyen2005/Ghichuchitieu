@@ -207,7 +207,7 @@ fun DebtorDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                DebtSummaryCard(
+                DebtorSplitSummaryCard(
                     debtorName = debtorName,
                     outstandingAmount = Money(totalAmountCents),
                     unpaidCount = unpaidDebtorSplits.size,
@@ -215,7 +215,8 @@ fun DebtorDetailScreen(
             }
 
             item {
-                if ((qrImageUrl != null || emvPayload != null) && activeWallet != null && totalAmountCents > 0) {
+                val hasQrPayload = qrImageUrl != null || emvPayload != null
+                if (hasQrPayload && activeWallet != null && totalAmountCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         VietQrTemplateCard(qrImageUrl = qrImageUrl.orEmpty(), emvPayload = emvPayload)
 
@@ -405,7 +406,7 @@ fun DebtorDetailScreen(
 }
 
 @Composable
-private fun DebtSummaryCard(
+private fun DebtorSplitSummaryCard(
     debtorName: String,
     outstandingAmount: Money,
     unpaidCount: Int,

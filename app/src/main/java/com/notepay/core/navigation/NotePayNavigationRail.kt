@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -78,7 +77,7 @@ fun BoxScope.NotePayNavigationRail(
     onTabSelected: (Route) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val performHaptic = rememberNotePayHaptic()
     val navTabs = remember { bottomTabs }
     val labels = bottomTabs.map { tab -> stringResource(tab.labelRes) }
     val selectedIndex = selectedTabIndex ?: remember(currentRoute) {
@@ -133,7 +132,7 @@ fun BoxScope.NotePayNavigationRail(
                     isSelected = index == selectedIndex,
                     reducedMotion = reducedMotion,
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        performHaptic(HapticFeedbackType.TextHandleMove)
                         onTabSelected(tab.route)
                     },
                 )
