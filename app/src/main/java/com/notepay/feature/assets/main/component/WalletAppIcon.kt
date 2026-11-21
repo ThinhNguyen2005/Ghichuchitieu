@@ -20,6 +20,8 @@ import coil3.compose.AsyncImage
 import com.notepay.domain.model.Wallet
 import com.notepay.core.designsystem.util.BankIconHelper
 import com.notepay.core.designsystem.util.WalletUiHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Hiển thị Icon ví tài chính. 
@@ -34,16 +36,23 @@ fun WalletAppIcon(
     tint: Color? = null
 ) {
     val context = LocalContext.current
+    val initialLookup = remember(wallet.linkedPackageName, wallet.bankBin) {
+        BankIconHelper.lookupCachedWalletIcon(wallet.linkedPackageName, wallet.bankBin)
+    }
     var bankDrawable by remember(wallet.linkedPackageName, wallet.bankBin) {
-        mutableStateOf<Drawable?>(null)
+        mutableStateOf<Drawable?>((initialLookup as? BankIconHelper.CacheLookup.Hit)?.drawable)
     }
 
     LaunchedEffect(wallet.linkedPackageName, wallet.bankBin) {
-        if (!wallet.linkedPackageName.isNullOrBlank()) {
-            bankDrawable = BankIconHelper.getInstalledAppIcon(context, wallet.linkedPackageName)
-        }
-        if (bankDrawable == null && !wallet.bankBin.isNullOrBlank()) {
-            bankDrawable = BankIconHelper.getInstalledAppIconByBankBin(context, wallet.bankBin)
+        if (initialLookup is BankIconHelper.CacheLookup.Miss) {
+            val resolved = withContext(Dispatchers.IO) {
+                BankIconHelper.resolveWalletIcon(
+                    context = context,
+                    linkedPackageName = wallet.linkedPackageName,
+                    bankBin = wallet.bankBin,
+                )
+            }
+            bankDrawable = resolved
         }
     }
 

@@ -1008,6 +1008,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="currency_krw">Won Hàn Quốc (KRW)</string>
     <string name="currency_sgd">Đô la Singapore (SGD)</string>
     <string name="currency_thb">Baht Thái (THB)</string>
+    <string name="currency_open_converter_action">Mở công cụ quy đổi tiền tệ</string>
 
     <!-- Category management screen -->
     <string name="category_management_title">Danh mục thu chi</string>
@@ -1410,4 +1411,140 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="onboarding_action_continue">Tiếp tục</string>
     <string name="onboarding_action_start">Bắt đầu sử dụng</string>
     <string name="onboarding_action_skip">Bỏ qua</string>
+
+    <!-- Stats Allocation & Period Spending Bar Chart -->
+    <string name="stats_allocation_selected">Đã chọn</string>
+    <string name="stats_allocation_unselected">Chưa chọn</string>
+    <string name="stats_allocation_filter_action">Lọc theo danh mục này</string>
+    <string name="stats_allocation_clear_filter_action">Bỏ lọc danh mục</string>
+    <string name="stats_period_bar_daily_expense">Chi tiêu theo ngày</string>
+    <string name="stats_period_bar_daily_income">Thu nhập theo ngày</string>
+    <string name="stats_period_bar_monthly_expense">Chi tiêu theo tháng</string>
+    <string name="stats_period_bar_monthly_income">Thu nhập theo tháng</string>
+    <string name="stats_period_bar_yearly_expense">Chi tiêu theo năm</string>
+    <string name="stats_period_bar_yearly_income">Thu nhập theo năm</string>
+    <string name="stats_period_bar_peak_format">Cao nhất: %1$s</string>
+    <string name="stats_period_bar_clear_selection">Xóa chọn cột</string>
+    <string name="stats_period_bar_empty">Chưa có phát sinh trong kỳ này</string>
+    <string name="stats_period_bar_point_cd_format">%1$s: %2$s</string>
+    <string name="stats_period_bar_chart_cd_format">%1$s. Cao nhất %2$s, trung bình %3$s</string>
+    <string name="stats_period_bar_date_short_format">%1$d/%2$d</string>
+    <string name="stats_period_bar_day_of_month_format">Ngày %1$d/%2$d</string>
+
+    <!-- Transaction Calculator Keypad -->
+    <string name="error_division_by_zero">Không thể chia cho 0</string>
+    <string name="transaction_auto_capture_amount_locked">Số tiền giao dịch ngân hàng được cố định để bảo toàn đối soát</string>
+    <string name="cd_calc_add">Cộng</string>
+    <string name="cd_calc_subtract">Trừ</string>
+    <string name="cd_calc_multiply">Nhân</string>
+    <string name="cd_calc_divide">Chia</string>
+    <string name="cd_calc_equals">Bằng</string>
+    <string name="cd_calc_three_zeros">Thêm ba số không</string>
+    <string name="cd_calc_clear_all">Xóa toàn bộ</string>
+    <string name="cd_calc_date_format">Ngày giao dịch: %1$s</string>
+    <string name="cd_calc_note_format">Ghi chú: %1$s</string>
+    <string name="cd_calc_note_empty">Thêm ghi chú</string>
+
+    <!-- Account Nature & Wallet Types -->
+    <string name="account_nature_asset">Tài sản</string>
+    <string name="account_nature_liability">Nợ / Tín dụng</string>
+    <string name="wallet_type_cash">Tiền mặt</string>
+    <string name="wallet_type_bank">Tài khoản ngân hàng</string>
+    <string name="wallet_type_ewallet">Ví điện tử</string>
+    <string name="wallet_type_savings">Tiết kiệm có kỳ hạn</string>
+    <string name="wallet_type_fund">Quỹ đầu tư</string>
+    <string name="wallet_type_stock">Cổ phiếu</string>
+    <string name="wallet_type_crypto">Tiền mã hóa</string>
+    <string name="wallet_type_gold">Vàng &amp; Kim loại quý</string>
+    <string name="wallet_type_real_estate">Bất động sản</string>
+    <string name="wallet_type_vehicle">Xe cộ &amp; Phương tiện</string>
+    <string name="wallet_type_other_asset">Tài sản khác</string>
+    <string name="wallet_type_credit_card">Thẻ tín dụng</string>
+    <string name="wallet_type_credit_line">Hạn mức tín dụng / Thấu chi</string>
+    <string name="wallet_type_loan">Khoản vay</string>
+    <string name="wallet_type_mortgage">Vay mua nhà / Trả góp</string>
+    <string name="wallet_type_other_liability">Nợ phải trả khác</string>
+
+    <!-- Assets Screen Net Worth & Multi-Currency -->
+    <string name="assets_total_assets_label">Tổng Tài sản</string>
+    <string name="assets_total_liabilities_label">Tổng Nợ phải trả</string>
+    <string name="assets_section_assets_title">Tài sản (%1$d)</string>
+    <string name="assets_section_liabilities_title">Nợ &amp; Thẻ tín dụng (%1$d)</string>
+    <string name="assets_section_archived_title">Ví đã lưu trữ (%1$d)</string>
+    <string name="assets_view_allocation_asset">Cơ cấu Tài sản</string>
+    <string name="assets_view_allocation_liability">Cơ cấu Nợ</string>
+    <string name="assets_allocation_no_liabilities">Chưa có khoản nợ nào</string>
+    <string name="assets_rates_updated_format">Tỷ giá: %1$s</string>
+    <string name="assets_rate_today">Hôm nay</string>
+    <string name="assets_card_action_pay_card">Thanh toán thẻ</string>
+    <string name="assets_card_action_adjust_balance">Cập nhật số dư</string>
+    <string name="assets_credit_limit_format">Hạn mức: %1$s</string>
+    <string name="assets_credit_available_format">Còn lại: %1$s</string>
+    <string name="assets_overdraft_warning">Thấu chi</string>
+    <string name="assets_approx_vnd_format">≈ %1$s</string>
+
+    <!-- Add/Edit Wallet Features -->
+    <string name="wallet_field_account_nature">Bản chất tài khoản</string>
+    <string name="wallet_field_wallet_type">Loại tài khoản</string>
+    <string name="wallet_field_currency">Đơn vị tiền tệ</string>
+    <string name="wallet_currency_locked_hint">Đã khóa — ví này đã có %1$d giao dịch</string>
+    <string name="wallet_field_credit_limit">Hạn mức tín dụng</string>
+    <string name="wallet_action_archive">Lưu trữ ví</string>
+    <string name="wallet_action_unarchive">Bỏ lưu trữ ví</string>
+    <string name="wallet_action_delete">Xóa ví</string>
+    <string name="wallet_delete_confirm_title">Xác nhận xóa ví</string>
+    <string name="wallet_delete_confirm_message">Bạn có chắc chắn muốn xóa ví \"%1$s\"? Hành động này không thể hoàn tác.</string>
+    <string name="wallet_archive_confirm_title">Lưu trữ ví</string>
+    <string name="wallet_archive_confirm_message">Ví \"%1$s\" có %2$d giao dịch. Lưu trữ ví sẽ ẩn ví khỏi danh sách chọn khi tạo giao dịch mới nhưng bảo toàn 100%% lịch sử giao dịch.</string>
+    <string name="wallet_unarchive_confirm_message">Khôi phục ví \"%1$s\" về danh sách ví hoạt động?</string>
+    <string name="wallet_archived_success">Đã lưu trữ ví</string>
+    <string name="wallet_unarchived_success">Đã khôi phục ví</string>
+    <string name="wallet_deleted_success">Đã xóa ví vĩnh viễn</string>
+    <string name="wallet_adjust_balance_title">Cập nhật số dư thực tế</string>
+    <string name="wallet_adjust_balance_desc">Điều chỉnh số dư theo định giá thị trường thực tế mà không làm ảnh hưởng đến báo cáo thu chi sinh hoạt.</string>
+    <string name="wallet_adjust_new_balance_label">Số dư thị trường mới</string>
+    <string name="wallet_adjust_success">Đã cập nhật số dư thị trường</string>
+
+    <!-- Live Currency Converter & Exchange Rates -->
+    <string name="currency_converter_title">Quy đổi tiền tệ</string>
+    <string name="currency_converter_subtitle">Công cụ tham khảo độc lập. Số dư và giao dịch trong ví không bị thay đổi.</string>
+    <string name="currency_converter_source_label">Từ đơn vị</string>
+    <string name="currency_converter_target_label">Sang đơn vị</string>
+    <string name="currency_converter_amount_label">Số tiền cần đổi</string>
+    <string name="currency_converter_result_label">Giá trị quy đổi</string>
+    <string name="currency_converter_swap_cd">Đảo chiều hai đơn vị tiền tệ</string>
+    <string name="currency_converter_clear_cd">Xóa số tiền đang nhập</string>
+    <string name="currency_converter_refresh_cd">Cập nhật tỷ giá trực tiếp</string>
+    <string name="currency_converter_retry">Thử lại</string>
+    <string name="currency_converter_quick_table_title">Quy đổi nhanh các đơn vị khác</string>
+    <string name="currency_converter_no_input">Nhập số tiền hợp lệ để quy đổi</string>
+    <string name="currency_converter_disclaimer">Tỷ giá chỉ mang tính tham khảo từ API mở (%1$s), không phải tỷ giá mua bán niêm yết của ngân hàng.</string>
+    <string name="currency_rate_unit_format">1 %1$s ≈ %2$s</string>
+    <string name="currency_rate_live_updated">%1$s • Cập nhật: %2$s</string>
+    <string name="currency_rate_offline_badge">Tỷ giá ước tính ngoại tuyến</string>
+    <string name="currency_rate_refresh_failed">Không tải được tỷ giá trực tuyến — đang dùng dữ liệu ước tính.</string>
+    <string name="currency_rate_updating">Đang cập nhật tỷ giá…</string>
+    <string name="currency_converter_select_source_cd">Chọn đơn vị tiền tệ nguồn: %1$s</string>
+    <string name="currency_converter_select_target_cd">Chọn đơn vị tiền tệ đích: %1$s</string>
+
+    <!-- Onboarding v4 & About Replay -->
+    <string name="onboarding_step_counter_format">%1$02d / %2$02d</string>
+    <string name="onboarding_step1_eyebrow">BƯỚC 01 • CÁ NHÂN HÓA</string>
+    <string name="onboarding_step2_eyebrow">BƯỚC 02 • VÍ CHÍNH</string>
+    <string name="onboarding_step3_eyebrow">BƯỚC 03 • THÓI QUEN TỐT</string>
+    <string name="onboarding_preview_balance_label">Số dư mẫu hiển thị</string>
+    <string name="onboarding_wallet_primary_badge">VÍ CHÍNH</string>
+    <string name="onboarding_wallet_name_placeholder">Ví dụ: Tiền mặt, Vietcombank…</string>
+    <string name="onboarding_wallet_suggestions_label">Gợi ý tên nhanh</string>
+    <string name="onboarding_wallet_meta_format">%1$s • %2$s</string>
+    <string name="onboarding_wallet_starting_balance_label">Số dư khởi đầu</string>
+    <string name="onboarding_wallet_name_counter_format">%1$d/%2$d</string>
+    <string name="onboarding_wallet_clear_cd">Xóa tên ví</string>
+    <string name="onboarding_reminder_toggle_desc">Nhắc nhẹ cuối ngày nếu bạn chưa ghi giao dịch nào</string>
+    <string name="onboarding_reminder_preview_title">Nhắc ghi chép hôm nay</string>
+    <string name="onboarding_reminder_preview_body">Dành 10 giây ghi lại các khoản chi tiêu hôm nay cùng NotePay nhé.</string>
+    <string name="onboarding_reminder_off_label">Đã tắt</string>
+    <string name="onboarding_reminder_preview_off_body">Nhắc nhở đang tắt. Bạn vẫn có thể bật lại bất cứ lúc nào trong Cài đặt.</string>
+    <string name="onboarding_save_error_message">Chưa lưu được thiết lập ban đầu. Vui lòng thử lại.</string>
+    <string name="about_replay_onboarding_action">Xem lại màn hình giới thiệu</string>
 </resources>

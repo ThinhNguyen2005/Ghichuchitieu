@@ -283,9 +283,10 @@ fun NotePayNavHost(
                                 OnboardingRoute(
                                     onComplete = {
                                         navController.navigate(Route.Home.path) {
-                                            popUpTo(Route.Welcome.path) { inclusive = true }
+                                            popUpTo(navController.graph.id) { inclusive = true }
+                                            launchSingleTop = true
                                         }
-                                    }
+                                    },
                                 )
                             }
                             composable(Route.Home.path) {

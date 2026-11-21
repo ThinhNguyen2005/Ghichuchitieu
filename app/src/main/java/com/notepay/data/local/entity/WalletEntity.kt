@@ -7,7 +7,10 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "wallets",
-    indices = [Index(value = ["is_active"])],
+    indices = [
+        Index(value = ["is_active"]),
+        Index(value = ["is_archived"]),
+    ],
 )
 data class WalletEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
@@ -22,4 +25,9 @@ data class WalletEntity(
     @ColumnInfo(name = "account_number") val accountNumber: String? = null,
     @ColumnInfo(name = "account_name") val accountName: String? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "wallet_type", defaultValue = "CASH") val walletType: String = "CASH",
+    @ColumnInfo(name = "account_nature", defaultValue = "ASSET") val accountNature: String = "ASSET",
+    @ColumnInfo(name = "currency_code", defaultValue = "VND") val currencyCode: String = "VND",
+    @ColumnInfo(name = "credit_limit_cents") val creditLimitCents: Long? = null,
+    @ColumnInfo(name = "is_archived", defaultValue = "0") val isArchived: Boolean = false,
 )

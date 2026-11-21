@@ -15,9 +15,11 @@ interface WalletDao {
     @Query("DELETE FROM wallets")
     suspend fun deleteAll()
 
-
     @Query("SELECT * FROM wallets ORDER BY created_at ASC")
     fun observeAll(): Flow<List<WalletEntity>>
+
+    @Query("SELECT * FROM wallets WHERE is_archived = 0 ORDER BY created_at ASC")
+    fun observeNonArchived(): Flow<List<WalletEntity>>
 
     @Query("SELECT * FROM wallets WHERE is_active = 1 LIMIT 1")
     fun observeActive(): Flow<WalletEntity?>
@@ -30,6 +32,9 @@ interface WalletDao {
 
     @Query("DELETE FROM wallets WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("UPDATE wallets SET is_archived = :isArchived WHERE id = :id")
+    suspend fun setArchived(id: Long, isArchived: Boolean)
 
     @Query("UPDATE wallets SET is_active = 0")
     suspend fun clearActive()

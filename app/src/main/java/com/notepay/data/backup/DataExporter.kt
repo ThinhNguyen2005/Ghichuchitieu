@@ -106,6 +106,11 @@ class DataExporter @Inject constructor(
                 put("accountNumber", w.accountNumber ?: JSONObject.NULL)
                 put("accountName", w.accountName ?: JSONObject.NULL)
                 put("createdAt", w.createdAt)
+                put("walletType", w.walletType)
+                put("accountNature", w.accountNature)
+                put("currencyCode", w.currencyCode)
+                put("creditLimitCents", w.creditLimitCents ?: JSONObject.NULL)
+                put("isArchived", w.isArchived)
             })
         }
         data.put("wallets", walletsArr)

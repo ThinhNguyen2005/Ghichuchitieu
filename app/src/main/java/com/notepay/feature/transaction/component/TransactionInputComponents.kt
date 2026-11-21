@@ -5,7 +5,9 @@ import com.notepay.core.designsystem.theme.AppTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.rounded.EditNote
@@ -105,11 +107,10 @@ private fun formatSmartMagnitude(
 @Composable
 fun TransactionAmountDisplay(
     amountInput: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rawAmountForMagnitude: Long = amountInput.replace(".", "").toLongOrNull() ?: 0L,
+    hasError: Boolean = false,
 ) {
-    val rawNumber = remember(amountInput) {
-        amountInput.replace(".", "").toLongOrNull() ?: 0L
-    }
     val zeroWords = stringResource(R.string.number_words_zero)
     val currencySuffix = stringResource(R.string.number_words_currency_suffix)
     val millionLabel = stringResource(R.string.unit_million)
@@ -117,16 +118,16 @@ fun TransactionAmountDisplay(
     val trillionLabel = stringResource(R.string.unit_trillion)
     val approxFormat = stringResource(R.string.approx_symbol)
 
-    val amountInWords = remember(rawNumber, zeroWords, currencySuffix) {
-        if (rawNumber > 0L) {
+    val amountInWords = remember(rawAmountForMagnitude, zeroWords, currencySuffix) {
+        if (rawAmountForMagnitude > 0L) {
             runCatching {
-                VietnameseMoneyWordsFormatter.format(rawNumber, zeroWords) + " " + currencySuffix
+                VietnameseMoneyWordsFormatter.format(rawAmountForMagnitude, zeroWords) + " " + currencySuffix
             }.getOrDefault("")
         } else ""
     }
 
-    val smartMagnitude = remember(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat) {
-        formatSmartMagnitude(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat)
+    val smartMagnitude = remember(rawAmountForMagnitude, millionLabel, billionLabel, trillionLabel, approxFormat) {
+        formatSmartMagnitude(rawAmountForMagnitude, millionLabel, billionLabel, trillionLabel, approxFormat)
     }
 
     var showFullWords by remember { mutableStateOf(false) }
@@ -158,21 +159,31 @@ fun TransactionAmountDisplay(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = amountInput.ifBlank { "0" },
-                fontSize = amountFontSize,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip
-            )
+            Box(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = amountInput.ifBlank { "0" },
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
+                        fontSize = amountFontSize,
+                        fontWeight = FontWeight.Black,
+                        fontFeatureSettings = "tnum",
+                    ),
+                    color = if (hasError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                )
+            }
 
             Text(
                 text = stringResource(R.string.currency_vnd_symbol),
                 fontSize = currencyFontSize,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (hasError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 6.dp)
             )
         }

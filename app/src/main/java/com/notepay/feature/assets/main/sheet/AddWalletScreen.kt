@@ -27,9 +27,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Unarchive
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,13 +43,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,14 +80,18 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.VietQrBank
-import com.notepay.domain.money.Money
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
-import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.core.designsystem.util.WalletUiHelper
+import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.model.WalletType
+import com.notepay.domain.money.Money
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +103,11 @@ fun AddWalletScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showArchiveConfirm by remember { mutableStateOf(false) }
+    var showUnarchiveConfirm by remember { mutableStateOf(false) }
+    var currencyExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.feedback.collect { feedback ->
@@ -108,7 +128,7 @@ fun AddWalletScreen(
                             stringResource(R.string.action_edit_wallet)
                         } else {
                             stringResource(R.string.home_add_new_wallet)
-                        }
+                        },
                     )
                 },
                 navigationIcon = {
@@ -166,7 +186,73 @@ fun AddWalletScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // 2. Tên ví
+            // 1. Bản chất tài khoản (Tài sản vs Nợ/Tín dụng)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.wallet_field_account_nature),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                val natures = listOf(AccountNature.ASSET, AccountNature.LIABILITY)
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    natures.forEachIndexed { index, nature ->
+                        SegmentedButton(
+                            selected = state.accountNature == nature,
+                            onClick = { viewModel.onNatureChanged(nature) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = natures.size),
+                        ) {
+                            Text(
+                                text = stringResource(WalletUiHelper.getNatureTitleRes(nature)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (state.accountNature == nature) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. Phân loại tài khoản (WalletType)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.wallet_field_wallet_type),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                val availableTypes = remember(state.accountNature) {
+                    WalletType.entries.filter { it.nature == state.accountNature }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    availableTypes.forEach { type ->
+                        val isSelected = state.walletType == type
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.onWalletTypeChanged(type) },
+                            label = {
+                                Text(
+                                    text = stringResource(WalletUiHelper.getWalletTypeTitleRes(type)),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = WalletUiHelper.getWalletTypeIcon(type),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            },
+                            shape = AppTheme.shapes.corner12,
+                        )
+                    }
+                }
+            }
+
+            // 3. Tên ví
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onNameChanged,
@@ -177,7 +263,65 @@ fun AddWalletScreen(
                 singleLine = true,
             )
 
-            // 3. Số dư ban đầu
+            // 4. Đơn vị tiền tệ
+            ExposedDropdownMenuBox(
+                expanded = currencyExpanded && !state.isCurrencyLocked,
+                onExpandedChange = { if (!state.isCurrencyLocked) currencyExpanded = !currencyExpanded },
+            ) {
+                OutlinedTextField(
+                    value = state.currencyCode,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = !state.isCurrencyLocked,
+                    label = { Text(stringResource(R.string.wallet_field_currency)) },
+                    shape = AppTheme.shapes.corner12,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                    trailingIcon = {
+                        if (state.isCurrencyLocked) {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded)
+                        }
+                    },
+                    supportingText = if (state.isCurrencyLocked) {
+                        {
+                            Text(
+                                text = stringResource(R.string.wallet_currency_locked_hint, state.transactionCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    } else null,
+                )
+                ExposedDropdownMenu(
+                    expanded = currencyExpanded && !state.isCurrencyLocked,
+                    onDismissRequest = { currencyExpanded = false },
+                ) {
+                    CurrencyConverter.supportedCurrencies.forEach { currency ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "${currency.code} (${currency.symbol}) - ${stringResource(currency.nameRes)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (currency.code == state.currencyCode) FontWeight.Bold else FontWeight.Normal,
+                                )
+                            },
+                            onClick = {
+                                viewModel.onCurrencyChanged(currency.code)
+                                currencyExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            // 5. Số dư ban đầu
             val isInitialBalanceLocked = state.isEditMode && state.hasTransactions
 
             OutlinedTextField(
@@ -187,7 +331,7 @@ fun AddWalletScreen(
                 label = { Text(stringResource(R.string.wallet_field_initial_balance)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                visualTransformation = currencyTransformation,
+                visualTransformation = if (state.currencyCode == "VND") currencyTransformation else VisualTransformation.None,
                 shape = AppTheme.shapes.corner12,
                 singleLine = true,
                 trailingIcon = if (isInitialBalanceLocked) {
@@ -216,8 +360,21 @@ fun AddWalletScreen(
                 },
             )
 
+            // 6. Hạn mức tín dụng (cho Thẻ tín dụng hoặc Hạn mức thấu chi)
+            if (state.walletType.isCreditCardOrLine) {
+                OutlinedTextField(
+                    value = state.creditLimitInput,
+                    onValueChange = viewModel::onCreditLimitChanged,
+                    label = { Text(stringResource(R.string.wallet_field_credit_limit)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = if (state.currencyCode == "VND") currencyTransformation else VisualTransformation.None,
+                    shape = AppTheme.shapes.corner12,
+                    singleLine = true,
+                )
+            }
 
-            // 4. Hạn mức cảnh báo ngân sách
+            // 7. Hạn mức cảnh báo ngân sách
             BudgetAlertSection(
                 hasBudgetLimit = state.hasBudgetLimit,
                 onHasBudgetLimitChanged = viewModel::onHasBudgetLimitChanged,
@@ -227,6 +384,8 @@ fun AddWalletScreen(
                 onBudgetLimitChanged = viewModel::onBudgetLimitChanged,
                 currencyTransformation = currencyTransformation,
             )
+
+            // 8. Tài khoản nhận tiền VietQR (nếu là ngân hàng)
             BankQrSection(
                 banks = state.banks,
                 selectedBankBin = state.bankBin,
@@ -236,13 +395,14 @@ fun AddWalletScreen(
                 onAccountNumberChanged = viewModel::onAccountNumberChanged,
                 onAccountNameChanged = viewModel::onAccountNameChanged,
             )
-            // 5. Chọn Biểu tượng
+
+            // 9. Chọn Biểu tượng
             WalletIconPicker(
                 selectedIconKey = state.iconKey,
                 onIconSelected = viewModel::onIconChanged,
             )
 
-            // 6. Chọn Màu sắc
+            // 10. Chọn Màu sắc
             WalletColorPicker(
                 selectedColorKey = state.colorKey,
                 usedColorKeys = state.usedColorKeys,
@@ -250,8 +410,187 @@ fun AddWalletScreen(
                 onColorSelected = viewModel::onColorChanged,
             )
 
+            // 11. Thao tác Lưu trữ / Xóa ví trong chế độ Sửa ví
+            if (state.isEditMode) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (state.canDeleteDirectly) {
+                        OutlinedButton(
+                            onClick = { showDeleteConfirm = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                            shape = AppTheme.shapes.corner12,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.size(8.dp))
+                            Text(
+                                text = stringResource(R.string.wallet_action_delete),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    } else if (state.canArchive) {
+                        if (!state.isArchived) {
+                            OutlinedButton(
+                                onClick = { showArchiveConfirm = true },
+                                shape = AppTheme.shapes.corner12,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Archive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.size(8.dp))
+                                Text(
+                                    text = stringResource(R.string.wallet_action_archive),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { showUnarchiveConfirm = true },
+                                shape = AppTheme.shapes.corner12,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Unarchive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.size(8.dp))
+                                Text(
+                                    text = stringResource(R.string.wallet_action_unarchive),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (showDeleteConfirm) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.wallet_delete_confirm_title),
+            itemName = state.name,
+            message = stringResource(R.string.wallet_delete_confirm_message, state.name),
+            confirmLabel = stringResource(R.string.wallet_action_delete),
+            onConfirm = {
+                showDeleteConfirm = false
+                viewModel.deleteWallet()
+            },
+            onDismiss = { showDeleteConfirm = false },
+        )
+    }
+
+    if (showArchiveConfirm) {
+        AlertDialog(
+            onDismissRequest = { showArchiveConfirm = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Archive,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.wallet_archive_confirm_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.wallet_archive_confirm_message, state.name, state.transactionCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showArchiveConfirm = false
+                        viewModel.archiveWallet()
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.wallet_action_archive),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showArchiveConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (showUnarchiveConfirm) {
+        AlertDialog(
+            onDismissRequest = { showUnarchiveConfirm = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Unarchive,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.wallet_action_unarchive),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.wallet_unarchive_confirm_message, state.name),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showUnarchiveConfirm = false
+                        viewModel.unarchiveWallet()
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.wallet_action_unarchive),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnarchiveConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -283,7 +622,7 @@ private fun BudgetAlertSection(
                     .toggleable(
                         value = hasBudgetLimit,
                         onValueChange = onHasBudgetLimitChanged,
-                        role = Role.Switch
+                        role = Role.Switch,
                     ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -335,7 +674,6 @@ private fun BudgetAlertSection(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // Bộ chọn chu kỳ (Ngày, Tuần, Tháng)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -389,7 +727,6 @@ private fun BudgetAlertSection(
                         singleLine = true,
                     )
 
-                    // Quy đổi sang số tiền hàng tháng
                     val rawLimit = budgetLimitInput.toLongOrNull() ?: 0L
                     if (rawLimit > 0L) {
                         val monthlyEquivalent = when (budgetPeriod) {
@@ -413,7 +750,6 @@ private fun BudgetAlertSection(
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -440,7 +776,7 @@ private fun BankQrSection(
         modifier = Modifier.fillMaxWidth(),
         shape = shapes.corner16,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
@@ -454,7 +790,6 @@ private fun BankQrSection(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            // 1. Dropdown chọn Ngân hàng
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -502,7 +837,6 @@ private fun BankQrSection(
                 }
             }
 
-            // 2. Ô nhập Số tài khoản
             OutlinedTextField(
                 value = accountNumber,
                 onValueChange = onAccountNumberChanged,
@@ -517,7 +851,6 @@ private fun BankQrSection(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // 3. Ô nhập Tên chủ tài khoản
             OutlinedTextField(
                 value = accountName,
                 onValueChange = onAccountNameChanged,
@@ -535,7 +868,6 @@ private fun BankQrSection(
         }
     }
 }
-
 
 @Composable
 private fun WalletIconPicker(
@@ -602,7 +934,6 @@ private fun WalletIconPicker(
     }
 }
 
-
 @Composable
 private fun WalletColorPicker(
     selectedColorKey: String,
@@ -662,7 +993,6 @@ private fun WalletColorPicker(
                         )
                     }
 
-                    // Vòng tròn màu chính
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -678,7 +1008,6 @@ private fun WalletColorPicker(
                                 modifier = Modifier.size(20.dp),
                             )
                         } else if (isUsed) {
-                            // Chấm tròn nhỏ biểu thị màu đã dùng ở ví khác
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)

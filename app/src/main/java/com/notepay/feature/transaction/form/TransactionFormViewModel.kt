@@ -23,6 +23,7 @@ import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.feature.transaction.component.CalcKey
 import com.notepay.feature.transaction.form.calculator.AmountParser
 import com.notepay.feature.transaction.form.calculator.CalculatorEngine
+import com.notepay.feature.transaction.form.calculator.CalculatorError
 import com.notepay.feature.transaction.form.calculator.CalculatorState
 import com.notepay.feature.transaction.form.mapper.CategorySuggestionUiMapper
 import com.notepay.feature.transaction.form.validation.FieldError
@@ -125,6 +126,7 @@ class TransactionFormViewModel @Inject constructor(
 
     private fun observeCategories() {
         viewModelScope.launch(ioDispatcher) {
+            suggestCategoryUseCase.warmUp()
             categoryRepository.observeCategories().collect { list ->
                 _state.update { it.copy(availableCategories = list) }
             }
@@ -132,7 +134,7 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     private fun loadExistingTransaction(id: Long) {
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             val tx = transactionRepository.getById(id)
             val initialCategories = categoryRepository.observeCategories().firstOrNull() ?: emptyList()
 
@@ -173,7 +175,13 @@ class TransactionFormViewModel @Inject constructor(
     // ── Calculator keypad ─────────────────────────────────────────────────────
 
     private fun handleCalcKey(key: CalcKey) {
-        val current = _state.value.calcState
+        val currentState = _state.value
+        if (currentState.isEditMode && currentState.isAutoCapture && key != CalcKey.Save) return
+        if (key == CalcKey.Save) {
+            save()
+            return
+        }
+        val current = currentState.calcState
         val next = when (key) {
             is CalcKey.Digit    -> CalculatorEngine.appendDigit(current, key.value)
             is CalcKey.Operator -> CalculatorEngine.applyOperator(current, key.symbol)
@@ -184,17 +192,23 @@ class TransactionFormViewModel @Inject constructor(
             CalcKey.Date, CalcKey.Note, CalcKey.Save -> current
         }
         commitCalcState(next)
-        if (key == CalcKey.Save) save()
+        if (next.error == CalculatorError.DIVISION_BY_ZERO) {
+            _feedback.tryEmit(
+                UiFeedback(context.getString(R.string.error_division_by_zero), type = FeedbackType.Error),
+            )
+        }
     }
 
     private fun clearCalc() {
+        val currentState = _state.value
+        if (currentState.isEditMode && currentState.isAutoCapture) return
         commitCalcState(CalculatorEngine.clear())
     }
 
     private fun commitCalcState(calc: CalculatorState) {
-        val majorUnits = CalculatorEngine.currentValue(calc) ?: 0L
-        val amountInCents = majorUnits * 100L
-        val money = if (amountInCents > 0) Money(amountInCents) else null
+        val majorUnits = CalculatorEngine.previewMajorUnits(calc)
+        val amountInCents = if (majorUnits != null && majorUnits > 0L) majorUnits * 100L else 0L
+        val money = if (amountInCents > 0L) Money(amountInCents) else null
 
         _state.update {
             it.copy(
@@ -317,14 +331,35 @@ class TransactionFormViewModel @Inject constructor(
     // ── Save (Add or Edit) ────────────────────────────────────────────────────
 
     private fun save() {
+        val current = _state.value
+        if (current.isSaving) return
+        if (!(current.isEditMode && current.isAutoCapture)) {
+            val evaluated = CalculatorEngine.equals(current.calcState)
+            commitCalcState(evaluated)
+            if (evaluated.error == CalculatorError.DIVISION_BY_ZERO) {
+                _feedback.tryEmit(
+                    UiFeedback(context.getString(R.string.error_division_by_zero), type = FeedbackType.Error),
+                )
+                return
+            }
+        }
         if (isEditMode) saveEdit() else saveNew()
     }
 
     private fun saveNew() {
         val current = _state.value
+        if (current.isSaving) return
         val errors = TransactionFormValidator.validate(current.amount, current.walletId, current.note)
         if (errors.isNotEmpty()) {
             _state.update { it.copy(errors = errors) }
+            val amountMissing = current.amount == null || current.amount.amountInCents <= 0L
+            val messageRes = when {
+                amountMissing && current.walletId == null -> R.string.transaction_validation_amount_wallet
+                amountMissing -> R.string.transaction_validation_amount
+                current.walletId == null -> R.string.transaction_validation_wallet
+                else -> R.string.transaction_validation_form
+            }
+            _feedback.tryEmit(UiFeedback(context.getString(messageRes), type = FeedbackType.Error))
             return
         }
         val amount = current.amount ?: return
@@ -367,7 +402,7 @@ class TransactionFormViewModel @Inject constructor(
         val cents = if (current.isAutoCapture) {
             tx.amount.amountInCents
         } else {
-            TransactionFormValidator.positiveAmountInCents(current.amountInput) ?: 0L
+            current.amount?.amountInCents ?: 0L
         }
         if (cents <= 0) {
             _feedback.tryEmit(UiFeedback(context.getString(R.string.error_amount_positive), type = FeedbackType.Error))
@@ -375,7 +410,7 @@ class TransactionFormViewModel @Inject constructor(
         }
 
         _state.update { it.copy(isSaving = true) }
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 // Giữ nguyên giờ cũ, chỉ đổi ngày nếu user thay đổi
                 val newOccurredAt: Instant = run {

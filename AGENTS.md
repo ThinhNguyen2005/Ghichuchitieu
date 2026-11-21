@@ -6,7 +6,7 @@ NotePay: single-module Android app (`app`), Kotlin + Jetpack Compose + Material 
 
 Lazy means efficient, not careless. The best code is the code never written.
 
-First read the task and the code it touches, trace the real flow, and verify that every file, type, token and dependency you plan to use actually exists (grep / open it; never assume). Then stop at the first rung that holds:
+First trace the task and every caller/test it touches using CodeGraph (`codegraph_explore` / `codegraph_impact` when `.codegraph/` exists; otherwise targeted search/read), and verify that every file, type, token and dependency exists before editing; never assume. Then stop at the first rung that holds:
 
 1. Does this need to exist at all? (YAGNI)
 2. Is it already in this codebase? Reuse the helper, theme token, component or pattern.
@@ -38,10 +38,11 @@ Resources: `app/src/main/res/`. Room schema exports: `app/schemas/` (keep them u
 
 ## Commands (Windows, repo root)
 
-- `./gradlew.bat :app:assembleDebug` compile debug APK
-- `./gradlew.bat :app:testDebugUnitTest` unit tests
+- `./gradlew.bat detekt :app:lintFullDebug :app:lintPlayDebug` static analysis (Detekt + Android Lint)
+- `./gradlew.bat :app:assembleFullDebug :app:assemblePlayDebug` compile debug APKs (`full` & `play`)
+- `./gradlew.bat :app:testFullDebugUnitTest :app:testPlayDebugUnitTest` flavor unit tests
 - `./gradlew.bat :app:connectedDebugAndroidTest` instrumentation tests
-- `./gradlew.bat :app:bundleRelease` release bundle (needs local `app/signing.properties`)
+- `./gradlew.bat :app:assembleFullRelease :app:assemblePlayRelease :app:bundlePlayRelease` signed release APKs & Play bundle (needs local `app/signing.properties`)
 
 Add `--no-daemon` for clean CI-like diagnosis. Never commit APKs, keystores, `local.properties`, or `build/` output.
 
@@ -81,7 +82,7 @@ Hard rules:
 5. Handle Loading, Empty, Error and Offline states.
 6. Income/expense colors mean cash flow only. Status (safe/caution/over) = color + icon + text.
 7. Contrast at least 4.5:1 in light and dark. Text over images needs an overlay or blur.
-8. Before finishing a UI change: run the checklist in `.agents/skills/ui-ux-playbook/SKILL.md`, check light/dark and font scale 1.3x/2.0x, then run `./gradlew.bat :app:testDebugUnitTest`.
+8. Before finishing a UI change: run the checklist in `ui-ux-audit-guide.md`, check light/dark and font scale 1.3x/2.0x, then run `./gradlew.bat detekt :app:lintFullDebug :app:lintPlayDebug :app:testFullDebugUnitTest :app:testPlayDebugUnitTest`.
 
 ## Localization: Zero Hardcoded Strings
 

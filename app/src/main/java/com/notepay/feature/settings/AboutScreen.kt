@@ -9,10 +9,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +45,7 @@ import com.notepay.core.designsystem.theme.AppTheme
 fun AboutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onReplayOnboarding: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val appInfo = remember {
@@ -47,7 +53,7 @@ fun AboutScreen(
             val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.packageManager.getPackageInfo(
                     context.packageName,
-                    PackageManager.PackageInfoFlags.of(0)
+                    PackageManager.PackageInfoFlags.of(0),
                 )
             } else {
                 @Suppress("DEPRECATION")
@@ -63,32 +69,32 @@ fun AboutScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = AppTheme.colors.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.utilities_app_info_title),
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
                     )
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.defaultMinSize(minHeight = 48.dp, minWidth = 48.dp)
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp, minWidth = 48.dp),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
+                            contentDescription = stringResource(R.string.action_back),
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                    containerColor = AppTheme.colors.background,
+                ),
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -96,28 +102,47 @@ fun AboutScreen(
                 .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_artwork),
                 contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier
                     .size(96.dp)
-                    .clip(AppTheme.shapes.corner24)
+                    .clip(AppTheme.shapes.corner24),
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.ui_version_appinfo, appInfo),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onReplayOnboarding,
+                shape = AppTheme.shapes.capsule,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppTheme.colors.ink,
+                    contentColor = AppTheme.colors.onInk,
+                ),
+                modifier = Modifier.heightIn(min = 52.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = AppTheme.colors.sand,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.about_replay_onboarding_action))
+            }
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

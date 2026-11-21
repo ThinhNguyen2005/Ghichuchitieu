@@ -5,17 +5,19 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
-import com.notepay.data.remote.VietQrBankRepository
-import com.notepay.domain.model.VietQrBank
-import com.notepay.domain.money.Money
-import com.notepay.domain.model.Wallet
-import com.notepay.domain.repository.TransactionRepository
-import com.notepay.domain.repository.WalletRepository
-import com.notepay.feature.transaction.form.calculator.AmountParser
+import com.notepay.core.common.util.StringUtils.removeVietnameseAccents
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.util.WalletUiHelper
-import com.notepay.core.common.util.StringUtils.removeVietnameseAccents
+import com.notepay.data.remote.VietQrBankRepository
+import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletType
+import com.notepay.domain.money.Money
+import com.notepay.domain.repository.TransactionRepository
+import com.notepay.domain.repository.WalletRepository
+import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -40,7 +42,8 @@ import kotlin.time.Clock
 class AddWalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val transactionRepository: TransactionRepository,
-    savedStateHandle: SavedStateHandle, vietQrBankRepository: VietQrBankRepository,
+    savedStateHandle: SavedStateHandle,
+    vietQrBankRepository: VietQrBankRepository,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -64,8 +67,6 @@ class AddWalletViewModel @Inject constructor(
                 if (wallet != null) {
                     loadedWallet = wallet
 
-                    // Số dư lấy từ phép gộp SQL (GROUP BY wallet_id) thay vì tải toàn bộ
-                    // giao dịch về RAM rồi cộng tay — cùng nguồn số liệu với Home và Assets.
                     val monthRange = currentMonthRange()
                     val stats = transactionRepository.observeWalletStats(
                         monthStartMillis = monthRange.first,
@@ -81,6 +82,7 @@ class AddWalletViewModel @Inject constructor(
                         .filter { it.id != wallet.id }
                         .map { it.colorKey }
                         .toSet()
+                    val txCount = stats?.txCount ?: 0
                     _state.update {
                         it.copy(
                             name = wallet.name,
@@ -97,9 +99,15 @@ class AddWalletViewModel @Inject constructor(
                             accountNumber = wallet.accountNumber ?: "",
                             accountName = wallet.accountName ?: "",
                             currentBalance = currentBalance,
-                            hasTransactions = (stats?.txCount ?: 0) > 0,
+                            hasTransactions = txCount > 0,
+                            transactionCount = txCount,
                             isEditMode = true,
                             banks = banks,
+                            accountNature = wallet.nature,
+                            walletType = wallet.type,
+                            currencyCode = wallet.currencyCode,
+                            creditLimitInput = if (wallet.creditLimit != null) (wallet.creditLimit.amountInCents / 100).toString() else "",
+                            isArchived = wallet.isArchived,
                         )
                     }
                 }
@@ -124,7 +132,6 @@ class AddWalletViewModel @Inject constructor(
         _state.update { it.copy(name = name) }
     }
 
-    /** Khoảng [đầu tháng, cuối tháng] hiện tại (ms) dùng cho truy vấn thống kê ví. */
     private fun currentMonthRange(): LongRange {
         val tz = TimeZone.currentSystemDefault()
         val today = Clock.System.now().toLocalDateTime(tz)
@@ -165,7 +172,6 @@ class AddWalletViewModel @Inject constructor(
     }
 
     fun onAccountNumberChanged(accountNumber: String) {
-        // Chỉ lưu chữ số hoặc chữ cái (bình thường là số)
         val clean = removeVietnameseAccents(accountNumber)
             .filter { it.isLetterOrDigit() }
         _state.update { it.copy(accountNumber = clean) }
@@ -178,6 +184,111 @@ class AddWalletViewModel @Inject constructor(
     fun onBankSelected(bank: VietQrBank) {
         _state.update { it.copy(bankBin = bank.bin) }
     }
+
+    fun onNatureChanged(nature: AccountNature) {
+        _state.update { current ->
+            if (current.accountNature == nature) return@update current
+            val newType = if (nature == AccountNature.ASSET) WalletType.CASH else WalletType.CREDIT_CARD
+            current.copy(
+                accountNature = nature,
+                walletType = newType,
+                iconKey = newType.defaultIconKey,
+            )
+        }
+    }
+
+    fun onWalletTypeChanged(type: WalletType) {
+        _state.update {
+            it.copy(
+                walletType = type,
+                accountNature = type.nature,
+                iconKey = type.defaultIconKey,
+            )
+        }
+    }
+
+    fun onCurrencyChanged(currencyCode: String) {
+        if (_state.value.isCurrencyLocked) return
+        _state.update { it.copy(currencyCode = currencyCode) }
+    }
+
+    fun onCreditLimitChanged(input: String) {
+        val clean = input.filter(Char::isDigit).take(AmountParser.MAX_DIGITS)
+        _state.update { it.copy(creditLimitInput = clean) }
+    }
+
+    fun archiveWallet() {
+        val id = walletId ?: return
+        viewModelScope.launch {
+            try {
+                walletRepository.setArchived(id, isArchived = true)
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.wallet_archived_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.wallet_update_failed),
+                        type = FeedbackType.Error,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun unarchiveWallet() {
+        val id = walletId ?: return
+        viewModelScope.launch {
+            try {
+                walletRepository.setArchived(id, isArchived = false)
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.wallet_unarchived_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.wallet_update_failed),
+                        type = FeedbackType.Error,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun deleteWallet() {
+        val id = walletId ?: return
+        viewModelScope.launch {
+            try {
+                walletRepository.delete(id)
+                _feedback.emit(
+                    UiFeedback(
+                        context.getString(R.string.wallet_deleted_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        e.message ?: context.getString(R.string.wallet_update_failed),
+                        type = FeedbackType.Error,
+                    ),
+                )
+            }
+        }
+    }
+
     fun save() {
         val current = _state.value
         if (!current.canSave) return
@@ -202,6 +313,13 @@ class AddWalletViewModel @Inject constructor(
                     null
                 }
 
+                val creditLimit = if (current.walletType.isCreditCardOrLine && current.creditLimitInput.isNotBlank()) {
+                    val rawLimit = current.creditLimitInput.toLongOrNull() ?: 0L
+                    Money(rawLimit * 100)
+                } else {
+                    null
+                }
+
                 val wallet = Wallet(
                     id = walletId ?: 0L,
                     name = current.name,
@@ -214,7 +332,12 @@ class AddWalletViewModel @Inject constructor(
                     bankBin = current.bankBin,
                     accountNumber = current.accountNumber.ifBlank { null },
                     accountName = current.accountName.ifBlank { null },
-                    createdAt = loadedWallet?.createdAt ?: Clock.System.now()
+                    createdAt = loadedWallet?.createdAt ?: Clock.System.now(),
+                    type = current.walletType,
+                    nature = current.accountNature,
+                    currencyCode = current.currencyCode,
+                    creditLimit = creditLimit,
+                    isArchived = current.isArchived,
                 )
 
                 walletRepository.upsert(wallet)

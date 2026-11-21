@@ -23,7 +23,7 @@ import com.notepay.data.local.entity.DebtPaymentEntity
         DebtEntity::class,
         DebtPaymentEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class NotePayDatabase : RoomDatabase() {
@@ -142,6 +142,16 @@ abstract class NotePayDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN transfer_group_id TEXT")
+            }
+        }
+        val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wallets ADD COLUMN wallet_type TEXT NOT NULL DEFAULT 'CASH'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN account_nature TEXT NOT NULL DEFAULT 'ASSET'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'VND'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN credit_limit_cents INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_wallets_is_archived ON wallets (is_archived)")
             }
         }
     }

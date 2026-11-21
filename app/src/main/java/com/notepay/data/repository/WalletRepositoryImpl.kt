@@ -27,6 +27,9 @@ class WalletRepositoryImpl @Inject constructor(
     override fun observeAll(): Flow<List<Wallet>> =
         dao.observeAll().map { list -> list.map(mapper::toDomain) }.flowOn(dispatcher)
 
+    override fun observeNonArchived(): Flow<List<Wallet>> =
+        dao.observeNonArchived().map { list -> list.map(mapper::toDomain) }.flowOn(dispatcher)
+
     override fun observeActive(): Flow<Wallet?> =
         dao.observeActive().map { entity -> entity?.let(mapper::toDomain) }.flowOn(dispatcher)
 
@@ -42,6 +45,22 @@ class WalletRepositoryImpl @Inject constructor(
                 "Cannot delete a wallet containing internal transfer entries"
             }
             dao.delete(id)
+        }
+    }
+
+    override suspend fun setArchived(id: Long, isArchived: Boolean) {
+        database.withTransaction {
+            if (isArchived) {
+                val current = dao.getById(id)
+                if (current?.isActive == true) {
+                    dao.clearActive()
+                    val fallback = dao.getAll().firstOrNull { it.id != id && !it.isArchived }
+                    if (fallback != null) {
+                        dao.setActive(fallback.id)
+                    }
+                }
+            }
+            dao.setArchived(id, isArchived)
         }
     }
 

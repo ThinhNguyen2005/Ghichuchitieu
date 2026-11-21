@@ -61,10 +61,21 @@ data class TransactionFormUiState(
     val isNoteSheetOpen: Boolean = false,
 ) {
     val canSave: Boolean
-        get() = amount != null && amount.amountInCents > 0 && walletId != null && errors.isEmpty() && !isSaving
+        get() = amount != null &&
+            amount.amountInCents > 0 &&
+            walletId != null &&
+            errors.isEmpty() &&
+            calcState.error == null &&
+            !isSaving
 
     /** Biểu thức hiển thị trên thanh số tiền (Add mode) */
     val displayExpression: String
         get() = CalculatorEngine.displayExpression(calcState)
+
+    val activePendingOperator: Char?
+        get() = CalculatorEngine.activePendingOperator(calcState)
+
+    val previewAmountMajorUnits: Long
+        get() = (amount?.toMajorUnitLong() ?: 0L).coerceAtLeast(0L)
 }
 

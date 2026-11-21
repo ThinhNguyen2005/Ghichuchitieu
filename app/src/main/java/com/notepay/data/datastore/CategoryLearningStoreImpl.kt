@@ -13,10 +13,21 @@ import javax.inject.Singleton
 
 @Singleton
 class CategoryLearningStoreImpl @Inject constructor(
-    @ApplicationContext context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : CategoryLearningStore {
-    private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val preferences by lazy {
+        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    }
     private val vocabularySizes = mutableMapOf<CategoryLearningType, Int>()
+
+    override fun warmUp() = synchronized(PREFERENCES_LOCK) {
+        CategoryLearningType.entries.forEach { type ->
+            val typeKey = type.storageKey
+            vocabularySizes.getOrPut(type) {
+                preferences.getStringSet("v2_vocabulary_$typeKey", emptySet()).orEmpty().size
+            }
+        }
+    }
 
     override fun read(
         type: CategoryLearningType,

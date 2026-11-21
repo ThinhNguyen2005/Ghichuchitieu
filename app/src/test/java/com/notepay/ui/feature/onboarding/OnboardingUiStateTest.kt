@@ -37,4 +37,11 @@ class OnboardingUiStateTest {
         val valid = Wallet.default().copy(name = tooLong.take(Wallet.MAX_NAME_LENGTH))
         assertThat(valid.name).hasLength(Wallet.MAX_NAME_LENGTH)
     }
+
+    @Test
+    fun `onboarding currencies cover all 8 supported codes`() {
+        assertThat(OnboardingUiState.CURRENCIES)
+            .containsExactly("VND", "USD", "EUR", "JPY", "GBP", "KRW", "SGD", "THB")
+            .inOrder()
+    }
 }

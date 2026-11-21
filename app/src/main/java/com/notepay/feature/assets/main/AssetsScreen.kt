@@ -1,13 +1,17 @@
 package com.notepay.feature.assets.main
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +22,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -27,19 +33,33 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,15 +69,17 @@ import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberNotePayReducedMotion
+import com.notepay.domain.model.CurrencyConverter
 import com.notepay.feature.assets.main.component.AssetsInkHeroCard
 import com.notepay.feature.assets.main.component.WalletAssetCard
 import com.notepay.feature.assets.main.sheet.TransferBottomSheet
 import com.notepay.feature.debt.management.component.DebtSummaryCard
 
-/** Bề rộng tối thiểu của một thẻ ví trong grid; dưới ngưỡng này grid tự rơi về 1 cột. */
 private val AssetCardMinWidth = 320.dp
 
 private enum class AssetsContentState {
@@ -80,13 +102,13 @@ fun AssetsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transferForm by viewModel.transferForm.collectAsStateWithLifecycle()
     val reducedMotion = rememberNotePayReducedMotion()
-    // Tablet: lề bù để danh sách một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
-    // Compact/Medium có thanh điều hướng nổi ở đáy nên phải chừa chỗ; chế độ rail thì không.
     val bottomClearance = if (LocalWindowLayout.current.usesNavigationRail) 24.dp else maxOf(
         120.dp,
         104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
     )
+
+    var isArchivedExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -97,14 +119,14 @@ fun AssetsScreen(
     val contentState = when {
         state.isLoading -> AssetsContentState.LOADING
         state.hasError -> AssetsContentState.ERROR
-        state.wallets.isEmpty() -> AssetsContentState.EMPTY
+        state.wallets.isEmpty() && state.archivedWallets.isEmpty() -> AssetsContentState.EMPTY
         else -> AssetsContentState.CONTENT
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppTheme.colors.background)
+            .background(AppTheme.colors.background),
     ) {
         AnimatedContent(
             targetState = contentState,
@@ -167,7 +189,6 @@ fun AssetsScreen(
 
                 AssetsContentState.CONTENT -> {
                     LazyVerticalGrid(
-                        // Grid tự chia cột theo bề rộng khả dụng: 1 cột ở Compact, 2 cột khi đủ chỗ.
                         columns = GridCells.Adaptive(minSize = AssetCardMinWidth),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
@@ -181,16 +202,29 @@ fun AssetsScreen(
                     ) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             NotePayStaggeredEntrance(index = 0) {
-                                // Item của grid không tự xếp chồng nhiều con như LazyColumn, nên inset
-                                // phải nằm trong cùng một Column, nếu không thẻ Ink sẽ trôi lên dưới
-                                // thanh trạng thái và bị đồng hồ hệ thống đè lên.
                                 Column {
                                     Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
+                                    Text(
+                                        text = stringResource(R.string.nav_assets),
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = AppTheme.colors.textPrimary,
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
                                     AssetsInkHeroCard(
                                         totalNetWorth = state.totalNetWorth,
+                                        totalAssetsVnd = state.totalAssetsVnd,
+                                        totalLiabilitiesVnd = state.totalLiabilitiesVnd,
+                                        assetCount = state.assetCount,
+                                        liabilityCount = state.liabilityCount,
                                         changePercentage = state.netWorthChangePercentage,
+                                        allocationMode = state.allocationMode,
+                                        onAllocationModeChanged = viewModel::onAllocationModeChanged,
                                         allocationItems = state.allocationItems,
                                         canTransfer = state.wallets.size >= 2,
+                                        hasForeignCurrency = state.hasForeignCurrency,
+                                        ratesLastUpdated = state.ratesLastUpdated,
                                         onAddWallet = onAddWallet,
                                         onTransferClick = { viewModel.openTransferSheet() },
                                     )
@@ -198,7 +232,7 @@ fun AssetsScreen(
                             }
                         }
 
-                        // Thẻ tóm tắt Sổ nợ cá nhân (Personal Debts Summary)
+                        // Thẻ tóm tắt Sổ nợ cá nhân
                         state.debtSummary?.let { summary ->
                             val hasDebtSummary = summary.activeDebtsCount > 0 ||
                                 summary.totalToCollect.amountInCents > 0L ||
@@ -216,43 +250,147 @@ fun AssetsScreen(
                             }
                         }
 
-                        // Header danh sách ví
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            NotePayStaggeredEntrance(index = 2) {
+                        // Nhóm 1: TÀI SẢN (ASSETS)
+                        if (state.assetWallets.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                NotePayStaggeredEntrance(index = 2) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = AppTheme.dimensions.spaceExtraSmall,
+                                                vertical = AppTheme.dimensions.spaceExtraSmall,
+                                            ),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.assets_section_assets_title,
+                                                state.assetWallets.size,
+                                            ),
+                                            style = AppTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AppTheme.colors.textPrimary,
+                                        )
+                                        Text(
+                                            text = MoneyFormatter.format(state.totalAssetsVnd),
+                                            style = AppTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = AppTheme.colors.onInkIncome,
+                                        )
+                                    }
+                                }
+                            }
+
+                            items(state.assetWallets, key = { "asset_${it.wallet.id}" }) { item ->
+                                WalletAssetCard(
+                                    item = item,
+                                    onClick = { onWalletClick(item.wallet.id) },
+                                    onEdit = { onEditWallet(item.wallet.id) },
+                                    onSetDefault = { viewModel.setActiveWallet(item.wallet.id) },
+                                    onAdjustBalance = { viewModel.openAdjustBalance(item) },
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                        }
+
+                        // Nhóm 2: NỢ & THẺ TÍN DỤNG (LIABILITIES) - Ẩn nếu không có
+                        if (state.liabilityWallets.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                NotePayStaggeredEntrance(index = 3) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = AppTheme.dimensions.spaceExtraSmall,
+                                                vertical = AppTheme.dimensions.spaceExtraSmall,
+                                            ),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.assets_section_liabilities_title,
+                                                state.liabilityWallets.size,
+                                            ),
+                                            style = AppTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AppTheme.colors.textPrimary,
+                                        )
+                                        Text(
+                                            text = MoneyFormatter.format(state.totalLiabilitiesVnd),
+                                            style = AppTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = AppTheme.colors.onInkExpense,
+                                        )
+                                    }
+                                }
+                            }
+
+                            items(state.liabilityWallets, key = { "liability_${it.wallet.id}" }) { item ->
+                                WalletAssetCard(
+                                    item = item,
+                                    onClick = { onWalletClick(item.wallet.id) },
+                                    onEdit = { onEditWallet(item.wallet.id) },
+                                    onSetDefault = { viewModel.setActiveWallet(item.wallet.id) },
+                                    onPayCard = { viewModel.openPayCreditCard(item.wallet.id) },
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                        }
+
+                        // Nhóm 3: VÍ ĐÃ LƯU TRỮ (ARCHIVED) - Thu gọn / Mở rộng
+                        if (state.archivedWallets.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = AppTheme.dimensions.spaceExtraSmall, vertical = AppTheme.dimensions.spaceExtraSmall),
+                                        .clickable { isArchivedExpanded = !isArchivedExpanded }
+                                        .padding(
+                                            horizontal = AppTheme.dimensions.spaceExtraSmall,
+                                            vertical = AppTheme.dimensions.spaceSmall,
+                                        ),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text = stringResource(R.string.assets_wallets_header),
-                                        style = AppTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AppTheme.colors.textPrimary,
-                                    )
-                                    Text(
                                         text = stringResource(
-                                            R.string.assets_wallets_count_format,
-                                            state.wallets.size,
-                                            stringResource(R.string.wallets_count_label),
+                                            R.string.assets_section_archived_title,
+                                            state.archivedWallets.size,
                                         ),
-                                        style = AppTheme.typography.bodySmall,
+                                        style = AppTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = AppTheme.colors.textSecondary,
+                                    )
+                                    IconButton(
+                                        onClick = { isArchivedExpanded = !isArchivedExpanded },
+                                        modifier = Modifier.size(36.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isArchivedExpanded) {
+                                                Icons.Rounded.ExpandLess
+                                            } else {
+                                                Icons.Rounded.ExpandMore
+                                            },
+                                            contentDescription = null,
+                                            tint = AppTheme.colors.textSecondary,
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isArchivedExpanded) {
+                                items(state.archivedWallets, key = { "archived_${it.wallet.id}" }) { item ->
+                                    WalletAssetCard(
+                                        item = item,
+                                        onClick = { onWalletClick(item.wallet.id) },
+                                        onEdit = { onEditWallet(item.wallet.id) },
+                                        onSetDefault = { },
+                                        modifier = Modifier.animateItem(),
                                     )
                                 }
                             }
-                        }
-
-                        items(state.wallets, key = { it.wallet.id }) { item ->
-                            WalletAssetCard(
-                                item = item,
-                                onClick = { onWalletClick(item.wallet.id) },
-                                onEdit = { onEditWallet(item.wallet.id) },
-                                onSetDefault = { viewModel.setActiveWallet(item.wallet.id) },
-                                modifier = Modifier.animateItem(),
-                            )
                         }
                     }
                 }
@@ -268,8 +406,94 @@ fun AssetsScreen(
                 onToWalletChange = { viewModel.onTransferToWalletChanged(it) },
                 onAmountChange = { viewModel.onTransferAmountChanged(it) },
                 onNoteChange = { viewModel.onTransferNoteChanged(it) },
-                onConfirm = { viewModel.executeTransfer() }
+                onConfirm = { viewModel.executeTransfer() },
+            )
+        }
+
+        state.adjustBalanceWallet?.let { target ->
+            AdjustBalanceDialog(
+                item = target,
+                onDismiss = { viewModel.closeAdjustBalance() },
+                onConfirm = { newBalanceCents ->
+                    viewModel.submitAdjustBalance(target.wallet.id, newBalanceCents)
+                },
             )
         }
     }
+}
+
+@Composable
+private fun AdjustBalanceDialog(
+    item: WalletAssetItem,
+    onDismiss: () -> Unit,
+    onConfirm: (newBalanceCents: Long) -> Unit,
+) {
+    val currencyTransformation = remember { VietnamCurrencyVisualTransformation() }
+    val isVnd = item.wallet.currencyCode.equals("VND", ignoreCase = true)
+    var input by remember {
+        mutableStateOf(
+            if (isVnd) (item.balance.amountInCents / 100L).toString()
+            else (item.balance.amountInCents / 100.0).toString(),
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.wallet_adjust_balance_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.wallet_adjust_balance_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "${item.wallet.name} · ${stringResource(R.string.wallet_current_balance_badge, if (isVnd) MoneyFormatter.format(item.balance) else CurrencyConverter.formatForeignAmount(item.balance.amountInCents, item.wallet.currencyCode))}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { raw ->
+                        val clean = if (isVnd) raw.filter(Char::isDigit) else raw.filter { it.isDigit() || it == '.' }
+                        input = clean
+                    },
+                    label = { Text(stringResource(R.string.wallet_adjust_new_balance_label)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = if (isVnd) currencyTransformation else VisualTransformation.None,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val cents = if (isVnd) {
+                        (input.toLongOrNull() ?: 0L) * 100L
+                    } else {
+                        ((input.toDoubleOrNull() ?: 0.0) * 100.0).toLong()
+                    }
+                    onConfirm(cents)
+                },
+            ) {
+                Text(
+                    text = stringResource(R.string.action_save_changes),
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }

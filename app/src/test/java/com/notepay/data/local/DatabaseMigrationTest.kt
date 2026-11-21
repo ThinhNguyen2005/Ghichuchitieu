@@ -87,6 +87,7 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_4_5,
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -185,6 +186,7 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_4_5,
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -247,7 +249,7 @@ class DatabaseMigrationTest {
         dbV5.close()
 
         val dbV6 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_5_6.db")
-            .addMigrations(NotePayDatabase.MIGRATION_5_6, NotePayDatabase.MIGRATION_6_7)
+            .addMigrations(NotePayDatabase.MIGRATION_5_6, NotePayDatabase.MIGRATION_6_7, NotePayDatabase.MIGRATION_7_8)
             .allowMainThreadQueries()
             .build()
 
@@ -301,6 +303,7 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_4_5,
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -357,6 +360,7 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_4_5,
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -402,7 +406,7 @@ class DatabaseMigrationTest {
         dbV6.close()
 
         val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
-            .addMigrations(NotePayDatabase.MIGRATION_6_7)
+            .addMigrations(NotePayDatabase.MIGRATION_6_7, NotePayDatabase.MIGRATION_7_8)
             .allowMainThreadQueries()
             .build()
 
@@ -415,6 +419,76 @@ class DatabaseMigrationTest {
         val grouped = upgraded.transactionDao().getByTransferGroupId("grp-6-7")
         assertThat(grouped).hasSize(1)
         assertThat(grouped[0].id).isEqualTo(12L)
+
+        upgraded.close()
+        context.deleteDatabase(dbName)
+    }
+
+    @Test
+    fun testMigration7To8() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val dbName = "test_migration_7_8.db"
+        context.deleteDatabase(dbName)
+
+        val dbV7 = context.openOrCreateDatabase(dbName, Context.MODE_PRIVATE, null)
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `wallets` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `initial_balance_cents` INTEGER NOT NULL, `icon_key` TEXT NOT NULL, `color_key` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `budget_limit_cents` INTEGER, `linked_package_name` TEXT, `bank_bin` TEXT, `account_number` TEXT, `account_name` TEXT, `created_at` INTEGER NOT NULL)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_active` ON `wallets` (`is_active`)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount_cents` INTEGER NOT NULL, `type` TEXT NOT NULL, `category` TEXT NOT NULL, `note` TEXT NOT NULL, `occurred_at` INTEGER NOT NULL, `wallet_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `is_auto_capture` INTEGER NOT NULL DEFAULT 0, `is_internal_transfer` INTEGER NOT NULL DEFAULT 0, `transfer_group_id` TEXT, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `bill_splits` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transaction_id` INTEGER NOT NULL, `debtor_name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `is_paid` INTEGER NOT NULL, `memo_code` TEXT NOT NULL, `paid_at` INTEGER, `created_at` INTEGER NOT NULL, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_splits_transaction_id` ON `bill_splits` (`transaction_id`)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `subscriptions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `category` TEXT NOT NULL, `next_due_date` INTEGER NOT NULL, `repeat_months` INTEGER NOT NULL, `remind_days_before` INTEGER NOT NULL, `note` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `debts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_name` TEXT NOT NULL, `phone_number` TEXT, `type` TEXT NOT NULL, `original_amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `created_at` INTEGER NOT NULL, `due_date` INTEGER, `note` TEXT NOT NULL, `is_settled` INTEGER NOT NULL, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_person_name` ON `debts` (`person_name`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_wallet_id` ON `debts` (`wallet_id`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_is_settled` ON `debts` (`is_settled`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_due_date` ON `debts` (`due_date`)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS `debt_payments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `debt_id` INTEGER NOT NULL, `amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `paid_at` INTEGER NOT NULL, `note` TEXT NOT NULL, `transaction_id` INTEGER, FOREIGN KEY(`debt_id`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debt_id` ON `debt_payments` (`debt_id`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_transaction_id` ON `debt_payments` (`transaction_id`)")
+        dbV7.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paid_at` ON `debt_payments` (`paid_at`)")
+        dbV7.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        dbV7.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, 'b86b4efb2bcf1b8df7cb35c91b5c3298')")
+        dbV7.execSQL("INSERT INTO wallets (id, name, initial_balance_cents, icon_key, color_key, is_active, created_at) VALUES (7, 'Techcombank', 1200000, 'bank', 'primary', 1, 1000)")
+        dbV7.execSQL("PRAGMA user_version = 7")
+        dbV7.close()
+
+        val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
+            .addMigrations(NotePayDatabase.MIGRATION_7_8)
+            .allowMainThreadQueries()
+            .build()
+
+        val migratedWallet = upgraded.walletDao().getById(7L)
+        assertThat(migratedWallet).isNotNull()
+        assertThat(migratedWallet!!.name).isEqualTo("Techcombank")
+        assertThat(migratedWallet.walletType).isEqualTo("CASH")
+        assertThat(migratedWallet.accountNature).isEqualTo("ASSET")
+        assertThat(migratedWallet.currencyCode).isEqualTo("VND")
+        assertThat(migratedWallet.creditLimitCents).isNull()
+        assertThat(migratedWallet.isArchived).isFalse()
+
+        // Thêm một tài khoản thẻ tín dụng nợ mới
+        val creditCard = WalletEntity(
+            id = 8L,
+            name = "Visa Platinum",
+            initialBalanceCents = 0L,
+            iconKey = "card",
+            colorKey = "coral",
+            isActive = false,
+            createdAt = 2000L,
+            walletType = "CREDIT_CARD",
+            accountNature = "LIABILITY",
+            currencyCode = "VND",
+            creditLimitCents = 50_000_000_00L,
+            isArchived = false,
+        )
+        upgraded.walletDao().upsert(creditCard)
+
+        // Lưu trữ ví số 7 và kiểm tra observeNonArchived
+        upgraded.walletDao().setArchived(7L, true)
+        val nonArchived = upgraded.walletDao().observeNonArchived().first()
+        assertThat(nonArchived.map { it.id }).containsExactly(8L)
 
         upgraded.close()
         context.deleteDatabase(dbName)

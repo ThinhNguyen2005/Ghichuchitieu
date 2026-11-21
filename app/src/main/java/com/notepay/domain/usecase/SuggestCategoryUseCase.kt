@@ -69,6 +69,11 @@ class SuggestCategoryUseCase @Inject constructor(
         Rule(Category.INVESTMENT, setOf("co tuc", "lai dau tu", "chung khoan", "ban co phieu", "lai tiet kiem")),
     )
 
+    /** Nạp trước kho dữ liệu học danh mục vào RAM (nên gọi trên background dispatcher). */
+    fun warmUp() {
+        learningStore.warmUp()
+    }
+
     /** Compatibility API for notification capture and existing callers. */
     fun suggest(note: String, isIncome: Boolean): Category =
         suggestDetailed(note, isIncome)?.category

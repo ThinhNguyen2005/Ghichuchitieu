@@ -23,7 +23,14 @@ data class Wallet(
     val accountNumber: String? = null,
     val accountName: String? = null,
     val createdAt: Instant = Clock.System.now(),
+    val type: WalletType = WalletType.CASH,
+    val nature: AccountNature = type.nature,
+    val currencyCode: String = "VND",
+    val creditLimit: Money? = null,
+    val isArchived: Boolean = false,
 ) {
+    val isLiability: Boolean get() = nature.isLiability
+    val isAsset: Boolean get() = nature.isAsset
     init {
         require(name.isNotBlank()) { "Wallet name must not be blank" }
         require(name.length <= MAX_NAME_LENGTH) {

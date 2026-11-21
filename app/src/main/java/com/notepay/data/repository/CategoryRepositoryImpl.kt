@@ -3,27 +3,46 @@ package com.notepay.data.repository
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.core.content.edit
+import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Category
 import com.notepay.domain.repository.CategoryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CategoryRepositoryImpl @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : CategoryRepository {
 
-    private val prefs = context.getSharedPreferences("notepay_custom_categories", Context.MODE_PRIVATE)
-    
-    // MutableStateFlow để phát tín hiệu danh sách thay đổi realtime
-    private val _categoriesFlow = MutableStateFlow<List<Category>>(emptyList())
+    constructor(context: Context) : this(context, Dispatchers.Unconfined)
 
-    init {
-        loadAndRegister()
+    private val prefs by lazy {
+        context.getSharedPreferences("notepay_custom_categories", Context.MODE_PRIVATE)
+    }
+    private val loadLock = Any()
+    @Volatile
+    private var isLoaded = false
+
+    // MutableStateFlow để phát tín hiệu danh sách thay đổi realtime
+    private val _categoriesFlow = MutableStateFlow(Category.getAll())
+
+    private fun ensureLoaded() {
+        if (isLoaded) return
+        synchronized(loadLock) {
+            if (!isLoaded) {
+                loadAndRegister()
+            }
+        }
     }
 
     private fun loadAndRegister() {
@@ -43,65 +62,76 @@ class CategoryRepositoryImpl @Inject constructor(
             )
         }.filter { it.displayName.isNotBlank() }
         Category.registerCustomCategories(list)
+        isLoaded = true
         _categoriesFlow.value = Category.getAll()
     }
 
-    override fun observeCategories(): Flow<List<Category>> = _categoriesFlow.asStateFlow()
+    override fun observeCategories(): Flow<List<Category>> = flow {
+        ensureLoaded()
+        emitAll(_categoriesFlow)
+    }.flowOn(ioDispatcher)
 
-    override suspend fun getCategories(): List<Category> {
-        return Category.getAll()
+    override suspend fun getCategories(): List<Category> = withContext(ioDispatcher) {
+        ensureLoaded()
+        Category.getAll()
     }
 
-    override suspend fun addCustomCategory(category: Category) {
-        val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
-        ids.add(category.id)
-        
-        prefs.edit {
-            putStringSet("custom_category_ids", ids)
-            putString("custom_category_${category.id}_name", category.displayName)
-            putLong("custom_category_${category.id}_color", category.colorArgb)
-            putBoolean("custom_category_${category.id}_is_income", category.isIncome)
-            putString("custom_category_${category.id}_icon", category.iconId)
+    override suspend fun addCustomCategory(category: Category) = withContext(ioDispatcher) {
+        synchronized(loadLock) {
+            val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
+            ids.add(category.id)
+
+            prefs.edit {
+                putStringSet("custom_category_ids", ids)
+                putString("custom_category_${category.id}_name", category.displayName)
+                putLong("custom_category_${category.id}_color", category.colorArgb)
+                putBoolean("custom_category_${category.id}_is_income", category.isIncome)
+                putString("custom_category_${category.id}_icon", category.iconId)
+            }
+
+            loadAndRegister()
         }
-            
-        loadAndRegister()
     }
 
     override suspend fun updateCustomCategory(category: Category) {
         addCustomCategory(category)
     }
 
-    override suspend fun deleteCustomCategory(categoryId: String) {
-        val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
-        ids.remove(categoryId)
-        prefs.edit {
-            putStringSet("custom_category_ids", ids)
-            remove("custom_category_${categoryId}_name")
-            remove("custom_category_${categoryId}_color")
-            remove("custom_category_${categoryId}_is_income")
-            remove("custom_category_${categoryId}_icon")
+    override suspend fun deleteCustomCategory(categoryId: String) = withContext(ioDispatcher) {
+        synchronized(loadLock) {
+            val ids = prefs.getStringSet("custom_category_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
+            ids.remove(categoryId)
+            prefs.edit {
+                putStringSet("custom_category_ids", ids)
+                remove("custom_category_${categoryId}_name")
+                remove("custom_category_${categoryId}_color")
+                remove("custom_category_${categoryId}_is_income")
+                remove("custom_category_${categoryId}_icon")
+            }
+            loadAndRegister()
         }
-        loadAndRegister()
     }
 
     @SuppressLint("UseKtx") // KTX edit(commit = true) cannot preserve commit()'s Boolean failure check.
-    suspend fun replaceCustomCategories(categories: List<Category>) {
-        val previousIds = prefs.getStringSet("custom_category_ids", emptySet()).orEmpty()
-        val editor = prefs.edit()
-        previousIds.forEach { id ->
-            editor.remove("custom_category_${id}_name")
-            editor.remove("custom_category_${id}_color")
-            editor.remove("custom_category_${id}_is_income")
-            editor.remove("custom_category_${id}_icon")
+    suspend fun replaceCustomCategories(categories: List<Category>) = withContext(ioDispatcher) {
+        synchronized(loadLock) {
+            val previousIds = prefs.getStringSet("custom_category_ids", emptySet()).orEmpty()
+            val editor = prefs.edit()
+            previousIds.forEach { id ->
+                editor.remove("custom_category_${id}_name")
+                editor.remove("custom_category_${id}_color")
+                editor.remove("custom_category_${id}_is_income")
+                editor.remove("custom_category_${id}_icon")
+            }
+            editor.putStringSet("custom_category_ids", categories.mapTo(mutableSetOf()) { it.id })
+            categories.forEach { category ->
+                editor.putString("custom_category_${category.id}_name", category.displayName)
+                editor.putLong("custom_category_${category.id}_color", category.colorArgb)
+                editor.putBoolean("custom_category_${category.id}_is_income", category.isIncome)
+                editor.putString("custom_category_${category.id}_icon", category.iconId)
+            }
+            check(editor.commit()) { "Không thể lưu danh mục tùy chỉnh." }
+            loadAndRegister()
         }
-        editor.putStringSet("custom_category_ids", categories.mapTo(mutableSetOf()) { it.id })
-        categories.forEach { category ->
-            editor.putString("custom_category_${category.id}_name", category.displayName)
-            editor.putLong("custom_category_${category.id}_color", category.colorArgb)
-            editor.putBoolean("custom_category_${category.id}_is_income", category.isIncome)
-            editor.putString("custom_category_${category.id}_icon", category.iconId)
-        }
-        check(editor.commit()) { "Không thể lưu danh mục tùy chỉnh." }
-        loadAndRegister()
     }
 }

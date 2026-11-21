@@ -126,7 +126,12 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.About.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            AboutScreen(onBack = { navController.popBackStack() })
+            AboutScreen(
+                onBack = { navController.popBackStack() },
+                onReplayOnboarding = {
+                    navController.navigate(Route.Welcome.path) { launchSingleTop = true }
+                },
+            )
         }
     }
 }

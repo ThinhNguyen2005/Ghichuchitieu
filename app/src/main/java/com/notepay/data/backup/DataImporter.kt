@@ -86,6 +86,11 @@ class DataImporter @Inject constructor(
                         accountNumber = if (obj.isNull("accountNumber")) null else obj.getString("accountNumber"),
                         accountName = if (obj.isNull("accountName")) null else obj.getString("accountName"),
                         createdAt = obj.getLong("createdAt"),
+                        walletType = obj.optString("walletType", "CASH"),
+                        accountNature = obj.optString("accountNature", "ASSET"),
+                        currencyCode = obj.optString("currencyCode", "VND"),
+                        creditLimitCents = if (obj.isNull("creditLimitCents")) null else obj.optLong("creditLimitCents"),
+                        isArchived = obj.optBoolean("isArchived", false),
                     ),
                 )
             }

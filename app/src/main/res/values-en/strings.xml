@@ -1050,6 +1050,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="currency_krw">Korean Won (KRW)</string>
     <string name="currency_sgd">Singapore Dollar (SGD)</string>
     <string name="currency_thb">Thai Baht (THB)</string>
+    <string name="currency_open_converter_action">Open currency converter</string>
 
     <!-- Category management screen -->
     <string name="category_management_title">Categories</string>
@@ -1425,4 +1426,140 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="onboarding_action_continue">Continue</string>
     <string name="onboarding_action_start">Get started</string>
     <string name="onboarding_action_skip">Skip</string>
+
+    <!-- Stats Allocation & Period Spending Bar Chart -->
+    <string name="stats_allocation_selected">Selected</string>
+    <string name="stats_allocation_unselected">Not selected</string>
+    <string name="stats_allocation_filter_action">Filter by this category</string>
+    <string name="stats_allocation_clear_filter_action">Clear category filter</string>
+    <string name="stats_period_bar_daily_expense">Daily spending</string>
+    <string name="stats_period_bar_daily_income">Daily income</string>
+    <string name="stats_period_bar_monthly_expense">Monthly spending</string>
+    <string name="stats_period_bar_monthly_income">Monthly income</string>
+    <string name="stats_period_bar_yearly_expense">Yearly spending</string>
+    <string name="stats_period_bar_yearly_income">Yearly income</string>
+    <string name="stats_period_bar_peak_format">Peak: %1$s</string>
+    <string name="stats_period_bar_clear_selection">Clear selected bar</string>
+    <string name="stats_period_bar_empty">No activity recorded in this period</string>
+    <string name="stats_period_bar_point_cd_format">%1$s: %2$s</string>
+    <string name="stats_period_bar_chart_cd_format">%1$s. Peak %2$s, average %3$s</string>
+    <string name="stats_period_bar_date_short_format">%1$d/%2$d</string>
+    <string name="stats_period_bar_day_of_month_format">Day %1$d/%2$d</string>
+
+    <!-- Transaction Calculator Keypad -->
+    <string name="error_division_by_zero">Cannot divide by zero</string>
+    <string name="transaction_auto_capture_amount_locked">Bank transaction amount is locked for ledger accuracy</string>
+    <string name="cd_calc_add">Add</string>
+    <string name="cd_calc_subtract">Subtract</string>
+    <string name="cd_calc_multiply">Multiply</string>
+    <string name="cd_calc_divide">Divide</string>
+    <string name="cd_calc_equals">Equals</string>
+    <string name="cd_calc_three_zeros">Append three zeros</string>
+    <string name="cd_calc_clear_all">Clear all</string>
+    <string name="cd_calc_date_format">Transaction date: %1$s</string>
+    <string name="cd_calc_note_format">Note: %1$s</string>
+    <string name="cd_calc_note_empty">Add note</string>
+
+    <!-- Account Nature & Wallet Types -->
+    <string name="account_nature_asset">Assets</string>
+    <string name="account_nature_liability">Liabilities &amp; Credit</string>
+    <string name="wallet_type_cash">Cash</string>
+    <string name="wallet_type_bank">Bank Account</string>
+    <string name="wallet_type_ewallet">E-Wallet</string>
+    <string name="wallet_type_savings">Term Savings</string>
+    <string name="wallet_type_fund">Investment Fund</string>
+    <string name="wallet_type_stock">Stocks</string>
+    <string name="wallet_type_crypto">Cryptocurrency</string>
+    <string name="wallet_type_gold">Gold &amp; Precious Metals</string>
+    <string name="wallet_type_real_estate">Real Estate</string>
+    <string name="wallet_type_vehicle">Vehicles &amp; Transport</string>
+    <string name="wallet_type_other_asset">Other Asset</string>
+    <string name="wallet_type_credit_card">Credit Card</string>
+    <string name="wallet_type_credit_line">Credit Line / Overdraft</string>
+    <string name="wallet_type_loan">Loan</string>
+    <string name="wallet_type_mortgage">Mortgage / Installment</string>
+    <string name="wallet_type_other_liability">Other Liability</string>
+
+    <!-- Assets Screen Net Worth & Multi-Currency -->
+    <string name="assets_total_assets_label">Total Assets</string>
+    <string name="assets_total_liabilities_label">Total Liabilities</string>
+    <string name="assets_section_assets_title">Assets (%1$d)</string>
+    <string name="assets_section_liabilities_title">Liabilities &amp; Cards (%1$d)</string>
+    <string name="assets_section_archived_title">Archived (%1$d)</string>
+    <string name="assets_view_allocation_asset">Asset Allocation</string>
+    <string name="assets_view_allocation_liability">Liability Allocation</string>
+    <string name="assets_allocation_no_liabilities">No liabilities recorded</string>
+    <string name="assets_rates_updated_format">Rates: %1$s</string>
+    <string name="assets_rate_today">Today</string>
+    <string name="assets_card_action_pay_card">Pay card</string>
+    <string name="assets_card_action_adjust_balance">Update balance</string>
+    <string name="assets_credit_limit_format">Limit: %1$s</string>
+    <string name="assets_credit_available_format">Available: %1$s</string>
+    <string name="assets_overdraft_warning">Overdraft</string>
+    <string name="assets_approx_vnd_format">≈ %1$s</string>
+
+    <!-- Add/Edit Wallet Features -->
+    <string name="wallet_field_account_nature">Account Nature</string>
+    <string name="wallet_field_wallet_type">Account Type</string>
+    <string name="wallet_field_currency">Currency</string>
+    <string name="wallet_currency_locked_hint">Locked — this wallet has %1$d transactions</string>
+    <string name="wallet_field_credit_limit">Credit limit</string>
+    <string name="wallet_action_archive">Archive wallet</string>
+    <string name="wallet_action_unarchive">Unarchive wallet</string>
+    <string name="wallet_action_delete">Delete wallet</string>
+    <string name="wallet_delete_confirm_title">Confirm delete wallet</string>
+    <string name="wallet_delete_confirm_message">Are you sure you want to delete wallet \"%1$s\"? This action cannot be undone.</string>
+    <string name="wallet_archive_confirm_title">Archive wallet</string>
+    <string name="wallet_archive_confirm_message">Wallet \"%1$s\" has %2$d transactions. Archiving will hide it from the active picker when creating new transactions while preserving 100%% of its history.</string>
+    <string name="wallet_unarchive_confirm_message">Restore wallet \"%1$s\" to active wallets?</string>
+    <string name="wallet_archived_success">Wallet archived</string>
+    <string name="wallet_unarchived_success">Wallet restored</string>
+    <string name="wallet_deleted_success">Wallet permanently deleted</string>
+    <string name="wallet_adjust_balance_title">Update actual balance</string>
+    <string name="wallet_adjust_balance_desc">Adjust balance to current market valuation without affecting regular expense or income reports.</string>
+    <string name="wallet_adjust_new_balance_label">New market balance</string>
+    <string name="wallet_adjust_success">Market balance updated</string>
+
+    <!-- Live Currency Converter & Exchange Rates -->
+    <string name="currency_converter_title">Currency Converter</string>
+    <string name="currency_converter_subtitle">Independent reference tool. Wallet balances and transactions are not modified.</string>
+    <string name="currency_converter_source_label">From</string>
+    <string name="currency_converter_target_label">To</string>
+    <string name="currency_converter_amount_label">Amount to convert</string>
+    <string name="currency_converter_result_label">Converted value</string>
+    <string name="currency_converter_swap_cd">Swap source and target currencies</string>
+    <string name="currency_converter_clear_cd">Clear amount</string>
+    <string name="currency_converter_refresh_cd">Refresh live exchange rates</string>
+    <string name="currency_converter_retry">Retry</string>
+    <string name="currency_converter_quick_table_title">Quick conversion table</string>
+    <string name="currency_converter_no_input">Enter a valid amount to convert</string>
+    <string name="currency_converter_disclaimer">Rates are for reference only from open API (%1$s) and may differ from bank buy/sell rates.</string>
+    <string name="currency_rate_unit_format">1 %1$s ≈ %2$s</string>
+    <string name="currency_rate_live_updated">%1$s • Updated: %2$s</string>
+    <string name="currency_rate_offline_badge">Offline estimated rate</string>
+    <string name="currency_rate_refresh_failed">Couldn\'t fetch live rates — using estimated rate.</string>
+    <string name="currency_rate_updating">Updating exchange rate…</string>
+    <string name="currency_converter_select_source_cd">Select source currency: %1$s</string>
+    <string name="currency_converter_select_target_cd">Select target currency: %1$s</string>
+
+    <!-- Onboarding v4 & About Replay -->
+    <string name="onboarding_step_counter_format">%1$02d / %2$02d</string>
+    <string name="onboarding_step1_eyebrow">STEP 01 • PERSONALIZE</string>
+    <string name="onboarding_step2_eyebrow">STEP 02 • PRIMARY WALLET</string>
+    <string name="onboarding_step3_eyebrow">STEP 03 • DAILY HABIT</string>
+    <string name="onboarding_preview_balance_label">Sample balance preview</string>
+    <string name="onboarding_wallet_primary_badge">PRIMARY</string>
+    <string name="onboarding_wallet_name_placeholder">E.g. Cash, Main Bank…</string>
+    <string name="onboarding_wallet_suggestions_label">Quick name suggestions</string>
+    <string name="onboarding_wallet_meta_format">%1$s • %2$s</string>
+    <string name="onboarding_wallet_starting_balance_label">Starting balance</string>
+    <string name="onboarding_wallet_name_counter_format">%1$d/%2$d</string>
+    <string name="onboarding_wallet_clear_cd">Clear wallet name</string>
+    <string name="onboarding_reminder_toggle_desc">Gentle evening nudge if you haven\'t logged today</string>
+    <string name="onboarding_reminder_preview_title">Time to log today</string>
+    <string name="onboarding_reminder_preview_body">Take 10 seconds to capture today\'s spending with NotePay.</string>
+    <string name="onboarding_reminder_off_label">Off</string>
+    <string name="onboarding_reminder_preview_off_body">Reminders are off. You can turn them back on anytime in Settings.</string>
+    <string name="onboarding_save_error_message">Couldn\'t save setup right now. Please try again.</string>
+    <string name="about_replay_onboarding_action">Replay welcome guide</string>
 </resources>

@@ -43,4 +43,6 @@ interface CategoryLearningStore {
     fun findExact(type: CategoryLearningType, normalizedNote: String): CategoryLearningMatch?
 
     fun learn(entry: CategoryLearningEntry)
+
+    fun warmUp() = Unit
 }

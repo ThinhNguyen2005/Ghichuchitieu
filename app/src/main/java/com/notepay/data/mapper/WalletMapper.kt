@@ -1,27 +1,44 @@
 package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.WalletEntity
-import com.notepay.domain.money.Money
+import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletType
+import com.notepay.domain.money.Money
 import kotlin.time.Instant
 import javax.inject.Inject
 
 class WalletMapper @Inject constructor() {
 
-    fun toDomain(entity: WalletEntity): Wallet = Wallet(
-        id = entity.id,
-        name = entity.name,
-        initialBalance = Money(entity.initialBalanceCents),
-        iconKey = entity.iconKey,
-        colorKey = entity.colorKey,
-        isActive = entity.isActive,
-        budgetLimit = entity.budgetLimitCents?.let { Money(it) },
-        linkedPackageName = entity.linkedPackageName,
-        bankBin = entity.bankBin,
-        accountNumber = entity.accountNumber,
-        accountName = entity.accountName,
-        createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
-    )
+    fun toDomain(entity: WalletEntity): Wallet {
+        val type = WalletType.fromString(entity.walletType, entity.iconKey)
+        val nature = if (entity.accountNature.equals("LIABILITY", ignoreCase = true)) {
+            AccountNature.LIABILITY
+        } else if (entity.accountNature.equals("ASSET", ignoreCase = true)) {
+            AccountNature.ASSET
+        } else {
+            type.nature
+        }
+        return Wallet(
+            id = entity.id,
+            name = entity.name,
+            initialBalance = Money(entity.initialBalanceCents),
+            iconKey = entity.iconKey,
+            colorKey = entity.colorKey,
+            isActive = entity.isActive,
+            budgetLimit = entity.budgetLimitCents?.let { Money(it) },
+            linkedPackageName = entity.linkedPackageName,
+            bankBin = entity.bankBin,
+            accountNumber = entity.accountNumber,
+            accountName = entity.accountName,
+            createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
+            type = type,
+            nature = nature,
+            currencyCode = entity.currencyCode.ifBlank { "VND" },
+            creditLimit = entity.creditLimitCents?.let { Money(it) },
+            isArchived = entity.isArchived,
+        )
+    }
 
     fun toEntity(wallet: Wallet): WalletEntity = WalletEntity(
         id = wallet.id,
@@ -36,5 +53,10 @@ class WalletMapper @Inject constructor() {
         accountNumber = wallet.accountNumber,
         accountName = wallet.accountName,
         createdAt = wallet.createdAt.toEpochMilliseconds(),
+        walletType = wallet.type.name,
+        accountNature = wallet.nature.name,
+        currencyCode = wallet.currencyCode,
+        creditLimitCents = wallet.creditLimit?.amountInCents,
+        isArchived = wallet.isArchived,
     )
 }

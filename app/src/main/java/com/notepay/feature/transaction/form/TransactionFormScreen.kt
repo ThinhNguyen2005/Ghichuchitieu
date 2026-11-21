@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +58,6 @@ import com.notepay.feature.transaction.component.TransactionWalletField
 import com.notepay.feature.transaction.component.sheet.CategoryPickerSheet
 import com.notepay.feature.transaction.component.sheet.NoteQuickEntrySheet
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
-import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
@@ -75,7 +73,6 @@ fun TransactionFormScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val screenScope = rememberCoroutineScope()
 
     // OCR image picker
     val imagePicker = rememberLauncherForActivityResult(
@@ -94,10 +91,6 @@ fun TransactionFormScreen(
     val todayPrefix = stringResource(R.string.date_today_prefix)
     val yesterdayPrefix = stringResource(R.string.date_yesterday_prefix)
     val monthSuffixFmt = stringResource(R.string.date_month_suffix)
-    val validationAmount = stringResource(R.string.transaction_validation_amount)
-    val validationWallet = stringResource(R.string.transaction_validation_wallet)
-    val validationAmountWallet = stringResource(R.string.transaction_validation_amount_wallet)
-    val validationForm = stringResource(R.string.transaction_validation_form)
 
     // Feedback collector: Success → popBackStack, Error → snackbar
     LaunchedEffect(Unit) {
@@ -105,6 +98,7 @@ fun TransactionFormScreen(
             if (feedback.type == FeedbackType.Success) {
                 onSaved()
             } else {
+                snackbarHostState.currentSnackbarData?.dismiss()
                 snackbarHostState.showSnackbar(feedback.message)
             }
         }
@@ -125,15 +119,6 @@ fun TransactionFormScreen(
             yesterdayPrefix = yesterdayPrefix,
             monthSuffixFormat = monthSuffixFmt,
         )
-    }
-
-    val currentAmount = state.amount
-    val amountMissing = currentAmount == null || currentAmount.amountInCents <= 0
-    val validationMessage = when {
-        amountMissing && state.walletId == null -> validationAmountWallet
-        amountMissing -> validationAmount
-        state.walletId == null -> validationWallet
-        else -> validationForm
     }
 
     // ── AppBar title: Add vs Edit / AutoCapture ───────────────────────────────
@@ -224,7 +209,19 @@ fun TransactionFormScreen(
             }
 
             // Số tiền (read-only display — bàn phím tự chế điều khiển)
-            TransactionAmountDisplay(amountInput = state.displayExpression)
+            TransactionAmountDisplay(
+                amountInput = state.displayExpression,
+                rawAmountForMagnitude = state.previewAmountMajorUnits,
+                hasError = state.calcState.error != null,
+            )
+            if (state.isEditMode && state.isAutoCapture) {
+                Text(
+                    text = stringResource(R.string.transaction_auto_capture_amount_locked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
 
             // Gợi ý danh mục
             val suggested = state.suggestedCategory
@@ -276,20 +273,14 @@ fun TransactionFormScreen(
                 noteLabel = state.note.take(14).ifBlank { "" },
                 canSave = state.canSave,
                 isSaving = state.isSaving,
+                activeOperator = state.activePendingOperator,
+                isAmountLocked = state.isEditMode && state.isAutoCapture,
                 modifier = Modifier.fillMaxWidth(),
                 onKey = { key ->
                     when (key) {
                         CalcKey.Date -> viewModel.onEvent(TransactionFormUiEvent.SetDatePickerVisible(true))
                         CalcKey.Note -> viewModel.onEvent(TransactionFormUiEvent.SetNoteSheetVisible(true))
-                        CalcKey.Save -> {
-                            viewModel.onEvent(TransactionFormUiEvent.Save)
-                            if (!state.canSave) {
-                                screenScope.launch {
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    snackbarHostState.showSnackbar(validationMessage)
-                                }
-                            }
-                        }
+                        CalcKey.Save -> viewModel.onEvent(TransactionFormUiEvent.Save)
                         else -> viewModel.onEvent(TransactionFormUiEvent.CalcKeyPressed(key))
                     }
                 },

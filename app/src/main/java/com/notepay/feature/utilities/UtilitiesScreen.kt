@@ -84,6 +84,7 @@ import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberNotePayHaptic
@@ -140,7 +141,7 @@ fun UtilitiesScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(AppTheme.colors.background),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -225,12 +226,13 @@ fun UtilitiesScreen(
                                     onClick = onNavigateToSubscription,
                                 )
                                 ItemDivider()
+                                val currencyCfg = MoneyFormatter.config
                                 UtilityRowItem(
                                     icon = Icons.Rounded.Paid,
                                     iconContainerColor = AppTheme.colors.clay.copy(alpha = 0.16f),
                                     iconTint = AppTheme.colors.clay,
                                     title = stringResource(R.string.utilities_currency_title),
-                                    subtitle = stringResource(R.string.utilities_currency_subtitle),
+                                    subtitle = "${currencyCfg.currencyCode} (${MoneyFormatter.symbolForCode(currencyCfg.currencyCode)})",
                                     onClick = onNavigateToCurrencySettings,
                                 )
                                 ItemDivider()

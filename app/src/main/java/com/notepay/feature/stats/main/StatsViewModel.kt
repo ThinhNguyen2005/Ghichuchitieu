@@ -13,9 +13,11 @@ import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.CategoryExpenseShare
+import com.notepay.domain.analytics.PeriodBarData
 import com.notepay.domain.analytics.SpendingForecastEngine
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceInput
+import com.notepay.domain.analytics.StatsChartCalculator
 import com.notepay.domain.analytics.StatsInsightsCalculator
 import com.notepay.domain.analytics.StatsPeriod
 import com.notepay.domain.analytics.StatsRange
@@ -27,6 +29,8 @@ import com.notepay.domain.analytics.periodFor
 import com.notepay.domain.analytics.shift
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Subscription
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
@@ -89,8 +93,13 @@ class StatsViewModel @Inject constructor(
     private val _selectedCategory = MutableStateFlow<Category?>(null)
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
-    private val _selectedWalletId = MutableStateFlow<Long?>(null)
-    val selectedWalletId: StateFlow<Long?> = _selectedWalletId.asStateFlow()
+    private sealed interface WalletFilterSelection {
+        data object Auto : WalletFilterSelection
+        data object AllWallets : WalletFilterSelection
+        data class Specific(val walletId: Long) : WalletFilterSelection
+    }
+
+    private val _walletSelection = MutableStateFlow<WalletFilterSelection>(WalletFilterSelection.Auto)
 
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
@@ -99,16 +108,16 @@ class StatsViewModel @Inject constructor(
 
     private data class FilterState(
         val period: StatsPeriod,
-        val selectedWalletId: Long?,
+        val walletSelection: WalletFilterSelection,
         val trendWindow: TrendWindow,
     )
 
     private val filterState = combine(
         _currentPeriod,
-        _selectedWalletId,
+        _walletSelection,
         _trendWindow,
-    ) { period, walletId, window ->
-        FilterState(period, walletId, window)
+    ) { period, walletSelection, window ->
+        FilterState(period, walletSelection, window)
     }.distinctUntilChanged()
 
     /**
@@ -151,6 +160,13 @@ class StatsViewModel @Inject constructor(
         filterState,
     ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
         val period = filters.period
+        val activeWallet = wallets.find { it.isActive } ?: wallets.firstOrNull()
+        val hasMultipleCurrencies = wallets.map { it.currencyCode.uppercase() }.distinct().size > 1
+        val resolvedWalletId: Long? = when (val selection = filters.walletSelection) {
+            WalletFilterSelection.Auto -> if (hasMultipleCurrencies) activeWallet?.id else null
+            WalletFilterSelection.AllWallets -> null
+            is WalletFilterSelection.Specific -> selection.walletId.takeIf { id -> wallets.any { it.id == id } }
+        }
 
         // 1. Số liệu gốc: lọc theo kỳ + ví, so sánh kỳ trước, hạn mức, chi tiêu hôm nay.
         val snapshot = StatsSnapshotCalculator.snapshot(
@@ -158,7 +174,7 @@ class StatsViewModel @Inject constructor(
                 transactions = allTransactions,
                 wallets = wallets,
                 period = period,
-                selectedWalletId = filters.selectedWalletId,
+                selectedWalletId = resolvedWalletId,
                 trendWindowMonths = filters.trendWindow.months,
                 today = today,
                 zone = zone,
@@ -302,6 +318,20 @@ class StatsViewModel @Inject constructor(
             )
         }
 
+        // 9. Biểu đồ cột theo kỳ dưới biểu đồ tròn phân bổ.
+        val periodExpenseBars = buildPeriodBarPoints(
+            transactions = snapshot.filteredTransactions,
+            type = TransactionType.EXPENSE,
+            period = period,
+            selectedCategory = null,
+        )
+        val periodIncomeBars = buildPeriodBarPoints(
+            transactions = snapshot.filteredTransactions,
+            type = TransactionType.INCOME,
+            period = period,
+            selectedCategory = null,
+        )
+
         StatsUiState(
             totalIncome = income,
             totalExpense = expense,
@@ -311,6 +341,8 @@ class StatsViewModel @Inject constructor(
             currentPeriod = period,
             breakdown = breakdown,
             incomeBreakdown = incomeBreakdown,
+            periodExpenseBars = periodExpenseBars,
+            periodIncomeBars = periodIncomeBars,
             recentMonths = recentMonths,
             trendWindow = filters.trendWindow,
             isLoading = false,
@@ -320,7 +352,7 @@ class StatsViewModel @Inject constructor(
             transactions = snapshot.filteredTransactions,
             hasAnyTransactions = allTransactions.isNotEmpty(),
             wallets = wallets,
-            selectedWallet = wallets.find { it.id == filters.selectedWalletId },
+            selectedWallet = wallets.find { it.id == resolvedWalletId },
             dateRangeLabel = rangeLabel(period),
             budgetLimit = limitInCents?.let(::Money),
             budgetSpent = Money(snapshot.currentMonthExpenseInCents),
@@ -343,10 +375,29 @@ class StatsViewModel @Inject constructor(
         _localAdvisor,
         _selectedCategory
     ) { base, advisor, selectedCategory ->
-        base.copy(
-            localAdvisor = advisor,
-            selectedCategory = selectedCategory
-        )
+        if (selectedCategory == null) {
+            base.copy(
+                localAdvisor = advisor,
+                selectedCategory = null,
+            )
+        } else {
+            base.copy(
+                localAdvisor = advisor,
+                selectedCategory = selectedCategory,
+                periodExpenseBars = buildPeriodBarPoints(
+                    transactions = base.transactions,
+                    type = TransactionType.EXPENSE,
+                    period = base.currentPeriod,
+                    selectedCategory = selectedCategory,
+                ),
+                periodIncomeBars = buildPeriodBarPoints(
+                    transactions = base.transactions,
+                    type = TransactionType.INCOME,
+                    period = base.currentPeriod,
+                    selectedCategory = selectedCategory,
+                ),
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -434,7 +485,12 @@ class StatsViewModel @Inject constructor(
     }
 
     fun selectWallet(walletId: Long?) {
-        _selectedWalletId.value = walletId
+        _walletSelection.value = if (walletId == null) {
+            WalletFilterSelection.AllWallets
+        } else {
+            WalletFilterSelection.Specific(walletId)
+        }
+        _selectedCategory.value = null
     }
 
     fun previousPeriod() {
@@ -582,6 +638,29 @@ class StatsViewModel @Inject constructor(
             dismissSubForm()
         }
     }
+
+    private fun buildPeriodBarPoints(
+        transactions: List<Transaction>,
+        type: TransactionType,
+        period: StatsPeriod?,
+        selectedCategory: Category?,
+    ): List<PeriodBarPoint> = StatsChartCalculator.buildPeriodBars(
+        transactions = transactions,
+        type = type,
+        period = period,
+        selectedCategory = selectedCategory,
+        today = today,
+        zone = zone,
+    ).map { it.toUiPoint() }
+
+    private fun PeriodBarData.toUiPoint(): PeriodBarPoint = PeriodBarPoint(
+        key = key,
+        bucketKind = bucketKind,
+        indexValue = indexValue,
+        monthValue = monthValue,
+        amount = Money(amountInCents),
+        isCurrentBucket = isCurrentBucket,
+    )
 
     private data class MonthYear(val year: Int, val month: Int)
 }
