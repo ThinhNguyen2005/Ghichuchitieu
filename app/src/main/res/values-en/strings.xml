@@ -1562,4 +1562,23 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="onboarding_reminder_preview_off_body">Reminders are off. You can turn them back on anytime in Settings.</string>
     <string name="onboarding_save_error_message">Couldn\'t save setup right now. Please try again.</string>
     <string name="about_replay_onboarding_action">Replay welcome guide</string>
+
+    <!-- Natural Language Quick Entry (Phase 1) -->
+    <string name="natural_entry_title">Natural quick entry</string>
+    <string name="natural_entry_placeholder">e.g. Lunch 45k then milk tea 55k</string>
+    <string name="natural_entry_preview_header">Detected items (%1$d)</string>
+    <string name="natural_entry_source_device">Instant on-device</string>
+    <string name="natural_entry_source_ai">Analyzed by AI</string>
+    <string name="natural_entry_ai_button">Deep AI analysis</string>
+    <string name="natural_entry_ai_analyzing">Analyzing with AI…</string>
+    <string name="natural_entry_ai_fallback_notice">AI unavailable, keeping on-device result.</string>
+    <string name="natural_entry_save_all">Save all (%1$d items)</string>
+    <string name="natural_entry_apply_note">Use as note only</string>
+    <string name="natural_entry_edit_cd">Edit item</string>
+    <string name="natural_entry_delete_cd">Remove item</string>
+    <string name="natural_entry_amount_label">Amount (VND)</string>
+    <string name="natural_entry_note_label">Description</string>
+    <string name="natural_entry_done_edit">Done</string>
+    <string name="natural_entry_saved_batch">Saved %1$d transactions</string>
+    <string name="natural_entry_partial_error">Some transactions could not be saved</string>
 </resources>

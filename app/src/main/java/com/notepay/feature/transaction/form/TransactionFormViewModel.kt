@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.ai.HybridNaturalTransactionParser
 import com.notepay.ai.LocalTransactionImageScanner
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
@@ -15,6 +16,10 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
+import com.notepay.domain.natural.NaturalFallbackNotice
+import com.notepay.domain.natural.NaturalParseResult
+import com.notepay.domain.natural.NaturalParseSource
+import com.notepay.domain.natural.NaturalTransactionDraft
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
@@ -49,9 +54,11 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 @HiltViewModel
+@Suppress("LongParameterList")
 class TransactionFormViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val addTransactionUseCase: AddTransactionUseCase,
@@ -60,6 +67,7 @@ class TransactionFormViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val suggestCategoryUseCase: SuggestCategoryUseCase,
     private val imageScanner: LocalTransactionImageScanner,
+    private val hybridNaturalParser: HybridNaturalTransactionParser,
     @param:ApplicationContext private val context: Context,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -80,6 +88,7 @@ class TransactionFormViewModel @Inject constructor(
     init {
         loadWallets()
         observeCategories()
+        observeNaturalAiAvailability()
         if (isEditMode) {
             loadExistingTransaction(checkNotNull(transactionId))
         }
@@ -104,8 +113,13 @@ class TransactionFormViewModel @Inject constructor(
             is TransactionFormUiEvent.SetDatePickerVisible     -> _state.update { it.copy(isDatePickerOpen = event.visible) }
             is TransactionFormUiEvent.SetWalletPickerVisible   -> _state.update { it.copy(isWalletPickerOpen = event.visible) }
             is TransactionFormUiEvent.SetCategoryPickerVisible -> _state.update { it.copy(isCategoryPickerOpen = event.visible) }
-            is TransactionFormUiEvent.SetNoteSheetVisible      -> _state.update { it.copy(isNoteSheetOpen = event.visible) }
-            TransactionFormUiEvent.Save                    -> save()
+            is TransactionFormUiEvent.SetNoteSheetVisible      -> setNoteSheetVisible(event.visible)
+            is TransactionFormUiEvent.NaturalInputChanged      -> updateNaturalInput(event.input)
+            TransactionFormUiEvent.AnalyzeNaturalInputWithAi   -> analyzeNaturalInputWithAi()
+            is TransactionFormUiEvent.UpdateNaturalDraft       -> updateNaturalDraft(event.draft)
+            is TransactionFormUiEvent.RemoveNaturalDraft       -> removeNaturalDraft(event.draftId)
+            TransactionFormUiEvent.SaveNaturalDrafts           -> saveNaturalDrafts()
+            TransactionFormUiEvent.Save                        -> save()
         }
     }
 
@@ -131,6 +145,179 @@ class TransactionFormViewModel @Inject constructor(
                 _state.update { it.copy(availableCategories = list) }
             }
         }
+    }
+
+    private fun observeNaturalAiAvailability() {
+        viewModelScope.launch(ioDispatcher) {
+            hybridNaturalParser.isAiConfiguredFlow.collect { available ->
+                _state.update { it.copy(naturalEntry = it.naturalEntry.copy(isAiAvailable = available)) }
+            }
+        }
+    }
+
+    // ── Natural language quick entry ──────────────────────────────────────────
+
+    private fun setNoteSheetVisible(visible: Boolean) {
+        if (!visible || isEditMode) {
+            _state.update { it.copy(isNoteSheetOpen = visible) }
+            return
+        }
+        val seedInput = _state.value.naturalEntry.rawInput.ifBlank { _state.value.note }
+        val parsed = hybridNaturalParser.parseOnDevice(seedInput)
+        _state.update {
+            it.copy(
+                isNoteSheetOpen = true,
+                naturalEntry = it.naturalEntry.copy(
+                    rawInput = seedInput,
+                    drafts = parsed.drafts,
+                    needsAiFallback = parsed.needsAiFallback,
+                    source = parsed.source,
+                    showAiFallbackNotice = false,
+                ),
+            )
+        }
+    }
+
+    private fun updateNaturalInput(input: String) {
+        val capped = input.take(MAX_NATURAL_INPUT_LENGTH)
+        val parsed = hybridNaturalParser.parseOnDevice(capped)
+        _state.update {
+            it.copy(
+                naturalEntry = it.naturalEntry.copy(
+                    rawInput = capped,
+                    drafts = parsed.drafts,
+                    needsAiFallback = parsed.needsAiFallback,
+                    source = NaturalParseSource.ON_DEVICE,
+                    showAiFallbackNotice = false,
+                ),
+            )
+        }
+    }
+
+    private fun analyzeNaturalInputWithAi() {
+        val currentEntry = _state.value.naturalEntry
+        val inputSnapshot = currentEntry.rawInput.trim()
+        if (inputSnapshot.isBlank() || currentEntry.isAiLoading || !currentEntry.isAiAvailable) return
+
+        val tier1Snapshot = NaturalParseResult(
+            drafts = currentEntry.drafts,
+            confidence = 0.4f,
+            needsAiFallback = currentEntry.needsAiFallback,
+            source = NaturalParseSource.ON_DEVICE,
+        )
+        _state.update {
+            it.copy(naturalEntry = it.naturalEntry.copy(isAiLoading = true, showAiFallbackNotice = false))
+        }
+        viewModelScope.launch(ioDispatcher) {
+            try {
+                val aiResult = hybridNaturalParser.parseWithAi(inputSnapshot, tier1Snapshot, forceAi = true)
+                _state.update { state ->
+                    if (state.naturalEntry.rawInput.trim() != inputSnapshot) {
+                        state.copy(naturalEntry = state.naturalEntry.copy(isAiLoading = false))
+                    } else {
+                        state.copy(
+                            naturalEntry = state.naturalEntry.copy(
+                                drafts = aiResult.drafts,
+                                needsAiFallback = aiResult.needsAiFallback,
+                                source = aiResult.source,
+                                isAiLoading = false,
+                                showAiFallbackNotice = aiResult.fallbackNotice == NaturalFallbackNotice.AI_UNAVAILABLE,
+                            ),
+                        )
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                _state.update { it.copy(naturalEntry = it.naturalEntry.copy(isAiLoading = false)) }
+                throw cancelled
+            }
+        }
+    }
+
+    private fun updateNaturalDraft(updated: NaturalTransactionDraft) {
+        _state.update { state ->
+            state.copy(
+                naturalEntry = state.naturalEntry.copy(
+                    drafts = state.naturalEntry.drafts.map { if (it.id == updated.id) updated else it },
+                ),
+            )
+        }
+    }
+
+    private fun removeNaturalDraft(draftId: String) {
+        _state.update { state ->
+            state.copy(
+                naturalEntry = state.naturalEntry.copy(
+                    drafts = state.naturalEntry.drafts.filterNot { it.id == draftId },
+                ),
+            )
+        }
+    }
+
+    private fun saveNaturalDrafts() {
+        val current = _state.value
+        if (current.naturalEntry.isSavingBatch) return
+        val drafts = current.naturalEntry.drafts.filter { it.amountVnd in 1..Money.MAX_MAJOR_UNITS }
+        val walletId = current.walletId ?: current.availableWallets.firstOrNull()?.id
+        if (walletId == null) {
+            _feedback.tryEmit(UiFeedback(context.getString(R.string.transaction_validation_wallet), type = FeedbackType.Error))
+            return
+        }
+        if (drafts.isEmpty()) return
+
+        _state.update { it.copy(naturalEntry = it.naturalEntry.copy(isSavingBatch = true)) }
+        viewModelScope.launch(ioDispatcher) {
+            val zone = TimeZone.currentSystemDefault()
+            val nowTime = Clock.System.now().toLocalDateTime(zone).time
+            var savedCount = 0
+            var failedCount = 0
+            for (draft in drafts) {
+                val occurredAt = LocalDateTime(
+                    date = draft.date,
+                    time = LocalTime(nowTime.hour, nowTime.minute, nowTime.second, nowTime.nanosecond),
+                ).toInstant(zone)
+                val tx = Transaction(
+                    amount = Money.fromMajorUnit(draft.amountVnd),
+                    type = draft.type,
+                    category = draft.category,
+                    note = draft.note.trim().take(Transaction.MAX_NOTE_LENGTH),
+                    occurredAt = occurredAt,
+                    walletId = walletId,
+                )
+                val res = addTransactionUseCase(tx)
+                if (res.isSuccess) {
+                    savedCount++
+                    suggestCategoryUseCase.learn(
+                        note = tx.note,
+                        categoryId = tx.category.id,
+                        isIncome = tx.type == TransactionType.INCOME,
+                    )
+                } else {
+                    failedCount++
+                }
+            }
+
+            if (failedCount == 0 && savedCount > 0) {
+                _state.update {
+                    it.copy(
+                        isNoteSheetOpen = false,
+                        note = "",
+                        naturalEntry = NaturalEntryUiState(isAiAvailable = it.naturalEntry.isAiAvailable),
+                    )
+                }
+                _feedback.emit(
+                    UiFeedback(context.getString(R.string.natural_entry_saved_batch, savedCount), type = FeedbackType.Success),
+                )
+            } else {
+                _state.update { it.copy(naturalEntry = it.naturalEntry.copy(isSavingBatch = false)) }
+                _feedback.emit(
+                    UiFeedback(context.getString(R.string.natural_entry_partial_error), type = FeedbackType.Error),
+                )
+            }
+        }
+    }
+
+    private companion object {
+        const val MAX_NATURAL_INPUT_LENGTH = 500
     }
 
     private fun loadExistingTransaction(id: Long) {
