@@ -2,6 +2,7 @@ package com.notepay.feature.assets.main
 
 import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
 
@@ -52,6 +53,8 @@ data class AssetsUiState(
     val hasForeignCurrency: Boolean = false,
     val ratesLastUpdated: String? = null,
     val adjustBalanceWallet: WalletAssetItem? = null,
+    val selectedPurpose: WalletPurpose? = null,
+    val excludedWalletCount: Int = 0,
 )
 
 /**

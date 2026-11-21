@@ -30,4 +30,8 @@ data class WalletEntity(
     @ColumnInfo(name = "currency_code", defaultValue = "VND") val currencyCode: String = "VND",
     @ColumnInfo(name = "credit_limit_cents") val creditLimitCents: Long? = null,
     @ColumnInfo(name = "is_archived", defaultValue = "0") val isArchived: Boolean = false,
+    @ColumnInfo(name = "purpose", defaultValue = "PERSONAL") val purpose: String = "PERSONAL",
+    @ColumnInfo(name = "target_amount_cents") val targetAmountCents: Long? = null,
+    @ColumnInfo(name = "target_date_epoch_day") val targetDateEpochDay: Long? = null,
+    @ColumnInfo(name = "include_in_total_balance", defaultValue = "1") val includeInTotalBalance: Boolean = true,
 )

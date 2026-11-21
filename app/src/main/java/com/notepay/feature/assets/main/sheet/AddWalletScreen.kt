@@ -38,12 +38,15 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +59,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,8 +94,14 @@ import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.CurrencyConverter
 import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -251,6 +261,20 @@ fun AddWalletScreen(
                     }
                 }
             }
+
+            // 2b. Mục đích sử dụng ví & Mục tiêu (Phase 2)
+            WalletPurposeAndGoalSection(
+                purpose = state.purpose,
+                targetAmountInput = state.targetAmountInput,
+                targetDateEpochDay = state.targetDateEpochDay,
+                includeInTotalBalance = state.includeInTotalBalance,
+                currencyCode = state.currencyCode,
+                currencyTransformation = currencyTransformation,
+                onPurposeChanged = viewModel::onPurposeChanged,
+                onTargetAmountChanged = viewModel::onTargetAmountChanged,
+                onTargetDateChanged = viewModel::onTargetDateChanged,
+                onIncludeInTotalBalanceChanged = viewModel::onIncludeInTotalBalanceChanged,
+            )
 
             // 3. Tên ví
             OutlinedTextField(
@@ -1018,6 +1042,188 @@ private fun WalletColorPicker(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WalletPurposeAndGoalSection(
+    purpose: WalletPurpose,
+    targetAmountInput: String,
+    targetDateEpochDay: Long?,
+    includeInTotalBalance: Boolean,
+    currencyCode: String,
+    currencyTransformation: VisualTransformation,
+    onPurposeChanged: (WalletPurpose) -> Unit,
+    onTargetAmountChanged: (String) -> Unit,
+    onTargetDateChanged: (Long?) -> Unit,
+    onIncludeInTotalBalanceChanged: (Boolean) -> Unit,
+) {
+    var showTargetDatePicker by remember { mutableStateOf(false) }
+    val selectablePurposes = remember {
+        listOf(
+            WalletPurpose.PERSONAL,
+            WalletPurpose.BUSINESS,
+            WalletPurpose.SAVINGS_GOAL,
+            WalletPurpose.TRAVEL,
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.wallet_purpose_label),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            selectablePurposes.forEach { item ->
+                val selected = purpose == item
+                FilterChip(
+                    selected = selected,
+                    onClick = { onPurposeChanged(item) },
+                    label = {
+                        Text(
+                            text = stringResource(WalletUiHelper.getPurposeTitleRes(item)),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    shape = AppTheme.shapes.capsule,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AppTheme.colors.sand,
+                        selectedLabelColor = AppTheme.colors.onSand,
+                    ),
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = purpose.supportsGoalTarget,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = targetAmountInput,
+                    onValueChange = onTargetAmountChanged,
+                    label = { Text(stringResource(R.string.wallet_target_amount_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = if (currencyCode == "VND") currencyTransformation else VisualTransformation.None,
+                    shape = AppTheme.shapes.corner12,
+                    singleLine = true,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val dateLabel = if (targetDateEpochDay != null) {
+                        val date = Instant.fromEpochMilliseconds(targetDateEpochDay * 86_400_000L)
+                            .toLocalDateTime(TimeZone.UTC).date
+                        String.format(Locale.ROOT, "%02d/%02d/%04d", date.day, date.month.number, date.year)
+                    } else {
+                        stringResource(R.string.wallet_target_date_placeholder)
+                    }
+
+                    OutlinedButton(
+                        onClick = { showTargetDatePicker = true },
+                        shape = AppTheme.shapes.corner12,
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = 48.dp),
+                    ) {
+                        Text(
+                            text = "${stringResource(R.string.wallet_target_date_label)}: $dateLabel",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    if (targetDateEpochDay != null) {
+                        TextButton(
+                            onClick = { onTargetDateChanged(null) },
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.wallet_target_clear_date))
+                        }
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = includeInTotalBalance,
+                    role = Role.Switch,
+                    onValueChange = onIncludeInTotalBalanceChanged,
+                ),
+            shape = AppTheme.shapes.corner12,
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceRaised),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 48.dp)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.wallet_include_in_total_title),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = AppTheme.colors.textPrimary,
+                    )
+                    Text(
+                        text = stringResource(R.string.wallet_include_in_total_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                }
+                Switch(
+                    checked = includeInTotalBalance,
+                    onCheckedChange = null,
+                )
+            }
+        }
+    }
+
+    if (showTargetDatePicker) {
+        val initialMillis = targetDateEpochDay?.let { it * 86_400_000L }
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showTargetDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = pickerState.selectedDateMillis
+                    if (millis != null) {
+                        val date = Instant.fromEpochMilliseconds(millis)
+                            .toLocalDateTime(TimeZone.UTC).date
+                        onTargetDateChanged(date.toEpochDays().toLong())
+                    }
+                    showTargetDatePicker = false
+                }) { Text(stringResource(R.string.action_done)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTargetDatePicker = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
         }
     }
 }

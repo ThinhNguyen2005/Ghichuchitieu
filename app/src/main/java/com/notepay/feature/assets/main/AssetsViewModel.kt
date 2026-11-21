@@ -13,6 +13,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
@@ -56,6 +57,7 @@ class AssetsViewModel @Inject constructor(
     private val _allocationMode = MutableStateFlow(AllocationMode.ASSET)
     private val _adjustBalanceWallet = MutableStateFlow<WalletAssetItem?>(null)
     private val _ratesSnapshot = MutableStateFlow<CurrencyRateSnapshot?>(null)
+    private val _selectedPurpose = MutableStateFlow<WalletPurpose?>(null)
 
     val transferForm: StateFlow<TransferFormState> = _transferForm.asStateFlow()
 
@@ -66,12 +68,21 @@ class AssetsViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<AssetsUiState> = observeAssets()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AssetsUiState(),
-        )
+    val state: StateFlow<AssetsUiState> = combine(observeAssets(), _selectedPurpose) { base, purpose ->
+        if (base.isLoading || base.hasError || purpose == null) {
+            base.copy(selectedPurpose = purpose)
+        } else {
+            base.copy(
+                selectedPurpose = purpose,
+                assetWallets = base.assetWallets.filter { it.wallet.purpose == purpose },
+                liabilityWallets = base.liabilityWallets.filter { it.wallet.purpose == purpose },
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = AssetsUiState(),
+    )
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
@@ -107,6 +118,7 @@ class AssetsViewModel @Inject constructor(
                 allocationMode = tuple.allocMode,
                 adjustWallet = tuple.adjustWallet,
                 ratesSnapshot = tuple.ratesSnapshot,
+                selectedPurpose = null,
             )
         }.onStart { emit(AssetsUiState()) }
             .catch { error ->
@@ -127,6 +139,7 @@ class AssetsViewModel @Inject constructor(
         allocationMode: AllocationMode,
         adjustWallet: WalletAssetItem?,
         ratesSnapshot: CurrencyRateSnapshot?,
+        selectedPurpose: WalletPurpose?,
     ): AssetsUiState {
         val statsByWallet = walletStats.associateBy { it.walletId }
         val rates = ratesSnapshot?.rates
@@ -154,15 +167,24 @@ class AssetsViewModel @Inject constructor(
         val activeItems = allItems.filter { !it.wallet.isArchived }
         val archivedItems = allItems.filter { it.wallet.isArchived }
 
-        val assetItemsRaw = activeItems.filter { it.wallet.isAsset }
-        val liabilityItemsRaw = activeItems.filter { it.wallet.isLiability }
+        val includedItems = activeItems.filter { it.wallet.includeInTotalBalance }
+        val includedWalletIds = includedItems.mapTo(hashSetOf()) { it.wallet.id }
+        val excludedCount = activeItems.size - includedItems.size
 
-        val totalPositiveAssetVnd = assetItemsRaw
-            .filter { it.convertedBalanceVnd.amountInCents > 0L }
+        val totalPositiveAssetVnd = includedItems
+            .filter { it.wallet.isAsset && it.convertedBalanceVnd.amountInCents > 0L }
             .sumOf { it.convertedBalanceVnd.amountInCents }
 
+        val visibleItems = if (selectedPurpose == null) {
+            activeItems
+        } else {
+            activeItems.filter { it.wallet.purpose == selectedPurpose }
+        }
+        val assetItemsRaw = visibleItems.filter { it.wallet.isAsset }
+        val liabilityItemsRaw = visibleItems.filter { it.wallet.isLiability }
+
         val assetItems = assetItemsRaw.map { item ->
-            val pct = if (totalPositiveAssetVnd > 0L && item.convertedBalanceVnd.amountInCents > 0L) {
+            val pct = if (item.wallet.includeInTotalBalance && totalPositiveAssetVnd > 0L && item.convertedBalanceVnd.amountInCents > 0L) {
                 item.convertedBalanceVnd.amountInCents.toFloat() / totalPositiveAssetVnd.toFloat()
             } else {
                 0f
@@ -170,14 +192,15 @@ class AssetsViewModel @Inject constructor(
             item.copy(groupPercentage = pct)
         }
 
-        val totalLiabilityDebtVnd = liabilityItemsRaw.sumOf { item ->
-            val rawDebt = if (item.convertedBalanceVnd.amountInCents < 0L) {
-                -item.convertedBalanceVnd.amountInCents
-            } else {
-                item.convertedBalanceVnd.amountInCents
+        val totalLiabilityDebtVnd = includedItems
+            .filter { it.wallet.isLiability }
+            .sumOf { item ->
+                if (item.convertedBalanceVnd.amountInCents < 0L) {
+                    -item.convertedBalanceVnd.amountInCents
+                } else {
+                    item.convertedBalanceVnd.amountInCents
+                }
             }
-            rawDebt
-        }
 
         val liabilityItems = liabilityItemsRaw.map { item ->
             val debt = if (item.convertedBalanceVnd.amountInCents < 0L) {
@@ -185,7 +208,7 @@ class AssetsViewModel @Inject constructor(
             } else {
                 item.convertedBalanceVnd.amountInCents
             }
-            val pct = if (totalLiabilityDebtVnd > 0L && debt > 0L) {
+            val pct = if (item.wallet.includeInTotalBalance && totalLiabilityDebtVnd > 0L && debt > 0L) {
                 debt.toFloat() / totalLiabilityDebtVnd.toFloat()
             } else {
                 0f
@@ -198,12 +221,14 @@ class AssetsViewModel @Inject constructor(
         val netWorthCents = totalAssetsCents - totalLiabilitiesCents
         val totalNetWorth = Money(netWorthCents)
 
-        val netFlow = nonTransferTxs.fold(Money.ZERO) { acc, tx ->
-            when (tx.type) {
-                TransactionType.INCOME -> acc + tx.amount
-                TransactionType.EXPENSE -> acc - tx.amount
+        val netFlow = nonTransferTxs
+            .filter { it.walletId in includedWalletIds }
+            .fold(Money.ZERO) { acc, tx ->
+                when (tx.type) {
+                    TransactionType.INCOME -> acc + tx.amount
+                    TransactionType.EXPENSE -> acc - tx.amount
+                }
             }
-        }
         val startBalance = totalNetWorth - netFlow
         val netWorthChangePercentage = if (startBalance.amountInCents != 0L) {
             (netFlow.amountInCents.toDouble() / abs(startBalance.amountInCents.toDouble()) * 100.0).toFloat()
@@ -213,14 +238,14 @@ class AssetsViewModel @Inject constructor(
 
         val hasForeign = wallets.any { !it.currencyCode.equals("VND", ignoreCase = true) }
         val ratesUpdatedString = ratesSnapshot?.lastUpdatedUtc?.takeIf { it.isNotBlank() }
-        val allocationItems = buildAllocation(activeItems, allocationMode, rates)
+        val allocationItems = buildAllocation(includedItems, allocationMode, rates)
 
         return AssetsUiState(
             totalNetWorth = totalNetWorth,
             totalAssetsVnd = Money(totalAssetsCents),
             totalLiabilitiesVnd = Money(totalLiabilitiesCents),
-            assetCount = assetItems.size,
-            liabilityCount = liabilityItems.size,
+            assetCount = includedItems.count { it.wallet.isAsset },
+            liabilityCount = includedItems.count { it.wallet.isLiability },
             wallets = activeItems,
             assetWallets = assetItems,
             liabilityWallets = liabilityItems,
@@ -233,7 +258,13 @@ class AssetsViewModel @Inject constructor(
             hasForeignCurrency = hasForeign,
             ratesLastUpdated = ratesUpdatedString,
             adjustBalanceWallet = adjustWallet,
+            selectedPurpose = selectedPurpose,
+            excludedWalletCount = excludedCount,
         )
+    }
+
+    fun onPurposeFilterChanged(purpose: WalletPurpose?) {
+        _selectedPurpose.value = purpose
     }
 
     fun onAllocationModeChanged(mode: AllocationMode) {

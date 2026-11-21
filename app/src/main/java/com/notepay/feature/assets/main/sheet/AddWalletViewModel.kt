@@ -13,6 +13,7 @@ import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
@@ -108,6 +109,10 @@ class AddWalletViewModel @Inject constructor(
                             currencyCode = wallet.currencyCode,
                             creditLimitInput = if (wallet.creditLimit != null) (wallet.creditLimit.amountInCents / 100).toString() else "",
                             isArchived = wallet.isArchived,
+                            purpose = wallet.purpose,
+                            targetAmountInput = wallet.targetAmount?.let { (it.amountInCents / 100).toString() } ?: "",
+                            targetDateEpochDay = wallet.targetDateEpochDay,
+                            includeInTotalBalance = wallet.includeInTotalBalance,
                         )
                     }
                 }
@@ -217,6 +222,35 @@ class AddWalletViewModel @Inject constructor(
         _state.update { it.copy(creditLimitInput = clean) }
     }
 
+    fun onPurposeChanged(purpose: WalletPurpose) {
+        _state.update { current ->
+            val autoInclude = if (!current.isEditMode && purpose == WalletPurpose.BUSINESS && current.purpose != WalletPurpose.BUSINESS) {
+                false
+            } else if (!current.isEditMode && current.purpose == WalletPurpose.BUSINESS && purpose != WalletPurpose.BUSINESS) {
+                true
+            } else {
+                current.includeInTotalBalance
+            }
+            current.copy(
+                purpose = purpose,
+                includeInTotalBalance = autoInclude,
+            )
+        }
+    }
+
+    fun onTargetAmountChanged(input: String) {
+        val clean = input.filter(Char::isDigit).take(AmountParser.MAX_DIGITS)
+        _state.update { it.copy(targetAmountInput = clean) }
+    }
+
+    fun onTargetDateChanged(epochDay: Long?) {
+        _state.update { it.copy(targetDateEpochDay = epochDay) }
+    }
+
+    fun onIncludeInTotalBalanceChanged(include: Boolean) {
+        _state.update { it.copy(includeInTotalBalance = include) }
+    }
+
     fun archiveWallet() {
         val id = walletId ?: return
         viewModelScope.launch {
@@ -320,6 +354,18 @@ class AddWalletViewModel @Inject constructor(
                     null
                 }
 
+                val targetAmount = if (current.purpose.supportsGoalTarget) {
+                    val rawTarget = current.targetAmountInput.toLongOrNull() ?: 0L
+                    if (rawTarget > 0L) Money.fromMajorUnit(rawTarget) else null
+                } else {
+                    null
+                }
+                val targetDateEpochDay = if (current.purpose.supportsGoalTarget) {
+                    current.targetDateEpochDay
+                } else {
+                    null
+                }
+
                 val wallet = Wallet(
                     id = walletId ?: 0L,
                     name = current.name,
@@ -338,6 +384,10 @@ class AddWalletViewModel @Inject constructor(
                     currencyCode = current.currencyCode,
                     creditLimit = creditLimit,
                     isArchived = current.isArchived,
+                    purpose = current.purpose,
+                    targetAmount = targetAmount,
+                    targetDateEpochDay = targetDateEpochDay,
+                    includeInTotalBalance = current.includeInTotalBalance,
                 )
 
                 walletRepository.upsert(wallet)

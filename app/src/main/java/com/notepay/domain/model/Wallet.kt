@@ -28,6 +28,10 @@ data class Wallet(
     val currencyCode: String = "VND",
     val creditLimit: Money? = null,
     val isArchived: Boolean = false,
+    val purpose: WalletPurpose = WalletPurpose.PERSONAL,
+    val targetAmount: Money? = null,
+    val targetDateEpochDay: Long? = null,
+    val includeInTotalBalance: Boolean = true,
 ) {
     val isLiability: Boolean get() = nature.isLiability
     val isAsset: Boolean get() = nature.isAsset

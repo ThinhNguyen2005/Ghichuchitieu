@@ -23,7 +23,7 @@ import com.notepay.data.local.entity.DebtPaymentEntity
         DebtEntity::class,
         DebtPaymentEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class NotePayDatabase : RoomDatabase() {
@@ -152,6 +152,14 @@ abstract class NotePayDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE wallets ADD COLUMN credit_limit_cents INTEGER")
                 db.execSQL("ALTER TABLE wallets ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_wallets_is_archived ON wallets (is_archived)")
+            }
+        }
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wallets ADD COLUMN purpose TEXT NOT NULL DEFAULT 'PERSONAL'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN target_amount_cents INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN target_date_epoch_day INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN include_in_total_balance INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

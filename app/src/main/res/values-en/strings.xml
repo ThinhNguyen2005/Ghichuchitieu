@@ -1581,4 +1581,46 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="natural_entry_done_edit">Done</string>
     <string name="natural_entry_saved_batch">Saved %1$d transactions</string>
     <string name="natural_entry_partial_error">Some transactions could not be saved</string>
+
+    <!-- Multi-Purpose Wallets & Financial Report Export (Phase 2) -->
+    <string name="wallet_purpose_label">Wallet purpose</string>
+    <string name="wallet_purpose_all">All</string>
+    <string name="wallet_purpose_personal">Personal</string>
+    <string name="wallet_purpose_business">Business</string>
+    <string name="wallet_purpose_savings_goal">Savings Goal</string>
+    <string name="wallet_purpose_travel">Travel</string>
+    <string name="wallet_purpose_shared">Shared</string>
+    <string name="wallet_target_amount_label">Target amount (VND)</string>
+    <string name="wallet_target_date_label">Target date (optional)</string>
+    <string name="wallet_target_date_placeholder">Pick target date</string>
+    <string name="wallet_target_clear_date">Clear date</string>
+    <string name="wallet_goal_progress_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="wallet_goal_due_format">Target: %1$s</string>
+    <string name="wallet_include_in_total_title">Include in net worth</string>
+    <string name="wallet_include_in_total_desc">Turn off to keep business or separate funds out of personal totals</string>
+    <string name="wallet_excluded_from_total_badge">Excluded from total</string>
+
+    <string name="export_report_title">Export financial report</string>
+    <string name="export_report_action_cd">Export Excel or CSV report</string>
+    <string name="export_report_button">Export report</string>
+    <string name="export_report_period_label">Date range</string>
+    <string name="export_preset_month">This month</string>
+    <string name="export_preset_quarter">This quarter</string>
+    <string name="export_preset_year">This year</string>
+    <string name="export_preset_custom">Custom</string>
+    <string name="export_date_from">From</string>
+    <string name="export_date_to">To</string>
+    <string name="export_wallets_label">Wallets to include</string>
+    <string name="export_wallets_all">All wallets</string>
+    <string name="export_type_label">Transaction type</string>
+    <string name="export_type_all">Income &amp; Expense</string>
+    <string name="export_format_label">File format</string>
+    <string name="export_format_xlsx">Excel (.xlsx)</string>
+    <string name="export_format_csv">CSV (UTF-8 BOM)</string>
+    <string name="export_matching_count">Matching %1$d transactions</string>
+    <string name="export_save_to_device">Save to device</string>
+    <string name="export_share_action">Share</string>
+    <string name="export_success">Report exported successfully</string>
+    <string name="export_failed">Couldn\'t export report, please try again</string>
+    <string name="export_share_chooser_title">Share financial report</string>
 </resources>

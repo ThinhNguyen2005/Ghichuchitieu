@@ -91,6 +91,10 @@ class DataImporter @Inject constructor(
                         currencyCode = obj.optString("currencyCode", "VND"),
                         creditLimitCents = if (obj.isNull("creditLimitCents")) null else obj.optLong("creditLimitCents"),
                         isArchived = obj.optBoolean("isArchived", false),
+                        purpose = obj.optString("purpose", "PERSONAL"),
+                        targetAmountCents = if (obj.isNull("targetAmountCents")) null else obj.optLong("targetAmountCents"),
+                        targetDateEpochDay = if (obj.isNull("targetDateEpochDay")) null else obj.optLong("targetDateEpochDay"),
+                        includeInTotalBalance = obj.optBoolean("includeInTotalBalance", true),
                     ),
                 )
             }

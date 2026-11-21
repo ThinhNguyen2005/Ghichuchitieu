@@ -72,7 +72,13 @@ import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.money.Money
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
+import kotlin.time.Instant
 import com.notepay.feature.assets.main.AllocationMode
 import com.notepay.feature.assets.main.AllocationSegment
 import com.notepay.feature.assets.main.WalletAllocationItem
@@ -702,6 +708,41 @@ internal fun WalletAssetCard(
                             )
                         }
 
+                        if (wallet.purpose != WalletPurpose.PERSONAL) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = AppTheme.shapes.corner12,
+                                color = AppTheme.colors.sand.copy(alpha = 0.35f),
+                            ) {
+                                Text(
+                                    text = stringResource(WalletUiHelper.getPurposeTitleRes(wallet.purpose)),
+                                    style = AppTheme.typography.labelSmall,
+                                    color = AppTheme.colors.onSand,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        if (!wallet.includeInTotalBalance) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = AppTheme.shapes.corner12,
+                                color = AppTheme.colors.surfaceSunken,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.wallet_excluded_from_total_badge),
+                                    style = AppTheme.typography.labelSmall,
+                                    color = AppTheme.colors.textSecondary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
 
                         if (wallet.isActive) {
@@ -809,6 +850,74 @@ internal fun WalletAssetCard(
                         .clip(AppTheme.shapes.capsule),
                     color = colorValue,
                     trackColor = colorValue.copy(alpha = 0.12f),
+                )
+            }
+
+            // Thanh tiến độ mục tiêu (SAVINGS_GOAL / TRAVEL)
+            val targetAmount = wallet.targetAmount
+            if (wallet.purpose.supportsGoalTarget && targetAmount != null && targetAmount.amountInCents > 0L) {
+                Spacer(modifier = Modifier.height(10.dp))
+                val ratio = (item.balance.amountInCents.toFloat() / targetAmount.amountInCents.toFloat())
+                    .coerceIn(0f, 1f)
+                val pctInt = (ratio * 100f).roundToInt()
+                val formattedCurrent = if (isForeign) {
+                    CurrencyConverter.formatForeignAmount(item.balance.amountInCents, wallet.currencyCode)
+                } else {
+                    MoneyFormatter.format(item.balance)
+                }
+                val formattedTarget = if (isForeign) {
+                    CurrencyConverter.formatForeignAmount(targetAmount.amountInCents, wallet.currencyCode)
+                } else {
+                    MoneyFormatter.format(targetAmount)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.wallet_goal_progress_format,
+                            formattedCurrent,
+                            formattedTarget,
+                            pctInt,
+                        ),
+                        style = AppTheme.typography.labelMedium,
+                        color = AppTheme.colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    wallet.targetDateEpochDay?.let { epochDay ->
+                        val dueDate = Instant.fromEpochMilliseconds(epochDay * 86_400_000L)
+                            .toLocalDateTime(TimeZone.UTC).date
+                        val dueLabel = String.format(
+                            Locale.ROOT,
+                            "%02d/%02d/%04d",
+                            dueDate.day,
+                            dueDate.month.number,
+                            dueDate.year,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.wallet_goal_due_format, dueLabel),
+                            style = AppTheme.typography.labelSmall,
+                            color = AppTheme.colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { ratio },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(AppTheme.shapes.capsule),
+                    color = AppTheme.colors.sand,
+                    trackColor = AppTheme.colors.surfaceSunken,
                 )
             }
 

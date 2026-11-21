@@ -1566,4 +1566,46 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="natural_entry_done_edit">Xong</string>
     <string name="natural_entry_saved_batch">Đã lưu %1$d giao dịch</string>
     <string name="natural_entry_partial_error">Lưu thất bại một số giao dịch, vui lòng thử lại</string>
+
+    <!-- Đa ví theo mục đích & Xuất báo cáo (Phase 2) -->
+    <string name="wallet_purpose_label">Mục đích sử dụng</string>
+    <string name="wallet_purpose_all">Tất cả</string>
+    <string name="wallet_purpose_personal">Cá nhân</string>
+    <string name="wallet_purpose_business">Kinh doanh</string>
+    <string name="wallet_purpose_savings_goal">Tiết kiệm mục tiêu</string>
+    <string name="wallet_purpose_travel">Du lịch</string>
+    <string name="wallet_purpose_shared">Ví chung</string>
+    <string name="wallet_target_amount_label">Mục tiêu số tiền (VND)</string>
+    <string name="wallet_target_date_label">Ngày hoàn thành mục tiêu (tùy chọn)</string>
+    <string name="wallet_target_date_placeholder">Chọn ngày đích</string>
+    <string name="wallet_target_clear_date">Xóa ngày</string>
+    <string name="wallet_goal_progress_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="wallet_goal_due_format">Đích: %1$s</string>
+    <string name="wallet_include_in_total_title">Tính vào tổng tài sản ròng</string>
+    <string name="wallet_include_in_total_desc">Tắt để tách ví kinh doanh hoặc quỹ riêng khỏi báo cáo cá nhân</string>
+    <string name="wallet_excluded_from_total_badge">Không tính vào tổng</string>
+
+    <string name="export_report_title">Xuất báo cáo tài chính</string>
+    <string name="export_report_action_cd">Xuất báo cáo Excel hoặc CSV</string>
+    <string name="export_report_button">Xuất báo cáo</string>
+    <string name="export_report_period_label">Khoảng thời gian</string>
+    <string name="export_preset_month">Tháng này</string>
+    <string name="export_preset_quarter">Quý này</string>
+    <string name="export_preset_year">Năm nay</string>
+    <string name="export_preset_custom">Tùy chọn</string>
+    <string name="export_date_from">Từ ngày</string>
+    <string name="export_date_to">Đến ngày</string>
+    <string name="export_wallets_label">Chọn ví xuất dữ liệu</string>
+    <string name="export_wallets_all">Tất cả ví</string>
+    <string name="export_type_label">Loại giao dịch</string>
+    <string name="export_type_all">Thu &amp; Chi</string>
+    <string name="export_format_label">Định dạng tệp</string>
+    <string name="export_format_xlsx">Excel (.xlsx)</string>
+    <string name="export_format_csv">CSV (UTF-8 BOM)</string>
+    <string name="export_matching_count">Phù hợp %1$d giao dịch</string>
+    <string name="export_save_to_device">Lưu vào máy</string>
+    <string name="export_share_action">Chia sẻ</string>
+    <string name="export_success">Đã xuất báo cáo thành công</string>
+    <string name="export_failed">Không thể xuất báo cáo, vui lòng thử lại</string>
+    <string name="export_share_chooser_title">Chia sẻ báo cáo tài chính</string>
 </resources>

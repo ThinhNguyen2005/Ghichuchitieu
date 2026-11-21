@@ -8,6 +8,7 @@ import com.notepay.R
 import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletStats
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
@@ -194,6 +195,43 @@ class AddWalletViewModelTest {
                         wallet.type == WalletType.CREDIT_CARD &&
                         wallet.creditLimit == Money(50_000_000_00L)
                 }
+            )
+        }
+    }
+
+    @Test
+    fun `saving a savings goal wallet persists purpose target amount target date and exclusion toggle`() = runTest {
+        coEvery { walletRepository.observeAll() } returns flowOf(emptyList())
+        coEvery { vietQrBankRepository.getBanks() } returns emptyList()
+        coEvery { walletRepository.upsert(any()) } returns 2L
+        every { context.getString(R.string.wallet_created) } returns "Wallet created"
+
+        val viewModel = AddWalletViewModel(
+            walletRepository = walletRepository,
+            transactionRepository = transactionRepository,
+            savedStateHandle = SavedStateHandle(),
+            vietQrBankRepository = vietQrBankRepository,
+            context = context,
+        )
+        advanceUntilIdle()
+
+        viewModel.onNameChanged("Quỹ cưới 2027")
+        viewModel.onPurposeChanged(WalletPurpose.SAVINGS_GOAL)
+        viewModel.onTargetAmountChanged("100000000")
+        viewModel.onTargetDateChanged(21_000L)
+        viewModel.onIncludeInTotalBalanceChanged(false)
+        viewModel.save()
+        advanceUntilIdle()
+
+        coVerify {
+            walletRepository.upsert(
+                match { wallet ->
+                    wallet.name == "Quỹ cưới 2027" &&
+                        wallet.purpose == WalletPurpose.SAVINGS_GOAL &&
+                        wallet.targetAmount == Money.fromMajorUnit(100_000_000L) &&
+                        wallet.targetDateEpochDay == 21_000L &&
+                        !wallet.includeInTotalBalance
+                },
             )
         }
     }

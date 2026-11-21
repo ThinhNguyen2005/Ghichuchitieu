@@ -188,4 +188,46 @@ class BackupExportImportTest {
 
         assertThat(database.walletDao().getAll()).containsExactly(existingWallet)
     }
+
+    @Test
+    fun `round-trips multi-purpose wallet fields and imports legacy backup missing v9 keys`() = runTest {
+        val goalWallet = WalletEntity(
+            id = 5L,
+            name = "Quỹ Nhật Bản",
+            initialBalanceCents = 8_000_000_00L,
+            iconKey = "savings",
+            colorKey = "ocean",
+            isActive = false,
+            createdAt = 5_000L,
+            purpose = "TRAVEL",
+            targetAmountCents = 40_000_000_00L,
+            targetDateEpochDay = 21_000L,
+            includeInTotalBalance = false,
+        )
+        database.walletDao().upsert(goalWallet)
+
+        val exportedJson = exporter.exportToJson()
+        database.withTransaction { database.walletDao().deleteAll() }
+        importer.importFromJson(exportedJson)
+
+        val restored = database.walletDao().getById(5L)!!
+        assertThat(restored).isEqualTo(goalWallet)
+
+        val legacyJson = """
+            {
+              "version": 1,
+              "data": {
+                "wallets": [{"id": 7, "name": "Ví cũ", "initialBalanceCents": 100000, "iconKey": "cash", "colorKey": "primary", "isActive": true, "createdAt": 1000}],
+                "transactions": []
+              }
+            }
+        """.trimIndent()
+        importer.importFromJson(legacyJson)
+
+        val importedLegacy = database.walletDao().getById(7L)!!
+        assertThat(importedLegacy.purpose).isEqualTo("PERSONAL")
+        assertThat(importedLegacy.targetAmountCents).isNull()
+        assertThat(importedLegacy.targetDateEpochDay).isNull()
+        assertThat(importedLegacy.includeInTotalBalance).isTrue()
+    }
 }

@@ -27,7 +27,7 @@ fun buildAllocation(
     return when (mode) {
         AllocationMode.ASSET -> {
             val positiveAssets = wallets
-                .filter { it.wallet.isAsset && !it.wallet.isArchived }
+                .filter { it.wallet.isAsset && !it.wallet.isArchived && it.wallet.includeInTotalBalance }
                 .map { item ->
                     val vndCents = CurrencyConverter.convertToVndCents(
                         item.balance.amountInCents,
@@ -57,7 +57,7 @@ fun buildAllocation(
         }
         AllocationMode.LIABILITY -> {
             val liabilities = wallets
-                .filter { it.wallet.isLiability && !it.wallet.isArchived }
+                .filter { it.wallet.isLiability && !it.wallet.isArchived && it.wallet.includeInTotalBalance }
                 .map { item ->
                     val rawDebt = if (item.balance.amountInCents < 0L) -item.balance.amountInCents else item.balance.amountInCents
                     val vndCents = CurrencyConverter.convertToVndCents(
