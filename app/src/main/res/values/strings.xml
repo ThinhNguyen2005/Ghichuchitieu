@@ -1608,4 +1608,25 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="export_success">Đã xuất báo cáo thành công</string>
     <string name="export_failed">Không thể xuất báo cáo, vui lòng thử lại</string>
     <string name="export_share_chooser_title">Chia sẻ báo cáo tài chính</string>
+
+    <!-- Xu hướng dài hạn & Mùa vụ Việt Nam (Phase 3) -->
+    <string name="stats_long_term_title">Xu hướng dài hạn &amp; Mùa vụ</string>
+    <string name="stats_tet_countdown_badge">Còn %1$d ngày tới Tết</string>
+    <string name="stats_yoy_same_month_label">So với cùng kỳ năm trước</string>
+    <string name="stats_yoy_no_prior_spend">Năm trước chưa phát sinh (mới)</string>
+    <string name="stats_yoy_rising_label">Tăng mạnh:</string>
+    <string name="stats_yoy_falling_label">Giảm mạnh:</string>
+    <string name="stats_chart_this_year">12 tháng gần nhất</string>
+    <string name="stats_chart_last_year">Cùng kỳ năm trước</string>
+    <string name="stats_season_pre_tet">Trước Tết (30 ngày)</string>
+    <string name="stats_season_post_tet">Sau Tết (30 ngày)</string>
+    <string name="stats_season_wedding">Mùa cưới</string>
+    <string name="stats_season_summer">Mùa hè &amp; Du lịch</string>
+    <string name="stats_season_spike_desc">Chi tiêu tăng +%1$d%% so với tháng thường (%2$s/tháng)</string>
+    <string name="stats_season_dip_desc">Chi tiêu giảm %1$d%% so với tháng thường (%2$s/tháng)</string>
+    <string name="stats_season_top_categories">Chủ yếu ở: %1$s</string>
+    <string name="stats_cold_start_title">Đang tích lũy dữ liệu (%1$d/%2$d tháng)</string>
+    <string name="stats_cold_start_desc">Cần tối thiểu 12 tháng để so sánh cùng kỳ năm trước (YoY) và phát hiện pattern mùa vụ Tết.</string>
+    <string name="stats_cold_start_mom_label">So với TB 3 tháng gần nhất: %1$s</string>
+    <string name="stats_long_term_chart_cd">Biểu đồ đường so sánh chi tiêu 12 tháng gần nhất và cùng kỳ năm trước</string>
 </resources>

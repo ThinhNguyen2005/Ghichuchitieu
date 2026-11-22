@@ -1623,4 +1623,25 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="export_success">Report exported successfully</string>
     <string name="export_failed">Couldn\'t export report, please try again</string>
     <string name="export_share_chooser_title">Share financial report</string>
+
+    <!-- Long-Term YoY & Vietnamese Seasonal Trends (Phase 3) -->
+    <string name="stats_long_term_title">Long-term &amp; Seasonal Trends</string>
+    <string name="stats_tet_countdown_badge">%1$d days to Lunar New Year</string>
+    <string name="stats_yoy_same_month_label">vs. same month last year</string>
+    <string name="stats_yoy_no_prior_spend">Prior year had 0 spend</string>
+    <string name="stats_yoy_rising_label">Top rising:</string>
+    <string name="stats_yoy_falling_label">Top falling:</string>
+    <string name="stats_chart_this_year">Last 12 months</string>
+    <string name="stats_chart_last_year">Prior year</string>
+    <string name="stats_season_pre_tet">Pre-Tết (30 days)</string>
+    <string name="stats_season_post_tet">Post-Tết (30 days)</string>
+    <string name="stats_season_wedding">Wedding season</string>
+    <string name="stats_season_summer">Summer &amp; Travel</string>
+    <string name="stats_season_spike_desc">Spending rises +%1$d%% vs. normal months (%2$s/mo)</string>
+    <string name="stats_season_dip_desc">Spending drops %1$d%% vs. normal months (%2$s/mo)</string>
+    <string name="stats_season_top_categories">Mainly in: %1$s</string>
+    <string name="stats_cold_start_title">Building long-term history (%1$d/%2$d months)</string>
+    <string name="stats_cold_start_desc">At least 12 months of history are needed for Year-over-Year (YoY) and Tết seasonal patterns.</string>
+    <string name="stats_cold_start_mom_label">vs. 3-month average: %1$s</string>
+    <string name="stats_long_term_chart_cd">Line chart comparing spending across the last 12 months vs. prior year</string>
 </resources>
