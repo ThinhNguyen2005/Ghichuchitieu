@@ -13,6 +13,7 @@ import com.notepay.domain.analytics.AdvisorCategorySummary
 import com.notepay.domain.analytics.AdvisorProvider
 import com.notepay.domain.analytics.BudgetAdvisorInput
 import com.notepay.domain.analytics.CategoryExpenseShare
+import com.notepay.domain.analytics.LongTermTrendAnalyzer
 import com.notepay.domain.analytics.PeriodBarData
 import com.notepay.domain.analytics.SpendingForecastEngine
 import com.notepay.domain.analytics.SpendingPrediction
@@ -138,6 +139,7 @@ class StatsViewModel @Inject constructor(
     }
 
     private val _localAdvisor = MutableStateFlow(LocalAdvisorUiState())
+    private val longTermTrendAnalyzer = LongTermTrendAnalyzer()
     @Volatile private var latestAdvisorRequest: AdvisorRequest? = null
 
     init {
@@ -332,6 +334,16 @@ class StatsViewModel @Inject constructor(
             selectedCategory = null,
         )
 
+        val periodStart = period.start
+        val trendAnchor = if (periodStart == null || period.contains(today)) today else periodStart
+        val longTermTrend = longTermTrendAnalyzer.analyze(
+            transactions = allTransactions,
+            wallets = wallets,
+            selectedWalletId = resolvedWalletId,
+            anchorDate = trendAnchor,
+            zone = zone,
+        )
+
         StatsUiState(
             totalIncome = income,
             totalExpense = expense,
@@ -361,6 +373,7 @@ class StatsViewModel @Inject constructor(
             dynamicDailyBudget = dynamicDailyBudget,
             aiAdvices = aiAdvices,
             detectedSubscriptions = detectedSubscriptions,
+            longTermTrend = longTermTrend,
         )
     }
         .flowOn(Dispatchers.Default)

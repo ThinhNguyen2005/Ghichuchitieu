@@ -62,10 +62,14 @@ fun TransactionItem(
     val categoryName = transaction.category.localizedName()
     val noteText = transaction.note.trim()
     val titleText = noteText.ifBlank { categoryName }
+    val authorText = transaction.createdByName?.takeIf { it.isNotBlank() }?.let {
+        stringResource(R.string.shared_tx_recorded_by, it)
+    }
     val subtitleParts = listOfNotNull(
         // Tiêu đề đã là danh mục thì bỏ để khỏi đọc lại đúng một từ.
         categoryName.takeIf { noteText.isNotBlank() },
         walletName.takeIf { it.isNotBlank() },
+        authorText,
         if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else null
     )
     val subtitleText = subtitleParts.joinToString(" • ")

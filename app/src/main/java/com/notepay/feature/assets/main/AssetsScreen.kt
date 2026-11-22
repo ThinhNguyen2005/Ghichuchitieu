@@ -43,6 +43,8 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.GroupAdd
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,6 +91,8 @@ import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.assets.main.component.AssetsInkHeroCard
 import com.notepay.feature.assets.main.component.WalletAssetCard
 import com.notepay.feature.assets.main.sheet.TransferBottomSheet
+import com.notepay.feature.assets.shared.CreateSharedWalletDialog
+import com.notepay.feature.assets.shared.JoinSharedWalletDialog
 import com.notepay.feature.debt.management.component.DebtSummaryCard
 
 private val AssetCardMinWidth = 320.dp
@@ -108,6 +112,7 @@ fun AssetsScreen(
     onWalletClick: (Long) -> Unit,
     onNavigateToDebtManagement: () -> Unit,
     onFeedback: suspend (UiFeedback) -> Boolean,
+    onOpenSharedMembers: (Long) -> Unit = {},
     viewModel: AssetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -121,6 +126,8 @@ fun AssetsScreen(
 
     var isArchivedExpanded by remember { mutableStateOf(false) }
     var isExportSheetVisible by remember { mutableStateOf(false) }
+    var showCreateSharedDialog by remember { mutableStateOf(false) }
+    var showJoinSharedDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -272,6 +279,11 @@ fun AssetsScreen(
                                         selectedPurpose = state.selectedPurpose,
                                         onPurposeSelected = viewModel::onPurposeFilterChanged,
                                     )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    SharedWalletQuickActionsRow(
+                                        onCreateSharedWallet = { showCreateSharedDialog = true },
+                                        onJoinByInviteCode = { showJoinSharedDialog = true },
+                                    )
                                 }
                             }
                         }
@@ -334,6 +346,11 @@ fun AssetsScreen(
                                     onEdit = { onEditWallet(item.wallet.id) },
                                     onSetDefault = { viewModel.setActiveWallet(item.wallet.id) },
                                     onAdjustBalance = { viewModel.openAdjustBalance(item) },
+                                    onManageMembers = if (item.wallet.isShared) {
+                                        { onOpenSharedMembers(item.wallet.id) }
+                                    } else {
+                                        null
+                                    },
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -470,6 +487,87 @@ fun AssetsScreen(
                 onFeedback = onFeedback,
             )
         }
+
+        if (showCreateSharedDialog) {
+            CreateSharedWalletDialog(
+                isCloudConfigured = state.isCloudConfigured,
+                isSubmitting = state.isSharedActionSubmitting,
+                onDismiss = { showCreateSharedDialog = false },
+                onConfirm = { name, currency, budgetMinor ->
+                    viewModel.createSharedWallet(name, currency, budgetMinor) { walletId ->
+                        showCreateSharedDialog = false
+                        onOpenSharedMembers(walletId)
+                    }
+                },
+            )
+        }
+
+        if (showJoinSharedDialog) {
+            JoinSharedWalletDialog(
+                isCloudConfigured = state.isCloudConfigured,
+                isSubmitting = state.isSharedActionSubmitting,
+                onDismiss = { showJoinSharedDialog = false },
+                onConfirm = { code, displayName ->
+                    viewModel.joinSharedWallet(code, displayName) { walletId ->
+                        showJoinSharedDialog = false
+                        onOpenSharedMembers(walletId)
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SharedWalletQuickActionsRow(
+    onCreateSharedWallet: () -> Unit,
+    onJoinByInviteCode: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedButton(
+            onClick = onCreateSharedWallet,
+            shape = AppTheme.shapes.capsule,
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = 48.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.GroupAdd,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stringResource(R.string.shared_wallet_create_action),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        OutlinedButton(
+            onClick = onJoinByInviteCode,
+            shape = AppTheme.shapes.capsule,
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = 48.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Key,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stringResource(R.string.shared_wallet_join_action),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -485,6 +583,7 @@ private fun PurposeFilterChipRow(
             WalletPurpose.BUSINESS,
             WalletPurpose.SAVINGS_GOAL,
             WalletPurpose.TRAVEL,
+            WalletPurpose.SHARED,
         )
     }
     Row(

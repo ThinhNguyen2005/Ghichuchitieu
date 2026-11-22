@@ -262,6 +262,15 @@ private fun LazyListScope.statsMainItems(
             showAmounts = showAmounts,
         )
     }
+
+    state.longTermTrend?.let { trend ->
+        item(key = "stats-long-term-trend") {
+            LongTermTrendSection(
+                analysis = trend,
+                showAmounts = showAmounts,
+            )
+        }
+    }
 }
 
 /** Thanh chọn ví + chọn kỳ trung tính theo `filter-chip` v4 và bộ lùi/tiến kỳ gọn gàng. */

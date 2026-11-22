@@ -81,6 +81,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.feature.transaction.detail.TransactionDetailContent
@@ -405,6 +406,8 @@ private fun TransactionListPane(
                     DayGroupSection(
                         dayGroup = dayGroup,
                         walletsMap = state.walletsMap,
+                        walletsById = state.walletsById,
+                        currentUserId = state.currentUserId,
                         selectedTransactionId = selectedTransactionId,
                         onTransactionClick = onTransactionClick,
                         onEditTransaction = onEditTransaction,
@@ -502,6 +505,8 @@ private fun TransactionListPane(
                         DayGroupSection(
                             dayGroup = dayGroup,
                             walletsMap = state.walletsMap,
+                            walletsById = state.walletsById,
+                            currentUserId = state.currentUserId,
                             selectedTransactionId = selectedTransactionId,
                             onTransactionClick = onTransactionClick,
                             onEditTransaction = onEditTransaction,
@@ -857,6 +862,8 @@ private fun SummaryStatisticsCard(
 private fun DayGroupSection(
     dayGroup: TransactionDayGroup,
     walletsMap: Map<Long, String>,
+    walletsById: Map<Long, Wallet>,
+    currentUserId: String?,
     selectedTransactionId: Long?,
     onTransactionClick: (Long) -> Unit,
     onEditTransaction: (Long) -> Unit,
@@ -894,12 +901,17 @@ private fun DayGroupSection(
 
         // Transactions Container
         dayGroup.transactions.forEach { tx ->
+            val wallet = walletsById[tx.walletId]
+            val canEdit = !tx.isInternalTransfer &&
+                (wallet == null || SharedWalletPermissionGuard.canEditTransaction(wallet, tx, currentUserId))
+            val canDelete = !(tx.isInternalTransfer && tx.transferGroupId == null) &&
+                (wallet == null || SharedWalletPermissionGuard.canDeleteTransaction(wallet, tx, currentUserId))
             SwipeableTransactionItem(
                 transaction = tx,
                 walletName = walletsMap[tx.walletId] ?: stringResource(R.string.wallet_fallback),
                 onClick = { onTransactionClick(tx.id) },
-                onEdit = if (tx.isInternalTransfer) null else ({ onEditTransaction(tx.id) }),
-                onDelete = if (tx.isInternalTransfer && tx.transferGroupId == null) null else ({ onDeleteTransaction(tx) }),
+                onEdit = if (canEdit) ({ onEditTransaction(tx.id) }) else null,
+                onDelete = if (canDelete) ({ onDeleteTransaction(tx) }) else null,
                 hapticEnabled = hapticFeedbackEnabled,
                 isSelected = tx.id == selectedTransactionId,
             )

@@ -2,6 +2,8 @@ package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.WalletEntity
 import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.SharedWalletRole
+import com.notepay.domain.model.SyncStatus
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
@@ -42,6 +44,11 @@ class WalletMapper @Inject constructor() {
             targetAmount = entity.targetAmountCents?.let { Money(it) },
             targetDateEpochDay = entity.targetDateEpochDay,
             includeInTotalBalance = entity.includeInTotalBalance,
+            remoteId = entity.remoteId,
+            isShared = entity.isShared,
+            syncStatus = SyncStatus.fromString(entity.syncStatus),
+            sharedRole = SharedWalletRole.fromString(entity.sharedRole),
+            updatedAtEpochMs = entity.updatedAtEpochMs,
         )
     }
 
@@ -67,5 +74,10 @@ class WalletMapper @Inject constructor() {
         targetAmountCents = wallet.targetAmount?.amountInCents,
         targetDateEpochDay = wallet.targetDateEpochDay,
         includeInTotalBalance = wallet.includeInTotalBalance,
+        remoteId = wallet.remoteId,
+        isShared = wallet.isShared,
+        syncStatus = wallet.syncStatus.name,
+        sharedRole = wallet.sharedRole?.name,
+        updatedAtEpochMs = wallet.updatedAtEpochMs,
     )
 }
