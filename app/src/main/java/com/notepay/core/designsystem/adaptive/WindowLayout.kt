@@ -4,7 +4,8 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
@@ -66,7 +67,9 @@ fun ProvideWindowLayout(content: @Composable () -> Unit) {
 
     // WindowSizeClass không phơi chiều rộng thô nên lấy từ configuration để tính đúng
     // phần lề cần bù; chỉ dùng cho màn hình không phải Compact.
-    val windowWidth = LocalConfiguration.current.screenWidthDp.dp
+    val windowWidth = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.width.toDp()
+    }
     // Rail chiếm một dải bên trái màn hình, nên phải trừ dải đó khỏi bề rộng khả dụng —
     // nếu không nội dung sẽ bị đẩy lệch phải thay vì căn giữa phần còn lại.
     val availableWidth = if (layout.usesNavigationRail) {

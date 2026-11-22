@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
@@ -299,6 +300,8 @@ private fun DebtSummaryMetricTile(
                     style = MaterialTheme.typography.labelMedium,
                     color = AppTheme.colors.textSecondary,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -306,6 +309,8 @@ private fun DebtSummaryMetricTile(
                 text = amountText,
                 style = AppTheme.typography.amountCard,
                 color = accentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

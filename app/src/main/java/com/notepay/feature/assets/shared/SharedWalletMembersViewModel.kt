@@ -146,8 +146,9 @@ class SharedWalletMembersViewModel @Inject constructor(
                 onSuccess = { summary ->
                     _feedback.emit(
                         UiFeedback(
-                            message = context.getString(
-                                R.string.shared_wallet_sync_success,
+                            message = context.resources.getQuantityString(
+                                R.plurals.shared_wallet_sync_success,
+                                summary.pulledTransactionsCount,
                                 summary.pushedCount,
                                 summary.pulledTransactionsCount,
                             ),

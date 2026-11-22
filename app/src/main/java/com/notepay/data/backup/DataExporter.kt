@@ -11,6 +11,7 @@ import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import org.json.JSONArray
@@ -52,6 +53,8 @@ class DataExporter @Inject constructor(
 
         val settings = try {
             budgetSettingsStore.settings.first()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             com.notepay.data.datastore.BudgetSettings()
         }

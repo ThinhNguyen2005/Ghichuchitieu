@@ -108,8 +108,8 @@ private val QUICK_AMOUNTS_DECIMAL = listOf(
 @Composable
 fun CurrencyConverterScreen(
     onBack: () -> Unit,
-    viewModel: CurrencyConverterViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    viewModel: CurrencyConverterViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val output = remember(state) { viewModel.convertedAmount(state) }

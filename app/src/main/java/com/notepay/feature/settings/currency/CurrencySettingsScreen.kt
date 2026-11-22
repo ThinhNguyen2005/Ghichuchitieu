@@ -68,9 +68,9 @@ import java.util.Locale
 @Composable
 fun CurrencySettingsScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     onOpenConverter: () -> Unit = {},
     viewModel: CurrencySettingsViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

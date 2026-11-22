@@ -57,8 +57,8 @@ import com.notepay.core.designsystem.theme.AppTheme
 @Composable
 fun NotificationSettingsScreen(
     onBack: () -> Unit,
-    viewModel: NotificationSettingsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    viewModel: NotificationSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     
@@ -119,7 +119,7 @@ fun NotificationSettingsScreen(
                         // Cảnh báo ngân sách
                         NotificationSettingRow(
                             icon = Icons.Rounded.Warning,
-                            iconTint = Color(0xFFFF9500),
+                            iconTint = AppTheme.colors.warning,
                             title = stringResource(R.string.settings_notif_budget_alerts_title),
                             subtitle = stringResource(R.string.settings_notif_budget_alerts_desc),
                             trailing = {
@@ -135,7 +135,7 @@ fun NotificationSettingsScreen(
                         // Tổng kết tuần
                         NotificationSettingRow(
                             icon = Icons.AutoMirrored.Rounded.ReceiptLong,
-                            iconTint = Color(0xFF007AFF),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = stringResource(R.string.notif_channel_weekly_digest),
                             subtitle = stringResource(R.string.settings_notif_weekly_digest_desc),
                             trailing = {
@@ -151,7 +151,7 @@ fun NotificationSettingsScreen(
                         // Nhắc nhở hàng ngày & Streak
                         NotificationSettingRow(
                             icon = Icons.Rounded.NotificationsActive,
-                            iconTint = Color(0xFF34C759),
+                            iconTint = AppTheme.colors.success,
                             title = stringResource(R.string.notif_channel_daily_reminders),
                             subtitle = stringResource(R.string.settings_notif_daily_reminder_desc),
                             trailing = {
@@ -168,7 +168,7 @@ fun NotificationSettingsScreen(
                             // Giờ nhắc nhở
                             NotificationSettingRow(
                                 icon = Icons.Rounded.Schedule,
-                                iconTint = Color(0xFF5856D6),
+                                iconTint = MaterialTheme.colorScheme.tertiary,
                                 title = stringResource(R.string.settings_notif_reminder_time_title),
                                 subtitle = stringResource(R.string.settings_notif_reminder_time_dialog),
                                 onClick = {

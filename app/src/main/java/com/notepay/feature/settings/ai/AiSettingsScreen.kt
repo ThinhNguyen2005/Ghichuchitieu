@@ -205,7 +205,7 @@ fun AiSettingsScreen(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         AiSettingRow(
                             icon = Icons.Rounded.Cloud,
-                            iconTint = Color(0xFF007AFF),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = stringResource(R.string.ai_cloud_toggle_title),
                             subtitle = stringResource(R.string.ai_cloud_toggle_desc),
                             trailing = {
@@ -218,7 +218,7 @@ fun AiSettingsScreen(
                         ItemDivider()
                         AiSettingRow(
                             icon = Icons.AutoMirrored.Rounded.ReceiptLong,
-                            iconTint = Color(0xFFFF9500),
+                            iconTint = AppTheme.colors.warning,
                             title = stringResource(R.string.ai_smart_receipt_title),
                             subtitle = stringResource(R.string.ai_smart_receipt_desc),
                             trailing = {
@@ -245,7 +245,7 @@ fun AiSettingsScreen(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         AiSettingRow(
                             icon = Icons.Rounded.Psychology,
-                            iconTint = Color(0xFF5856D6),
+                            iconTint = MaterialTheme.colorScheme.tertiary,
                             title = stringResource(R.string.ai_model_selection_title),
                             subtitle = uiState.cloudModelName,
                             onClick = { showModelPickerSheet = true },
@@ -266,7 +266,7 @@ fun AiSettingsScreen(
                         }
                         AiSettingRow(
                             icon = Icons.Rounded.Key,
-                            iconTint = Color(0xFF34C759),
+                            iconTint = AppTheme.colors.success,
                             title = stringResource(R.string.ai_api_key_label),
                             subtitle = maskedKey,
                             onClick = { showApiKeySheet = true },
@@ -359,13 +359,13 @@ private fun AiEngineHeaderCard(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF5856D6).copy(alpha = 0.12f)),
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
-                    tint = Color(0xFF5856D6),
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(28.dp),
                 )
             }
@@ -390,7 +390,7 @@ private fun AiEngineHeaderCard(
                         modifier = Modifier
                             .size(7.dp)
                             .clip(CircleShape)
-                            .background(if (isNanoAvailable) Color(0xFF34C759) else Color(0xFFFF9500)),
+                            .background(if (isNanoAvailable) AppTheme.colors.success else AppTheme.colors.warning),
                     )
                     Text(
                         text = stringResource(
@@ -410,7 +410,7 @@ private fun AiEngineHeaderCard(
             Icon(
                 imageVector = if (isNanoAvailable) Icons.Rounded.CheckCircle else Icons.Rounded.Warning,
                 contentDescription = null,
-                tint = if (isNanoAvailable) Color(0xFF34C759) else MaterialTheme.colorScheme.error,
+                tint = if (isNanoAvailable) AppTheme.colors.success else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -553,7 +553,9 @@ private fun ApiKeyBottomSheet(
                             Icon(
                                 imageVector = if (isApiKeyVisible) Icons.Rounded.VisibilityOff
                                 else Icons.Rounded.Visibility,
-                                contentDescription = null,
+                                contentDescription = stringResource(
+                                    if (isApiKeyVisible) R.string.cd_hide_api_key else R.string.cd_show_api_key,
+                                ),
                             )
                         }
                         if (apiKeyInput.isNotEmpty()) {
@@ -633,9 +635,9 @@ private fun ApiKeyBottomSheet(
             when (testState) {
                 is ApiKeyTestState.Success -> {
                     Surface(
-                        color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                        color = AppTheme.colors.success.copy(alpha = 0.15f),
                         shape = AppTheme.shapes.corner12,
-                        border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.35f)),
+                        border = BorderStroke(1.dp, AppTheme.colors.success.copy(alpha = 0.35f)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -646,13 +648,13 @@ private fun ApiKeyBottomSheet(
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = null,
-                                tint = Color(0xFF2E7D32),
+                                tint = AppTheme.colors.success,
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
                                 text = stringResource(R.string.ai_test_success),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF2E7D32),
+                                color = AppTheme.colors.success,
                                 fontWeight = FontWeight.Medium,
                             )
                         }

@@ -495,8 +495,8 @@ private fun DebtorSplitSummaryCard(
 @Composable
 private fun VietQrTemplateCard(
     qrImageUrl: String,
+    modifier: Modifier = Modifier,
     emvPayload: String? = null,
-    modifier: Modifier = Modifier
 ) {
     var remoteFailed by remember(qrImageUrl) { mutableStateOf(false) }
     val useRemoteQr = BuildConfig.FLAVOR == "play" && qrImageUrl.isNotBlank() && !remoteFailed

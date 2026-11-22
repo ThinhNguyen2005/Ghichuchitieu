@@ -1,16 +1,7 @@
 package com.notepay.feature.assets.main.sheet
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,89 +10,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Unarchive
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.bar.GradientBottomActionBar
+import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.button.LiquidButton
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
-import com.notepay.core.designsystem.formatter.MoneyFormatter
-import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
-import com.notepay.core.designsystem.util.WalletUiHelper
-import com.notepay.domain.model.AccountNature
-import com.notepay.domain.model.CurrencyConverter
-import com.notepay.domain.model.VietQrBank
-import com.notepay.domain.model.WalletPurpose
-import com.notepay.domain.model.WalletType
-import com.notepay.domain.money.Money
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
-import java.util.Locale
-import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,7 +55,6 @@ fun AddWalletScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
     var showUnarchiveConfirm by remember { mutableStateOf(false) }
-    var currencyExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.feedback.collect { feedback ->
@@ -131,7 +68,7 @@ fun AddWalletScreen(
 
     Scaffold(
         topBar = {
-            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientTopAppBar(
+            GradientTopAppBar(
                 title = {
                     Text(
                         if (state.isEditMode) {
@@ -152,14 +89,14 @@ fun AddWalletScreen(
             )
         },
         bottomBar = {
-            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientBottomActionBar {
-                _root_ide_package_.com.notepay.core.designsystem.component.button.LiquidButton(
+            GradientBottomActionBar {
+                LiquidButton(
                     onClick = { viewModel.save() },
                     enabled = state.canSave,
                     surfaceColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .defaultMinSize(minHeight = 52.dp),
                 ) {
                     if (state.isSaving) {
                         CircularProgressIndicator(
@@ -169,19 +106,23 @@ fun AddWalletScreen(
                         )
                         Spacer(Modifier.size(8.dp))
                         Text(
-                            stringResource(R.string.action_saving),
+                            text = stringResource(R.string.action_saving),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Text(
-                            if (state.isEditMode) {
+                            text = if (state.isEditMode) {
                                 stringResource(R.string.action_save_changes)
                             } else {
                                 stringResource(R.string.home_create_wallet)
                             },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -196,209 +137,21 @@ fun AddWalletScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // 1. Bản chất tài khoản (Tài sản vs Nợ/Tín dụng)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.wallet_field_account_nature),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                val natures = listOf(AccountNature.ASSET, AccountNature.LIABILITY)
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    natures.forEachIndexed { index, nature ->
-                        SegmentedButton(
-                            selected = state.accountNature == nature,
-                            onClick = { viewModel.onNatureChanged(nature) },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = natures.size),
-                        ) {
-                            Text(
-                                text = stringResource(WalletUiHelper.getNatureTitleRes(nature)),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (state.accountNature == nature) FontWeight.Bold else FontWeight.Normal,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 2. Phân loại tài khoản (WalletType)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.wallet_field_wallet_type),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                val availableTypes = remember(state.accountNature) {
-                    WalletType.entries.filter { it.nature == state.accountNature }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    availableTypes.forEach { type ->
-                        val isSelected = state.walletType == type
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.onWalletTypeChanged(type) },
-                            label = {
-                                Text(
-                                    text = stringResource(WalletUiHelper.getWalletTypeTitleRes(type)),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = WalletUiHelper.getWalletTypeIcon(type),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            },
-                            shape = AppTheme.shapes.corner12,
-                        )
-                    }
-                }
-            }
-
-            // 2b. Mục đích sử dụng ví & Mục tiêu (Phase 2)
-            WalletPurposeAndGoalSection(
-                purpose = state.purpose,
-                targetAmountInput = state.targetAmountInput,
-                targetDateEpochDay = state.targetDateEpochDay,
-                includeInTotalBalance = state.includeInTotalBalance,
-                currencyCode = state.currencyCode,
+            WalletBasicInfoSection(
+                state = state,
                 currencyTransformation = currencyTransformation,
+                onNatureChanged = viewModel::onNatureChanged,
+                onWalletTypeChanged = viewModel::onWalletTypeChanged,
                 onPurposeChanged = viewModel::onPurposeChanged,
                 onTargetAmountChanged = viewModel::onTargetAmountChanged,
                 onTargetDateChanged = viewModel::onTargetDateChanged,
                 onIncludeInTotalBalanceChanged = viewModel::onIncludeInTotalBalanceChanged,
+                onNameChanged = viewModel::onNameChanged,
+                onCurrencyChanged = viewModel::onCurrencyChanged,
+                onInitialBalanceChanged = viewModel::onInitialBalanceChanged,
+                onCreditLimitChanged = viewModel::onCreditLimitChanged,
             )
 
-            // 3. Tên ví
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = viewModel::onNameChanged,
-                label = { Text(stringResource(R.string.wallet_field_name)) },
-                placeholder = { Text(stringResource(R.string.wallet_preview_name_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppTheme.shapes.corner12,
-                singleLine = true,
-            )
-
-            // 4. Đơn vị tiền tệ
-            ExposedDropdownMenuBox(
-                expanded = currencyExpanded && !state.isCurrencyLocked,
-                onExpandedChange = { if (!state.isCurrencyLocked) currencyExpanded = !currencyExpanded },
-            ) {
-                OutlinedTextField(
-                    value = state.currencyCode,
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = !state.isCurrencyLocked,
-                    label = { Text(stringResource(R.string.wallet_field_currency)) },
-                    shape = AppTheme.shapes.corner12,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                    trailingIcon = {
-                        if (state.isCurrencyLocked) {
-                            Icon(
-                                imageVector = Icons.Rounded.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded)
-                        }
-                    },
-                    supportingText = if (state.isCurrencyLocked) {
-                        {
-                            Text(
-                                text = stringResource(R.string.wallet_currency_locked_hint, state.transactionCount),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
-                    } else null,
-                )
-                ExposedDropdownMenu(
-                    expanded = currencyExpanded && !state.isCurrencyLocked,
-                    onDismissRequest = { currencyExpanded = false },
-                ) {
-                    CurrencyConverter.supportedCurrencies.forEach { currency ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "${currency.code} (${currency.symbol}) - ${stringResource(currency.nameRes)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (currency.code == state.currencyCode) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            },
-                            onClick = {
-                                viewModel.onCurrencyChanged(currency.code)
-                                currencyExpanded = false
-                            },
-                        )
-                    }
-                }
-            }
-
-            // 5. Số dư ban đầu
-            val isInitialBalanceLocked = state.isEditMode && state.hasTransactions
-
-            OutlinedTextField(
-                value = state.initialBalanceInput,
-                onValueChange = viewModel::onInitialBalanceChanged,
-                readOnly = isInitialBalanceLocked,
-                label = { Text(stringResource(R.string.wallet_field_initial_balance)) },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                visualTransformation = if (state.currencyCode == "VND") currencyTransformation else VisualTransformation.None,
-                shape = AppTheme.shapes.corner12,
-                singleLine = true,
-                trailingIcon = if (isInitialBalanceLocked) {
-                    {
-                        Icon(
-                            imageVector = Icons.Rounded.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else null,
-                supportingText = {
-                    if (isInitialBalanceLocked) {
-                        Text(
-                            text = stringResource(R.string.wallet_initial_balance_locked_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    } else if (state.isEditMode) {
-                        Text(
-                            text = stringResource(R.string.wallet_initial_balance_editable_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                },
-            )
-
-            // 6. Hạn mức tín dụng (cho Thẻ tín dụng hoặc Hạn mức thấu chi)
-            if (state.walletType.isCreditCardOrLine) {
-                OutlinedTextField(
-                    value = state.creditLimitInput,
-                    onValueChange = viewModel::onCreditLimitChanged,
-                    label = { Text(stringResource(R.string.wallet_field_credit_limit)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = if (state.currencyCode == "VND") currencyTransformation else VisualTransformation.None,
-                    shape = AppTheme.shapes.corner12,
-                    singleLine = true,
-                )
-            }
-
-            // 7. Hạn mức cảnh báo ngân sách
             BudgetAlertSection(
                 hasBudgetLimit = state.hasBudgetLimit,
                 onHasBudgetLimitChanged = viewModel::onHasBudgetLimitChanged,
@@ -409,7 +162,6 @@ fun AddWalletScreen(
                 currencyTransformation = currencyTransformation,
             )
 
-            // 8. Tài khoản nhận tiền VietQR (nếu là ngân hàng)
             BankQrSection(
                 banks = state.banks,
                 selectedBankBin = state.bankBin,
@@ -420,13 +172,11 @@ fun AddWalletScreen(
                 onAccountNameChanged = viewModel::onAccountNameChanged,
             )
 
-            // 9. Chọn Biểu tượng
             WalletIconPicker(
                 selectedIconKey = state.iconKey,
                 onIconSelected = viewModel::onIconChanged,
             )
 
-            // 10. Chọn Màu sắc
             WalletColorPicker(
                 selectedColorKey = state.colorKey,
                 usedColorKeys = state.usedColorKeys,
@@ -434,796 +184,41 @@ fun AddWalletScreen(
                 onColorSelected = viewModel::onColorChanged,
             )
 
-            // 11. Thao tác Lưu trữ / Xóa ví trong chế độ Sửa ví
             if (state.isEditMode) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (state.canDeleteDirectly) {
-                        OutlinedButton(
-                            onClick = { showDeleteConfirm = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error,
-                            ),
-                            shape = AppTheme.shapes.corner12,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.size(8.dp))
-                            Text(
-                                text = stringResource(R.string.wallet_action_delete),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    } else if (state.canArchive) {
-                        if (!state.isArchived) {
-                            OutlinedButton(
-                                onClick = { showArchiveConfirm = true },
-                                shape = AppTheme.shapes.corner12,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Archive,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.size(8.dp))
-                                Text(
-                                    text = stringResource(R.string.wallet_action_archive),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = { showUnarchiveConfirm = true },
-                                shape = AppTheme.shapes.corner12,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Unarchive,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.size(8.dp))
-                                Text(
-                                    text = stringResource(R.string.wallet_action_unarchive),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
-                    }
-                }
+                WalletActionButtonsSection(
+                    canDeleteDirectly = state.canDeleteDirectly,
+                    canArchive = state.canArchive,
+                    isArchived = state.isArchived,
+                    onDeleteClick = { showDeleteConfirm = true },
+                    onArchiveClick = { showArchiveConfirm = true },
+                    onUnarchiveClick = { showUnarchiveConfirm = true },
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
-    if (showDeleteConfirm) {
-        ConfirmDeleteDialog(
-            title = stringResource(R.string.wallet_delete_confirm_title),
-            itemName = state.name,
-            message = stringResource(R.string.wallet_delete_confirm_message, state.name),
-            confirmLabel = stringResource(R.string.wallet_action_delete),
-            onConfirm = {
-                showDeleteConfirm = false
-                viewModel.deleteWallet()
-            },
-            onDismiss = { showDeleteConfirm = false },
-        )
-    }
-
-    if (showArchiveConfirm) {
-        AlertDialog(
-            onDismissRequest = { showArchiveConfirm = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.Archive,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.wallet_archive_confirm_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.wallet_archive_confirm_message, state.name, state.transactionCount),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showArchiveConfirm = false
-                        viewModel.archiveWallet()
-                    },
-                ) {
-                    Text(
-                        text = stringResource(R.string.wallet_action_archive),
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showArchiveConfirm = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
-    }
-
-    if (showUnarchiveConfirm) {
-        AlertDialog(
-            onDismissRequest = { showUnarchiveConfirm = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.Unarchive,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.wallet_action_unarchive),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.wallet_unarchive_confirm_message, state.name),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showUnarchiveConfirm = false
-                        viewModel.unarchiveWallet()
-                    },
-                ) {
-                    Text(
-                        text = stringResource(R.string.wallet_action_unarchive),
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUnarchiveConfirm = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun BudgetAlertSection(
-    hasBudgetLimit: Boolean,
-    onHasBudgetLimitChanged: (Boolean) -> Unit,
-    budgetPeriod: BudgetPeriod,
-    onBudgetPeriodChanged: (BudgetPeriod) -> Unit,
-    budgetLimitInput: String,
-    onBudgetLimitChanged: (String) -> Unit,
-    currencyTransformation: VisualTransformation,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner12,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(AppTheme.shapes.corner12)
-                    .toggleable(
-                        value = hasBudgetLimit,
-                        onValueChange = onHasBudgetLimitChanged,
-                        role = Role.Switch,
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.NotificationsActive,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = stringResource(R.string.wallet_budget_alert_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = stringResource(R.string.wallet_budget_alert_description),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Switch(
-                    checked = hasBudgetLimit,
-                    onCheckedChange = null,
-                )
-            }
-
-            AnimatedVisibility(
-                visible = hasBudgetLimit,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectableGroup()
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                AppTheme.shapes.corner12,
-                            )
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        val periods = listOf(
-                            BudgetPeriod.DAILY to stringResource(R.string.wallet_period_daily),
-                            BudgetPeriod.WEEKLY to stringResource(R.string.wallet_period_weekly),
-                            BudgetPeriod.MONTHLY to stringResource(R.string.subscription_repeat_monthly),
-                        )
-                        periods.forEach { (period, label) ->
-                            val isSelected = budgetPeriod == period
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .defaultMinSize(minHeight = 48.dp)
-                                    .clip(AppTheme.shapes.corner12)
-                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                                    .selectable(
-                                        selected = isSelected,
-                                        onClick = { onBudgetPeriodChanged(period) },
-                                        role = Role.RadioButton,
-                                    )
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = budgetLimitInput,
-                        onValueChange = onBudgetLimitChanged,
-                        label = { Text(stringResource(R.string.wallet_budget_amount)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        visualTransformation = currencyTransformation,
-                        shape = AppTheme.shapes.corner12,
-                        singleLine = true,
-                    )
-
-                    val rawLimit = budgetLimitInput.toLongOrNull() ?: 0L
-                    if (rawLimit > 0L) {
-                        val monthlyEquivalent = when (budgetPeriod) {
-                            BudgetPeriod.DAILY -> rawLimit * 30
-                            BudgetPeriod.WEEKLY -> rawLimit * 4
-                            BudgetPeriod.MONTHLY -> rawLimit
-                        }
-                        val formattedMonthly = remember(monthlyEquivalent) {
-                            MoneyFormatter.format(Money(monthlyEquivalent * 100L))
-                        }
-                        Text(
-                            text = stringResource(R.string.wallet_monthly_budget_format, formattedMonthly),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BankQrSection(
-    banks: List<VietQrBank>,
-    selectedBankBin: String?,
-    accountNumber: String,
-    accountName: String,
-    onBankSelected: (VietQrBank) -> Unit,
-    onAccountNumberChanged: (String) -> Unit,
-    onAccountNameChanged: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedBank = remember(selectedBankBin, banks) {
-        banks.find { it.bin == selectedBankBin }
-    }
-    val hasBankInfo = !selectedBankBin.isNullOrBlank() || accountNumber.isNotBlank() || accountName.isNotBlank()
-    val isBankMissing = hasBankInfo && selectedBank == null
-
-    val dimensions = AppTheme.dimensions
-    val shapes = AppTheme.shapes
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shapes.corner16,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(dimensions.paddingMedium),
-            verticalArrangement = Arrangement.spacedBy(dimensions.spaceSmall + dimensions.spaceExtraSmall),
-        ) {
-            Text(
-                text = stringResource(R.string.wallet_field_vietqr),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-            ) {
-                OutlinedTextField(
-                    value = selectedBank?.let { "${it.shortName} - ${it.name}" }.orEmpty(),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.billsplit_receiving_bank)) },
-                    placeholder = { Text(stringResource(R.string.billsplit_choose_bank)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    isError = isBankMissing,
-                    supportingText = if (isBankMissing) {
-                        {
-                            Text(
-                                text = stringResource(R.string.wallet_vietqr_bank_error),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    } else null,
-                    shape = shapes.corner12,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    banks.forEach { bank ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "${bank.shortName} - ${bank.name}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            onClick = {
-                                onBankSelected(bank)
-                                expanded = false
-                            },
-                        )
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = accountNumber,
-                onValueChange = onAccountNumberChanged,
-                label = { Text(stringResource(R.string.billsplit_account_number_label)) },
-                placeholder = { Text(stringResource(R.string.billsplit_account_number_placeholder)) },
-                singleLine = true,
-                shape = shapes.corner12,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = accountName,
-                onValueChange = onAccountNameChanged,
-                label = { Text(stringResource(R.string.transfer_account_name)) },
-                placeholder = { Text(stringResource(R.string.billsplit_account_name_placeholder)) },
-                singleLine = true,
-                shape = shapes.corner12,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun WalletIconPicker(
-    selectedIconKey: String,
-    onIconSelected: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.wallet_icon_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectableGroup()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            WalletUiHelper.iconList.forEach { (key, vector, labelRes) ->
-                val isSelected = selectedIconKey == key
-                val label = stringResource(labelRes)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .defaultMinSize(minWidth = 56.dp, minHeight = 48.dp)
-                        .clip(AppTheme.shapes.corner12)
-                        .selectable(
-                            selected = isSelected,
-                            onClick = { onIconSelected(key) },
-                            role = Role.RadioButton,
-                        )
-                        .padding(vertical = 4.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                                else MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = vector,
-                            contentDescription = null,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(26.dp),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WalletColorPicker(
-    selectedColorKey: String,
-    usedColorKeys: Set<String>,
-    isAutoColorAssigned: Boolean,
-    onColorSelected: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.wallet_field_color),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        if (isAutoColorAssigned) {
-            Text(
-                text = stringResource(R.string.wallet_color_auto_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectableGroup()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val inUseLabel = stringResource(R.string.wallet_color_in_use)
-
-            WalletUiHelper.colorList.forEach { (key, colorValue) ->
-                val isSelected = selectedColorKey == key
-                val isUsed = key in usedColorKeys
-                val contentDesc = if (isUsed) "$key - $inUseLabel" else key
-
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .semantics { contentDescription = contentDesc }
-                        .selectable(
-                            selected = isSelected,
-                            onClick = { onColorSelected(key) },
-                            role = Role.RadioButton,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (isSelected) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(colorValue.copy(alpha = 0.28f)),
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(colorValue),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        } else if (isUsed) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.75f)),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WalletPurposeAndGoalSection(
-    purpose: WalletPurpose,
-    targetAmountInput: String,
-    targetDateEpochDay: Long?,
-    includeInTotalBalance: Boolean,
-    currencyCode: String,
-    currencyTransformation: VisualTransformation,
-    onPurposeChanged: (WalletPurpose) -> Unit,
-    onTargetAmountChanged: (String) -> Unit,
-    onTargetDateChanged: (Long?) -> Unit,
-    onIncludeInTotalBalanceChanged: (Boolean) -> Unit,
-) {
-    var showTargetDatePicker by remember { mutableStateOf(false) }
-    val selectablePurposes = remember {
-        listOf(
-            WalletPurpose.PERSONAL,
-            WalletPurpose.BUSINESS,
-            WalletPurpose.SAVINGS_GOAL,
-            WalletPurpose.TRAVEL,
-        )
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = stringResource(R.string.wallet_purpose_label),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            selectablePurposes.forEach { item ->
-                val selected = purpose == item
-                FilterChip(
-                    selected = selected,
-                    onClick = { onPurposeChanged(item) },
-                    label = {
-                        Text(
-                            text = stringResource(WalletUiHelper.getPurposeTitleRes(item)),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    shape = AppTheme.shapes.capsule,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = AppTheme.colors.sand,
-                        selectedLabelColor = AppTheme.colors.onSand,
-                    ),
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = purpose.supportsGoalTarget,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = targetAmountInput,
-                    onValueChange = onTargetAmountChanged,
-                    label = { Text(stringResource(R.string.wallet_target_amount_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = if (currencyCode == "VND") currencyTransformation else VisualTransformation.None,
-                    shape = AppTheme.shapes.corner12,
-                    singleLine = true,
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    val dateLabel = if (targetDateEpochDay != null) {
-                        val date = Instant.fromEpochMilliseconds(targetDateEpochDay * 86_400_000L)
-                            .toLocalDateTime(TimeZone.UTC).date
-                        String.format(Locale.ROOT, "%02d/%02d/%04d", date.day, date.month.number, date.year)
-                    } else {
-                        stringResource(R.string.wallet_target_date_placeholder)
-                    }
-
-                    OutlinedButton(
-                        onClick = { showTargetDatePicker = true },
-                        shape = AppTheme.shapes.corner12,
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 48.dp),
-                    ) {
-                        Text(
-                            text = "${stringResource(R.string.wallet_target_date_label)}: $dateLabel",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    if (targetDateEpochDay != null) {
-                        TextButton(
-                            onClick = { onTargetDateChanged(null) },
-                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                        ) {
-                            Text(stringResource(R.string.wallet_target_clear_date))
-                        }
-                    }
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = includeInTotalBalance,
-                    role = Role.Switch,
-                    onValueChange = onIncludeInTotalBalanceChanged,
-                ),
-            shape = AppTheme.shapes.corner12,
-            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceRaised),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 48.dp)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.wallet_include_in_total_title),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = AppTheme.colors.textPrimary,
-                    )
-                    Text(
-                        text = stringResource(R.string.wallet_include_in_total_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                }
-                Switch(
-                    checked = includeInTotalBalance,
-                    onCheckedChange = null,
-                )
-            }
-        }
-    }
-
-    if (showTargetDatePicker) {
-        val initialMillis = targetDateEpochDay?.let { it * 86_400_000L }
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-        DatePickerDialog(
-            onDismissRequest = { showTargetDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val millis = pickerState.selectedDateMillis
-                    if (millis != null) {
-                        val date = Instant.fromEpochMilliseconds(millis)
-                            .toLocalDateTime(TimeZone.UTC).date
-                        onTargetDateChanged(date.toEpochDays().toLong())
-                    }
-                    showTargetDatePicker = false
-                }) { Text(stringResource(R.string.action_done)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTargetDatePicker = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
-    }
+    WalletActionDialogs(
+        walletName = state.name,
+        transactionCount = state.transactionCount,
+        showDeleteConfirm = showDeleteConfirm,
+        showArchiveConfirm = showArchiveConfirm,
+        showUnarchiveConfirm = showUnarchiveConfirm,
+        onDismissDelete = { showDeleteConfirm = false },
+        onConfirmDelete = {
+            showDeleteConfirm = false
+            viewModel.deleteWallet()
+        },
+        onDismissArchive = { showArchiveConfirm = false },
+        onConfirmArchive = {
+            showArchiveConfirm = false
+            viewModel.archiveWallet()
+        },
+        onDismissUnarchive = { showUnarchiveConfirm = false },
+        onConfirmUnarchive = {
+            showUnarchiveConfirm = false
+            viewModel.unarchiveWallet()
+        },
+    )
 }

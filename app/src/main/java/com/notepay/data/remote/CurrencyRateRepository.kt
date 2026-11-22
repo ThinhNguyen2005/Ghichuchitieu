@@ -1,6 +1,7 @@
 package com.notepay.data.remote
 
 import android.content.Context
+import androidx.core.content.edit
 import com.notepay.domain.model.CurrencyConverter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -217,13 +218,13 @@ class CurrencyRateRepository @Inject constructor(
     private fun writeCache(snapshot: CurrencyRateSnapshot) {
         val json = JSONObject()
         snapshot.rates.forEach { (code, rate) -> json.put(code, rate.toPlainString()) }
-        preferences.edit()
-            .putInt(KEY_CACHE_VERSION, CACHE_VERSION)
-            .putString(KEY_RATES, json.toString())
-            .putString(KEY_LAST_UPDATED, snapshot.lastUpdatedUtc)
-            .putLong(KEY_NEXT_UPDATE, snapshot.nextUpdateEpochSeconds)
-            .putString(KEY_SOURCE_NAME, snapshot.sourceName)
-            .apply()
+        preferences.edit {
+            putInt(KEY_CACHE_VERSION, CACHE_VERSION)
+            putString(KEY_RATES, json.toString())
+            putString(KEY_LAST_UPDATED, snapshot.lastUpdatedUtc)
+            putLong(KEY_NEXT_UPDATE, snapshot.nextUpdateEpochSeconds)
+            putString(KEY_SOURCE_NAME, snapshot.sourceName)
+        }
     }
 
     companion object {

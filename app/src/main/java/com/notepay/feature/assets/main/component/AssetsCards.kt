@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -678,10 +679,10 @@ internal fun WalletAssetCard(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onSetDefault: () -> Unit,
+    modifier: Modifier = Modifier,
     onPayCard: (() -> Unit)? = null,
     onAdjustBalance: (() -> Unit)? = null,
     onManageMembers: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val performHaptic = rememberNotePayHaptic()
     val wallet = item.wallet
@@ -876,7 +877,11 @@ internal fun WalletAssetCard(
                         }
 
                         Text(
-                            text = stringResource(R.string.wallet_tx_count, item.transactionCount),
+                            text = pluralStringResource(
+                                R.plurals.wallet_tx_count,
+                                item.transactionCount,
+                                item.transactionCount,
+                            ),
                             style = AppTheme.typography.bodySmall,
                             color = AppTheme.colors.textSecondary,
                             maxLines = 1,

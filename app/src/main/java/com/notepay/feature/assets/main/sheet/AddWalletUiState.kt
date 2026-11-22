@@ -1,5 +1,6 @@
 package com.notepay.feature.assets.main.sheet
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.WalletPurpose
@@ -10,6 +11,7 @@ enum class BudgetPeriod {
     DAILY, WEEKLY, MONTHLY
 }
 
+@Immutable
 data class AddWalletUiState(
     val name: String = "",
     val initialBalanceInput: String = "",

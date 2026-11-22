@@ -477,8 +477,8 @@ fun RowScope.KeypadButton(
 @Composable
 fun NumericKeypad(
     onKeyPress: (KeypadKey) -> Unit,
+    modifier: Modifier = Modifier,
     onCollapse: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier

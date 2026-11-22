@@ -1,5 +1,6 @@
 package com.notepay.feature.settings.ai
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.ai.CloudGeminiAdvisor
@@ -23,6 +24,7 @@ sealed interface ApiKeyTestState {
     data class Failure(val error: String) : ApiKeyTestState
 }
 
+@Immutable
 data class AiSettingsUiState(
     val apiKey: String? = null,
     val cloudAiEnabled: Boolean = true,

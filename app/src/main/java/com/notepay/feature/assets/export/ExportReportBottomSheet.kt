@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -249,7 +250,7 @@ fun ExportReportBottomSheet(
             }
 
             Text(
-                text = stringResource(R.string.export_matching_count, state.matchingCount),
+                text = pluralStringResource(R.plurals.export_matching_count, state.matchingCount, state.matchingCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
                 maxLines = 1,

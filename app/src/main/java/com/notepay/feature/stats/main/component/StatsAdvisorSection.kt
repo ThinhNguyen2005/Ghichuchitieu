@@ -54,7 +54,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -205,13 +207,15 @@ internal fun SpendingPredictionCard(
 
             Text(
                 text = probability?.let {
-                    stringResource(
-                        R.string.stats_probability_format,
+                    pluralStringResource(
+                        R.plurals.stats_probability_format,
+                        prediction.observedDays,
                         (it * 100).toInt(),
                         prediction.observedDays,
                     )
-                } ?: stringResource(
-                    R.string.stats_probability_no_limit_format,
+                } ?: pluralStringResource(
+                    R.plurals.stats_probability_no_limit_format,
+                    prediction.observedDays,
                     prediction.observedDays,
                 ),
                 style = AppTheme.typography.labelMedium,
@@ -244,10 +248,12 @@ internal fun AiInsightsCarousel(
     onSelectLocalModel: () -> Unit,
 ) {
     val performHaptic = rememberNotePayHaptic()
-    val configuration = LocalConfiguration.current
-    // Tinh cardWidth truc tiep tu screenWidthDp, tranh dung BoxWithConstraints gay Subcomposition
-    val cardWidth = remember(configuration.screenWidthDp) {
-        (configuration.screenWidthDp.dp - 48.dp).coerceIn(272.dp, 328.dp)
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    // Tinh cardWidth truc tiep tu WindowInfo.containerSize, tranh dung LocalConfiguration.screenWidthDp
+    val windowWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val cardWidth = remember(windowWidthDp) {
+        (windowWidthDp - 48.dp).coerceIn(272.dp, 328.dp)
     }
 
     // Chi dem LocalAdvisor la 1 insight khi da READY (co loi khuyen thuc su)
@@ -264,9 +270,10 @@ internal fun AiInsightsCarousel(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        val adviceCount = itemCount.coerceAtLeast(1)
         SectionHeading(
             title = stringResource(R.string.stats_section_advice),
-            description = stringResource(R.string.stats_advice_count_format, itemCount.coerceAtLeast(1)),
+            description = pluralStringResource(R.plurals.stats_advice_count_format, adviceCount, adviceCount),
         )
 
         LazyRow(

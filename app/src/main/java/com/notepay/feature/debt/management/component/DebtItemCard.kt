@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.domain.model.Debt
 import com.notepay.domain.model.DebtPayment
 import com.notepay.domain.model.DebtType
@@ -70,21 +71,24 @@ fun DebtItemCard(
     val isLend = debt.type == DebtType.LEND
     val typeColor = if (isLend) AppTheme.colors.success else AppTheme.colors.error
     val now = Clock.System.now()
+    val cardShape = AppTheme.shapes.corner24
 
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = false)
+            .clip(cardShape)
             .clickable(onClick = onClick),
-        shape = AppTheme.shapes.corner24,
+        shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppTheme.colors.surface
         ),
         border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
+            width = if (isSelected) 2.dp else 0.5.dp,
             color = if (isSelected) {
                 MaterialTheme.colorScheme.primary
             } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                AppTheme.colors.hairline
             },
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

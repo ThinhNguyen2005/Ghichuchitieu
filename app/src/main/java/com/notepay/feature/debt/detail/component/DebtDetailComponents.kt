@@ -2,8 +2,8 @@ package com.notepay.feature.debt.detail.component
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -154,7 +154,7 @@ internal fun DebtDetailOverviewCard(
                         onClick = {
                             try {
                                 val callIntent = Intent(Intent.ACTION_DIAL).apply {
-                                    data = Uri.parse("tel:${debt.phoneNumber}")
+                                    data = "tel:${debt.phoneNumber}".toUri()
                                 }
                                 context.startActivity(callIntent)
                             } catch (_: ActivityNotFoundException) {
@@ -178,7 +178,7 @@ internal fun DebtDetailOverviewCard(
                         onClick = {
                             try {
                                 val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("smsto:${debt.phoneNumber}")
+                                    data = "smsto:${debt.phoneNumber}".toUri()
                                 }
                                 context.startActivity(smsIntent)
                             } catch (_: ActivityNotFoundException) {

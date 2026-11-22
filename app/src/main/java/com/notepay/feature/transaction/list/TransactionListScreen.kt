@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,19 +83,19 @@ import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.shared.SharedWalletPermissionGuard
+import com.notepay.feature.transaction.component.DateRangePreset
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.feature.transaction.detail.TransactionDetailContent
+import com.notepay.feature.transaction.detail.TransactionDetailUiState
 import com.notepay.feature.transaction.detail.TransactionDetailViewModel
 import com.notepay.feature.transaction.list.sheet.DateRangeBottomSheet
 import com.notepay.feature.transaction.list.sheet.FilterBottomSheet
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionListScreen(
+fun TransactionListRoute(
     onBack: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = {},
@@ -102,9 +103,72 @@ fun TransactionListScreen(
     onCreateSubscription: (name: String, amountCents: Long) -> Unit = { _, _ -> },
     onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionListViewModel = hiltViewModel(),
+    detailViewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
+    val detailState by detailViewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        viewModel.feedback.collect { feedback ->
+            onFeedback(feedback)
+        }
+    }
+
+    TransactionListScreen(
+        state = state,
+        detailState = detailState,
+        hapticFeedbackEnabled = hapticFeedbackEnabled,
+        onBack = onBack,
+        onTransactionClick = onTransactionClick,
+        onEditTransaction = onEditTransaction,
+        onCreateBillSplit = onCreateBillSplit,
+        onCreateSubscription = onCreateSubscription,
+        onFeedback = onFeedback,
+        onToggleViewMode = viewModel::toggleViewMode,
+        onOpenWalletPicker = viewModel::openWalletPicker,
+        onQueryChanged = viewModel::onQueryChanged,
+        onOpenDateRangeSheet = viewModel::openDateRangeSheet,
+        onOpenFilterSheet = viewModel::openFilterSheet,
+        onGoToToday = viewModel::onGoToToday,
+        onPreviousMonth = viewModel::onPreviousMonth,
+        onNextMonth = viewModel::onNextMonth,
+        onSelectDateRangePreset = viewModel::setDateRangePreset,
+        onResetFilters = viewModel::resetFilters,
+        onApplyFilters = viewModel::applyFilters,
+        onSelectWallet = viewModel::selectWallet,
+        onDeleteTransaction = viewModel::delete,
+        onSelectDetailTransaction = detailViewModel::select,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionListScreen(
+    state: TransactionListUiState,
+    detailState: TransactionDetailUiState,
+    hapticFeedbackEnabled: Boolean,
+    onBack: () -> Unit = {},
+    onTransactionClick: (Long) -> Unit = {},
+    onEditTransaction: (Long) -> Unit = {},
+    onCreateBillSplit: (Long) -> Unit = {},
+    onCreateSubscription: (name: String, amountCents: Long) -> Unit = { _, _ -> },
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
+    onToggleViewMode: () -> Unit = {},
+    onOpenWalletPicker: (Boolean) -> Unit = {},
+    onQueryChanged: (String) -> Unit = {},
+    onOpenDateRangeSheet: (Boolean) -> Unit = {},
+    onOpenFilterSheet: (Boolean) -> Unit = {},
+    onGoToToday: () -> Unit = {},
+    onPreviousMonth: () -> Unit = {},
+    onNextMonth: () -> Unit = {},
+    onSelectDateRangePreset: (DateRangePreset) -> Unit = {},
+    onResetFilters: () -> Unit = {},
+    onApplyFilters: (TransactionType?, Boolean, Set<String>) -> Unit = { _, _, _ -> },
+    onSelectWallet: (Long?) -> Unit = {},
+    onDeleteTransaction: (Transaction) -> Unit = {},
+    onSelectDetailTransaction: (Long?) -> Unit = {},
+) {
 
     // Xuất CSV của đúng danh sách đang nhìn thấy. Dựng nội dung ngay trước khi mở hộp chọn
     // tệp nên tệp luôn khớp bộ lọc hiện tại, không phải đọc lại cơ sở dữ liệu.
@@ -170,9 +234,9 @@ fun TransactionListScreen(
         selectedTransactionId = null
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.feedback.collect { feedback ->
-            onFeedback(feedback)
+    LaunchedEffect(isTwoPane, resolvedTransactionId) {
+        if (isTwoPane) {
+            onSelectDetailTransaction(resolvedTransactionId)
         }
     }
 
@@ -187,17 +251,17 @@ fun TransactionListScreen(
             // Gradient Top Bar mờ dần: điều hướng, phạm vi ví và chuyển đổi 1 chạm Lịch / Danh sách
             TransactionTopBar(
                 isCalendarView = state.isCalendarView,
-                onToggleCalendar = { viewModel.toggleViewMode() },
+                onToggleCalendar = onToggleViewMode,
                 selectedWalletId = state.selectedWalletId,
                 wallets = state.wallets,
                 onBack = onBack,
-                onOpenWalletPicker = { viewModel.openWalletPicker(true) }
+                onOpenWalletPicker = { onOpenWalletPicker(true) }
             )
 
             // Tìm kiếm, thời gian và bộ lọc gộp trong một khung duy nhất, ngay dưới top bar
             TransactionActionBar(
                 query = state.query,
-                onQueryChange = viewModel::onQueryChanged,
+                onQueryChange = onQueryChanged,
                 dateLabel = stringResource(state.selectedDateRangePreset.labelRes),
                 activeFilterCount = state.activeFilterCount,
                 collapsed = isActionBarCollapsed && !state.isCalendarView,
@@ -205,8 +269,8 @@ fun TransactionListScreen(
                     pendingSearchFocus = true
                     coroutineScope.launch { listState.animateScrollToItem(0) }
                 },
-                onOpenDateRange = { viewModel.openDateRangeSheet(true) },
-                onOpenFilter = { viewModel.openFilterSheet(true) },
+                onOpenDateRange = { onOpenDateRangeSheet(true) },
+                onOpenFilter = { onOpenFilterSheet(true) },
                 searchFocusRequester = searchFocusRequester,
             )
 
@@ -233,9 +297,9 @@ fun TransactionListScreen(
                             }
                         }
                     },
-                    onGoToToday = viewModel::onGoToToday,
-                    onPreviousMonth = viewModel::onPreviousMonth,
-                    onNextMonth = viewModel::onNextMonth,
+                    onGoToToday = onGoToToday,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
                     onTransactionClick = { txId ->
                         // Expanded: chọn tại chỗ thay vì đẩy route chi tiết lên back stack.
                         if (isTwoPane) selectedTransactionId = txId else onTransactionClick(txId)
@@ -252,6 +316,7 @@ fun TransactionListScreen(
                 if (isTwoPane) {
                     TransactionDetailPane(
                         transactionId = resolvedTransactionId,
+                        detailState = detailState,
                         onEdit = onEditTransaction,
                         onCreateBillSplit = onCreateBillSplit,
                         onCreateSubscription = onCreateSubscription,
@@ -268,10 +333,8 @@ fun TransactionListScreen(
             DateRangeBottomSheet(
                 currentPreset = state.selectedDateRangePreset,
                 sheetState = dateRangeSheetState,
-                onDismiss = { viewModel.openDateRangeSheet(false) },
-                onSelectPreset = { preset ->
-                    viewModel.setDateRangePreset(preset)
-                }
+                onDismiss = { onOpenDateRangeSheet(false) },
+                onSelectPreset = onSelectDateRangePreset,
             )
         }
 
@@ -282,11 +345,9 @@ fun TransactionListScreen(
                 isTransferOnly = state.isTransferOnly,
                 currentCategoryIds = state.selectedCategoryIds,
                 sheetState = filterSheetState,
-                onDismiss = { viewModel.openFilterSheet(false) },
-                onClearAll = { viewModel.resetFilters() },
-                onApply = { type, isTransfer, categories ->
-                    viewModel.applyFilters(type, isTransfer, categories)
-                }
+                onDismiss = { onOpenFilterSheet(false) },
+                onClearAll = onResetFilters,
+                onApply = onApplyFilters,
             )
         }
 
@@ -296,9 +357,9 @@ fun TransactionListScreen(
                 wallets = state.wallets,
                 selectedWalletId = state.selectedWalletId,
                 sheetState = walletPickerSheetState,
-                onWalletSelected = { walletId -> viewModel.selectWallet(walletId) },
-                onAllWalletsSelected = { viewModel.selectWallet(null) },
-                onDismiss = { viewModel.openWalletPicker(false) },
+                onWalletSelected = onSelectWallet,
+                onAllWalletsSelected = { onSelectWallet(null) },
+                onDismiss = { onOpenWalletPicker(false) },
             )
         }
 
@@ -308,7 +369,7 @@ fun TransactionListScreen(
                 title = stringResource(R.string.confirm_delete_transaction_title),
                 itemName = itemName,
                 onConfirm = {
-                    viewModel.delete(tx)
+                    onDeleteTransaction(tx)
                     // Xóa đúng giao dịch đang mở thì chỉ đóng pane chi tiết — không popBackStack().
                     if (tx.id == selectedTransactionId) selectedTransactionId = null
                     pendingDeleteTransaction = null
@@ -527,6 +588,7 @@ private fun TransactionListPane(
 @Composable
 private fun TransactionDetailPane(
     transactionId: Long?,
+    detailState: TransactionDetailUiState,
     onEdit: (Long) -> Unit,
     onCreateBillSplit: (Long) -> Unit,
     onCreateSubscription: (name: String, amountCents: Long) -> Unit,
@@ -542,9 +604,6 @@ private fun TransactionDetailPane(
                 DetailPaneEmptyState()
             }
         } else {
-            val detailViewModel: TransactionDetailViewModel = hiltViewModel()
-            LaunchedEffect(transactionId) { detailViewModel.select(transactionId) }
-            val detailState by detailViewModel.state.collectAsStateWithLifecycle()
             TransactionDetailContent(
                 state = detailState,
                 onEdit = onEdit,
@@ -569,7 +628,7 @@ private fun rememberCsvExporter(
     val expenseLabel = stringResource(R.string.filter_type_expense)
     val incomeLabel = stringResource(R.string.filter_type_income)
     val transferLabel = stringResource(R.string.filter_type_transfer)
-    val successTemplate = stringResource(R.string.tx_export_success)
+    val successMessage = pluralStringResource(R.plurals.tx_export_success, transactions.size, transactions.size)
     val failedMessage = stringResource(R.string.tx_export_failed)
     val fileName = stringResource(R.string.tx_export_file_name, csvFileNameStem())
 
@@ -585,10 +644,7 @@ private fun rememberCsvExporter(
                 val written = writeCsvToUri(context.contentResolver, uri, csv)
                 onFeedback(
                     if (written) {
-                        UiFeedback(
-                            message = String.format(Locale.ROOT, successTemplate, transactions.size),
-                            type = FeedbackType.Success,
-                        )
+                        UiFeedback(message = successMessage, type = FeedbackType.Success)
                     } else {
                         UiFeedback(message = failedMessage, type = FeedbackType.Error)
                     }
@@ -812,8 +868,9 @@ private fun SummaryStatisticsCard(
                 // chiều rộng, ở font scale 2.0 nó ép cụm bên phải xuống 0dp khiến nhãn bị
                 // xuống dòng từng ký tự và làm thẻ cao vọt.
                 Text(
-                    text = stringResource(
-                        R.string.summary_sub_format,
+                    text = pluralStringResource(
+                        R.plurals.summary_sub_format,
+                        transactionCount,
                         transactionCount,
                         "$netPrefix${MoneyFormatter.format(netBalance)}"
                     ),

@@ -70,7 +70,12 @@ class SubscriptionReminderWorker @AssistedInject constructor(
         val title = when {
             daysLeft <= 0 -> context.getString(R.string.notif_subscription_due_today, name)
             daysLeft == 1L -> context.getString(R.string.notif_subscription_due_tomorrow, name)
-            else -> context.getString(R.string.notif_subscription_due_days, name, daysLeft)
+            else -> context.resources.getQuantityString(
+                R.plurals.notif_subscription_due_days,
+                daysLeft.toInt(),
+                name,
+                daysLeft,
+            )
         }
         val body = context.getString(R.string.notif_subscription_renew_format, amount, dueDate)
 

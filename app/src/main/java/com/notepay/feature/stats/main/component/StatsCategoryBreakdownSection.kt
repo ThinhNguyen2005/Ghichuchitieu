@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -303,7 +304,7 @@ internal fun CategoryBreakdownAccordionCard(
                                     .heightIn(min = 48.dp),
                             ) {
                                 Text(
-                                    text = stringResource(R.string.stats_show_more_transactions, remaining),
+                                    text = pluralStringResource(R.plurals.stats_show_more_transactions, remaining, remaining),
                                     fontWeight = FontWeight.Bold,
                                 )
                             }

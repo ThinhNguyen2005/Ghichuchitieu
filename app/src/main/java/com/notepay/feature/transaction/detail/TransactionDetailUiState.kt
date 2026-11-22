@@ -1,7 +1,9 @@
 package com.notepay.feature.transaction.detail
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.Transaction
 
+@Immutable
 data class TransactionDetailUiState(
     val transaction: Transaction? = null,
     val walletName: String? = null,

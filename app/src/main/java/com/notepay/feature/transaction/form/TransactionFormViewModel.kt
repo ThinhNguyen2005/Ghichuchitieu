@@ -318,7 +318,10 @@ class TransactionFormViewModel @Inject constructor(
                     )
                 }
                 _feedback.emit(
-                    UiFeedback(context.getString(R.string.natural_entry_saved_batch, savedCount), type = FeedbackType.Success),
+                    UiFeedback(
+                        context.resources.getQuantityString(R.plurals.natural_entry_saved_batch, savedCount, savedCount),
+                        type = FeedbackType.Success,
+                    ),
                 )
             } else {
                 _state.update { it.copy(naturalEntry = it.naturalEntry.copy(isSavingBatch = false)) }

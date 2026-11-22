@@ -362,7 +362,7 @@ private fun NaturalQuickEntryContent(
                         )
                     } else {
                         Text(
-                            text = stringResource(R.string.natural_entry_save_all, naturalEntry.drafts.size),
+                            text = pluralStringResource(R.plurals.natural_entry_save_all, naturalEntry.drafts.size, naturalEntry.drafts.size),
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

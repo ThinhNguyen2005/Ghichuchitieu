@@ -25,9 +25,9 @@ fun MainTabPager(
     navController: NavHostController,
     showFeedback: suspend (UiFeedback) -> Boolean,
     reducedMotion: Boolean,
+    modifier: Modifier = Modifier,
     userScrollEnabled: Boolean = true,
     contentStartInset: Dp = 0.dp,
-    modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
     // Chỉ số trang lấy từ danh sách tab gốc duy nhất, không hardcode 0/1/2/3.

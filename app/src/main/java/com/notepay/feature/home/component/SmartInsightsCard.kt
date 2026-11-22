@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -265,11 +266,11 @@ private fun resolveTipCopy(tip: SmartTipItem): Pair<String, String> = when (tip.
             stringResource(R.string.home_tip_deficit_desc, MoneyFormatter.format(tip.primaryMoney))
 
     SmartTipKind.UPCOMING_SUBSCRIPTIONS ->
-        stringResource(R.string.home_tip_subscriptions_due_title, tip.primaryInt) to
+        pluralStringResource(R.plurals.home_tip_subscriptions_due_title, tip.primaryInt, tip.primaryInt) to
             stringResource(R.string.home_tip_subscriptions_due_desc)
 
     SmartTipKind.SMALL_EXPENSES_ADD_UP ->
-        stringResource(R.string.home_tip_small_expenses_title, tip.primaryInt) to
+        pluralStringResource(R.plurals.home_tip_small_expenses_title, tip.primaryInt, tip.primaryInt) to
             stringResource(R.string.home_tip_small_expenses_desc, MoneyFormatter.format(tip.primaryMoney))
 
     SmartTipKind.SET_WALLET_BUDGET ->
@@ -277,7 +278,7 @@ private fun resolveTipCopy(tip: SmartTipItem): Pair<String, String> = when (tip.
             stringResource(R.string.home_tip_set_budget_desc, tip.secondaryText)
 
     SmartTipKind.STREAK_MOMENTUM ->
-        stringResource(R.string.home_tip_streak_title, tip.primaryInt) to
+        pluralStringResource(R.plurals.home_tip_streak_title, tip.primaryInt, tip.primaryInt) to
             stringResource(R.string.home_tip_streak_desc)
 
     SmartTipKind.CONCENTRATED_WALLET ->

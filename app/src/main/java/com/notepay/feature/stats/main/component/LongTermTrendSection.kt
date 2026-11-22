@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -143,7 +144,7 @@ private fun HeaderRow(nextTetDays: Int?) {
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = stringResource(R.string.stats_tet_countdown_badge, nextTetDays),
+                        text = pluralStringResource(R.plurals.stats_tet_countdown_badge, nextTetDays, nextTetDays),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = AppTheme.colors.onSand,
@@ -166,8 +167,9 @@ private fun ColdStartCardContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = stringResource(
-                R.string.stats_cold_start_title,
+            text = pluralStringResource(
+                R.plurals.stats_cold_start_title,
+                analysis.monthsRequired,
                 analysis.monthsAvailable,
                 analysis.monthsRequired,
             ),

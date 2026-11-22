@@ -86,8 +86,8 @@ fun OnboardingTopBackdrop(modifier: Modifier = Modifier) {
 @Composable
 fun OnboardingStepProgressBar(
     currentStep: OnboardingStep,
-    totalSteps: Int = 3,
     modifier: Modifier = Modifier,
+    totalSteps: Int = 3,
 ) {
     val reducedMotion = rememberNotePayReducedMotion()
     Row(

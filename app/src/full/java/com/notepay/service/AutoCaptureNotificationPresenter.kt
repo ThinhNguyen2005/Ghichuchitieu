@@ -187,8 +187,9 @@ internal fun NotePayNotificationListenerService.showDebtRepaymentBulkNotificatio
     val bigTextStyle = NotificationCompat.BigTextStyle()
         .setBigContentTitle(getString(R.string.notif_debt_bulk_big_title))
         .bigText(
-            getString(
-                R.string.notif_debt_bulk_big_text,
+            resources.getQuantityString(
+                R.plurals.notif_debt_bulk_big_text,
+                billCount,
                 debtorName,
                 totalFormat,
                 walletName,
@@ -198,7 +199,7 @@ internal fun NotePayNotificationListenerService.showDebtRepaymentBulkNotificatio
 
     val notification = NotificationCompat.Builder(this, NotePayNotificationListenerService.CHANNEL_ID)
         .setContentTitle(getString(R.string.notif_debt_bulk_title, debtorName))
-        .setContentText(getString(R.string.notif_debt_bulk_content, totalFormat, billCount))
+        .setContentText(resources.getQuantityString(R.plurals.notif_debt_bulk_content, billCount, totalFormat, billCount))
         .setStyle(bigTextStyle)
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setPriority(NotificationCompat.PRIORITY_HIGH)

@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -30,6 +30,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -71,11 +72,12 @@ private const val SelectedHaloAlpha = 0.22f
 /** Lát mỏng hơn ngưỡng này coi như 0% để không chiếm điểm chạm ở biên. */
 private const val MinSweepEpsilon = 0.01f
 
-private data class AnimatedAllocationSlice(
+private class AnimatedAllocationSlice(
     val item: CategoryBreakdownItem,
-    val strokeDp: Float,
-    val alpha: Float,
+    val strokeDpState: State<Float>,
+    val alphaState: State<Float>,
     val isSelected: Boolean,
+    val color: Color,
 )
 
 internal fun formatSharePercentValue(percentage: Float): String {
@@ -109,21 +111,22 @@ internal fun AllocationChartContent(
     val animatedSlices = items.map { item ->
         key(item.category.id) {
             val isSelected = item.category == selectedCategory
-            val strokeDp by animateFloatAsState(
+            val strokeDpState = animateFloatAsState(
                 targetValue = if (isSelected) RingSelectedStrokeWidth.value else RingStrokeWidth.value,
                 animationSpec = sliceAnimSpec,
                 label = "allocation-stroke-${item.category.id}",
             )
-            val alpha by animateFloatAsState(
+            val alphaState = animateFloatAsState(
                 targetValue = if (selectedCategory == null || isSelected) 1f else UnselectedSliceAlpha,
                 animationSpec = sliceAnimSpec,
                 label = "allocation-alpha-${item.category.id}",
             )
             AnimatedAllocationSlice(
                 item = item,
-                strokeDp = strokeDp,
-                alpha = alpha,
+                strokeDpState = strokeDpState,
+                alphaState = alphaState,
                 isSelected = isSelected,
+                color = Color(item.category.colorArgb),
             )
         }
     }
@@ -155,7 +158,7 @@ internal fun AllocationChartContent(
             val centerDiameter = (ringDiameter - RingSelectedStrokeWidth - 8.dp).coerceAtLeast(0.dp)
             val centerHoleRadiusPx = with(LocalDensity.current) { centerDiameter.toPx() / 2f }
 
-            Canvas(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .semantics { contentDescription = chartDescription }
@@ -174,79 +177,107 @@ internal fun AllocationChartContent(
                                 if (tapped.category == currentSelection) null else tapped.category,
                             )
                         }
+                    }
+                    .drawWithCache {
+                        val diameter = min(size.width, size.height) * RingDiameterRatio
+                        val arcSize = Size(diameter, diameter)
+                        val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                        val emptyRingStroke = Stroke(width = RingStrokeWidth.toPx(), cap = StrokeCap.Round)
+                        val defaultRingStroke = Stroke(width = RingStrokeWidth.toPx(), cap = StrokeCap.Butt)
+                        val selectedRingStroke = Stroke(width = RingSelectedStrokeWidth.toPx(), cap = StrokeCap.Butt)
+                        val selectedHaloStroke = Stroke(width = RingSelectedHaloStrokeWidth.toPx(), cap = StrokeCap.Butt)
+                        val gapDegrees = if (animatedSlices.size > 1) SliceGapDegrees else 0f
+                        val drawStarts = FloatArray(animatedSlices.size)
+                        val drawSweeps = FloatArray(animatedSlices.size)
+                        val cachedStrokeWidths = FloatArray(animatedSlices.size) { Float.NaN }
+                        val cachedStrokes = arrayOfNulls<Stroke>(animatedSlices.size)
+                        var startAngle = 270f
+                        for (i in animatedSlices.indices) {
+                            val fullSweep = animatedSlices[i].item.percentage * 360f
+                            val sweep = if (gapDegrees > 0f && fullSweep > gapDegrees * 1.5f) {
+                                fullSweep - gapDegrees
+                            } else {
+                                fullSweep
+                            }
+                            drawStarts[i] = startAngle + (fullSweep - sweep) / 2f
+                            drawSweeps[i] = sweep
+                            startAngle += fullSweep
+                        }
+
+                        onDrawBehind {
+                            if (animatedSlices.isEmpty()) {
+                                drawArc(
+                                    color = emptyRingColor,
+                                    startAngle = 0f,
+                                    sweepAngle = 360f,
+                                    useCenter = false,
+                                    topLeft = topLeft,
+                                    size = arcSize,
+                                    style = emptyRingStroke,
+                                )
+                            } else {
+                                var selectedIndex = -1
+                                for (i in animatedSlices.indices) {
+                                    val slice = animatedSlices[i]
+                                    if (slice.isSelected) {
+                                        selectedIndex = i
+                                    } else {
+                                        val strokeWidthPx = slice.strokeDpState.value.dp.toPx()
+                                        val stroke = when (strokeWidthPx) {
+                                            defaultRingStroke.width -> defaultRingStroke
+                                            selectedRingStroke.width -> selectedRingStroke
+                                            cachedStrokeWidths[i] -> cachedStrokes[i] ?: defaultRingStroke
+                                            else -> Stroke(width = strokeWidthPx, cap = StrokeCap.Butt).also {
+                                                cachedStrokeWidths[i] = strokeWidthPx
+                                                cachedStrokes[i] = it
+                                            }
+                                        }
+                                        drawArc(
+                                            color = slice.color.copy(alpha = slice.alphaState.value),
+                                            startAngle = drawStarts[i],
+                                            sweepAngle = drawSweeps[i],
+                                            useCenter = false,
+                                            topLeft = topLeft,
+                                            size = arcSize,
+                                            style = stroke,
+                                        )
+                                    }
+                                }
+                                if (selectedIndex >= 0) {
+                                    val slice = animatedSlices[selectedIndex]
+                                    val strokeWidthPx = slice.strokeDpState.value.dp.toPx()
+                                    val stroke = when (strokeWidthPx) {
+                                        selectedRingStroke.width -> selectedRingStroke
+                                        defaultRingStroke.width -> defaultRingStroke
+                                        cachedStrokeWidths[selectedIndex] -> cachedStrokes[selectedIndex] ?: selectedRingStroke
+                                        else -> Stroke(width = strokeWidthPx, cap = StrokeCap.Butt).also {
+                                            cachedStrokeWidths[selectedIndex] = strokeWidthPx
+                                            cachedStrokes[selectedIndex] = it
+                                        }
+                                    }
+                                    drawArc(
+                                        color = slice.color.copy(alpha = SelectedHaloAlpha),
+                                        startAngle = drawStarts[selectedIndex],
+                                        sweepAngle = drawSweeps[selectedIndex],
+                                        useCenter = false,
+                                        topLeft = topLeft,
+                                        size = arcSize,
+                                        style = selectedHaloStroke,
+                                    )
+                                    drawArc(
+                                        color = slice.color.copy(alpha = slice.alphaState.value),
+                                        startAngle = drawStarts[selectedIndex],
+                                        sweepAngle = drawSweeps[selectedIndex],
+                                        useCenter = false,
+                                        topLeft = topLeft,
+                                        size = arcSize,
+                                        style = stroke,
+                                    )
+                                }
+                            }
+                        }
                     },
-            ) {
-                val diameter = min(size.width, size.height) * RingDiameterRatio
-                val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-                if (animatedSlices.isEmpty()) {
-                    drawArc(
-                        color = emptyRingColor,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = RingStrokeWidth.toPx(), cap = StrokeCap.Round),
-                    )
-                } else {
-                    val gapDegrees = if (animatedSlices.size > 1) SliceGapDegrees else 0f
-                    var startAngle = 270f
-                    var selectedArc: Triple<AnimatedAllocationSlice, Float, Float>? = null
-                    animatedSlices.forEach { slice ->
-                        val fullSweep = slice.item.percentage * 360f
-                        val drawSweep = if (gapDegrees > 0f && fullSweep > gapDegrees * 1.5f) {
-                            fullSweep - gapDegrees
-                        } else {
-                            fullSweep
-                        }
-                        val drawStart = startAngle + (fullSweep - drawSweep) / 2f
-                        startAngle += fullSweep
-                        if (slice.isSelected) {
-                            selectedArc = Triple(slice, drawStart, drawSweep)
-                        } else {
-                            drawArc(
-                                color = Color(slice.item.category.colorArgb).copy(alpha = slice.alpha),
-                                startAngle = drawStart,
-                                sweepAngle = drawSweep,
-                                useCenter = false,
-                                topLeft = topLeft,
-                                size = Size(diameter, diameter),
-                                style = Stroke(
-                                    width = slice.strokeDp.dp.toPx(),
-                                    cap = StrokeCap.Butt,
-                                ),
-                            )
-                        }
-                    }
-                    selectedArc?.let { (slice, drawStart, drawSweep) ->
-                        val sliceColor = Color(slice.item.category.colorArgb)
-                        drawArc(
-                            color = sliceColor.copy(alpha = SelectedHaloAlpha),
-                            startAngle = drawStart,
-                            sweepAngle = drawSweep,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = Size(diameter, diameter),
-                            style = Stroke(
-                                width = RingSelectedHaloStrokeWidth.toPx(),
-                                cap = StrokeCap.Butt,
-                            ),
-                        )
-                        drawArc(
-                            color = sliceColor.copy(alpha = slice.alpha),
-                            startAngle = drawStart,
-                            sweepAngle = drawSweep,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = Size(diameter, diameter),
-                            style = Stroke(
-                                width = slice.strokeDp.dp.toPx(),
-                                cap = StrokeCap.Butt,
-                            ),
-                        )
-                    }
-                }
-            }
+            )
             AllocationCenter(
                 item = selectedItem,
                 topItem = topItem,
@@ -263,8 +294,8 @@ private fun AllocationCenter(
     item: CategoryBreakdownItem?,
     topItem: CategoryBreakdownItem?,
     showAmounts: Boolean,
-    isEmpty: Boolean = false,
     modifier: Modifier = Modifier,
+    isEmpty: Boolean = false,
 ) {
     val displayItem = item ?: topItem
     val tint = displayItem?.let { Color(it.category.colorArgb) } ?: AppTheme.colors.primary

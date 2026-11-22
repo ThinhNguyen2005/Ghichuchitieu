@@ -9,7 +9,5 @@
     <color name="widget_btn_text">#FF000000</color>
     <color name="widget_progress_track">#FF2C2C2E</color>
     <color name="widget_progress_bar">#FF30D158</color>
-    <color name="widget_progress_warning">#FFFFD60A</color>
-    <color name="widget_progress_danger">#FFFF453A</color>
     <color name="widget_chip_bg">#FF2C2C2E</color>
 </resources>

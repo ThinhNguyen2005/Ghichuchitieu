@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -29,28 +31,32 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -58,6 +64,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -74,13 +81,23 @@ import com.notepay.core.designsystem.util.localizedName
 
 // ─── Nhóm danh mục (UI-only, không thuộc domain) ─────────────────────────────
 
-private enum class CategoryGroup(val labelRes: Int, val baseColor: Color) {
-    ALL(R.string.category_group_all, Color(0xFF64B5F6)),
-    FOOD_TRANSPORT(R.string.category_group_food_transport, Color(0xFFF59E0B)),
-    HOME_BILLS(R.string.category_group_home_bills, Color(0xFF3B82F6)),
-    LIFESTYLE(R.string.category_group_lifestyle, Color(0xFF8B5CF6)),
-    FAMILY_HEALTH(R.string.category_group_family_health, Color(0xFFEF4444)),
-    FINANCE(R.string.category_group_finance, Color(0xFF10B981)),
+private enum class CategoryGroup(val labelRes: Int) {
+    ALL(R.string.category_group_all),
+    FOOD_TRANSPORT(R.string.category_group_food_transport),
+    HOME_BILLS(R.string.category_group_home_bills),
+    LIFESTYLE(R.string.category_group_lifestyle),
+    FAMILY_HEALTH(R.string.category_group_family_health),
+    FINANCE(R.string.category_group_finance),
+}
+
+@Composable
+private fun CategoryGroup.accentColor(): Color = when (this) {
+    CategoryGroup.ALL -> MaterialTheme.colorScheme.primary
+    CategoryGroup.FOOD_TRANSPORT -> AppTheme.colors.warning
+    CategoryGroup.HOME_BILLS -> AppTheme.colors.chartSeries[3]
+    CategoryGroup.LIFESTYLE -> MaterialTheme.colorScheme.tertiary
+    CategoryGroup.FAMILY_HEALTH -> AppTheme.colors.error
+    CategoryGroup.FINANCE -> AppTheme.colors.success
 }
 
 /** Phân nhóm category.id -> CategoryGroup (UI-only mapping). */
@@ -94,8 +111,9 @@ private fun Category.uiGroup(): CategoryGroup = when (id) {
 }
 
 /** Màu accent lấy từ group nếu là category mặc định, hoặc colorArgb nếu là custom. */
+@Composable
 private fun Category.accentColor(): Color =
-    if (isCustom) Color(colorArgb) else uiGroup().baseColor
+    if (isCustom) Color(colorArgb) else uiGroup().accentColor()
 
 // ─── CategoryGridPicker chính ─────────────────────────────────────────────────
 
@@ -151,7 +169,7 @@ fun CategoryGridPicker(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = stringResource(R.string.category_choices_format, filtered.size),
+                text = pluralStringResource(R.plurals.category_choices_format, filtered.size, filtered.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -199,17 +217,19 @@ fun CategoryGridPicker(
         ) {
             items(CategoryGroup.entries, key = { it.name }) { group ->
                 val isChipSelected = selectedGroup == group
+                val groupColor = group.accentColor()
                 FilterChip(
                     selected = isChipSelected,
                     onClick = {
                         selectedGroup = group
                         focusManager.clearFocus()
                     },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(group.labelRes), fontSize = 12.sp) },
                     shape = CircleShape,
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = group.baseColor.copy(alpha = 0.18f),
-                        selectedLabelColor = group.baseColor,
+                        selectedContainerColor = groupColor.copy(alpha = 0.18f),
+                        selectedLabelColor = groupColor,
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
@@ -217,7 +237,7 @@ fun CategoryGridPicker(
                         enabled = true,
                         selected = isChipSelected,
                         borderColor = Color.Transparent,
-                        selectedBorderColor = group.baseColor.copy(alpha = 0.5f),
+                        selectedBorderColor = groupColor.copy(alpha = 0.5f),
                         borderWidth = 1.dp,
                         selectedBorderWidth = 1.dp,
                     ),
@@ -258,7 +278,7 @@ fun CategoryGridPicker(
     }
 
     if (showAddDialog && onCreateCategory != null) {
-        AddCategoryDialog(
+        AddCategoryBottomSheet(
             onDismiss = { showAddDialog = false },
             onConfirm = { name, color, iconId ->
                 onCreateCategory(name, color, iconId, isIncome)
@@ -300,6 +320,7 @@ private fun CategoryGridCell(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .minimumInteractiveComponentSize()
             .graphicsLayer {
                 // Toàn bộ hiệu ứng co giãn đẩy thẳng vào RenderNode
                 scaleX = scale.value
@@ -319,13 +340,17 @@ private fun CategoryGridCell(
         Box(
             modifier = Modifier
                 .size(52.dp)
-                .drawBehind {
-                    if (isSelected) {
-                        drawCircle(
-                            color = accent,
-                            radius = size.minDimension / 2f + 2.5.dp.toPx(),
-                            style = Stroke(width = 2.dp.toPx()),
-                        )
+                .drawWithCache {
+                    val selectionStroke = Stroke(width = 2.dp.toPx())
+                    val radiusOffsetPx = 2.5.dp.toPx()
+                    onDrawBehind {
+                        if (isSelected) {
+                            drawCircle(
+                                color = accent,
+                                radius = size.minDimension / 2f + radiusOffsetPx,
+                                style = selectionStroke,
+                            )
+                        }
                     }
                 }
                 .background(
@@ -387,6 +412,7 @@ private fun AddCategoryCell(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .minimumInteractiveComponentSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -429,49 +455,79 @@ private fun AddCategoryCell(
     }
 }
 
-// ─── Dialog tạo danh mục tùy biến (giữ nguyên, tương thích) ─────────────────
+// ─── BottomSheet tạo danh mục tùy biến ────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddCategoryDialog(
+private fun AddCategoryBottomSheet(
     onDismiss: () -> Unit,
     onConfirm: (name: String, color: Long, iconId: String) -> Unit,
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember { mutableStateOf("") }
 
-    val colors = listOf(
-        0xFFE57373L, 0xFFF06292L, 0xFFBA68C8L, 0xFF9575CDL,
-        0xFF64B5F6L, 0xFF4FC3F7L, 0xFF4DB6ACL, 0xFF81C784L,
-        0xFFFFB74DL, 0xFF90A4AEL,
-    )
-    var selectedColor by remember { mutableStateOf(colors.first()) }
+    val colors = remember {
+        listOf(
+            0xFFE57373L, 0xFFF06292L, 0xFFBA68C8L, 0xFF9575CDL,
+            0xFF64B5F6L, 0xFF4FC3F7L, 0xFF4DB6ACL, 0xFF81C784L,
+            0xFFFFB74DL, 0xFF90A4AEL,
+        )
+    }
+    var selectedColor by remember { mutableLongStateOf(colors.first()) }
     var selectedIconId by remember { mutableStateOf(customCategoryIconOptions.first().id) }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.category_dialog_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.category_name_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        sheetState = sheetState,
+        shape = AppTheme.shapes.sheetTop,
+        containerColor = AppTheme.colors.surface,
+        scrimColor = Color.Black.copy(alpha = 0.45f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.category_dialog_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.colors.textPrimary,
+            )
 
-                Text(stringResource(R.string.category_color_title), style = MaterialTheme.typography.titleSmall)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    colors.take(6).forEach { colorVal ->
-                        val isSel = selectedColor == colorVal
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.category_name_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Text(
+                text = stringResource(R.string.category_color_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = AppTheme.colors.textPrimary,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                colors.take(6).forEach { colorVal ->
+                    val isSel = selectedColor == colorVal
+                    Box(
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .clickable { selectedColor = colorVal },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
                                 .background(Color(colorVal))
-                                .clickable { selectedColor = colorVal }
                                 .border(
                                     width = if (isSel) 3.dp else 0.dp,
                                     color = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
@@ -480,11 +536,22 @@ private fun AddCategoryDialog(
                         )
                     }
                 }
+            }
 
-                Text(stringResource(R.string.category_icon_title), style = MaterialTheme.typography.titleSmall)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(customCategoryIconOptions, key = { it.id }) { option ->
-                        val isSel = selectedIconId == option.id
+            Text(
+                text = stringResource(R.string.category_icon_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = AppTheme.colors.textPrimary,
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(customCategoryIconOptions, key = { it.id }) { option ->
+                    val isSel = selectedIconId == option.id
+                    Box(
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .clickable { selectedIconId = option.id },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
@@ -497,8 +564,7 @@ private fun AddCategoryDialog(
                                     width = if (isSel) 2.dp else 1.dp,
                                     color = if (isSel) Color(selectedColor) else Color.Transparent,
                                     shape = CircleShape,
-                                )
-                                .clickable { selectedIconId = option.id },
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -511,19 +577,30 @@ private fun AddCategoryDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor, selectedIconId) },
-                enabled = name.isNotBlank(),
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.action_add))
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+                Button(
+                    onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor, selectedIconId) },
+                    enabled = name.isNotBlank(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
+                ) {
+                    Text(stringResource(R.string.action_add))
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-    )
+        }
+    }
 }
