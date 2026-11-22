@@ -344,7 +344,15 @@ fun TransactionFormScreen(
     if (state.isNoteSheetOpen) {
         NoteQuickEntrySheet(
             currentNote = state.note,
+            enableNaturalParsing = !state.isEditMode,
+            naturalEntry = state.naturalEntry,
+            availableCategories = state.availableCategories,
             onNoteChanged = { viewModel.onEvent(TransactionFormUiEvent.NoteChanged(it)) },
+            onNaturalInputChanged = { viewModel.onEvent(TransactionFormUiEvent.NaturalInputChanged(it)) },
+            onAnalyzeWithAi = { viewModel.onEvent(TransactionFormUiEvent.AnalyzeNaturalInputWithAi) },
+            onUpdateDraft = { viewModel.onEvent(TransactionFormUiEvent.UpdateNaturalDraft(it)) },
+            onRemoveDraft = { viewModel.onEvent(TransactionFormUiEvent.RemoveNaturalDraft(it)) },
+            onSaveAllDrafts = { viewModel.onEvent(TransactionFormUiEvent.SaveNaturalDrafts) },
             onDismiss = { viewModel.onEvent(TransactionFormUiEvent.SetNoteSheetVisible(false)) },
         )
     }

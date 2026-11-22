@@ -29,6 +29,19 @@ object CurrencyParserEngine {
         val cleanString = trimmed.removePrefix("-").removePrefix("+").trim()
 
         // Match shorthand units like 50k, 1.5M, 2.5tr, 100.000đ, 50,000 VND
+        // Try Vietnamese slang/spoken amounts first when input contains multi-unit shorthand or VN words (e.g. "2 củ", "80k5", "nửa triệu").
+        val vnSingleMatch = VietnameseAmountParser.parseSingle(cleanString)
+        if (vnSingleMatch != null &&
+            !cleanString.endsWith("m", ignoreCase = true) &&
+            !cleanString.endsWith("b", ignoreCase = true)
+        ) {
+            val signedCents = if (isNegative) -vnSingleMatch * 100L else vnSingleMatch * 100L
+            return MoneyParseResult.Success(
+                money = Money(signedCents),
+                sanitizedInput = vnSingleMatch.toString(),
+            )
+        }
+
         val multiplier = when {
             cleanString.endsWith("k", ignoreCase = true) -> 1_000.0
             cleanString.endsWith("m", ignoreCase = true) || cleanString.endsWith("tr", ignoreCase = true) -> 1_000_000.0
