@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.feature.assets.main.sheet.AddWalletScreen
+import com.notepay.feature.assets.shared.SharedWalletMembersScreen
 import com.notepay.core.navigation.PredictiveBackDestination
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.Route
@@ -29,6 +30,9 @@ fun NavGraphBuilder.walletGraph(
                 onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
                 onWalletClick = { walletId ->
                     navController.navigate("${Route.TransactionList.path}?walletId=$walletId")
+                },
+                onOpenSharedMembers = { walletId ->
+                    navController.navigate(Route.SharedWalletMembers(walletId).path)
                 },
                 onFeedback = showFeedback,
                 onNavigateToDebtManagement = {
@@ -63,6 +67,19 @@ fun NavGraphBuilder.walletGraph(
                     navController.popBackStack()
                     showFeedback(feedback)
                 },
+                onBack = { navController.popBackStack() },
+                onFeedback = showFeedback,
+            )
+        }
+    }
+    composable(
+        route = Route.SharedWalletMembers.ROUTE,
+        arguments = listOf(
+            navArgument(Route.SharedWalletMembers.ARG_WALLET_ID) { type = NavType.LongType },
+        ),
+    ) {
+        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+            SharedWalletMembersScreen(
                 onBack = { navController.popBackStack() },
                 onFeedback = showFeedback,
             )

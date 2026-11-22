@@ -2,7 +2,10 @@ package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.WalletEntity
 import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.SharedWalletRole
+import com.notepay.domain.model.SyncStatus
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
 import kotlin.time.Instant
@@ -37,6 +40,15 @@ class WalletMapper @Inject constructor() {
             currencyCode = entity.currencyCode.ifBlank { "VND" },
             creditLimit = entity.creditLimitCents?.let { Money(it) },
             isArchived = entity.isArchived,
+            purpose = WalletPurpose.fromString(entity.purpose),
+            targetAmount = entity.targetAmountCents?.let { Money(it) },
+            targetDateEpochDay = entity.targetDateEpochDay,
+            includeInTotalBalance = entity.includeInTotalBalance,
+            remoteId = entity.remoteId,
+            isShared = entity.isShared,
+            syncStatus = SyncStatus.fromString(entity.syncStatus),
+            sharedRole = SharedWalletRole.fromString(entity.sharedRole),
+            updatedAtEpochMs = entity.updatedAtEpochMs,
         )
     }
 
@@ -58,5 +70,14 @@ class WalletMapper @Inject constructor() {
         currencyCode = wallet.currencyCode,
         creditLimitCents = wallet.creditLimit?.amountInCents,
         isArchived = wallet.isArchived,
+        purpose = wallet.purpose.name,
+        targetAmountCents = wallet.targetAmount?.amountInCents,
+        targetDateEpochDay = wallet.targetDateEpochDay,
+        includeInTotalBalance = wallet.includeInTotalBalance,
+        remoteId = wallet.remoteId,
+        isShared = wallet.isShared,
+        syncStatus = wallet.syncStatus.name,
+        sharedRole = wallet.sharedRole?.name,
+        updatedAtEpochMs = wallet.updatedAtEpochMs,
     )
 }

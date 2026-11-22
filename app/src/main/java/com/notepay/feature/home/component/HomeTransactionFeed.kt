@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.feature.transaction.component.SwipeableTransactionItem
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
@@ -90,6 +92,8 @@ internal fun HomeDaySection(
     onEditTransaction: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     modifier: Modifier = Modifier,
+    walletsById: Map<Long, Wallet> = emptyMap(),
+    currentUserId: String? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -107,12 +111,17 @@ internal fun HomeDaySection(
             Column(modifier = Modifier.fillMaxWidth()) {
                 group.transactions.forEach { transaction ->
                     val walletName = walletNames[transaction.walletId].orEmpty()
+                    val wallet = walletsById[transaction.walletId]
+                    val canEdit = !transaction.isInternalTransfer &&
+                        (wallet == null || SharedWalletPermissionGuard.canEditTransaction(wallet, transaction, currentUserId))
+                    val canDelete = !(transaction.isInternalTransfer && transaction.transferGroupId == null) &&
+                        (wallet == null || SharedWalletPermissionGuard.canDeleteTransaction(wallet, transaction, currentUserId))
                     SwipeableTransactionItem(
                         transaction = transaction,
                         walletName = walletName,
                         onClick = { onTransactionClick(transaction.id) },
-                        onEdit = if (transaction.isInternalTransfer) null else ({ onEditTransaction(transaction.id) }),
-                        onDelete = if (transaction.isInternalTransfer && transaction.transferGroupId == null) null else ({ onDeleteTransaction(transaction) }),
+                        onEdit = if (canEdit) ({ onEditTransaction(transaction.id) }) else null,
+                        onDelete = if (canDelete) ({ onDeleteTransaction(transaction) }) else null,
                         hapticEnabled = hapticEnabled,
                         shape = RectangleShape,
                     ) {
@@ -143,9 +152,13 @@ private fun HomeTransactionRow(
     val amountColor = if (isIncome) AppTheme.colors.success else AppTheme.colors.textPrimary
 
     val title = transaction.note.trim().ifBlank { transaction.category.localizedName() }
+    val authorText = transaction.createdByName?.takeIf { it.isNotBlank() }?.let {
+        stringResource(R.string.shared_tx_recorded_by, it)
+    }
     val subtitle = listOfNotNull(
         transaction.category.localizedName(),
         walletName.takeIf { it.isNotBlank() },
+        authorText,
         if (transaction.isInternalTransfer) stringResource(R.string.transaction_internal_transfer) else null,
     ).joinToString(" • ")
 

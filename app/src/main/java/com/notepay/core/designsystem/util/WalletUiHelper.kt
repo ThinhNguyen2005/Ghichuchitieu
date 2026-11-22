@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.notepay.R
 import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 
 object WalletUiHelper {
@@ -82,6 +83,14 @@ object WalletUiHelper {
     fun getNatureTitleRes(nature: AccountNature): Int = when (nature) {
         AccountNature.ASSET -> R.string.account_nature_asset
         AccountNature.LIABILITY -> R.string.account_nature_liability
+    }
+
+    fun getPurposeTitleRes(purpose: WalletPurpose): Int = when (purpose) {
+        WalletPurpose.PERSONAL -> R.string.wallet_purpose_personal
+        WalletPurpose.BUSINESS -> R.string.wallet_purpose_business
+        WalletPurpose.SAVINGS_GOAL -> R.string.wallet_purpose_savings_goal
+        WalletPurpose.TRAVEL -> R.string.wallet_purpose_travel
+        WalletPurpose.SHARED -> R.string.wallet_purpose_shared
     }
 
     fun getColor(key: String): Color = when (key) {

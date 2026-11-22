@@ -111,6 +111,15 @@ class TransactionCsvTest {
         assertThat(lines[1]).contains(",Chuyển khoản,")
     }
 
+    @Test
+    fun `neutralizes csv formula injection payloads in note and wallet fields`() {
+        val malicious = TestData.transaction(note = "=1+1")
+        val lines = csvOf(listOf(malicious), mapOf(1L to "@malicious"))
+
+        assertThat(lines[1]).contains("'@malicious")
+        assertThat(lines[1]).endsWith(",'=1+1")
+    }
+
     /** Tách dòng CSV thành từng ô, bỏ qua dấu phẩy nằm trong cặp nháy kép. */
     private fun splitRespectingQuotes(line: String): List<String> {
         val fields = mutableListOf<String>()

@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,18 +35,25 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.GroupAdd
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,6 +69,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,12 +82,17 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.model.WalletPurpose
+import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.assets.main.component.AssetsInkHeroCard
 import com.notepay.feature.assets.main.component.WalletAssetCard
 import com.notepay.feature.assets.main.sheet.TransferBottomSheet
+import com.notepay.feature.assets.shared.CreateSharedWalletDialog
+import com.notepay.feature.assets.shared.JoinSharedWalletDialog
 import com.notepay.feature.debt.management.component.DebtSummaryCard
 
 private val AssetCardMinWidth = 320.dp
@@ -97,6 +112,7 @@ fun AssetsScreen(
     onWalletClick: (Long) -> Unit,
     onNavigateToDebtManagement: () -> Unit,
     onFeedback: suspend (UiFeedback) -> Boolean,
+    onOpenSharedMembers: (Long) -> Unit = {},
     viewModel: AssetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,6 +125,9 @@ fun AssetsScreen(
     )
 
     var isArchivedExpanded by remember { mutableStateOf(false) }
+    var isExportSheetVisible by remember { mutableStateOf(false) }
+    var showCreateSharedDialog by remember { mutableStateOf(false) }
+    var showJoinSharedDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -204,13 +223,40 @@ fun AssetsScreen(
                             NotePayStaggeredEntrance(index = 0) {
                                 Column {
                                     Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
-                                    Text(
-                                        text = stringResource(R.string.nav_assets),
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = AppTheme.colors.textPrimary,
-                                        modifier = Modifier.padding(vertical = 4.dp),
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.nav_assets),
+                                            style = MaterialTheme.typography.headlineLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = AppTheme.colors.textPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(vertical = 4.dp),
+                                        )
+                                        OutlinedButton(
+                                            onClick = { isExportSheetVisible = true },
+                                            shape = AppTheme.shapes.capsule,
+                                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.FileDownload,
+                                                contentDescription = stringResource(R.string.export_report_action_cd),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.size(6.dp))
+                                            Text(
+                                                text = stringResource(R.string.export_report_button),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.height(12.dp))
                                     AssetsInkHeroCard(
                                         totalNetWorth = state.totalNetWorth,
@@ -227,6 +273,16 @@ fun AssetsScreen(
                                         ratesLastUpdated = state.ratesLastUpdated,
                                         onAddWallet = onAddWallet,
                                         onTransferClick = { viewModel.openTransferSheet() },
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    PurposeFilterChipRow(
+                                        selectedPurpose = state.selectedPurpose,
+                                        onPurposeSelected = viewModel::onPurposeFilterChanged,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    SharedWalletQuickActionsRow(
+                                        onCreateSharedWallet = { showCreateSharedDialog = true },
+                                        onJoinByInviteCode = { showJoinSharedDialog = true },
                                     )
                                 }
                             }
@@ -290,6 +346,11 @@ fun AssetsScreen(
                                     onEdit = { onEditWallet(item.wallet.id) },
                                     onSetDefault = { viewModel.setActiveWallet(item.wallet.id) },
                                     onAdjustBalance = { viewModel.openAdjustBalance(item) },
+                                    onManageMembers = if (item.wallet.isShared) {
+                                        { onOpenSharedMembers(item.wallet.id) }
+                                    } else {
+                                        null
+                                    },
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -417,6 +478,143 @@ fun AssetsScreen(
                 onConfirm = { newBalanceCents ->
                     viewModel.submitAdjustBalance(target.wallet.id, newBalanceCents)
                 },
+            )
+        }
+
+        if (isExportSheetVisible) {
+            ExportReportBottomSheet(
+                onDismiss = { isExportSheetVisible = false },
+                onFeedback = onFeedback,
+            )
+        }
+
+        if (showCreateSharedDialog) {
+            CreateSharedWalletDialog(
+                isCloudConfigured = state.isCloudConfigured,
+                isSubmitting = state.isSharedActionSubmitting,
+                onDismiss = { showCreateSharedDialog = false },
+                onConfirm = { name, currency, budgetMinor ->
+                    viewModel.createSharedWallet(name, currency, budgetMinor) { walletId ->
+                        showCreateSharedDialog = false
+                        onOpenSharedMembers(walletId)
+                    }
+                },
+            )
+        }
+
+        if (showJoinSharedDialog) {
+            JoinSharedWalletDialog(
+                isCloudConfigured = state.isCloudConfigured,
+                isSubmitting = state.isSharedActionSubmitting,
+                onDismiss = { showJoinSharedDialog = false },
+                onConfirm = { code, displayName ->
+                    viewModel.joinSharedWallet(code, displayName) { walletId ->
+                        showJoinSharedDialog = false
+                        onOpenSharedMembers(walletId)
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SharedWalletQuickActionsRow(
+    onCreateSharedWallet: () -> Unit,
+    onJoinByInviteCode: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedButton(
+            onClick = onCreateSharedWallet,
+            shape = AppTheme.shapes.capsule,
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = 48.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.GroupAdd,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stringResource(R.string.shared_wallet_create_action),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        OutlinedButton(
+            onClick = onJoinByInviteCode,
+            shape = AppTheme.shapes.capsule,
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = 48.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Key,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stringResource(R.string.shared_wallet_join_action),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PurposeFilterChipRow(
+    selectedPurpose: WalletPurpose?,
+    onPurposeSelected: (WalletPurpose?) -> Unit,
+) {
+    val purposes = remember {
+        listOf<WalletPurpose?>(
+            null,
+            WalletPurpose.PERSONAL,
+            WalletPurpose.BUSINESS,
+            WalletPurpose.SAVINGS_GOAL,
+            WalletPurpose.TRAVEL,
+            WalletPurpose.SHARED,
+        )
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        purposes.forEach { purpose ->
+            val selected = selectedPurpose == purpose
+            val label = if (purpose == null) {
+                stringResource(R.string.wallet_purpose_all)
+            } else {
+                stringResource(WalletUiHelper.getPurposeTitleRes(purpose))
+            }
+            FilterChip(
+                selected = selected,
+                onClick = { onPurposeSelected(purpose) },
+                label = {
+                    Text(
+                        text = label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                shape = AppTheme.shapes.capsule,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AppTheme.colors.sand,
+                    selectedLabelColor = AppTheme.colors.onSand,
+                ),
+                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             )
         }
     }

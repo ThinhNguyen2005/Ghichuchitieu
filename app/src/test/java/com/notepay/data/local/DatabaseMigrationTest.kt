@@ -88,6 +88,8 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
                 NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -187,6 +189,8 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
                 NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -249,7 +253,13 @@ class DatabaseMigrationTest {
         dbV5.close()
 
         val dbV6 = Room.databaseBuilder(context, NotePayDatabase::class.java, "test_migration_5_6.db")
-            .addMigrations(NotePayDatabase.MIGRATION_5_6, NotePayDatabase.MIGRATION_6_7, NotePayDatabase.MIGRATION_7_8)
+            .addMigrations(
+                NotePayDatabase.MIGRATION_5_6,
+                NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
+            )
             .allowMainThreadQueries()
             .build()
 
@@ -304,6 +314,8 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
                 NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -361,6 +373,8 @@ class DatabaseMigrationTest {
                 NotePayDatabase.MIGRATION_5_6,
                 NotePayDatabase.MIGRATION_6_7,
                 NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -406,7 +420,12 @@ class DatabaseMigrationTest {
         dbV6.close()
 
         val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
-            .addMigrations(NotePayDatabase.MIGRATION_6_7, NotePayDatabase.MIGRATION_7_8)
+            .addMigrations(
+                NotePayDatabase.MIGRATION_6_7,
+                NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
+            )
             .allowMainThreadQueries()
             .build()
 
@@ -455,7 +474,11 @@ class DatabaseMigrationTest {
         dbV7.close()
 
         val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
-            .addMigrations(NotePayDatabase.MIGRATION_7_8)
+            .addMigrations(
+                NotePayDatabase.MIGRATION_7_8,
+                NotePayDatabase.MIGRATION_8_9,
+                NotePayDatabase.MIGRATION_9_10,
+            )
             .allowMainThreadQueries()
             .build()
 
@@ -489,6 +512,213 @@ class DatabaseMigrationTest {
         upgraded.walletDao().setArchived(7L, true)
         val nonArchived = upgraded.walletDao().observeNonArchived().first()
         assertThat(nonArchived.map { it.id }).containsExactly(8L)
+
+        upgraded.close()
+        context.deleteDatabase(dbName)
+    }
+
+    @Test
+    fun testMigration8To9() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val dbName = "test_migration_8_9.db"
+        context.deleteDatabase(dbName)
+
+        val dbV8 = context.openOrCreateDatabase(dbName, Context.MODE_PRIVATE, null)
+        dbV8.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `wallets` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `name` TEXT NOT NULL,
+                `initial_balance_cents` INTEGER NOT NULL,
+                `icon_key` TEXT NOT NULL,
+                `color_key` TEXT NOT NULL,
+                `is_active` INTEGER NOT NULL,
+                `budget_limit_cents` INTEGER,
+                `linked_package_name` TEXT,
+                `bank_bin` TEXT,
+                `account_number` TEXT,
+                `account_name` TEXT,
+                `created_at` INTEGER NOT NULL,
+                `wallet_type` TEXT NOT NULL DEFAULT 'CASH',
+                `account_nature` TEXT NOT NULL DEFAULT 'ASSET',
+                `currency_code` TEXT NOT NULL DEFAULT 'VND',
+                `credit_limit_cents` INTEGER,
+                `is_archived` INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent(),
+        )
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_active` ON `wallets` (`is_active`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_archived` ON `wallets` (`is_archived`)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount_cents` INTEGER NOT NULL, `type` TEXT NOT NULL, `category` TEXT NOT NULL, `note` TEXT NOT NULL, `occurred_at` INTEGER NOT NULL, `wallet_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `is_auto_capture` INTEGER NOT NULL DEFAULT 0, `is_internal_transfer` INTEGER NOT NULL DEFAULT 0, `transfer_group_id` TEXT, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS `bill_splits` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transaction_id` INTEGER NOT NULL, `debtor_name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `is_paid` INTEGER NOT NULL, `memo_code` TEXT NOT NULL, `paid_at` INTEGER, `created_at` INTEGER NOT NULL, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_splits_transaction_id` ON `bill_splits` (`transaction_id`)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS `subscriptions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `category` TEXT NOT NULL, `next_due_date` INTEGER NOT NULL, `repeat_months` INTEGER NOT NULL, `remind_days_before` INTEGER NOT NULL, `note` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS `debts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_name` TEXT NOT NULL, `phone_number` TEXT, `type` TEXT NOT NULL, `original_amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `created_at` INTEGER NOT NULL, `due_date` INTEGER, `note` TEXT NOT NULL, `is_settled` INTEGER NOT NULL, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_person_name` ON `debts` (`person_name`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_wallet_id` ON `debts` (`wallet_id`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_is_settled` ON `debts` (`is_settled`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_due_date` ON `debts` (`due_date`)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS `debt_payments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `debt_id` INTEGER NOT NULL, `amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `paid_at` INTEGER NOT NULL, `note` TEXT NOT NULL, `transaction_id` INTEGER, FOREIGN KEY(`debt_id`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debt_id` ON `debt_payments` (`debt_id`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_transaction_id` ON `debt_payments` (`transaction_id`)")
+        dbV8.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paid_at` ON `debt_payments` (`paid_at`)")
+        dbV8.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        dbV8.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, 'a4585c0b164486d04d6c4d5b2bc0ed1e')")
+        dbV8.execSQL(
+            """
+            INSERT INTO wallets (id, name, initial_balance_cents, icon_key, color_key, is_active, created_at, wallet_type, account_nature, currency_code, is_archived)
+            VALUES (11, 'Ví chính v8', 250000000, 'cash', 'primary', 1, 1000, 'CASH', 'ASSET', 'VND', 0)
+            """.trimIndent(),
+        )
+        dbV8.execSQL("PRAGMA user_version = 8")
+        dbV8.close()
+
+        val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
+            .addMigrations(NotePayDatabase.MIGRATION_8_9, NotePayDatabase.MIGRATION_9_10)
+            .allowMainThreadQueries()
+            .build()
+
+        val legacyWallet = upgraded.walletDao().getById(11L)
+        assertThat(legacyWallet).isNotNull()
+        assertThat(legacyWallet!!.name).isEqualTo("Ví chính v8")
+        assertThat(legacyWallet.initialBalanceCents).isEqualTo(250_000_000L)
+        assertThat(legacyWallet.purpose).isEqualTo("PERSONAL")
+        assertThat(legacyWallet.targetAmountCents).isNull()
+        assertThat(legacyWallet.targetDateEpochDay).isNull()
+        assertThat(legacyWallet.includeInTotalBalance).isTrue()
+
+        val goalWallet = WalletEntity(
+            id = 12L,
+            name = "Quỹ du lịch Nhật",
+            initialBalanceCents = 5_000_000_00L,
+            iconKey = "savings",
+            colorKey = "ocean",
+            isActive = false,
+            createdAt = 2000L,
+            purpose = "TRAVEL",
+            targetAmountCents = 40_000_000_00L,
+            targetDateEpochDay = 21000L,
+            includeInTotalBalance = false,
+        )
+        upgraded.walletDao().upsert(goalWallet)
+
+        val savedGoal = upgraded.walletDao().getById(12L)!!
+        assertThat(savedGoal.purpose).isEqualTo("TRAVEL")
+        assertThat(savedGoal.targetAmountCents).isEqualTo(40_000_000_00L)
+        assertThat(savedGoal.targetDateEpochDay).isEqualTo(21000L)
+        assertThat(savedGoal.includeInTotalBalance).isFalse()
+
+        upgraded.close()
+        context.deleteDatabase(dbName)
+    }
+
+    @Test
+    fun testMigration9To10() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val dbName = "test_migration_9_10.db"
+        context.deleteDatabase(dbName)
+
+        val dbV9 = context.openOrCreateDatabase(dbName, Context.MODE_PRIVATE, null)
+        dbV9.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `wallets` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `name` TEXT NOT NULL,
+                `initial_balance_cents` INTEGER NOT NULL,
+                `icon_key` TEXT NOT NULL,
+                `color_key` TEXT NOT NULL,
+                `is_active` INTEGER NOT NULL,
+                `budget_limit_cents` INTEGER,
+                `linked_package_name` TEXT,
+                `bank_bin` TEXT,
+                `account_number` TEXT,
+                `account_name` TEXT,
+                `created_at` INTEGER NOT NULL,
+                `wallet_type` TEXT NOT NULL DEFAULT 'CASH',
+                `account_nature` TEXT NOT NULL DEFAULT 'ASSET',
+                `currency_code` TEXT NOT NULL DEFAULT 'VND',
+                `credit_limit_cents` INTEGER,
+                `is_archived` INTEGER NOT NULL DEFAULT 0,
+                `purpose` TEXT NOT NULL DEFAULT 'PERSONAL',
+                `target_amount_cents` INTEGER,
+                `target_date_epoch_day` INTEGER,
+                `include_in_total_balance` INTEGER NOT NULL DEFAULT 1
+            )
+            """.trimIndent(),
+        )
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_active` ON `wallets` (`is_active`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_is_archived` ON `wallets` (`is_archived`)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount_cents` INTEGER NOT NULL, `type` TEXT NOT NULL, `category` TEXT NOT NULL, `note` TEXT NOT NULL, `occurred_at` INTEGER NOT NULL, `wallet_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `is_auto_capture` INTEGER NOT NULL DEFAULT 0, `is_internal_transfer` INTEGER NOT NULL DEFAULT 0, `transfer_group_id` TEXT, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_wallet_id` ON `transactions` (`wallet_id`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurred_at` ON `transactions` (`occurred_at`)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS `bill_splits` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transaction_id` INTEGER NOT NULL, `debtor_name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `is_paid` INTEGER NOT NULL, `memo_code` TEXT NOT NULL, `paid_at` INTEGER, `created_at` INTEGER NOT NULL, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_splits_transaction_id` ON `bill_splits` (`transaction_id`)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS `subscriptions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount_cents` INTEGER NOT NULL, `category` TEXT NOT NULL, `next_due_date` INTEGER NOT NULL, `repeat_months` INTEGER NOT NULL, `remind_days_before` INTEGER NOT NULL, `note` TEXT NOT NULL, `is_active` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS `debts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_name` TEXT NOT NULL, `phone_number` TEXT, `type` TEXT NOT NULL, `original_amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `created_at` INTEGER NOT NULL, `due_date` INTEGER, `note` TEXT NOT NULL, `is_settled` INTEGER NOT NULL, FOREIGN KEY(`wallet_id`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_person_name` ON `debts` (`person_name`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_wallet_id` ON `debts` (`wallet_id`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_is_settled` ON `debts` (`is_settled`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_due_date` ON `debts` (`due_date`)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS `debt_payments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `debt_id` INTEGER NOT NULL, `amount_cents` INTEGER NOT NULL, `wallet_id` INTEGER, `paid_at` INTEGER NOT NULL, `note` TEXT NOT NULL, `transaction_id` INTEGER, FOREIGN KEY(`debt_id`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debt_id` ON `debt_payments` (`debt_id`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_transaction_id` ON `debt_payments` (`transaction_id`)")
+        dbV9.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paid_at` ON `debt_payments` (`paid_at`)")
+        dbV9.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        dbV9.execSQL("INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, 'b4333e50077765d905c699c770d44f39')")
+        dbV9.execSQL(
+            """
+            INSERT INTO wallets (id, name, initial_balance_cents, icon_key, color_key, is_active, created_at, wallet_type, account_nature, currency_code, is_archived, purpose, include_in_total_balance)
+            VALUES (21, 'Ví cá nhân v9', 450000000, 'cash', 'primary', 1, 1000, 'CASH', 'ASSET', 'VND', 0, 'PERSONAL', 1)
+            """.trimIndent(),
+        )
+        dbV9.execSQL(
+            """
+            INSERT INTO transactions (id, amount_cents, type, category, note, occurred_at, wallet_id, created_at)
+            VALUES (31, 6500000, 'EXPENSE', 'FOOD', 'Phở bò v9', 5000, 21, 5000)
+            """.trimIndent(),
+        )
+        dbV9.execSQL("PRAGMA user_version = 9")
+        dbV9.close()
+
+        val upgraded = Room.databaseBuilder(context, NotePayDatabase::class.java, dbName)
+            .addMigrations(NotePayDatabase.MIGRATION_9_10)
+            .allowMainThreadQueries()
+            .build()
+
+        val wallet = upgraded.walletDao().getById(21L)
+        assertThat(wallet).isNotNull()
+        assertThat(wallet!!.name).isEqualTo("Ví cá nhân v9")
+        assertThat(wallet.initialBalanceCents).isEqualTo(450_000_000L)
+        assertThat(wallet.isShared).isFalse()
+        assertThat(wallet.syncStatus).isEqualTo("LOCAL_ONLY")
+        assertThat(wallet.sharedRole).isNull()
+        assertThat(wallet.remoteId).isNull()
+
+        val tx = upgraded.transactionDao().getById(31L)
+        assertThat(tx).isNotNull()
+        assertThat(tx!!.amountCents).isEqualTo(6_500_000L)
+        assertThat(tx.note).isEqualTo("Phở bò v9")
+        assertThat(tx.syncStatus).isEqualTo("LOCAL_ONLY")
+        assertThat(tx.deletedAtEpochMs).isNull()
+        assertThat(tx.operationId).isNull()
+
+        upgraded.syncOutboxDao().upsert(
+            com.notepay.data.local.entity.SyncOutboxEntity(
+                operationId = "op-9-10",
+                entityType = "TRANSACTION",
+                entityId = "31",
+                walletRemoteId = "wallet-remote-1",
+                action = "UPSERT",
+                payloadJson = "{}",
+                createdAtEpochMs = 1_000L,
+                updatedAtEpochMs = 1_000L,
+            ),
+        )
+        val outbox = upgraded.syncOutboxDao().getByOperationId("op-9-10")
+        assertThat(outbox).isNotNull()
+        assertThat(outbox!!.status).isEqualTo("PENDING")
 
         upgraded.close()
         context.deleteDatabase(dbName)

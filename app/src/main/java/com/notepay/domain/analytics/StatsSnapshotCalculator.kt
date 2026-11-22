@@ -71,9 +71,16 @@ object StatsSnapshotCalculator {
         val today = input.today
         val zone = input.zone
 
-        // 1. Giao dịch thuộc kỳ đang xem và thuộc ví được chọn (null = tất cả ví).
+        val excludedWalletIds = if (input.selectedWalletId == null) {
+            input.wallets.filterNot { it.includeInTotalBalance }.mapTo(hashSetOf()) { it.id }
+        } else {
+            emptySet()
+        }
+
+        // 1. Giao dịch thuộc kỳ đang xem và thuộc ví được chọn (null = tất cả ví được tính vào tổng).
         val filteredTransactions = transactions.filter { tx ->
-            period.contains(tx.occurredAt.toLocalDateTime(zone).date) && matchesWallet(tx, input.selectedWalletId)
+            period.contains(tx.occurredAt.toLocalDateTime(zone).date) &&
+                matchesWallet(tx, input.selectedWalletId, excludedWalletIds)
         }
 
         // 2. So sánh cùng kỳ trước: chỉ có nghĩa khi người dùng đã dùng app trong kỳ đó.
@@ -85,18 +92,23 @@ object StatsSnapshotCalculator {
         var previousIncomeInCents: Long? = null
         if (hasComparable && prevRange != null) {
             val previous = transactions.filter { tx ->
-                tx.occurredAt.toLocalDateTime(zone).date in prevRange && matchesWallet(tx, input.selectedWalletId)
+                tx.occurredAt.toLocalDateTime(zone).date in prevRange &&
+                    matchesWallet(tx, input.selectedWalletId, excludedWalletIds)
             }
             previousExpenseInCents = totalOf(previous, TransactionType.EXPENSE)
             previousIncomeInCents = totalOf(previous, TransactionType.INCOME)
         }
 
-        // 3. Hạn mức: ví đang chọn dùng hạn mức của chính nó; chế độ "tất cả ví" cộng dồn hạn mức.
+        // 3. Hạn mức: ví đang chọn dùng hạn mức của chính nó; chế độ "tất cả ví" cộng dồn hạn mức của các ví tính vào tổng.
         val selectedWallet = input.wallets.find { it.id == input.selectedWalletId }
         val budgetLimitInCents = if (input.selectedWalletId != null) {
             selectedWallet?.budgetLimit?.amountInCents
         } else {
-            input.wallets.mapNotNull { it.budgetLimit?.amountInCents }.sum().takeIf { it > 0L }
+            input.wallets
+                .filter { it.includeInTotalBalance }
+                .mapNotNull { it.budgetLimit?.amountInCents }
+                .sum()
+                .takeIf { it > 0L }
         }
 
         // 4. Chi tiêu trong tháng hiện tại (mốc "tháng này" luôn là tháng của hôm nay,
@@ -107,7 +119,7 @@ object StatsSnapshotCalculator {
             millis >= currentMonthRange.first && millis <= currentMonthRange.second
         }
         val currentMonthExpenseInCents = totalOf(
-            currentMonthTransactions.filter { matchesWallet(it, input.selectedWalletId) },
+            currentMonthTransactions.filter { matchesWallet(it, input.selectedWalletId, excludedWalletIds) },
             TransactionType.EXPENSE,
         )
 
@@ -115,7 +127,7 @@ object StatsSnapshotCalculator {
         val currentDay = today.day.coerceIn(1, daysInMonth)
         val spentTodayInCents = totalOf(
             currentMonthTransactions.filter {
-                matchesWallet(it, input.selectedWalletId) &&
+                matchesWallet(it, input.selectedWalletId, excludedWalletIds) &&
                     it.occurredAt.toEpochMilliseconds() in dayRangeMillis(today, zone)
             },
             TransactionType.EXPENSE,
@@ -132,7 +144,10 @@ object StatsSnapshotCalculator {
         // 5. Chuỗi chi theo ngày cho SpendingForecastEngine (toàn bộ lịch sử, không cắt theo kỳ).
         val dailyExpenses = if (isViewingCurrentMonth) {
             transactions
-                .filter { it.type == TransactionType.EXPENSE && matchesWallet(it, input.selectedWalletId) }
+                .filter {
+                    it.type == TransactionType.EXPENSE &&
+                        matchesWallet(it, input.selectedWalletId, excludedWalletIds)
+                }
                 .groupBy { it.occurredAt.toLocalDateTime(zone).date }
                 .map { (date, rows) -> DailyExpense(date, rows.sumOf { it.amount.amountInCents }) }
         } else {
@@ -147,7 +162,7 @@ object StatsSnapshotCalculator {
             val trendMonth = absoluteMonth % 12 + 1
             val monthRows = transactions.filter { tx ->
                 val local = tx.occurredAt.toLocalDateTime(zone)
-                matchesWallet(tx, input.selectedWalletId) &&
+                matchesWallet(tx, input.selectedWalletId, excludedWalletIds) &&
                     local.year == trendYear && local.month.number == trendMonth
             }
             MonthlyTrendTotals(
@@ -197,8 +212,15 @@ object StatsSnapshotCalculator {
         return dayStart.toEpochMilliseconds()..dayEnd.toEpochMilliseconds()
     }
 
-    private fun matchesWallet(tx: Transaction, selectedWalletId: Long?): Boolean =
-        selectedWalletId == null || tx.walletId == selectedWalletId
+    private fun matchesWallet(
+        tx: Transaction,
+        selectedWalletId: Long?,
+        excludedWalletIds: Set<Long>,
+    ): Boolean = if (selectedWalletId != null) {
+        tx.walletId == selectedWalletId
+    } else {
+        tx.walletId !in excludedWalletIds
+    }
 
     private fun totalOf(transactions: List<Transaction>, type: TransactionType): Long =
         transactions.filter { it.type == type }.sumOf { it.amount.amountInCents }

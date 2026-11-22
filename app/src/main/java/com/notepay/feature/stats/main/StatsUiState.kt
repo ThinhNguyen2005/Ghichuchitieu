@@ -7,6 +7,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.domain.analytics.LongTermTrendAnalysis
 import com.notepay.domain.analytics.PeriodBarBucketKind
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceType
@@ -145,4 +146,5 @@ data class StatsUiState(
     val aiAdvices: List<AiAdviceItem> = emptyList(),
     val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
     val localAdvisor: LocalAdvisorUiState = LocalAdvisorUiState(),
+    val longTermTrend: LongTermTrendAnalysis? = null,
 )
