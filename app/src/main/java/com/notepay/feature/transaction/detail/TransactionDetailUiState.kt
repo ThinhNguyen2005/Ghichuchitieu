@@ -7,6 +7,7 @@ data class TransactionDetailUiState(
     val walletName: String? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
+    val canEdit: Boolean = true,
 ) {
     val isAutoCapture: Boolean
         get() = transaction?.isAutoCapture == true

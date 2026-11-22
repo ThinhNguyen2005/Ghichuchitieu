@@ -4,11 +4,15 @@ import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.notepay.data.remote.supabase.SupabaseClientProvider
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.AuthUser
 import com.notepay.domain.repository.AuthRepository
 import com.notepay.domain.repository.AuthUnavailableException
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
@@ -27,13 +31,15 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl internal constructor(
     private val authProvider: () -> FirebaseAuth?,
-    private val ioDispatcher: CoroutineDispatcher
+    private val ioDispatcher: CoroutineDispatcher,
+    private val supabaseClientProvider: SupabaseClientProvider? = null,
 ) : AuthRepository {
 
     @Inject
     constructor(
         @ApplicationContext context: Context,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        supabaseClientProvider: SupabaseClientProvider,
     ) : this(
         authProvider = {
             try {
@@ -46,7 +52,8 @@ class AuthRepositoryImpl internal constructor(
                 null
             }
         },
-        ioDispatcher = ioDispatcher
+        ioDispatcher = ioDispatcher,
+        supabaseClientProvider = supabaseClientProvider,
     )
 
     override fun observeAuthState(): Flow<AuthUser?> = callbackFlow {
@@ -84,6 +91,7 @@ class AuthRepositoryImpl internal constructor(
                 val authResult = auth.signInWithCredential(credential).await()
                 val user = authResult.user
                     ?: throw IllegalStateException("Không tìm thấy thông tin người dùng sau khi xác thực.")
+                bridgeSignInToSupabaseSafely(idToken)
                 user.toDomainModel()
             }.onFailure { if (it is CancellationException) throw it }
         }
@@ -92,8 +100,34 @@ class AuthRepositoryImpl internal constructor(
         runCatching {
             val auth = authProvider() ?: throw AuthUnavailableException()
             auth.signOut()
+            bridgeSignOutFromSupabaseSafely()
             Unit
         }.onFailure { if (it is CancellationException) throw it }
+    }
+
+    private suspend fun bridgeSignInToSupabaseSafely(idToken: String) {
+        val supabaseClient = supabaseClientProvider?.client ?: return
+        try {
+            supabaseClient.auth.signInWith(IDToken) {
+                provider = Google
+                this.idToken = idToken
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
+            // Keep Firebase authentication intact even if Supabase cloud sync is offline/unconfigured.
+        }
+    }
+
+    private suspend fun bridgeSignOutFromSupabaseSafely() {
+        val supabaseClient = supabaseClientProvider?.client ?: return
+        try {
+            supabaseClient.auth.signOut()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
+            // Safe no-op when Supabase session cannot be cleared remotely.
+        }
     }
 
     private fun com.google.firebase.auth.FirebaseUser.toDomainModel(): AuthUser {

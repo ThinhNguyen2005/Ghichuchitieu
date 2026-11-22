@@ -141,6 +141,12 @@ fun TransactionDetailContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    } else if (!state.canEdit) {
+                        Text(
+                            text = stringResource(R.string.shared_wallet_viewer_readonly_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     } else if (state.isAutoCapture) {
                         val isLightTheme = !isAppDarkTheme()
                         val cardBg = if (isLightTheme) Color.White else MaterialTheme.colorScheme.surfaceContainer
@@ -311,6 +317,14 @@ private fun MetaCard(
                 label = stringResource(R.string.detail_method_label),
                 value = methodText,
             )
+
+            transaction.createdByName?.takeIf { it.isNotBlank() }?.let { authorName ->
+                TransactionMetadataRow(
+                    icon = Icons.Rounded.Person,
+                    label = stringResource(R.string.shared_tx_author_label),
+                    value = authorName,
+                )
+            }
         }
     }
 }

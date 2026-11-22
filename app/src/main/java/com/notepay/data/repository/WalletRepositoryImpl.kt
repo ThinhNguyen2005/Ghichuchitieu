@@ -8,6 +8,8 @@ import com.notepay.data.mapper.WalletMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.shared.SharedWalletPermissionDeniedException
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -41,6 +43,10 @@ class WalletRepositoryImpl @Inject constructor(
 
     override suspend fun delete(id: Long) {
         database.withTransaction {
+            val wallet = dao.getById(id)?.let(mapper::toDomain)
+            if (wallet != null && !SharedWalletPermissionGuard.canDeleteWallet(wallet)) {
+                throw SharedWalletPermissionDeniedException("Only shared wallet OWNER can delete it")
+            }
             require(!transactionDao.hasInternalTransfer(id)) {
                 "Cannot delete a wallet containing internal transfer entries"
             }

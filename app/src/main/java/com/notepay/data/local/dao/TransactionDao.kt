@@ -9,30 +9,32 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
-    @Query("SELECT * FROM transactions")
+    @Query("SELECT * FROM transactions WHERE deleted_at_epoch_ms IS NULL")
     suspend fun getAll(): List<TransactionEntity>
 
     @Query("DELETE FROM transactions")
     suspend fun deleteAll()
 
 
-    @Query("SELECT * FROM transactions ORDER BY occurred_at DESC")
+    @Query("SELECT * FROM transactions WHERE deleted_at_epoch_ms IS NULL ORDER BY occurred_at DESC")
     fun observeAll(): Flow<List<TransactionEntity>>
 
     @Query("""
         SELECT * FROM transactions
         WHERE occurred_at BETWEEN :startMillis AND :endMillis
+        AND deleted_at_epoch_ms IS NULL
         ORDER BY occurred_at DESC
     """)
     fun observeByRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE wallet_id = :walletId ORDER BY occurred_at DESC")
+    @Query("SELECT * FROM transactions WHERE wallet_id = :walletId AND deleted_at_epoch_ms IS NULL ORDER BY occurred_at DESC")
     fun observeByWallet(walletId: Long): Flow<List<TransactionEntity>>
 
     @Query("""
         SELECT * FROM transactions
         WHERE wallet_id = :walletId
         AND occurred_at BETWEEN :startMillis AND :endMillis
+        AND deleted_at_epoch_ms IS NULL
         ORDER BY occurred_at DESC
     """)
     fun observeByWalletAndRange(walletId: Long, startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
@@ -40,17 +42,39 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM transactions WHERE remote_id = :remoteId LIMIT 1")
+    suspend fun getByRemoteId(remoteId: String): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE operation_id = :operationId LIMIT 1")
+    suspend fun getByOperationId(operationId: String): TransactionEntity?
+
     @Query("SELECT * FROM transactions WHERE transfer_group_id = :groupId")
     suspend fun getByTransferGroupId(groupId: String): List<TransactionEntity>
 
-    @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE wallet_id = :walletId AND (is_internal_transfer = 1 OR transfer_group_id IS NOT NULL))")
+    @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE wallet_id = :walletId AND deleted_at_epoch_ms IS NULL AND (is_internal_transfer = 1 OR transfer_group_id IS NOT NULL))")
     suspend fun hasInternalTransfer(walletId: Long): Boolean
 
-    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+    @Query("SELECT * FROM transactions WHERE id = :id AND deleted_at_epoch_ms IS NULL LIMIT 1")
     fun observeById(id: Long): Flow<TransactionEntity?>
 
     @Upsert
     suspend fun upsert(entity: TransactionEntity): Long
+
+    @Query(
+        """
+        UPDATE transactions
+        SET deleted_at_epoch_ms = :deletedAtEpochMs,
+            updated_at_epoch_ms = :updatedAtEpochMs,
+            sync_status = :syncStatus
+        WHERE id = :id
+        """,
+    )
+    suspend fun markSoftDeleted(
+        id: Long,
+        deletedAtEpochMs: Long,
+        updatedAtEpochMs: Long,
+        syncStatus: String,
+    )
 
     @Query("DELETE FROM transactions WHERE id = :id AND is_internal_transfer = 0 AND transfer_group_id IS NULL")
     suspend fun delete(id: Long)
@@ -66,6 +90,7 @@ interface TransactionDao {
         SELECT * FROM transactions
         WHERE note LIKE '%' || :noteKeyword || '%'
         AND occurred_at BETWEEN :startMillis AND :endMillis
+        AND deleted_at_epoch_ms IS NULL
         ORDER BY occurred_at DESC
         LIMIT 5
     """)
@@ -76,7 +101,7 @@ interface TransactionDao {
     ): List<TransactionEntity>
 
     /** Returns only occurred_at timestamps for streak calculation (lightweight). */
-    @Query("SELECT occurred_at FROM transactions ORDER BY occurred_at DESC")
+    @Query("SELECT occurred_at FROM transactions WHERE deleted_at_epoch_ms IS NULL ORDER BY occurred_at DESC")
     fun observeAllOccurredDates(): Flow<List<Long>>
 
     /** Transactions since [sinceMillis] excluding internal transfers (for charts). */
@@ -84,6 +109,7 @@ interface TransactionDao {
         SELECT * FROM transactions
         WHERE occurred_at >= :sinceMillis
         AND is_internal_transfer = 0
+        AND deleted_at_epoch_ms IS NULL
         ORDER BY occurred_at ASC
     """)
     fun observeRecentNonTransfers(sinceMillis: Long): Flow<List<TransactionEntity>>
@@ -102,6 +128,7 @@ interface TransactionDao {
                 THEN amount_cents ELSE 0 END), 0) AS monthExpenseCents,
             COUNT(*) AS txCount
         FROM transactions
+        WHERE deleted_at_epoch_ms IS NULL
         GROUP BY wallet_id
     """)
     fun observeWalletStats(

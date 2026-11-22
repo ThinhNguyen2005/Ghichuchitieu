@@ -55,6 +55,8 @@ data class AssetsUiState(
     val adjustBalanceWallet: WalletAssetItem? = null,
     val selectedPurpose: WalletPurpose? = null,
     val excludedWalletCount: Int = 0,
+    val isCloudConfigured: Boolean = false,
+    val isSharedActionSubmitting: Boolean = false,
 )
 
 /**
