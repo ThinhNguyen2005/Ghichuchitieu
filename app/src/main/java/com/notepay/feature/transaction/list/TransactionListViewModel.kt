@@ -10,6 +10,7 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
@@ -50,9 +51,11 @@ class TransactionListViewModel internal constructor(
     private val ioDispatcher: CoroutineDispatcher,
     private val savedStateHandle: SavedStateHandle,
     private val appSettingsDataStore: AppSettingsDataStore? = null,
+    private val sharedWalletRepository: SharedWalletRepository? = null,
     private val getString: (Int) -> String,
 ) : ViewModel() {
 
+    @Suppress("LongParameterList")
     @Inject
     constructor(
         getTransactions: GetTransactionsUseCase,
@@ -60,6 +63,7 @@ class TransactionListViewModel internal constructor(
         addTransaction: AddTransactionUseCase,
         walletRepository: WalletRepository,
         appSettingsDataStore: AppSettingsDataStore,
+        sharedWalletRepository: SharedWalletRepository,
         savedStateHandle: SavedStateHandle,
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
@@ -71,6 +75,7 @@ class TransactionListViewModel internal constructor(
         ioDispatcher = ioDispatcher,
         savedStateHandle = savedStateHandle,
         appSettingsDataStore = appSettingsDataStore,
+        sharedWalletRepository = sharedWalletRepository,
         getString = context::getString,
     )
 
@@ -98,6 +103,7 @@ class TransactionListViewModel internal constructor(
         walletRepository.observeAll()
     ) { transactions, currentFilters, action, wallets ->
         val walletsMap = wallets.associate { it.id to it.name }
+        val walletsById = wallets.associateBy { it.id }
         val filtered = filterTransactions(transactions, currentFilters, getString)
 
         // Calculate summary
@@ -131,6 +137,8 @@ class TransactionListViewModel internal constructor(
             selectedWalletId = currentFilters.selectedWalletId,
             wallets = wallets,
             walletsMap = walletsMap,
+            walletsById = walletsById,
+            currentUserId = sharedWalletRepository?.currentUserId(),
             selectedDateRangePreset = currentFilters.dateRangePreset,
             customStartDate = currentFilters.customStartDate,
             customEndDate = currentFilters.customEndDate,

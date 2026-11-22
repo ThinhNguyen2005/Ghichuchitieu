@@ -2,6 +2,7 @@ package com.notepay.data.mapper
 
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.domain.model.Category
+import com.notepay.domain.model.SyncStatus
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -22,6 +23,13 @@ class TransactionMapper @Inject constructor() {
         isInternalTransfer = entity.isInternalTransfer,
         transferGroupId = entity.transferGroupId,
         createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
+        remoteId = entity.remoteId,
+        operationId = entity.operationId,
+        syncStatus = SyncStatus.fromString(entity.syncStatus),
+        createdByUserId = entity.createdByUserId,
+        createdByName = entity.createdByName,
+        updatedAtEpochMs = entity.updatedAtEpochMs,
+        deletedAtEpochMs = entity.deletedAtEpochMs,
     )
 
     fun toEntity(transaction: Transaction): TransactionEntity = TransactionEntity(
@@ -36,5 +44,12 @@ class TransactionMapper @Inject constructor() {
         isInternalTransfer = transaction.isInternalTransfer,
         transferGroupId = transaction.transferGroupId,
         createdAt = transaction.createdAt.toEpochMilliseconds(),
+        remoteId = transaction.remoteId,
+        operationId = transaction.operationId,
+        syncStatus = transaction.syncStatus.name,
+        createdByUserId = transaction.createdByUserId,
+        createdByName = transaction.createdByName,
+        updatedAtEpochMs = transaction.updatedAtEpochMs,
+        deletedAtEpochMs = transaction.deletedAtEpochMs,
     )
 }

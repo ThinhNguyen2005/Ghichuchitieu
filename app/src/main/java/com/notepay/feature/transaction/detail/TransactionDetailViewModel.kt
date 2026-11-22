@@ -5,8 +5,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,6 +27,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     savedStateHandle: SavedStateHandle,
     @param:ApplicationContext private val context: Context,
+    private val sharedWalletRepository: SharedWalletRepository? = null,
 ) : ViewModel() {
 
     /**
@@ -69,11 +72,21 @@ class TransactionDetailViewModel @Inject constructor(
                     }
                 }
                 .collect { tx ->
-                    val walletName = tx?.let { walletRepository.getById(it.walletId)?.name }
+                    val wallet = tx?.let { walletRepository.getById(it.walletId) }
+                    val canEdit = if (tx == null || wallet == null) {
+                        true
+                    } else {
+                        SharedWalletPermissionGuard.canEditTransaction(
+                            wallet = wallet,
+                            transaction = tx,
+                            currentUserId = sharedWalletRepository?.currentUserId(),
+                        )
+                    }
                     _state.update {
                         it.copy(
                             transaction = tx,
-                            walletName = walletName,
+                            walletName = wallet?.name,
+                            canEdit = canEdit,
                             isLoading = false,
                             error = if (tx == null) context.getString(R.string.error_transaction_not_found) else null,
                         )

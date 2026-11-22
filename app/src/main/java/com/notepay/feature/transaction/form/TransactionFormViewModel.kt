@@ -23,6 +23,8 @@ import com.notepay.domain.natural.NaturalTransactionDraft
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.shared.SharedWalletPermissionDeniedException
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import com.notepay.feature.transaction.component.CalcKey
@@ -127,12 +129,18 @@ class TransactionFormViewModel @Inject constructor(
 
     private fun loadWallets() {
         viewModelScope.launch(ioDispatcher) {
-            val wallets = walletRepository.observeAll().first()
+            val allWallets = walletRepository.observeAll().first()
+            val writableWallets = if (isEditMode) {
+                allWallets
+            } else {
+                allWallets.filter { SharedWalletPermissionGuard.canAddTransaction(it) }
+            }
             val activeWallet = walletRepository.observeActive().first()
+                ?.takeIf { isEditMode || SharedWalletPermissionGuard.canAddTransaction(it) }
             _state.update {
                 it.copy(
-                    availableWallets = wallets,
-                    walletId = it.walletId ?: activeWallet?.id ?: wallets.firstOrNull()?.id,
+                    availableWallets = writableWallets,
+                    walletId = it.walletId ?: activeWallet?.id ?: writableWallets.firstOrNull()?.id,
                 )
             }
         }
@@ -260,6 +268,11 @@ class TransactionFormViewModel @Inject constructor(
         val walletId = current.walletId ?: current.availableWallets.firstOrNull()?.id
         if (walletId == null) {
             _feedback.tryEmit(UiFeedback(context.getString(R.string.transaction_validation_wallet), type = FeedbackType.Error))
+            return
+        }
+        val selectedWallet = current.availableWallets.firstOrNull { it.id == walletId }
+        if (selectedWallet != null && !SharedWalletPermissionGuard.canAddTransaction(selectedWallet)) {
+            _feedback.tryEmit(UiFeedback(context.getString(R.string.shared_wallet_viewer_cannot_write), type = FeedbackType.Error))
             return
         }
         if (drafts.isEmpty()) return
@@ -572,7 +585,12 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_saved), type = FeedbackType.Success))
             } else {
-                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_save_failed), type = FeedbackType.Error))
+                val errMsgRes = if (result.exceptionOrNull() is SharedWalletPermissionDeniedException) {
+                    R.string.shared_wallet_viewer_cannot_write
+                } else {
+                    R.string.feedback_transaction_save_failed
+                }
+                _feedback.emit(UiFeedback(context.getString(errMsgRes), type = FeedbackType.Error))
             }
         }
     }
@@ -614,7 +632,12 @@ class TransactionFormViewModel @Inject constructor(
                     note = if (current.isAutoCapture) tx.note else current.note,
                     occurredAt = newOccurredAt,
                 )
-                transactionRepository.upsert(updated)
+                val targetWallet = current.availableWallets.firstOrNull { it.id == tx.walletId }
+                if (targetWallet?.isShared == true) {
+                    addTransactionUseCase(updated).getOrThrow()
+                } else {
+                    transactionRepository.upsert(updated)
+                }
                 suggestCategoryUseCase.learn(
                     note = updated.note.trim(),
                     categoryId = updated.category.id,
@@ -625,6 +648,9 @@ class TransactionFormViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 _state.update { it.copy(isSaving = false) }
                 throw e
+            } catch (e: SharedWalletPermissionDeniedException) {
+                _state.update { it.copy(isSaving = false) }
+                _feedback.emit(UiFeedback(context.getString(R.string.shared_wallet_viewer_cannot_write), type = FeedbackType.Error))
             } catch (e: Exception) {
                 _state.update { it.copy(isSaving = false) }
                 _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_update_failed), type = FeedbackType.Error))

@@ -8,6 +8,7 @@ import com.notepay.ai.LegacyAiModelCleaner
 import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
@@ -47,6 +48,7 @@ class HomeViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
+    private val sharedWalletRepository: SharedWalletRepository? = null,
 ) : ViewModel() {
 
     fun deleteTransaction(transactionId: Long) {
@@ -214,6 +216,7 @@ class HomeViewModel @Inject constructor(
                 dueRemindersCount = dueCount,
                 streakDays = streak,
                 isSmartInsightsDismissed = isDismissed,
+                currentUserId = sharedWalletRepository?.currentUserId(),
             )
         }
     }.stateIn(

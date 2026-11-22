@@ -27,6 +27,15 @@ interface WalletDao {
     @Query("SELECT * FROM wallets WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): WalletEntity?
 
+    @Query("SELECT * FROM wallets WHERE remote_id = :remoteId LIMIT 1")
+    suspend fun getByRemoteId(remoteId: String): WalletEntity?
+
+    @Query("SELECT * FROM wallets WHERE is_shared = 1 ORDER BY created_at ASC")
+    suspend fun getSharedWallets(): List<WalletEntity>
+
+    @Query("SELECT * FROM wallets WHERE is_shared = 1 ORDER BY created_at ASC")
+    fun observeSharedWallets(): Flow<List<WalletEntity>>
+
     @Upsert
     suspend fun upsert(entity: WalletEntity): Long
 

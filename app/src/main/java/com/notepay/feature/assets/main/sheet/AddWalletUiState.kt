@@ -2,6 +2,7 @@ package com.notepay.feature.assets.main.sheet
 
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.VietQrBank
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
 
@@ -34,6 +35,10 @@ data class AddWalletUiState(
     val currencyCode: String = "VND",
     val creditLimitInput: String = "",
     val isArchived: Boolean = false,
+    val purpose: WalletPurpose = WalletPurpose.PERSONAL,
+    val targetAmountInput: String = "",
+    val targetDateEpochDay: Long? = null,
+    val includeInTotalBalance: Boolean = true,
 ) {
     val hasBankInfo: Boolean
         get() = !bankBin.isNullOrBlank() || accountNumber.isNotBlank() || accountName.isNotBlank()

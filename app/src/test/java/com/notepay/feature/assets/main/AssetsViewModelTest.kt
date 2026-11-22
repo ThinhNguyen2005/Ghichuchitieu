@@ -9,6 +9,7 @@ import com.notepay.data.remote.CurrencyRateRepository
 import com.notepay.data.remote.CurrencyRateSnapshot
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.TransactionRepository
@@ -181,6 +182,62 @@ class AssetsViewModelTest {
             walletRepository.upsert(
                 match { it.id == 55L && it.initialBalance == Money(12_000_000_00L) }
             )
+        }
+    }
+
+    @Test
+    fun `totalNetWorth and totalAssetsVnd exclude wallets with includeInTotalBalance false and filter by purpose`() = runTest {
+        val personalWallet = Wallet(
+            id = 1L,
+            name = "Ví cá nhân",
+            initialBalance = Money.fromMajorUnit(10_000_000L),
+            iconKey = "cash",
+            colorKey = "primary",
+            purpose = WalletPurpose.PERSONAL,
+            includeInTotalBalance = true,
+        )
+        val businessWallet = Wallet(
+            id = 2L,
+            name = "Ví kinh doanh shop",
+            initialBalance = Money.fromMajorUnit(50_000_000L),
+            iconKey = "business",
+            colorKey = "secondary",
+            purpose = WalletPurpose.BUSINESS,
+            includeInTotalBalance = false,
+        )
+
+        coEvery { walletRepository.observeAll() } returns flowOf(listOf(personalWallet, businessWallet))
+        coEvery { transactionRepository.observeWalletStats(any(), any()) } returns flowOf(emptyList())
+        coEvery { transactionRepository.observeRecentNonTransfers(any()) } returns flowOf(emptyList())
+        coEvery { getDebtSummaryUseCase() } returns flowOf(DebtSummary(Money.ZERO, Money.ZERO, Money.ZERO, 0, 0, 0))
+        coEvery { currencyRateRepository.getVndRates() } returns CurrencyRateSnapshot("VND", emptyMap(), "", 0L)
+
+        val viewModel = AssetsViewModel(
+            context = context,
+            walletRepository = walletRepository,
+            transactionRepository = transactionRepository,
+            getDebtSummaryUseCase = getDebtSummaryUseCase,
+            transferBetweenWalletsUseCase = transferBetweenWalletsUseCase,
+            currencyRateRepository = currencyRateRepository,
+        )
+
+        viewModel.state.test {
+            var current = awaitItem()
+            while (current.isLoading) {
+                current = awaitItem()
+            }
+
+            // Business wallet (50M) has includeInTotalBalance = false -> personal total remains 10M
+            assertThat(current.totalAssetsVnd).isEqualTo(Money.fromMajorUnit(10_000_000L))
+            assertThat(current.totalNetWorth).isEqualTo(Money.fromMajorUnit(10_000_000L))
+            assertThat(current.excludedWalletCount).isEqualTo(1)
+            assertThat(current.assetWallets).hasSize(2)
+
+            viewModel.onPurposeFilterChanged(WalletPurpose.BUSINESS)
+            val filtered = awaitItem()
+            assertThat(filtered.selectedPurpose).isEqualTo(WalletPurpose.BUSINESS)
+            assertThat(filtered.assetWallets.map { it.wallet.id }).containsExactly(2L)
+            assertThat(filtered.wallets).hasSize(2)
         }
     }
 }

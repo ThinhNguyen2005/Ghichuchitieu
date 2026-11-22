@@ -35,6 +35,8 @@ data class TransactionListUiState(
     val selectedWalletId: Long? = null,
     val wallets: List<Wallet> = emptyList(),
     val walletsMap: Map<Long, String> = emptyMap(),
+    val walletsById: Map<Long, Wallet> = emptyMap(),
+    val currentUserId: String? = null,
 
     // Date range filter
     val selectedDateRangePreset: DateRangePreset = DateRangePreset.ALL_TIME,

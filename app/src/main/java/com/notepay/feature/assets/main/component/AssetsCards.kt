@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Sync
@@ -72,7 +73,16 @@ import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.model.SharedWalletRole
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.money.Money
+import com.notepay.domain.shared.SharedWalletPermissionGuard
+import com.notepay.feature.assets.shared.RoleBadge
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
+import kotlin.time.Instant
 import com.notepay.feature.assets.main.AllocationMode
 import com.notepay.feature.assets.main.AllocationSegment
 import com.notepay.feature.assets.main.WalletAllocationItem
@@ -583,6 +593,7 @@ internal fun WalletAssetCard(
     onSetDefault: () -> Unit,
     onPayCard: (() -> Unit)? = null,
     onAdjustBalance: (() -> Unit)? = null,
+    onManageMembers: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val performHaptic = rememberNotePayHaptic()
@@ -702,6 +713,46 @@ internal fun WalletAssetCard(
                             )
                         }
 
+                        if (wallet.isShared) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            RoleBadge(role = wallet.sharedRole ?: SharedWalletRole.VIEWER)
+                        }
+
+                        if (wallet.purpose != WalletPurpose.PERSONAL && !wallet.isShared) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = AppTheme.shapes.corner12,
+                                color = AppTheme.colors.sand.copy(alpha = 0.35f),
+                            ) {
+                                Text(
+                                    text = stringResource(WalletUiHelper.getPurposeTitleRes(wallet.purpose)),
+                                    style = AppTheme.typography.labelSmall,
+                                    color = AppTheme.colors.onSand,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        if (!wallet.includeInTotalBalance) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = AppTheme.shapes.corner12,
+                                color = AppTheme.colors.surfaceSunken,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.wallet_excluded_from_total_badge),
+                                    style = AppTheme.typography.labelSmall,
+                                    color = AppTheme.colors.textSecondary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.width(AppTheme.dimensions.spaceSmall))
 
                         if (wallet.isActive) {
@@ -753,15 +804,17 @@ internal fun WalletAssetCard(
                     }
                 }
 
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(AppTheme.dimensions.minTouchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit,
-                        contentDescription = stringResource(R.string.action_edit_wallet),
-                        tint = AppTheme.colors.textSecondary,
-                    )
+                if (!wallet.isShared || SharedWalletPermissionGuard.canManageMembers(wallet)) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(AppTheme.dimensions.minTouchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = stringResource(R.string.action_edit_wallet),
+                            tint = AppTheme.colors.textSecondary,
+                        )
+                    }
                 }
             }
 
@@ -809,6 +862,74 @@ internal fun WalletAssetCard(
                         .clip(AppTheme.shapes.capsule),
                     color = colorValue,
                     trackColor = colorValue.copy(alpha = 0.12f),
+                )
+            }
+
+            // Thanh tiến độ mục tiêu (SAVINGS_GOAL / TRAVEL)
+            val targetAmount = wallet.targetAmount
+            if (wallet.purpose.supportsGoalTarget && targetAmount != null && targetAmount.amountInCents > 0L) {
+                Spacer(modifier = Modifier.height(10.dp))
+                val ratio = (item.balance.amountInCents.toFloat() / targetAmount.amountInCents.toFloat())
+                    .coerceIn(0f, 1f)
+                val pctInt = (ratio * 100f).roundToInt()
+                val formattedCurrent = if (isForeign) {
+                    CurrencyConverter.formatForeignAmount(item.balance.amountInCents, wallet.currencyCode)
+                } else {
+                    MoneyFormatter.format(item.balance)
+                }
+                val formattedTarget = if (isForeign) {
+                    CurrencyConverter.formatForeignAmount(targetAmount.amountInCents, wallet.currencyCode)
+                } else {
+                    MoneyFormatter.format(targetAmount)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.wallet_goal_progress_format,
+                            formattedCurrent,
+                            formattedTarget,
+                            pctInt,
+                        ),
+                        style = AppTheme.typography.labelMedium,
+                        color = AppTheme.colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    wallet.targetDateEpochDay?.let { epochDay ->
+                        val dueDate = Instant.fromEpochMilliseconds(epochDay * 86_400_000L)
+                            .toLocalDateTime(TimeZone.UTC).date
+                        val dueLabel = String.format(
+                            Locale.ROOT,
+                            "%02d/%02d/%04d",
+                            dueDate.day,
+                            dueDate.month.number,
+                            dueDate.year,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.wallet_goal_due_format, dueLabel),
+                            style = AppTheme.typography.labelSmall,
+                            color = AppTheme.colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { ratio },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(AppTheme.shapes.capsule),
+                    color = AppTheme.colors.sand,
+                    trackColor = AppTheme.colors.surfaceSunken,
                 )
             }
 
@@ -912,18 +1033,39 @@ internal fun WalletAssetCard(
                 }
             }
 
-            // Hàng Action nhanh (Thanh toán thẻ / Cập nhật số dư / Đặt làm ví chính)
+            // Hàng Action nhanh (Thanh toán thẻ / Cập nhật số dư / Thành viên / Đặt làm ví chính)
             val canPayCard = wallet.type.isCreditCardOrLine && item.balance.amountInCents < 0L && onPayCard != null
             val canAdjustBalance = (wallet.type.isInvestment || wallet.type.name == "SAVINGS") && onAdjustBalance != null
+            val canShowMembers = wallet.isShared && onManageMembers != null
             val canSetDefault = !wallet.isActive && !wallet.isArchived
 
-            if (canPayCard || canAdjustBalance || canSetDefault) {
+            if (listOf(canPayCard, canAdjustBalance, canShowMembers, canSetDefault).any { it }) {
                 Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (canShowMembers) {
+                        OutlinedButton(
+                            onClick = { onManageMembers() },
+                            shape = AppTheme.shapes.capsule,
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Group,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.shared_wallet_members_action),
+                                style = AppTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
                     if (canPayCard) {
                         OutlinedButton(
                             onClick = { onPayCard() },

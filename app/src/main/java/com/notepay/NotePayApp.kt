@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.notepay.worker.NotificationWatchdog
 import com.notepay.worker.ReminderScheduler
+import com.notepay.worker.SharedWalletSyncWorker
 import com.notepay.worker.SubscriptionReminderWorker
 import com.notepay.core.platform.LocaleHelper
 import dagger.hilt.android.HiltAndroidApp
@@ -46,6 +47,7 @@ class NotePayApp : Application(), Configuration.Provider {
                     SubscriptionReminderWorker.schedule(applicationContext)
                     ReminderScheduler.scheduleDailyReminder(applicationContext)
                     NotificationWatchdog.schedule(applicationContext)
+                    SharedWalletSyncWorker.schedulePeriodic(applicationContext)
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
                 } catch (e: Throwable) {

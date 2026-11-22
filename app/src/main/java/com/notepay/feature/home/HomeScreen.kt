@@ -152,6 +152,8 @@ fun HomeScreen(
 
     // Tra tên ví O(1) thay vì find{} cho từng dòng giao dịch.
     val walletNames = remember(state.wallets) { state.wallets.associate { it.id to it.name } }
+    val walletsById = remember(state.wallets) { state.wallets.associateBy { it.id } }
+    val effectiveUserId = state.currentUserId ?: authUiState.user?.uid
     // Gom giao dịch gần đây theo ngày để hiển thị thành từng thẻ nhóm như sổ tay.
     val dayGroups = rememberHomeDayGroups(state.recentTransactions)
 
@@ -312,6 +314,8 @@ fun HomeScreen(
                                             HomeDaySection(
                                                 group = group,
                                                 walletNames = walletNames,
+                                                walletsById = walletsById,
+                                                currentUserId = effectiveUserId,
                                                 hapticEnabled = hapticFeedbackEnabled,
                                                 onTransactionClick = onTransactionClick,
                                                 onEditTransaction = onEditTransaction,
@@ -403,6 +407,8 @@ fun HomeScreen(
                                     HomeDaySection(
                                         group = group,
                                         walletNames = walletNames,
+                                        walletsById = walletsById,
+                                        currentUserId = effectiveUserId,
                                         hapticEnabled = hapticFeedbackEnabled,
                                         onTransactionClick = onTransactionClick,
                                         onEditTransaction = onEditTransaction,
