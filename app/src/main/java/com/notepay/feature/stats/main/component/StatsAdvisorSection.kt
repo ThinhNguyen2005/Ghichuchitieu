@@ -62,9 +62,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.notepay.R
 import com.notepay.core.designsystem.component.button.LiquidButton
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.domain.analytics.AdvisorAvailability
@@ -111,12 +111,15 @@ internal fun SpendingPredictionCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
         shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = AppTheme.colors.surface,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -181,9 +184,9 @@ internal fun SpendingPredictionCard(
 
             Text(
                 text = Money(prediction.predictedMonthTotalInCents).formatOrMask(showAmounts),
-                style = AppTheme.typography.amountCard.copy(fontSize = 30.sp),
+                style = AppTheme.typography.headlineMedium.tabularNums,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppTheme.colors.textPrimary,
             )
 
             Text(
@@ -193,11 +196,11 @@ internal fun SpendingPredictionCard(
                     Money(prediction.upperBoundInCents).formatOrMask(showAmounts),
                 ),
                 style = MaterialTheme.typography.bodySmall.tabularNums,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppTheme.colors.textSecondary,
             )
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                color = AppTheme.colors.hairline,
             )
 
             Text(
@@ -211,7 +214,7 @@ internal fun SpendingPredictionCard(
                     R.string.stats_probability_no_limit_format,
                     prediction.observedDays,
                 ),
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                style = AppTheme.typography.labelMedium,
                 color = AppTheme.colors.textSecondary,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -706,12 +709,14 @@ private fun InsightCard(
     Card(
         modifier = modifier
             .heightIn(min = 220.dp)
+            .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false)
             .animateContentSize(),
         shape = AppTheme.shapes.corner20,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = AppTheme.colors.surface,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier

@@ -33,7 +33,8 @@ fun WalletAppIcon(
     wallet: Wallet,
     modifier: Modifier = Modifier,
     iconSize: Dp = 24.dp,
-    tint: Color? = null
+    tint: Color? = null,
+    contentDescription: String? = wallet.name,
 ) {
     val context = LocalContext.current
     val initialLookup = remember(wallet.linkedPackageName, wallet.bankBin) {
@@ -59,7 +60,7 @@ fun WalletAppIcon(
     if (bankDrawable != null) {
         AsyncImage(
             model = bankDrawable,
-            contentDescription = wallet.name,
+            contentDescription = contentDescription,
             modifier = modifier
                 .size(iconSize)
                 .clip(CircleShape)
@@ -70,7 +71,7 @@ fun WalletAppIcon(
         
         Icon(
             imageVector = iconVector,
-            contentDescription = wallet.name,
+            contentDescription = contentDescription,
             tint = tintColor,
             modifier = modifier.size(iconSize)
         )

@@ -1695,4 +1695,77 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="shared_wallet_viewer_readonly_hint">View-only access — only the Owner or the Editor who created this transaction can edit it.</string>
     <string name="shared_wallet_viewer_cannot_write">This shared wallet is view-only; you cannot add or edit transactions.</string>
     <string name="shared_wallet_not_found">Shared wallet not found</string>
+
+    <!-- Stats & Assets UX/UI redesign -->
+    <string name="stats_net_balance_label">Net cash flow</string>
+    <string name="stats_jump_to_current_period">Jump to current period</string>
+    <string name="assets_allocation_title">Wallet allocation</string>
+    <string name="assets_allocation_tab_asset">Assets</string>
+    <string name="assets_allocation_tab_liability">Debt</string>
+    <string name="percent_change_positive_cap">+999%+</string>
+    <string name="percent_change_negative_cap">-999%+</string>
+    <string name="shared_wallet_error_name_required">Please enter a shared wallet name</string>
+    <string name="shared_wallet_error_code_invalid">Invite code must be at least 6 characters</string>
+    <string name="wallet_adjust_error_invalid">Please enter a valid amount</string>
+
+    <!-- iOS Home Redesign, Background Customization & Diverse Smart Tips -->
+    <string name="home_customize_action">Customize Home</string>
+    <string name="home_customize_title">Customize Home</string>
+    <string name="home_bg_section_title">Home Background</string>
+    <string name="home_bg_pick_photo">Choose photo from gallery</string>
+    <string name="home_bg_change_photo">Change photo</string>
+    <string name="home_bg_remove_photo">Reset background</string>
+    <string name="home_bg_blur_title">Softly blur background photo</string>
+    <string name="home_bg_blur_desc">Keeps your balance card and recent transactions crisp and legible</string>
+    <string name="home_bg_photo_saved">Home background updated</string>
+    <string name="home_bg_photo_error">Unable to load selected photo. Please try another image.</string>
+    <string name="home_bg_preset_warm_silk">Warm Silk</string>
+    <string name="home_bg_preset_ocean_mist">Ocean Mist</string>
+    <string name="home_bg_preset_sage_morning">Sage Morning</string>
+    <string name="home_bg_preset_sunset_bloom">Sunset Bloom</string>
+    <string name="home_bg_preset_aurora_lavender">Aurora Lavender</string>
+    <string name="home_bg_preset_minimal_canvas">iOS Minimal</string>
+    <string name="home_widgets_section_title">Home Widgets</string>
+    <string name="home_show_smart_tips_title">Smart Financial Tips</string>
+    <string name="home_show_smart_tips_desc">Show personalized spending and saving insights on Home</string>
+    <string name="home_tip_next_cd">Next tip</string>
+    <string name="home_tip_counter_format">%1$d/%2$d</string>
+    <string name="home_tip_domain_spending">Spending</string>
+    <string name="home_tip_domain_savings">Savings</string>
+    <string name="home_tip_domain_budget">Budget</string>
+    <string name="home_tip_domain_habit">Habit</string>
+    <string name="home_tip_domain_subscription">Recurring</string>
+    <string name="home_tip_domain_wallet">Wallets</string>
+    <string name="home_tip_top_category_title">%1$s is %2$d%% of monthly spend</string>
+    <string name="home_tip_top_category_desc">You have spent %1$s on this category this month. Setting a dedicated limit or trimming 10–15%% can help rebalance.</string>
+    <string name="home_tip_savings_high_title">Saving %1$d%% of your income so far</string>
+    <string name="home_tip_savings_high_desc">A positive net flow of %1$s this month is strong momentum. Consider moving part of it into your emergency or goal savings.</string>
+    <string name="home_tip_deficit_title">Spending exceeds income this month</string>
+    <string name="home_tip_deficit_desc">Expenses currently exceed income by %1$s. Pausing non-essential purchases until your next payday will help close the gap.</string>
+    <string name="home_tip_subscriptions_due_title">%1$d recurring payments due soon</string>
+    <string name="home_tip_subscriptions_due_desc">Review your upcoming subscriptions so your wallet stays funded for auto-pay or cancel services you no longer need.</string>
+    <string name="home_tip_small_expenses_title">%1$d small purchases add up fast</string>
+    <string name="home_tip_small_expenses_desc">Small purchases under 100,000 VND now total %1$s this month. Watching small daily buys is one of the easiest ways to save more.</string>
+    <string name="home_tip_set_budget_title">Set a monthly budget for your wallet</string>
+    <string name="home_tip_set_budget_desc">\"%1$s\" does not have a monthly spending limit yet. Adding a budget unlocks early overspending alerts on the home screen.</string>
+    <string name="home_tip_streak_title">Keeping a %1$d-day logging streak alive</string>
+    <string name="home_tip_streak_desc">Logging your finances every day builds clarity and helps you spot subtle spending leaks well before month-end.</string>
+    <string name="home_tip_concentrated_wallet_title">%1$d%% of your balance sits in one wallet</string>
+    <string name="home_tip_concentrated_wallet_desc">\"%1$s\" holds most of your positive balance. Separating a savings wallet helps protect reserve funds from everyday spending.</string>
+    <string name="home_tip_rule_503020_title">Try the 50 / 30 / 20 cashflow rule</string>
+    <string name="home_tip_rule_503020_desc" formatted="false">Aim for roughly 50% on essentials, 30% on personal wants, and at least 20% toward savings or debt reduction.</string>
+    <string name="home_tip_emergency_fund_title">Build a 3–6 month emergency buffer</string>
+    <string name="home_tip_emergency_fund_desc">Keeping three to six months of essential living expenses in a dedicated reserve protects you from unexpected shocks.</string>
+    <string name="home_tip_wait_24h_title">Use the 24-hour cooling-off rule</string>
+    <string name="home_tip_wait_24h_desc">For unplanned purchases, wait 24 hours before paying to separate genuine needs from impulse buys.</string>
+    <string name="home_tip_pay_yourself_title">Pay yourself first on payday</string>
+    <string name="home_tip_pay_yourself_desc">Move your target savings into a separate wallet as soon as income arrives instead of saving only what is left over.</string>
+    <string name="home_tip_audit_subs_title">Audit recurring subscriptions monthly</string>
+    <string name="home_tip_audit_subs_desc">Auto-renewing apps and memberships add silent drag. Spend five minutes a month pruning subscriptions you rarely open.</string>
+    <string name="home_tip_weekly_review_title">Do a 5-minute Sunday money check-in</string>
+    <string name="home_tip_weekly_review_desc">Scanning your top spending categories and reconciling wallet balances once a week keeps your budget on track.</string>
+    <string name="home_tip_separate_wallets_title">Separate daily spend from savings wallets</string>
+    <string name="home_tip_separate_wallets_desc">Keeping everyday spending money separate from savings ensures your available balance accurately reflects what you can spend.</string>
+    <string name="home_tip_log_now_title">Log transactions right after paying</string>
+    <string name="home_tip_log_now_desc">Taking a few seconds right after paying keeps small daily expenses from slipping through the cracks.</string>
 </resources>

@@ -24,11 +24,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -36,17 +41,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkRim
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
+import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
+import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
+import com.notepay.core.designsystem.theme.NotePayTheme
 import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.theme.NotePayTheme
-import com.notepay.core.designsystem.formatter.MoneyFormatter
 
 /**
- * Thẻ tổng quan nợ v4 Sand & Ink:
- * - Khi [isHero] = true (màn Quản lý nợ): nền thẻ ink bo 28dp phẳng, viền 1px ở dark mode.
- * - Khi [isHero] = false (nhúng phụ trên màn Tài sản): hạ cấp sang `surfaceContainerHigh`
- *   để nhường vị trí thẻ Ink tâm điểm duy nhất cho `AssetsInkHeroCard`.
+ * Debt overview card v5 (Luminous iOS & Atmospheric Canvas):
+ * Uses a luminous gradient elevated hero surface when [isHero] = true, and a clean surface card
+ * with soft iOS shadow when [isHero] = false.
  */
 @Composable
 fun DebtSummaryCard(
@@ -55,35 +66,39 @@ fun DebtSummaryCard(
     onClick: (() -> Unit)? = null,
     isHero: Boolean = onClick == null,
 ) {
-    val isLight = AppTheme.colors.isLight
-    val cardContainerColor = if (isHero) {
-        AppTheme.colors.ink
+    val colors = AppTheme.colors
+    val isLight = colors.isLight
+    val isLargeFont = LocalDensity.current.fontScale >= 1.45f
+    val cardShape = AppTheme.shapes.corner28
+
+    val heroGradient = remember(isLight) {
+        val top = if (isLight) HomeHeroCardLightTop else HomeHeroCardDarkTop
+        val bottom = if (isLight) HomeHeroCardLightBottom else HomeHeroCardDarkBottom
+        Brush.verticalGradient(listOf(top, bottom))
+    }
+    val cardBorder = if (isHero) {
+        BorderStroke(1.dp, if (isLight) HomeHeroCardLightRim else HomeHeroCardDarkRim)
     } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        BorderStroke(0.5.dp, colors.hairline)
     }
-    val cardBorder = when {
-        isHero && !isLight -> BorderStroke(1.dp, AppTheme.colors.inkBorder)
-        !isHero -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-        else -> null
-    }
-    val iconBgColor = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.secondaryContainer
-    val iconTint = if (isHero) AppTheme.colors.sand else MaterialTheme.colorScheme.onSecondaryContainer
-    val titleColor = if (isHero) AppTheme.colors.onInk else AppTheme.colors.textPrimary
-    val mutedColor = if (isHero) AppTheme.colors.onInkMuted else AppTheme.colors.textSecondary
-    val collectColor = if (isHero) AppTheme.colors.onInkIncome else AppTheme.colors.success
-    val payColor = if (isHero) AppTheme.colors.onInkExpense else AppTheme.colors.error
-    val subTileBg = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.surfaceContainer
-    val ratioBarBg = if (isHero) AppTheme.colors.inkRaised else MaterialTheme.colorScheme.surfaceVariant
-    val ratioCollectColor = if (isHero) AppTheme.colors.sand else AppTheme.colors.primary
-    val ratioPayColor = if (isHero) AppTheme.colors.graphite else MaterialTheme.colorScheme.outline
+
+    val iconBgColor = if (isHero) colors.sand.copy(alpha = if (isLight) 0.42f else 0.24f) else colors.surfaceSunken
+    val iconTint = colors.textPrimary
+    val titleColor = colors.textPrimary
+    val mutedColor = colors.textSecondary
+    val collectColor = colors.success
+    val payColor = colors.error
+    val tileAlpha = if (isLight) 0.10f else 0.16f
+    val ratioBarBg = colors.surfaceSunken
 
     val clickLabel = stringResource(R.string.debt_nav_title)
     val baseModifier = modifier
         .fillMaxWidth()
+        .iosCardShadow(shape = cardShape, elevated = isHero)
         .semantics(mergeDescendants = true) {}
     val cardModifier = if (onClick != null) {
         baseModifier
-            .clip(AppTheme.shapes.corner28)
+            .clip(cardShape)
             .clickable(
                 role = Role.Button,
                 onClickLabel = clickLabel,
@@ -95,36 +110,36 @@ fun DebtSummaryCard(
 
     Card(
         modifier = cardModifier,
-        shape = AppTheme.shapes.corner28,
+        shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = cardContainerColor
+            containerColor = if (isHero) Color.Transparent else colors.surface,
         ),
         border = cardBorder,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (isHero) Modifier.background(heroGradient) else Modifier)
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header: Handshake Icon + Title + Net Balance + Optional Chevron
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(AppTheme.shapes.capsule)
                         .background(iconBgColor),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Handshake,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -133,23 +148,23 @@ fun DebtSummaryCard(
                         text = stringResource(R.string.debt_summary_card_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = titleColor
+                        color = titleColor,
                     )
                     if (summary != null) {
                         Text(
                             text = stringResource(
                                 R.string.debt_summary_net,
-                                MoneyFormatter.format(summary.netBalance)
+                                MoneyFormatter.format(summary.netBalance),
                             ),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontFeatureSettings = "tnum"
+                                fontFeatureSettings = "tnum",
                             ),
                             color = if (summary.netBalance.amountInCents >= 0) {
                                 collectColor
                             } else {
                                 payColor
                             },
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
@@ -158,12 +173,11 @@ fun DebtSummaryCard(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                         contentDescription = null,
                         tint = mutedColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
 
-            // Thanh tỉ lệ thu/trả
             val collectCents = summary?.totalToCollect?.amountInCents?.coerceAtLeast(0L) ?: 0L
             val payCents = summary?.totalToPay?.amountInCents?.coerceAtLeast(0L) ?: 0L
             val totalCents = collectCents + payCents
@@ -174,14 +188,14 @@ fun DebtSummaryCard(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(AppTheme.shapes.corner12)
-                        .background(ratioBarBg)
+                        .background(ratioBarBg),
                 ) {
                     if (collectCents > 0L) {
                         Box(
                             modifier = Modifier
                                 .weight(collectCents.toFloat())
                                 .fillMaxHeight()
-                                .background(ratioCollectColor)
+                                .background(collectColor),
                         )
                     }
                     if (payCents > 0L) {
@@ -189,7 +203,7 @@ fun DebtSummaryCard(
                             modifier = Modifier
                                 .weight(payCents.toFloat())
                                 .fillMaxHeight()
-                                .background(ratioPayColor)
+                                .background(payColor),
                         )
                     }
                 }
@@ -199,83 +213,100 @@ fun DebtSummaryCard(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(AppTheme.shapes.corner12)
-                        .background(ratioBarBg)
+                        .background(ratioBarBg),
                 )
             }
 
-            // Numbers: Cần thu & Cần trả
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Cần thu
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(AppTheme.shapes.corner16)
-                        .background(subTileBg)
-                        .padding(14.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                                contentDescription = null,
-                                tint = collectColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.debt_collect),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = mutedColor,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = summary?.let { MoneyFormatter.format(it.totalToCollect) }
-                                ?: MoneyFormatter.format(Money.ZERO),
-                            style = AppTheme.typography.amountCard,
-                            color = collectColor
-                        )
-                    }
-                }
+            val collectAmountText = summary?.let { MoneyFormatter.format(it.totalToCollect) }
+                ?: MoneyFormatter.format(Money.ZERO)
+            val payAmountText = summary?.let { MoneyFormatter.format(it.totalToPay) }
+                ?: MoneyFormatter.format(Money.ZERO)
 
-                // Cần trả
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(AppTheme.shapes.corner16)
-                        .background(subTileBg)
-                        .padding(14.dp)
+            if (isLargeFont) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
-                                contentDescription = null,
-                                tint = payColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.debt_tab_borrow),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = mutedColor,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = summary?.let { MoneyFormatter.format(it.totalToPay) }
-                                ?: MoneyFormatter.format(Money.ZERO),
-                            style = AppTheme.typography.amountCard,
-                            color = payColor
-                        )
-                    }
+                    DebtSummaryMetricTile(
+                        label = stringResource(R.string.debt_collect),
+                        amountText = collectAmountText,
+                        icon = Icons.AutoMirrored.Rounded.TrendingUp,
+                        accentColor = collectColor,
+                        containerAlpha = tileAlpha,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    DebtSummaryMetricTile(
+                        label = stringResource(R.string.debt_tab_borrow),
+                        amountText = payAmountText,
+                        icon = Icons.AutoMirrored.Rounded.TrendingDown,
+                        accentColor = payColor,
+                        containerAlpha = tileAlpha,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    DebtSummaryMetricTile(
+                        label = stringResource(R.string.debt_collect),
+                        amountText = collectAmountText,
+                        icon = Icons.AutoMirrored.Rounded.TrendingUp,
+                        accentColor = collectColor,
+                        containerAlpha = tileAlpha,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DebtSummaryMetricTile(
+                        label = stringResource(R.string.debt_tab_borrow),
+                        amountText = payAmountText,
+                        icon = Icons.AutoMirrored.Rounded.TrendingDown,
+                        accentColor = payColor,
+                        containerAlpha = tileAlpha,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DebtSummaryMetricTile(
+    label: String,
+    amountText: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
+    containerAlpha: Float,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppTheme.shapes.corner16,
+        color = accentColor.copy(alpha = containerAlpha),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.textSecondary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = amountText,
+                style = AppTheme.typography.amountCard,
+                color = accentColor,
+            )
         }
     }
 }

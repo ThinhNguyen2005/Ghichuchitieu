@@ -1632,7 +1632,7 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
 
     <!-- Ví chung & Đồng bộ Supabase (Phase 4) -->
     <string name="shared_wallet_create_action">Tạo ví chung</string>
-    <string name="shared_wallet_join_action">Tham gia bằng mã mời</string>
+    <string name="shared_wallet_join_action">Nhập mã mời</string>
     <string name="shared_wallet_create_title">Tạo ví chung</string>
     <string name="shared_wallet_name_label">Tên ví chung (vd: Ví Gia Đình)</string>
     <string name="shared_wallet_budget_label">Ngân sách tháng (tuỳ chọn)</string>
@@ -1680,4 +1680,77 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="shared_wallet_viewer_readonly_hint">Vai trò Chỉ xem — chỉ Chủ ví hoặc thành viên Được ghi đã tạo mới sửa được giao dịch này.</string>
     <string name="shared_wallet_viewer_cannot_write">Ví này ở chế độ Chỉ xem, bạn không thể thêm hoặc sửa giao dịch.</string>
     <string name="shared_wallet_not_found">Không tìm thấy thông tin ví chung</string>
+
+    <!-- Nâng cấp UX/UI Báo cáo & Tài sản -->
+    <string name="stats_net_balance_label">Chênh lệch ròng</string>
+    <string name="stats_jump_to_current_period">Về kỳ hiện tại</string>
+    <string name="assets_allocation_title">Phân bổ theo ví</string>
+    <string name="assets_allocation_tab_asset">Tài sản</string>
+    <string name="assets_allocation_tab_liability">Nợ</string>
+    <string name="percent_change_positive_cap">+999%+</string>
+    <string name="percent_change_negative_cap">-999%+</string>
+    <string name="shared_wallet_error_name_required">Vui lòng nhập tên ví chung</string>
+    <string name="shared_wallet_error_code_invalid">Mã mời cần tối thiểu 6 ký tự</string>
+    <string name="wallet_adjust_error_invalid">Vui lòng nhập số tiền hợp lệ</string>
+
+    <!-- Trang chủ iOS, Tùy chỉnh ảnh nền & Mẹo tài chính đa dạng -->
+    <string name="home_customize_action">Tùy chỉnh Trang chủ</string>
+    <string name="home_customize_title">Tùy chỉnh Trang chủ</string>
+    <string name="home_bg_section_title">Ảnh nền Trang chủ</string>
+    <string name="home_bg_pick_photo">Chọn ảnh từ thư viện</string>
+    <string name="home_bg_change_photo">Đổi ảnh nền</string>
+    <string name="home_bg_remove_photo">Dùng nền mặc định</string>
+    <string name="home_bg_blur_title">Làm mờ nhẹ ảnh nền</string>
+    <string name="home_bg_blur_desc">Giúp số dư và danh sách giao dịch nổi bật, dễ đọc hơn trên nền ảnh</string>
+    <string name="home_bg_photo_saved">Đã cập nhật ảnh nền Trang chủ</string>
+    <string name="home_bg_photo_error">Không thể đọc ảnh đã chọn. Hãy thử một ảnh khác.</string>
+    <string name="home_bg_preset_warm_silk">Lụa ấm</string>
+    <string name="home_bg_preset_ocean_mist">Sương biển</string>
+    <string name="home_bg_preset_sage_morning">Ban mai xanh</string>
+    <string name="home_bg_preset_sunset_bloom">Hoàng hôn</string>
+    <string name="home_bg_preset_aurora_lavender">Oải hương</string>
+    <string name="home_bg_preset_minimal_canvas">Tối giản iOS</string>
+    <string name="home_widgets_section_title">Hiển thị trên Trang chủ</string>
+    <string name="home_show_smart_tips_title">Mẹo tài chính thông minh</string>
+    <string name="home_show_smart_tips_desc">Hiển thị thẻ gợi ý chi tiêu và tiết kiệm cá nhân hóa</string>
+    <string name="home_tip_next_cd">Xem mẹo tiếp theo</string>
+    <string name="home_tip_counter_format">%1$d/%2$d</string>
+    <string name="home_tip_domain_spending">Chi tiêu</string>
+    <string name="home_tip_domain_savings">Tiết kiệm</string>
+    <string name="home_tip_domain_budget">Ngân sách</string>
+    <string name="home_tip_domain_habit">Thói quen</string>
+    <string name="home_tip_domain_subscription">Định kỳ</string>
+    <string name="home_tip_domain_wallet">Quản lý ví</string>
+    <string name="home_tip_top_category_title">%1$s chiếm %2$d%% chi tiêu tháng</string>
+    <string name="home_tip_top_category_desc">Bạn đã chi %1$s cho nhóm này trong tháng. Thử đặt hạn mức riêng hoặc cắt giảm 10–15%% để cân bằng lại nhé.</string>
+    <string name="home_tip_savings_high_title">Đang giữ lại được %1$d%% thu nhập</string>
+    <string name="home_tip_savings_high_desc">Số dư ròng dương %1$s trong tháng này là một tín hiệu rất tốt. Bạn có thể trích một phần vào quỹ dự phòng hoặc tiết kiệm mục tiêu.</string>
+    <string name="home_tip_deficit_title">Chi tiêu đang vượt thu nhập tháng này</string>
+    <string name="home_tip_deficit_desc">Khoản chi hiện đang vượt thu %1$s. Hãy tạm hoãn các khoản mua sắm không thiết yếu cho tới kỳ thu nhập tiếp theo.</string>
+    <string name="home_tip_subscriptions_due_title">Có %1$d gói đăng ký sắp đến hạn</string>
+    <string name="home_tip_subscriptions_due_desc">Kiểm tra danh sách gói định kỳ để đảm bảo ví đủ số dư thanh toán tự động hoặc hủy sớm dịch vụ không còn dùng.</string>
+    <string name="home_tip_small_expenses_title">%1$d khoản chi nhỏ cộng dồn nhanh</string>
+    <string name="home_tip_small_expenses_desc">Các khoản lặt vặt dưới 100.000 đ đã lên tới %1$s trong tháng này. Gom lại theo dõi giúp bạn nhận ra những khoản có thể tiết kiệm dễ dàng.</string>
+    <string name="home_tip_set_budget_title">Đặt hạn mức tháng cho ví của bạn</string>
+    <string name="home_tip_set_budget_desc">Ví \"%1$s\" chưa có hạn mức chi tiêu tháng. Đặt mốc cảnh báo giúp NotePay dự báo sớm khi bạn sắp chi vượt kế hoạch.</string>
+    <string name="home_tip_streak_title">Duy trì chuỗi %1$d ngày ghi chép liên tiếp</string>
+    <string name="home_tip_streak_desc">Thói quen ghi chép mỗi ngày giúp bạn kiểm soát dòng tiền rõ ràng và phát hiện sớm các khoản rò rỉ nhỏ trước cuối tháng.</string>
+    <string name="home_tip_concentrated_wallet_title">%1$d%% số dư đang nằm ở một ví</string>
+    <string name="home_tip_concentrated_wallet_desc">Ví \"%1$s\" đang giữ phần lớn tiền mặt. Bạn có thể tách bớt sang ví tiết kiệm riêng để tránh vô tình tiêu lạm.</string>
+    <string name="home_tip_rule_503020_title">Áp dụng nguyên tắc phân bổ 50 / 30 / 20</string>
+    <string name="home_tip_rule_503020_desc" formatted="false">Dành tối đa 50% thu nhập cho nhu cầu thiết yếu, 30% cho mong muốn cá nhân và ưu tiên ít nhất 20% cho tiết kiệm hoặc trả nợ.</string>
+    <string name="home_tip_emergency_fund_title">Ưu tiên quỹ dự phòng 3–6 tháng sinh hoạt</string>
+    <string name="home_tip_emergency_fund_desc">Giữ riêng một khoản tiền mặt tương đương 3 đến 6 tháng chi phí cơ bản giúp bạn vững vàng trước các biến cố bất ngờ.</string>
+    <string name="home_tip_wait_24h_title">Quy tắc chờ 24 giờ trước khi mua sắm</string>
+    <string name="home_tip_wait_24h_desc">Với các món đồ không nằm trong kế hoạch, hãy đợi 24 giờ trước khi thanh toán để phân biệt giữa nhu cầu thật và cảm xúc nhất thời.</string>
+    <string name="home_tip_pay_yourself_title">Trả cho bản thân trước ngay khi nhận lương</string>
+    <string name="home_tip_pay_yourself_desc">Ngay khi có thu nhập mới, hãy chuyển phần tiết kiệm sang ví riêng trước rồi mới chi tiêu phần còn lại thay vì chờ cuối tháng.</string>
+    <string name="home_tip_audit_subs_title">Rà soát các gói gia hạn mỗi tháng</string>
+    <string name="home_tip_audit_subs_desc">Nhiều dịch vụ thu phí tự động dễ bị quên sau thời gian dùng thử. Dành 5 phút mỗi tháng kiểm tra để giữ lại đúng gói bạn thực sự dùng.</string>
+    <string name="home_tip_weekly_review_title">Tổng kết nhanh 5 phút vào tối Chủ nhật</string>
+    <string name="home_tip_weekly_review_desc">Xem lại top danh mục chi trong tuần và đối chiếu số dư thực tế các ví giúp tuần mới luôn chủ động về ngân sách.</string>
+    <string name="home_tip_separate_wallets_title">Tách ví chi tiêu ngày và ví tích lũy</string>
+    <string name="home_tip_separate_wallets_desc">Để tiền sinh hoạt tuần và quỹ tiết kiệm ở hai ví khác nhau giúp số dư khả dụng phản ánh đúng mức tiền bạn có thể tiêu.</string>
+    <string name="home_tip_log_now_title">Ghi chép ngay lúc vừa thanh toán xong</string>
+    <string name="home_tip_log_now_desc">Chỉ mất vài giây sau mỗi lần quẹt thẻ hoặc chuyển khoản nhưng giúp bạn không bao giờ bị sót các khoản nhỏ vào cuối ngày.</string>
 </resources>

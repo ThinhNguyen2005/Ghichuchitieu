@@ -303,3 +303,65 @@ val MintOnDarkBannerMuted = Color(0xFFA8B6CC)
 val MintDarkError = Color(0xFFFF6F6F)
 val MintDarkErrorContainer = Color(0xFF5C2320)
 val MintDarkOnErrorContainer = Color(0xFFFFB4AB)
+
+// ==========================================
+// Home iOS Surface, Shadows & Background Presets
+// ==========================================
+val HomeShadowLight = Color(0xFF1A1F2C)
+val HomeShadowDark = Color(0xFF000000)
+
+val HomeHeroCardLightTop = Color(0xFFFFFFFF)
+val HomeHeroCardLightBottom = Color(0xFFFAF8F4)
+val HomeHeroCardLightRim = Color(0xE6FFFFFF)
+val HomeHeroCardDarkTop = Color(0xFF282B32)
+val HomeHeroCardDarkBottom = Color(0xFF1E2127)
+val HomeHeroCardDarkRim = Color(0x24FFFFFF)
+
+// Warm Silk
+val HomePresetWarmSilkLightTop = Color(0xFFFBF5EC)
+val HomePresetWarmSilkLightMid = Color(0xFFF5E6D3)
+val HomePresetWarmSilkLightBottom = Color(0xFFF3F1EE)
+val HomePresetWarmSilkDarkTop = Color(0xFF181615)
+val HomePresetWarmSilkDarkMid = Color(0xFF271F19)
+val HomePresetWarmSilkDarkBottom = Color(0xFF141414)
+
+// Ocean Mist
+val HomePresetOceanMistLightTop = Color(0xFFEAF3FF)
+val HomePresetOceanMistLightMid = Color(0xFFD9ECF8)
+val HomePresetOceanMistLightBottom = Color(0xFFF2F5F8)
+val HomePresetOceanMistDarkTop = Color(0xFF0E1824)
+val HomePresetOceanMistDarkMid = Color(0xFF15293D)
+val HomePresetOceanMistDarkBottom = Color(0xFF11151B)
+
+// Sage Morning
+val HomePresetSageMorningLightTop = Color(0xFFEDF6F0)
+val HomePresetSageMorningLightMid = Color(0xFFDCECE2)
+val HomePresetSageMorningLightBottom = Color(0xFFF2F5F3)
+val HomePresetSageMorningDarkTop = Color(0xFF101C17)
+val HomePresetSageMorningDarkMid = Color(0xFF182D24)
+val HomePresetSageMorningDarkBottom = Color(0xFF121614)
+
+// Sunset Bloom
+val HomePresetSunsetBloomLightTop = Color(0xFFFFF1EC)
+val HomePresetSunsetBloomLightMid = Color(0xFFFCE0D4)
+val HomePresetSunsetBloomLightBottom = Color(0xFFF1ECF8)
+val HomePresetSunsetBloomDarkTop = Color(0xFF1E1420)
+val HomePresetSunsetBloomDarkMid = Color(0xFF2D1C25)
+val HomePresetSunsetBloomDarkBottom = Color(0xFF141318)
+
+// Aurora Lavender
+val HomePresetAuroraLavenderLightTop = Color(0xFFF2EFFF)
+val HomePresetAuroraLavenderLightMid = Color(0xFFE4E5FC)
+val HomePresetAuroraLavenderLightBottom = Color(0xFFF4F3F8)
+val HomePresetAuroraLavenderDarkTop = Color(0xFF141427)
+val HomePresetAuroraLavenderDarkMid = Color(0xFF211E3D)
+val HomePresetAuroraLavenderDarkBottom = Color(0xFF13131A)
+
+// Minimal Canvas
+val HomePresetMinimalCanvasLightTop = Color(0xFFF2F2F7)
+val HomePresetMinimalCanvasLightMid = Color(0xFFEFEFF4)
+val HomePresetMinimalCanvasLightBottom = Color(0xFFF2F2F7)
+val HomePresetMinimalCanvasDarkTop = Color(0xFF121316)
+val HomePresetMinimalCanvasDarkMid = Color(0xFF16181D)
+val HomePresetMinimalCanvasDarkBottom = Color(0xFF121316)
+

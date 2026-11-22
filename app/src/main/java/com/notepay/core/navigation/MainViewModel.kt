@@ -3,6 +3,7 @@ package com.notepay.core.navigation
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackgroundConfig
 import com.notepay.core.designsystem.formatter.MoneyFormatConfig
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.platform.LocaleHelper
@@ -110,6 +111,22 @@ class MainViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = true,
+    )
+
+    val appBackgroundConfig: StateFlow<AppAtmosphericBackgroundConfig> = combine(
+        appSettingsDataStore.homeBackgroundPreset,
+        appSettingsDataStore.homeBackgroundImagePath,
+        appSettingsDataStore.homeBackgroundBlurEnabled,
+    ) { presetId, customPath, blurEnabled ->
+        AppAtmosphericBackgroundConfig(
+            presetId = presetId,
+            customImagePath = customPath,
+            blurEnabled = blurEnabled,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = AppAtmosphericBackgroundConfig(),
     )
 
     init {

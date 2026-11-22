@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -45,15 +46,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.Category
 import com.notepay.feature.stats.main.CategoryBreakdownItem
 import com.notepay.feature.stats.main.tabularNums
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.min
-import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /** Nét vòng chưa chọn / đang chọn / halo và vùng chạm tối thiểu cho donut chart. */
@@ -76,6 +78,18 @@ private data class AnimatedAllocationSlice(
     val isSelected: Boolean,
 )
 
+internal fun formatSharePercentValue(percentage: Float): String {
+    val clamped = if (percentage.isFinite()) percentage.coerceIn(0f, 1f) else 0f
+    return when {
+        clamped >= 0.9995f -> "100"
+        clamped > 0f && clamped < 0.0005f -> "<0.1"
+        else -> String.format(Locale.US, "%.1f", clamped * 100f)
+    }
+}
+
+internal fun formatSharePercent(percentage: Float): String =
+    "${formatSharePercentValue(percentage)}%"
+
 @Composable
 internal fun AllocationChartContent(
     breakdown: List<CategoryBreakdownItem>,
@@ -89,7 +103,7 @@ internal fun AllocationChartContent(
     val selectedItem = items.find { it.category == selectedCategory }
     val topItem = items.firstOrNull()
     // MaterialTheme không đọc được bên trong DrawScope → hoist token ra ngoài Canvas.
-    val emptyRingColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    val emptyRingColor = AppTheme.colors.hairline
     val reducedMotion = rememberNotePayReducedMotion()
     val sliceAnimSpec = if (reducedMotion) snap<Float>() else tween<Float>(durationMillis = 220)
     val animatedSlices = items.map { item ->
@@ -118,7 +132,7 @@ internal fun AllocationChartContent(
     } else {
         val shareLabels = ArrayList<String>(5)
         for (item in items.take(5)) {
-            shareLabels.add("${item.category.localizedName()} ${(item.percentage * 100).roundToInt()}%")
+            shareLabels.add("${item.category.localizedName()} ${formatSharePercent(item.percentage)}")
         }
         stringResource(R.string.stats_allocation_chart_cd_format, shareLabels.joinToString(", "))
     }
@@ -253,11 +267,11 @@ private fun AllocationCenter(
     modifier: Modifier = Modifier,
 ) {
     val displayItem = item ?: topItem
-    val tint = displayItem?.let { Color(it.category.colorArgb) } ?: MaterialTheme.colorScheme.primary
+    val tint = displayItem?.let { Color(it.category.colorArgb) } ?: AppTheme.colors.primary
     val bg = when {
-        isEmpty -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+        isEmpty -> AppTheme.colors.surfaceSunken.copy(alpha = 0.7f)
         item != null -> tint.copy(alpha = 0.12f)
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f)
+        else -> AppTheme.colors.surfaceSunken
     }
     val borderStroke = if (!isEmpty && item != null) {
         BorderStroke(1.dp, tint.copy(alpha = 0.45f))
@@ -266,7 +280,7 @@ private fun AllocationCenter(
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.clearAndSetSemantics {},
         shape = CircleShape,
         color = bg,
         border = borderStroke,
@@ -293,20 +307,17 @@ private fun AllocationCenter(
                         text = displayItem.category.localizedName(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = AppTheme.colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = stringResource(
-                        R.string.percent_format,
-                        (displayItem.percentage * 100).roundToInt(),
-                    ),
+                    text = formatSharePercent(displayItem.percentage),
                     style = MaterialTheme.typography.titleMedium.tabularNums,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = AppTheme.colors.textPrimary,
                     maxLines = 1,
                 )
                 Spacer(Modifier.height(2.dp))
@@ -317,7 +328,7 @@ private fun AllocationCenter(
                         stringResource(R.string.stats_amounts_mask)
                     },
                     style = MaterialTheme.typography.labelSmall.tabularNums,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -326,7 +337,7 @@ private fun AllocationCenter(
                     text = stringResource(R.string.stats_no_data),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppTheme.colors.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

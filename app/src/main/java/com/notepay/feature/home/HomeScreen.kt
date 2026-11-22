@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +18,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -56,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +67,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,29 +77,35 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.domain.model.Transaction
-import com.notepay.domain.money.Money
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
+import com.notepay.domain.analytics.SmartTipItem
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.money.Money
 import com.notepay.feature.auth.main.AuthViewModel
 import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
-import com.notepay.feature.home.component.SmartInsightsCard
+import com.notepay.feature.home.component.HomeBackgroundLayer
+import com.notepay.feature.home.component.HomeCustomizationSheet
 import com.notepay.feature.home.component.HomeDaySection
 import com.notepay.feature.home.component.HomeHeroBlock
 import com.notepay.feature.home.component.ScreenHorizontalPadding
+import com.notepay.feature.home.component.SmartInsightsCard
 import com.notepay.feature.home.component.rememberHomeDayGroups
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.formatter.MoneyFormatter
-import com.notepay.core.designsystem.util.localizedName
+import kotlinx.coroutines.launch
 
-// ── Design tokens của màn Home (bội số của 4) ────────────────────────────────
 private val ListBottomClearance = 120.dp
 
 private enum class HomeContentState { LOADING, EMPTY_WALLETS, CONTENT }
@@ -108,7 +117,6 @@ private object HomeListKeys {
     const val RECENT_EMPTY = "home_item_recent_empty"
 }
 
-/** Tiền tố key cho từng nhóm ngày trong LazyColumn (key phải duy nhất toàn danh sách). */
 private const val HomeDayKeyPrefix = "home_day_"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,43 +126,42 @@ fun HomeScreen(
     onAddWallet: () -> Unit,
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = onTransactionClick,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
-    // Tự động reset trạng thái ẩn khi người dùng đổi sang ví khác
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
     var isWalletPickerOpen by remember { mutableStateOf(false) }
+    var isCustomizationOpen by rememberSaveable { mutableStateOf(false) }
     var showAccountDetails by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val reducedMotion = rememberNotePayReducedMotion()
     val listState = rememberLazyListState()
-    // Tablet: lề bù để nội dung một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
     val listBottomClearance = maxOf(
         ListBottomClearance,
         104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
     )
-    // Expanded: chuyển sang 2 cột — hero bên trái, danh sách giao dịch bên phải.
     val isTwoPane = LocalWindowLayout.current == WindowLayout.Expanded
 
-    // Resolve string resources trước khi dùng trong non-Composable scopes.
     val recentLabel = stringResource(R.string.home_recent_transactions)
     val seeAllLabel = stringResource(R.string.action_see_all)
     val emptyTx = stringResource(R.string.home_empty_transactions)
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
     val createWalletLabel = stringResource(R.string.home_create_wallet)
+    val savedPhotoMessage = stringResource(R.string.home_bg_photo_saved)
+    val errorPhotoMessage = stringResource(R.string.home_bg_photo_error)
 
-    // Tra tên ví O(1) thay vì find{} cho từng dòng giao dịch.
     val walletNames = remember(state.wallets) { state.wallets.associate { it.id to it.name } }
     val walletsById = remember(state.wallets) { state.wallets.associateBy { it.id } }
     val effectiveUserId = state.currentUserId ?: authUiState.user?.uid
-    // Gom giao dịch gần đây theo ngày để hiển thị thành từng thẻ nhóm như sổ tay.
     val dayGroups = rememberHomeDayGroups(state.recentTransactions)
 
     val isAllWallets = state.selectedWalletId == null
@@ -182,12 +189,14 @@ fun HomeScreen(
         null
     }
 
-    // Toàn trang dùng nền `background` của app; thẻ trắng (nhóm giao dịch) nổi lên trên.
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppTheme.colors.background)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        HomeBackgroundLayer(
+            preset = state.backgroundPreset,
+            customImagePath = state.customBackgroundPath,
+            blurEnabled = state.backgroundBlurEnabled,
+            modifier = Modifier.matchParentSize(),
+        )
+
         AnimatedContent(
             targetState = contentState,
             transitionSpec = {
@@ -213,7 +222,7 @@ fun HomeScreen(
                             .fillMaxSize()
                             .statusBarsPadding()
                             .padding(ScreenHorizontalPadding),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         EmptyStateWithAction(
                             icon = Icons.Outlined.AccountBalanceWallet,
@@ -221,26 +230,24 @@ fun HomeScreen(
                             description = emptyWalletDesc,
                             actionLabel = createWalletLabel,
                             onClick = onAddWallet,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
 
                 HomeContentState.CONTENT -> {
-                    // ==================== EXPANDED: BỐ CỤC 2 CỘT ====================
                     if (isTwoPane) {
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = contentGutter)
+                                .padding(horizontal = contentGutter),
                         ) {
-                            // Cột trái: nền trang trí, lời chào, bộ chọn ví, số dư và thẻ gợi ý.
                             Column(
                                 modifier = Modifier
                                     .weight(0.45f)
                                     .fillMaxHeight()
                                     .verticalScroll(rememberScrollState())
-                                    .padding(top = 12.dp, bottom = listBottomClearance)
+                                    .padding(top = 12.dp, bottom = listBottomClearance),
                             ) {
                                 NotePayStaggeredEntrance(index = 0) {
                                     HomeHeroBlock(
@@ -250,46 +257,49 @@ fun HomeScreen(
                                         balance = displayBalance,
                                         income = displayIncome,
                                         expense = displayExpense,
+                                        isBalanceHidden = state.isBalanceHidden,
+                                        onToggleBalanceHidden = viewModel::toggleBalanceHidden,
                                         onOpenWalletPicker = { isWalletPickerOpen = true },
+                                        onOpenCustomization = { isCustomizationOpen = true },
                                         topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                                         onAvatarClick = openAccountSheet,
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
                                 NotePayStaggeredEntrance(index = 1) {
                                     HomeInsightCard(
-                                        streakDays = state.streakDays,
                                         budgetProjection = state.budgetProjection,
                                         budgetLimit = selectedWallet?.wallet?.budgetLimit,
                                         walletName = selectedWallet?.wallet?.name.orEmpty(),
-                                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
+                                        activeTip = state.activeSmartTip,
+                                        tipPosition = state.activeSmartTipIndex + 1,
+                                        totalTips = state.smartTips.size,
                                         isAllWallets = isAllWallets,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
-                                        isBudgetExceeded = state.isBudgetExceeded,
                                         reducedMotion = reducedMotion,
                                         onDismissBudget = { isBudgetProjectionDismissed = true },
+                                        onNextTip = viewModel::nextSmartTip,
                                         onDismissInsights = viewModel::dismissSmartInsights,
-                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 6.dp),
                                     )
                                 }
                             }
 
-                            // Cột phải: feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
                             Column(
                                 modifier = Modifier
                                     .weight(0.55f)
                                     .fillMaxHeight()
                                     .statusBarsPadding()
-                                    .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp)
+                                    .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 24.dp),
                             ) {
                                 RecentTransactionsHeader(
                                     title = recentLabel,
                                     seeAllLabel = seeAllLabel,
                                     onSeeAll = onSeeAll,
-                                    modifier = Modifier.padding(start = 4.dp)
+                                    modifier = Modifier.padding(start = 4.dp),
                                 )
 
                                 if (dayGroups.isEmpty()) {
@@ -297,7 +307,7 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(vertical = 32.dp),
-                                        contentAlignment = Alignment.Center
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         EmptyStateWithAction(title = emptyTx)
                                     }
@@ -305,11 +315,11 @@ fun HomeScreen(
                                     LazyColumn(
                                         state = listState,
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(bottom = listBottomClearance)
+                                        contentPadding = PaddingValues(bottom = listBottomClearance),
                                     ) {
                                         items(
                                             items = dayGroups,
-                                            key = { HomeDayKeyPrefix + it.key }
+                                            key = { HomeDayKeyPrefix + it.key },
                                         ) { group ->
                                             HomeDaySection(
                                                 group = group,
@@ -317,12 +327,13 @@ fun HomeScreen(
                                                 walletsById = walletsById,
                                                 currentUserId = effectiveUserId,
                                                 hapticEnabled = hapticFeedbackEnabled,
+                                                isBalanceHidden = state.isBalanceHidden,
                                                 onTransactionClick = onTransactionClick,
                                                 onEditTransaction = onEditTransaction,
                                                 onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
                                                 modifier = Modifier
                                                     .then(if (reducedMotion) Modifier else Modifier.animateItem())
-                                                    .padding(start = 4.dp)
+                                                    .padding(start = 4.dp),
                                             )
                                         }
                                     }
@@ -339,7 +350,6 @@ fun HomeScreen(
                                 bottom = listBottomClearance,
                             ),
                         ) {
-                            // ==================== KHỐI HERO + NỀN TRANG TRÍ ====================
                             item(key = HomeListKeys.HERO_ASSETS) {
                                 NotePayStaggeredEntrance(index = 0) {
                                     HomeHeroBlock(
@@ -349,7 +359,10 @@ fun HomeScreen(
                                         balance = displayBalance,
                                         income = displayIncome,
                                         expense = displayExpense,
+                                        isBalanceHidden = state.isBalanceHidden,
+                                        onToggleBalanceHidden = viewModel::toggleBalanceHidden,
                                         onOpenWalletPicker = { isWalletPickerOpen = true },
+                                        onOpenCustomization = { isCustomizationOpen = true },
                                         topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                                         modifier = Modifier.padding(top = 12.dp),
                                         onAvatarClick = openAccountSheet,
@@ -357,34 +370,33 @@ fun HomeScreen(
                                 }
                             }
 
-                            // 3. Thẻ dự báo ngân sách hoặc gợi ý thông minh (dùng chung với bố cục 2 cột).
                             item(key = HomeListKeys.INSIGHT) {
                                 NotePayStaggeredEntrance(index = 1) {
                                     HomeInsightCard(
-                                        streakDays = state.streakDays,
                                         budgetProjection = state.budgetProjection,
                                         budgetLimit = selectedWallet?.wallet?.budgetLimit,
                                         walletName = selectedWallet?.wallet?.name.orEmpty(),
-                                        budgetSpentPercentage = state.budgetProjection?.spentPercentage ?: 0f,
+                                        activeTip = state.activeSmartTip,
+                                        tipPosition = state.activeSmartTipIndex + 1,
+                                        totalTips = state.smartTips.size,
                                         isAllWallets = isAllWallets,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
-                                        isBudgetExceeded = state.isBudgetExceeded,
                                         reducedMotion = reducedMotion,
                                         onDismissBudget = { isBudgetProjectionDismissed = true },
+                                        onNextTip = viewModel::nextSmartTip,
                                         onDismissInsights = viewModel::dismissSmartInsights,
-                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 6.dp),
                                     )
                                 }
                             }
 
-                            // 4. Feed giao dịch gần đây gom theo ngày — thẻ trắng trên nền xám.
                             item(key = HomeListKeys.RECENT_HEADER) {
                                 RecentTransactionsHeader(
                                     title = recentLabel,
                                     seeAllLabel = seeAllLabel,
                                     onSeeAll = onSeeAll,
-                                    modifier = Modifier.padding(start = ScreenHorizontalPadding, end = 4.dp, top = 8.dp)
+                                    modifier = Modifier.padding(start = ScreenHorizontalPadding, end = 4.dp, top = 12.dp),
                                 )
                             }
 
@@ -394,7 +406,7 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(vertical = 32.dp, horizontal = ScreenHorizontalPadding),
-                                        contentAlignment = Alignment.Center
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         EmptyStateWithAction(title = emptyTx)
                                     }
@@ -402,7 +414,7 @@ fun HomeScreen(
                             } else {
                                 items(
                                     items = dayGroups,
-                                    key = { HomeDayKeyPrefix + it.key }
+                                    key = { HomeDayKeyPrefix + it.key },
                                 ) { group ->
                                     HomeDaySection(
                                         group = group,
@@ -410,12 +422,13 @@ fun HomeScreen(
                                         walletsById = walletsById,
                                         currentUserId = effectiveUserId,
                                         hapticEnabled = hapticFeedbackEnabled,
+                                        isBalanceHidden = state.isBalanceHidden,
                                         onTransactionClick = onTransactionClick,
                                         onEditTransaction = onEditTransaction,
                                         onDeleteTransaction = { tx -> pendingDeleteTransaction = tx },
                                         modifier = Modifier
                                             .then(if (reducedMotion) Modifier else Modifier.animateItem())
-                                            .padding(horizontal = ScreenHorizontalPadding)
+                                            .padding(horizontal = ScreenHorizontalPadding),
                                     )
                                 }
                             }
@@ -432,7 +445,33 @@ fun HomeScreen(
             selectedWalletId = state.selectedWalletId,
             onWalletSelected = viewModel::selectWallet,
             onAllWalletsSelected = { viewModel.selectWallet(null) },
-            onDismiss = { isWalletPickerOpen = false }
+            onDismiss = { isWalletPickerOpen = false },
+        )
+    }
+
+    if (isCustomizationOpen) {
+        HomeCustomizationSheet(
+            activePreset = state.backgroundPreset,
+            customBackgroundPath = state.customBackgroundPath,
+            backgroundBlurEnabled = state.backgroundBlurEnabled,
+            isSmartTipsDismissed = state.isSmartInsightsDismissed,
+            onSelectPreset = viewModel::selectBackgroundPreset,
+            onPickCustomPhoto = { uri ->
+                viewModel.applyCustomBackground(uri) { success ->
+                    coroutineScope.launch {
+                        onFeedback(
+                            UiFeedback(
+                                message = if (success) savedPhotoMessage else errorPhotoMessage,
+                                type = if (success) FeedbackType.Success else FeedbackType.Error,
+                            )
+                        )
+                    }
+                }
+            },
+            onClearCustomPhoto = viewModel::clearCustomBackground,
+            onToggleBlur = viewModel::setBackgroundBlurEnabled,
+            onToggleSmartTips = viewModel::setSmartInsightsEnabled,
+            onDismiss = { isCustomizationOpen = false },
         )
     }
 
@@ -461,12 +500,11 @@ fun HomeScreen(
             },
             onDismiss = {
                 pendingDeleteTransaction = null
-            }
+            },
         )
     }
 }
 
-/** Tiêu đề mục feed giao dịch: tên mục kiểu serif + lối tắt "Xem tất cả". */
 @Composable
 private fun RecentTransactionsHeader(
     title: String,
@@ -477,7 +515,7 @@ private fun RecentTransactionsHeader(
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = title,
@@ -485,35 +523,37 @@ private fun RecentTransactionsHeader(
             color = AppTheme.colors.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false)
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .semantics { heading() },
         )
-        TextButton(onClick = onSeeAll) {
+        TextButton(
+            onClick = onSeeAll,
+            modifier = Modifier.defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget),
+        ) {
             Text(
                 text = seeAllLabel,
                 color = AppTheme.colors.primary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
 }
 
-/**
- * Thẻ gợi ý dưới khối hero: dự báo ngân sách khi ví có hạn mức cần cảnh báo, ngược lại là
- * thẻ gợi ý thông minh. Tách riêng để điều kiện hiển thị chỉ tồn tại ở một nơi duy nhất.
- */
 @Composable
 private fun HomeInsightCard(
-    streakDays: Int,
     budgetProjection: BudgetProjection?,
     budgetLimit: Money?,
     walletName: String,
-    budgetSpentPercentage: Float,
+    activeTip: SmartTipItem?,
+    tipPosition: Int,
+    totalTips: Int,
     isAllWallets: Boolean,
     isBudgetCardDismissed: Boolean,
     isInsightsDismissed: Boolean,
-    isBudgetExceeded: Boolean,
     reducedMotion: Boolean,
     onDismissBudget: () -> Unit,
+    onNextTip: () -> Unit,
     onDismissInsights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -526,6 +566,7 @@ private fun HomeInsightCard(
         budgetStatus != BudgetStatus.Safe
     val showSmartInsights = !showBudgetProjection &&
         !isInsightsDismissed &&
+        activeTip != null &&
         (budgetStatus == null || budgetStatus == BudgetStatus.Safe)
 
     val enterTransition = if (reducedMotion) {
@@ -551,7 +592,7 @@ private fun HomeInsightCard(
             budgetLimit = limit,
             walletName = walletName,
             onDismiss = onDismissBudget,
-            modifier = modifier
+            modifier = modifier,
         )
     }
 
@@ -560,20 +601,18 @@ private fun HomeInsightCard(
         enter = enterTransition,
         exit = exitTransition,
     ) {
+        val tip = activeTip ?: return@AnimatedVisibility
         SmartInsightsCard(
-            streakDays = streakDays,
-            isBudgetExceeded = isBudgetExceeded,
-            budgetSpentPercentage = budgetSpentPercentage,
+            tip = tip,
+            tipPosition = tipPosition,
+            totalTips = totalTips,
+            onNextTip = onNextTip,
             onDismiss = onDismissInsights,
-            modifier = modifier
+            modifier = modifier,
         )
     }
 }
 
-/**
- * Trạng thái ngân sách. Mỗi trạng thái có icon riêng để không chỉ dựa vào màu sắc.
- * Màu sắc được ánh xạ động qua [AppTheme.colors] (hỗ trợ cả Light và Dark mode).
- */
 private enum class BudgetStatus(val icon: ImageVector) {
     Safe(Icons.Rounded.CheckCircle),
     Caution(Icons.AutoMirrored.Rounded.TrendingUp),
@@ -588,7 +627,6 @@ private val BudgetStatus.color: Color
         BudgetStatus.Danger -> AppTheme.colors.error
     }
 
-/** Xác định trạng thái ngân sách dựa trên tỷ lệ chi tiêu và dự báo vượt hạn mức. */
 private fun budgetStatusOf(projection: BudgetProjection): BudgetStatus {
     val spentPercentage = projection.spentPercentage
     return when {
@@ -598,7 +636,6 @@ private fun budgetStatusOf(projection: BudgetProjection): BudgetStatus {
     }
 }
 
-/** Tạo chuỗi AnnotatedString với các đoạn văn bản trong [highlights] được in đậm. */
 private fun highlightedText(text: String, vararg highlights: String): AnnotatedString {
     val builder = AnnotatedString.Builder(text)
     for (highlight in highlights) {
@@ -608,7 +645,7 @@ private fun highlightedText(text: String, vararg highlights: String): AnnotatedS
             builder.addStyle(
                 style = SpanStyle(fontWeight = FontWeight.Bold),
                 start = startIndex,
-                end = startIndex + highlight.length
+                end = startIndex + highlight.length,
             )
         }
     }
@@ -621,10 +658,11 @@ private fun BudgetProjectionCard(
     budgetLimit: Money,
     walletName: String,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val spentPercentage = projection.spentPercentage
     val status = budgetStatusOf(projection)
+    val cardShape = AppTheme.shapes.corner20
 
     val overspentFormat = stringResource(R.string.budget_overspent)
     val willExceedFormat = stringResource(R.string.budget_will_exceed)
@@ -644,7 +682,7 @@ private fun BudgetProjectionCard(
             val amountStr = MoneyFormatter.format(projection.safeDailyLimit)
             willExceedFormat.format(
                 projection.exhaustionDateLabel.orEmpty(),
-                amountStr
+                amountStr,
             ) to amountStr
         }
         else -> {
@@ -659,35 +697,36 @@ private fun BudgetProjectionCard(
     val performHaptic = rememberNotePayHaptic()
 
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner16,
+        modifier = modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = false),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = status.color.copy(alpha = 0.08f),
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = AppTheme.colors.surface,
+            contentColor = AppTheme.colors.textPrimary,
         ),
-        border = BorderStroke(1.dp, status.color.copy(alpha = 0.2f))
+        border = BorderStroke(0.5.dp, status.color.copy(alpha = 0.28f)),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // end = 4dp vì nút đóng đã có vùng chạm 48dp bên trong.
-                .padding(start = 16.dp, top = 4.dp, end = 4.dp, bottom = 16.dp)
+                .padding(start = 16.dp, top = 4.dp, end = 4.dp, bottom = 16.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
                     imageVector = status.icon,
                     contentDescription = null,
                     tint = status.color,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
                 )
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 8.dp),
                 ) {
                     if (walletName.isNotBlank()) {
                         Text(
@@ -696,32 +735,32 @@ private fun BudgetProjectionCard(
                             fontWeight = FontWeight.Bold,
                             color = status.color,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     Text(
                         text = adviceMessage,
                         style = MaterialTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textPrimary,
                     )
                 }
 
-                // IconButton đảm bảo vùng chạm tối thiểu 48dp (trước đây icon 18dp bấm rất khó).
                 IconButton(
                     onClick = {
                         performHaptic(HapticFeedbackType.TextHandleMove)
                         onDismiss()
-                    }
+                    },
+                    modifier = Modifier.size(AppTheme.dimensions.minTouchTarget),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.action_close),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        tint = AppTheme.colors.textSecondary,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
 
-            // Thanh tiến độ: nhìn là hiểu đã dùng bao nhiêu ngân sách, không cần đọc chữ.
             LinearProgressIndicator(
                 progress = { spentPercentage.coerceIn(0f, 1f) },
                 modifier = Modifier

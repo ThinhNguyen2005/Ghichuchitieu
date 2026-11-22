@@ -1,5 +1,6 @@
 package com.notepay.feature.transaction.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 
 // ─── Key model ────────────────────────────────────────────────────────────────
@@ -67,30 +69,39 @@ fun TransactionCustomKeypad(
     activeOperator: Char? = null,
     isAmountLocked: Boolean = false,
 ) {
-    Column(
+    Surface(
+        shape = AppTheme.shapes.corner24,
+        color = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.94f else 0.90f),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
     ) {
-        KEYPAD_ROWS_FINAL.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                row.forEach { key ->
-                    KeyCell(
-                        key = key,
-                        dateLabel = dateLabel,
-                        noteLabel = noteLabel,
-                        canSave = canSave,
-                        isSaving = isSaving,
-                        activeOperator = activeOperator,
-                        isAmountLocked = isAmountLocked,
-                        onKey = onKey,
-                        onBackspaceLong = onBackspaceLong,
-                        modifier = Modifier.weight(1f),
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            KEYPAD_ROWS_FINAL.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    row.forEach { key ->
+                        KeyCell(
+                            key = key,
+                            dateLabel = dateLabel,
+                            noteLabel = noteLabel,
+                            canSave = canSave,
+                            isSaving = isSaving,
+                            activeOperator = activeOperator,
+                            isAmountLocked = isAmountLocked,
+                            onKey = onKey,
+                            onBackspaceLong = onBackspaceLong,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -122,22 +133,22 @@ private fun KeyCell(
     val isActiveOperator = key is CalcKey.Operator && key.symbol == activeOperator
 
     val containerColor = when {
-        isSaveKey        -> if (canSave) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surfaceVariant
-        isActiveOperator -> MaterialTheme.colorScheme.primaryContainer
-        isOperatorKey    -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-        isActionKey      -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
-        else             -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        isSaveKey        -> if (canSave) AppTheme.colors.primary
+                            else AppTheme.colors.surfaceSunken
+        isActiveOperator -> AppTheme.colors.sand.copy(alpha = 0.55f)
+        isOperatorKey    -> AppTheme.colors.sand.copy(alpha = 0.24f)
+        isActionKey      -> AppTheme.colors.surfaceSunken
+        else             -> AppTheme.colors.surfaceSunken
     }
 
     val baseContentColor = when {
         isSaveKey        -> if (canSave) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        isActiveOperator -> MaterialTheme.colorScheme.onPrimaryContainer
-        isOperatorKey    -> MaterialTheme.colorScheme.secondary
-        isActionKey      -> MaterialTheme.colorScheme.tertiary
-        isBackspaceKey   -> MaterialTheme.colorScheme.error
-        else             -> MaterialTheme.colorScheme.onSurface
+                            else AppTheme.colors.textMuted
+        isActiveOperator -> AppTheme.colors.primary
+        isOperatorKey    -> AppTheme.colors.primary
+        isActionKey      -> AppTheme.colors.primary
+        isBackspaceKey   -> AppTheme.colors.error
+        else             -> AppTheme.colors.textPrimary
     }
     val contentColor = if (!isEnabled && !isSaveKey) baseContentColor.copy(alpha = 0.38f) else baseContentColor
 
@@ -174,12 +185,12 @@ private fun KeyCell(
                 width = when {
                     isActiveOperator -> 1.5.dp
                     isSaveKey && canSave -> 0.dp
-                    else -> 1.dp
+                    else -> 0.5.dp
                 },
                 color = if (isActiveOperator) {
-                    MaterialTheme.colorScheme.primary
+                    AppTheme.colors.primary
                 } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    AppTheme.colors.hairline
                 },
                 shape = shape,
             )

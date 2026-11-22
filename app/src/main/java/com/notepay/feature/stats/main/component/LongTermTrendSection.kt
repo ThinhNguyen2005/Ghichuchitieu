@@ -39,11 +39,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
@@ -64,10 +66,12 @@ internal fun LongTermTrendSection(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
         shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
-        border = BorderStroke(1.dp, AppTheme.colors.border),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
@@ -117,6 +121,7 @@ private fun HeaderRow(nextTetDays: Int?) {
                 color = AppTheme.colors.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
             )
         }
 
@@ -301,7 +306,7 @@ private fun ReadyTrendContent(
 @Composable
 private fun TwoYearComparisonLineChart(points: List<RollingMonthComparisonPoint>) {
     val cd = stringResource(R.string.stats_long_term_chart_cd)
-    val currentLineColor = AppTheme.colors.ink
+    val currentLineColor = AppTheme.colors.textPrimary
     val priorLineColor = AppTheme.colors.textMuted
     val sandAccentColor = AppTheme.colors.sand
     val gridColor = AppTheme.colors.hairline
@@ -379,7 +384,7 @@ private fun ChartLegendRow() {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendDot(color = AppTheme.colors.ink, label = stringResource(R.string.stats_chart_this_year))
+        LegendDot(color = AppTheme.colors.textPrimary, label = stringResource(R.string.stats_chart_this_year))
         LegendDot(color = AppTheme.colors.textMuted, label = stringResource(R.string.stats_chart_last_year))
     }
 }

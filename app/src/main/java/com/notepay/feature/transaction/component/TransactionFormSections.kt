@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -70,7 +71,8 @@ fun TransactionTypeSelector(
             .fillMaxWidth()
             .height(48.dp)
             .clip(AppTheme.shapes.circle)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(AppTheme.colors.surfaceSunken)
+            .border(0.5.dp, AppTheme.colors.hairline, AppTheme.shapes.circle)
             .padding(4.dp),
     ) {
         val tabWidth = maxWidth / 2
@@ -89,7 +91,7 @@ fun TransactionTypeSelector(
                 .width(tabWidth)
                 .fillMaxHeight()
                 .clip(AppTheme.shapes.circle)
-                .background(MaterialTheme.colorScheme.primary),
+                .background(AppTheme.colors.primary),
         )
 
         Row(
@@ -100,7 +102,7 @@ fun TransactionTypeSelector(
                 val isSelected = selectedIndex == index
                 val textColor by animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    else AppTheme.colors.textSecondary,
                     label = "TextColor",
                 )
                 Box(

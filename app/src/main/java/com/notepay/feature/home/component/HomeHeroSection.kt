@@ -2,15 +2,18 @@ package com.notepay.feature.home.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -18,9 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.Whatshot
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -43,29 +47,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.R
-import com.notepay.domain.model.AuthUser
-import com.notepay.domain.money.Money
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.LocalAuthUser
 import com.notepay.core.designsystem.util.rememberUserGreeting
-import kotlin.time.Clock
+import com.notepay.core.navigation.rememberNotePayHaptic
+import com.notepay.domain.model.AuthUser
+import com.notepay.domain.money.Money
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
-// ── Design tokens của khối hero (bội số của 4) ───────────────────────────────
-// `internal` vì HomeScreen và feed giao dịch dùng chung lề ngang này.
+// `internal` because HomeScreen and recent feed share this horizontal screen margin.
 internal val ScreenHorizontalPadding = 16.dp
-private val AvatarSize = 36.dp
+private val AvatarSize = 40.dp
 
 /**
- * Khối hero dùng chung cho bố cục 1 cột (Compact/Medium) và cột trái của bố cục 2 cột
- * (Expanded): nền trang trí phía trên, lời chào, bộ chọn ví trên thanh trên cùng và thẻ
- * số dư ink.
- *
- * Chọn / đổi ví nằm ở thanh trên cùng thay vì một dãy thẻ ví riêng, để trang chính gọn
- * và tập trung vào con số tổng.
+ * Top hero block for both 1-column and 2-column Home layouts: date eyebrow + greeting +
+ * avatar, wallet selector + streak badge + customize button row, and the luminous iOS
+ * balance card.
  */
 @Composable
 internal fun HomeHeroBlock(
@@ -75,109 +77,55 @@ internal fun HomeHeroBlock(
     balance: Money,
     income: Money,
     expense: Money,
+    isBalanceHidden: Boolean,
+    onToggleBalanceHidden: () -> Unit,
     onOpenWalletPicker: () -> Unit,
-    topInset: Dp = 0.dp,
+    onOpenCustomization: () -> Unit,
     modifier: Modifier = Modifier,
+    topInset: Dp = 0.dp,
     onAvatarClick: (() -> Unit)? = null,
 ) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        HomeTopBackdrop(modifier = Modifier.matchParentSize())
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Nền trang trí phải phủ cả vùng status bar nên inset được bù bằng khoảng đệm
-            // bên trong, không dùng statusBarsPadding() ở ngoài.
-            if (topInset > 0.dp) {
-                Spacer(modifier = Modifier.height(topInset))
-            }
-
-            HomeGreetingBar(
-                greeting = rememberUserGreeting(),
-                streakDays = streakDays,
-                authUser = LocalAuthUser.current,
-                onAvatarClick = onAvatarClick,
-                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            WalletSelectorChip(
-                label = walletLabel,
-                onClick = onOpenWalletPicker,
-                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            HeroBalanceCard(
-                label = balanceLabel,
-                balance = balance,
-                income = income,
-                expense = expense,
-                modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (topInset > 0.dp) {
+            Spacer(modifier = Modifier.height(topInset))
         }
+
+        HomeGreetingBar(
+            greeting = rememberUserGreeting(),
+            authUser = LocalAuthUser.current,
+            onAvatarClick = onAvatarClick,
+            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding),
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        HomeUtilityRow(
+            walletLabel = walletLabel,
+            streakDays = streakDays,
+            onOpenWalletPicker = onOpenWalletPicker,
+            onOpenCustomization = onOpenCustomization,
+            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding),
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        HeroBalanceCard(
+            label = balanceLabel,
+            balance = balance,
+            income = income,
+            expense = expense,
+            isBalanceHidden = isBalanceHidden,
+            onToggleBalanceHidden = onToggleBalanceHidden,
+            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding),
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
     }
 }
 
-/** Nút chọn ví trên thanh trên cùng: mở bottom sheet chọn ví hoặc quay về "Tất cả ví". */
-@Composable
-private fun WalletSelectorChip(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val selectWalletLabel = stringResource(R.string.home_select_wallet)
-    AssistChip(
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Rounded.AccountBalanceWallet,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-        },
-        trailingIcon = {
-            Icon(
-                imageVector = Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-        },
-        shape = AppTheme.shapes.corner12,
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = AppTheme.colors.surface.copy(alpha = 0.72f),
-            labelColor = AppTheme.colors.textPrimary,
-            leadingIconContentColor = AppTheme.colors.textSecondary,
-            trailingIconContentColor = AppTheme.colors.textSecondary,
-        ),
-        border = BorderStroke(1.dp, AppTheme.colors.hairline),
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .semantics(mergeDescendants = true) {
-                onClick(label = selectWalletLabel, action = null)
-            },
-    )
-}
-
-/**
- * Thanh chào mừng phía trên cùng: dòng ngày nhỏ kiểu eyebrow, lời chào serif lớn xếp chồng
- * bên trái; huy hiệu chuỗi ngày và avatar nằm bên phải.
- */
 @Composable
 private fun HomeGreetingBar(
     greeting: String,
-    streakDays: Int,
     authUser: AuthUser?,
     onAvatarClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -185,28 +133,24 @@ private fun HomeGreetingBar(
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = rememberHomeDateLabel(),
                 style = AppTheme.typography.eyebrow,
-                color = AppTheme.colors.textMuted,
+                color = AppTheme.colors.textSecondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = greeting,
                 style = AppTheme.typography.displaySerif,
                 color = AppTheme.colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-        }
-
-        if (streakDays > 0) {
-            StreakBadge(streakDays = streakDays)
         }
 
         if (authUser != null) {
@@ -222,40 +166,182 @@ private fun HomeGreetingBar(
     }
 }
 
-/** Huy hiệu pill "🔥 N ngày" cho chuỗi ngày ghi chép liên tiếp. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StreakBadge(
+private fun HomeUtilityRow(
+    walletLabel: String,
     streakDays: Int,
+    onOpenWalletPicker: () -> Unit,
+    onOpenCustomization: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isLargeFont = LocalDensity.current.fontScale >= 1.35f
+    if (isLargeFont) {
+        FlowRow(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            WalletSelectorChip(
+                label = walletLabel,
+                onClick = onOpenWalletPicker,
+            )
+            if (streakDays > 0) {
+                StreakBadge(streakDays = streakDays)
+            }
+            CustomizeHomeButton(onClick = onOpenCustomization)
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WalletSelectorChip(
+                label = walletLabel,
+                onClick = onOpenWalletPicker,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (streakDays > 0) {
+                    StreakBadge(streakDays = streakDays)
+                }
+                CustomizeHomeButton(onClick = onOpenCustomization)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WalletSelectorChip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectWalletLabel = stringResource(R.string.home_select_wallet)
+    val pillShape = AppTheme.shapes.capsule
+    val surfaceColor = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.90f else 0.85f)
+
     Surface(
-        modifier = modifier,
-        shape = AppTheme.shapes.chip,
-        color = AppTheme.colors.surfaceSunken,
-        contentColor = AppTheme.colors.textSecondary,
+        onClick = onClick,
+        shape = pillShape,
+        color = surfaceColor,
+        contentColor = AppTheme.colors.textPrimary,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier
+            .defaultMinSize(minHeight = AppTheme.dimensions.minTouchTarget)
+            .iosCardShadow(shape = pillShape, elevated = false)
+            .semantics(mergeDescendants = true) {
+                onClick(label = selectWalletLabel, action = null)
+            },
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = Icons.Rounded.Whatshot,
+                imageVector = Icons.Rounded.AccountBalanceWallet,
                 contentDescription = null,
-                tint = AppTheme.colors.warning,
-                modifier = Modifier.size(15.dp)
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(16.dp),
             )
             Text(
-                text = pluralStringResource(R.plurals.home_streak_days, streakDays, streakDays),
-                style = MaterialTheme.typography.labelMedium,
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
 }
 
-/** Nhãn ngày hiện tại dạng "Thứ 7, 31 Th10", ghép từ các tài nguyên bản địa hoá. */
+@Composable
+private fun CustomizeHomeButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val performHaptic = rememberNotePayHaptic()
+    val buttonShape = AppTheme.shapes.circle
+    val surfaceColor = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.90f else 0.85f)
+
+    Surface(
+        onClick = {
+            performHaptic(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        shape = buttonShape,
+        color = surfaceColor,
+        contentColor = AppTheme.colors.textPrimary,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier
+            .size(AppTheme.dimensions.minTouchTarget)
+            .iosCardShadow(shape = buttonShape, elevated = false),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Rounded.Wallpaper,
+                contentDescription = stringResource(R.string.home_customize_action),
+                tint = AppTheme.colors.textPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/** Pill badge "🔥 N ngày" for active daily logging streak. */
+@Composable
+private fun StreakBadge(
+    streakDays: Int,
+    modifier: Modifier = Modifier,
+) {
+    val pillShape = AppTheme.shapes.capsule
+    val surfaceColor = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.90f else 0.85f)
+
+    Surface(
+        modifier = modifier
+            .iosCardShadow(shape = pillShape, elevated = false)
+            .semantics(mergeDescendants = true) {},
+        shape = pillShape,
+        color = surfaceColor,
+        contentColor = AppTheme.colors.textPrimary,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Whatshot,
+                contentDescription = null,
+                tint = AppTheme.colors.warning,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = pluralStringResource(R.plurals.home_streak_days, streakDays, streakDays),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
 @Composable
 private fun rememberHomeDateLabel(): String {
     val today = remember {
@@ -275,7 +361,6 @@ private fun rememberHomeDateLabel(): String {
     return format.format(weekday, today.day, monthSuffix)
 }
 
-/** Avatar người dùng: ảnh nếu có, ngược lại chữ cái đầu, cuối cùng là icon người. */
 @Composable
 private fun UserAvatar(
     photoUrl: String?,
@@ -285,6 +370,8 @@ private fun UserAvatar(
 ) {
     val avatarModifier = Modifier
         .size(AvatarSize)
+        .iosCardShadow(shape = CircleShape, elevated = false)
+        .border(1.5.dp, AppTheme.colors.surface, CircleShape)
         .clip(CircleShape)
 
     val containerModifier = if (onClick != null) {

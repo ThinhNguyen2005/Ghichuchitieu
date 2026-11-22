@@ -66,23 +66,24 @@ Before writing Kotlin, Compose, ViewModel, Room or Coroutine code, read `.agents
 
 ## UI & Design System
 
-Read `DESIGN.md` (v4.0.0 Sand & Ink) before creating or changing any UI; it is the spec. Read `AppColors.kt` and `AppShapes.kt` for exact token names before using or adding any. Migrate one screen at a time, only when the task asks for it (Debt is migrated; others may still use old styling).
+Read `DESIGN.md` (v5.0.0 Luminous iOS & Atmospheric Canvas) before creating or changing any UI; it is the spec. Read `Color.kt`, `AppColors.kt`, `AppShapes.kt`, `IosShadowModifier.kt`, and `AppAtmosphericBackground.kt` for exact token and component names before using or adding any. Migrate one screen or flow at a time, tracking status in the full-app checklist inside `ui-ux-audit-guide.md` (Hạng mục 6).
 
-Look (the easy-to-break parts of the spec):
-- Neutral page, flat white cards, and exactly ONE ink-black focal card per screen (balance, budget, total assets).
-- Sand (`#F2D3A8`) is a highlight only (selected item, budget segment, badge), never a large background.
-- Numbers use Inter with tabular figures. Instrument Serif italic only for section titles and short accents, never amounts or paragraphs.
-- Corner radii 28/24/20/16/12 and pill, no asymmetric corners. Shadows only on floating elements; sheets use a 45% scrim.
+Look (the easy-to-break parts of the v5 spec):
+- Full-canvas `AppAtmosphericBackground` (with `forceSoftBlurOnPhoto = true` on data-heavy screens) and NO black (`ink`) hero cards: hero cards use Luminous iOS Elevated gradient (`HomeHeroCardLightTop/Bottom/Rim` or `HomeHeroCardDarkTop/Bottom/Rim`) + `Modifier.iosCardShadow(shape, elevated = true)`.
+- Content cards, grouped cards, and floating header/filter pills use `AppTheme.colors.surface` + `0.5.dp` `hairline` border + `Modifier.iosCardShadow(shape, elevated = false)` placed BEFORE `clip`/`background`/`Surface`.
+- `ink` (`primary`) is reserved for Primary CTA buttons and the floating bottom navigation pill. `sand` (`#F2D3A8`) is a highlight only (selected pills, active tabs, goal progress), never a large background.
+- Numbers use Inter with tabular figures (`tnum`). Fraunces (`displaySerif`) only for screen/section titles and short accents, never amounts or paragraphs.
+- Corner radii 28/24/20/16/12 and capsule/circle, no asymmetric corners. Sheets use `ModalBottomSheet` (`sheetTop`) with a 45% scrim.
 
 Hard rules:
-1. Colors, shapes and type come from `AppTheme.colors`, `AppTheme.shapes` and typography styles. No hard-coded hex. A missing token is added to the theme.
-2. Spacing on the 4dp scale (4/8/16/24/32), screen margin 16dp, 120dp bottom clearance for the floating nav.
+1. Colors, shapes, shadows and type come from `AppTheme.colors`, `AppTheme.shapes`, `IosShadowModifier`, `Color.kt` tokens, and `AppTheme.typography`. No hard-coded hex in composables.
+2. Spacing on the 4dp scale (4/8/12/16/24/32), screen margin 16dp, 120dp bottom clearance for the floating nav.
 3. Text at least 12sp, touch targets at least 48dp, icon-only buttons have `contentDescription`.
-4. Layouts survive Vietnamese text at font scale 1.3x to 2.0x: `Modifier.defaultMinSize(minHeight = 48.dp)` + `TextOverflow.Ellipsis`, never a fixed `height` on text containers.
+4. Layouts survive Vietnamese text at font scale 1.3x to 2.0x: `Modifier.defaultMinSize(minHeight = 48.dp)` + `TextOverflow.Ellipsis`, never a fixed `height` on text containers. Inset metric tiles stack vertically at `fontScale >= 1.45f`.
 5. Handle Loading, Empty, Error and Offline states.
 6. Income/expense colors mean cash flow only. Status (safe/caution/over) = color + icon + text.
-7. Contrast at least 4.5:1 in light and dark. Text over images needs an overlay or blur.
-8. Before finishing a UI change: run the checklist in `ui-ux-audit-guide.md`, check light/dark and font scale 1.3x/2.0x, then run `./gradlew.bat detekt :app:lintFullDebug :app:lintPlayDebug :app:testFullDebugUnitTest :app:testPlayDebugUnitTest`.
+7. Contrast at least 4.5:1 in light and dark. Text over custom background photos requires the `AppAtmosphericBackground` scrim.
+8. Before finishing a UI change: run the checklists in `ui-ux-audit-guide.md` (Hạng mục 1–6), check light/dark and font scale 1.3x/2.0x, then run `./gradlew.bat detekt :app:lintFullDebug :app:testFullDebugUnitTest :app:assembleFullDebug` (plus `:app:lintPlayDebug :app:testPlayDebugUnitTest` when `com.notepay.debug` is configured in `app/google-services.json`).
 
 ## Localization: Zero Hardcoded Strings
 

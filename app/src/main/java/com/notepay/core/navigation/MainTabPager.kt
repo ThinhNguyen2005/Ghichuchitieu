@@ -68,6 +68,7 @@ fun MainTabPager(
                 onEditTransaction = { txId ->
                     navController.navigate(Route.EditTransaction(txId).path)
                 },
+                onFeedback = showFeedback,
             )
             1 -> StatsScreen(
                 onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
@@ -82,6 +83,7 @@ fun MainTabPager(
                         walletId?.let { Route.EditWallet(it).path } ?: Route.Assets.path
                     ) { launchSingleTop = true }
                 },
+                onFeedback = showFeedback,
             )
             2 -> AssetsScreen(
                 onAddWallet = { navController.navigate(Route.AddWallet.path) },

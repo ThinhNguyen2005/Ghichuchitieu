@@ -50,6 +50,12 @@ class AppSettingsDataStore @Inject constructor(
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_THEME_COLOR = stringPreferencesKey("theme_color")
         val KEY_HAS_SEEN_WELCOME = booleanPreferencesKey("has_seen_welcome")
+        val KEY_HOME_SMART_TIPS_DISMISSED = booleanPreferencesKey("home_smart_tips_dismissed")
+        val KEY_HOME_SMART_TIP_ROTATION = intPreferencesKey("home_smart_tip_rotation")
+        val KEY_HOME_BACKGROUND_PRESET = stringPreferencesKey("home_background_preset")
+        val KEY_HOME_BACKGROUND_IMAGE_PATH = stringPreferencesKey("home_background_image_path")
+        val KEY_HOME_BACKGROUND_BLUR_ENABLED = booleanPreferencesKey("home_background_blur_enabled")
+        val KEY_HOME_BALANCE_HIDDEN = booleanPreferencesKey("home_balance_hidden")
     }
 
     val hasSeenWelcome: Flow<Boolean> = dataStore.data.map { preferences ->
@@ -204,6 +210,75 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setThemeColor(color: String) {
         dataStore.edit { preferences ->
             preferences[KEY_THEME_COLOR] = color
+        }
+    }
+
+    val homeSmartTipsDismissed: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_SMART_TIPS_DISMISSED] ?: false
+    }
+
+    suspend fun setHomeSmartTipsDismissed(dismissed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HOME_SMART_TIPS_DISMISSED] = dismissed
+        }
+    }
+
+    val homeSmartTipRotation: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_SMART_TIP_ROTATION] ?: 0
+    }
+
+    suspend fun incrementHomeSmartTipRotation() {
+        dataStore.edit { preferences ->
+            val current = preferences[KEY_HOME_SMART_TIP_ROTATION] ?: 0
+            preferences[KEY_HOME_SMART_TIP_ROTATION] = current + 1
+        }
+    }
+
+    val homeBackgroundPreset: Flow<String> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_BACKGROUND_PRESET] ?: "warm_silk"
+    }
+
+    suspend fun setHomeBackgroundPreset(presetId: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HOME_BACKGROUND_PRESET] = presetId
+        }
+    }
+
+    val homeBackgroundImagePath: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_BACKGROUND_IMAGE_PATH]
+    }
+
+    suspend fun setHomeBackgroundCustomImage(path: String?) {
+        dataStore.edit { preferences ->
+            if (path != null) {
+                preferences[KEY_HOME_BACKGROUND_IMAGE_PATH] = path
+                preferences[KEY_HOME_BACKGROUND_PRESET] = "custom"
+            } else {
+                preferences.remove(KEY_HOME_BACKGROUND_IMAGE_PATH)
+                if (preferences[KEY_HOME_BACKGROUND_PRESET] == "custom") {
+                    preferences[KEY_HOME_BACKGROUND_PRESET] = "warm_silk"
+                }
+            }
+        }
+    }
+
+    val homeBackgroundBlurEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_BACKGROUND_BLUR_ENABLED] ?: false
+    }
+
+    suspend fun setHomeBackgroundBlurEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HOME_BACKGROUND_BLUR_ENABLED] = enabled
+        }
+    }
+
+    val homeBalanceHidden: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_HOME_BALANCE_HIDDEN] ?: false
+    }
+
+    suspend fun setHomeBalanceHidden(hidden: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_HOME_BALANCE_HIDDEN] = hidden
         }
     }
 }

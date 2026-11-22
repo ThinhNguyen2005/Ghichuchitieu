@@ -1,22 +1,22 @@
 # Quy Chuẩn Kiểm Tra & Nâng Cấp UI/UX NotePay (`ui-ux-audit-guide.md`)
 
-Tài liệu này là kịch bản kiểm tra chuẩn (**Audit Checklist & Actionable Prompt**) dành cho mã nguồn **Jetpack Compose + Material Design 3 (`androidx.compose.material3:1.4.0`)**, tuân thủ hệ thống token **NotePay v4 — Sand & Ink (`DESIGN.md`)**, chuẩn **Trợ năng (WCAG AA / TalkBack)** và **Motion Design** của Google.
+Tài liệu này là kịch bản kiểm tra chuẩn (**Audit Checklist & Actionable Prompt**) dành cho mã nguồn **Jetpack Compose + Material Design 3 (`androidx.compose.material3:1.4.0`)**, tuân thủ hệ thống thiết kế **NotePay v5.0.0 — Luminous iOS & Atmospheric Canvas (`DESIGN.md`)**, chuẩn **Trợ năng (WCAG AA / TalkBack)** và **Motion Design**.
 
-> **Nguyên tắc thực thi:** Khi kiểm tra bất kỳ màn hình nào, rà soát tuần tự cả **5 hạng mục** dưới đây. Không bỏ qua `Dialog` con, `BottomSheet` con, hoặc các trạng thái `Loading / Empty / Error / Offline` được gọi bên trong màn hình đó.
+> **Nguyên tắc thực thi:** Khi kiểm tra hoặc chuyển đổi bất kỳ màn hình nào sang v5.0, rà soát tuần tự cả **6 hạng mục** dưới đây (bao gồm bảng theo dõi toàn app ở Hạng mục 6). Không bỏ qua `Dialog` con, `BottomSheet` con, hoặc các trạng thái `Loading / Empty / Error / Offline`.
 
 ---
 
 ## Hạng mục 1: Kiểm tra Luồng tương tác & Nút chức năng trùng lặp (Flow & Action Redundancy)
 
 ### Checklist kiểm tra
-- [ ] **Quét trùng lặp hành động trên cùng màn hình:** Liệt kê toàn bộ `Button`, `FilledTonalButton`, `OutlinedButton`, `TextButton`, `IconButton`, `FloatingActionButton`, `DropdownMenuItem`, `ListItem`, thẻ `.clickable` để phát hiện các nút dẫn tới cùng một đích hoặc thực hiện cùng một hành động (ví dụ: có cả nút CTA trong Empty State lẫn `FloatingAddButton` `+` ở thanh điều hướng nổi cùng mở màn hình Thêm giao dịch).
+- [ ] **Quét trùng lặp hành động trên cùng màn hình:** Liệt kê toàn bộ `Button`, `FilledTonalButton`, `OutlinedButton`, `TextButton`, `IconButton`, `FloatingActionButton`, `DropdownMenuItem`, `ListItem`, thẻ `.clickable` để phát hiện các nút dẫn tới cùng một đích hoặc thực hiện cùng một hành động.
 - [ ] **Đúng 1 Hành động Chính (Single Primary Action):**
-  - Mỗi màn hình chỉ giữ tối đa **1 nút Primary nổi bật nhất** (`Button` màu `ink` / `primary` hoặc `FloatingAddButton` ở 4 tab gốc).
-  - Các hành động phụ phải hạ cấp xuống `FilledTonalButton`, `OutlinedButton`, `TextButton`, `IconButton` hoặc gom vào `DropdownMenu` / `ModalBottomSheet`.
-  - Theo `DESIGN.md` v4: mỗi màn hình chỉ có **1 thẻ Ink đen (`AppTheme.colors.ink`)** làm tâm điểm dữ liệu; không đặt 2 thẻ Ink cạnh nhau làm phân tán sự chú ý.
-- [ ] **Phát hiện nút "chết" hoặc dẫn vào ngõ cụt:** Không bật sẵn nút dẫn tới một form/sheet mà điều kiện tiên quyết chưa thỏa (ví dụ: nút "Chuyển tiền giữa các ví" vẫn bật khi người dùng mới có 0 hoặc 1 ví, bấm vào mới thấy thông báo lỗi). Hãy disable kèm gợi ý rõ ràng, ẩn khi không khả dụng, hoặc đổi thành CTA dẫn đúng bước tạo tiền đề.
-- [ ] **Độ dài luồng & Tham số thừa:** Kiểm tra xem thao tác phổ biến có bị kéo dài qua nhiều lớp không cần thiết hay không; loại bỏ các callback/tham số điều hướng thừa không được gọi.
-- [ ] **Đầy đủ 4 trạng thái dữ liệu:** Kiểm tra đủ cả `Loading`, `Empty` (dùng component chuẩn `EmptyStateWithAction`), `Error` (có thông báo nguyên nhân an toàn + nút Thử lại), và `Content`.
+  - Mỗi màn hình chỉ giữ tối đa **1 nút Primary nổi bật nhất** (`Button` màu `primary` hoặc `FloatingAddButton` ở 4 tab gốc).
+  - Các hành động phụ hạ cấp xuống `FilledTonalButton`, `OutlinedButton`, `TextButton`, `IconButton` tròn phủ sương `48.dp` hoặc gom vào `ModalBottomSheet`.
+  - Theo `DESIGN.md` v5: **không dùng thẻ nền đen (`ink`) cho Hero Card** — mỗi màn dùng tối đa **1 Luminous iOS Hero Card** (`HomeHeroCard*Top -> Bottom` + `iosCardShadow(..., elevated = true)`) làm tâm điểm dữ liệu.
+- [ ] **Phát hiện nút "chết" hoặc dẫn vào ngõ cụt:** Không bật sẵn nút dẫn tới một form/sheet mà điều kiện tiên quyết chưa thỏa (ví dụ: nút chuyển tiền giữa các ví khi chỉ có 1 ví).
+- [ ] **Độ dài luồng & Tham số thừa:** Kiểm tra xem thao tác phổ biến có bị kéo dài qua nhiều lớp không cần thiết hay không; loại bỏ tham số/trạng thái thừa.
+- [ ] **Đầy đủ 4 trạng thái dữ liệu:** `Loading`, `Empty` (`EmptyStateWithAction`), `Error` (thông báo an toàn + nút Thử lại), và `Content`.
 
 ---
 
@@ -41,10 +41,11 @@ Tài liệu này là kịch bản kiểm tra chuẩn (**Audit Checklist & Action
     - Nội dung chi tiết cần cuộn.
   - **Chỉ giữ lại `AlertDialog`** cho hộp thoại xác nhận ngắn mang tính cảnh báo nghiêm trọng hoặc hủy diệt (ví dụ: `ConfirmDeleteDialog` xóa giao dịch, xác nhận đăng xuất, xác nhận bỏ thay đổi chưa lưu).
   - Không dùng `Dialog(usePlatformDefaultWidth = false)` để giả dạng `BottomSheet` (hoặc đặt tên `*BottomSheet` nhưng bên trong lại là `Dialog` toàn màn hình).
-- [ ] **Kiểm tra Design Token (`DESIGN.md` v4 & `AppTheme`):**
-  - **Cấm hardcode mã màu Hex** (`Color(0xFF...)`) hoặc `Color.White` / `Color.Black` trực tiếp trong UI; luôn dùng `MaterialTheme.colorScheme` hoặc `AppTheme.colors`.
-  - **Cấm hardcode kích thước chữ** (`.sp` tùy tiện) và góc bo ngoài thang `AppShapes` (`12 / 16 / 20 / 24 / 28 / capsule`) hoặc khoảng cách ngoài lưới `4.dp` (`4 / 8 / 16 / 24 / 32`).
-  - **Thẻ phẳng theo v4:** Thẻ nội dung dùng `defaultElevation = 0.dp` (phân tầng bằng màu nền và viền `1.dp`, không đổ bóng cho thẻ tĩnh).
+- [ ] **Kiểm tra Design Token (`DESIGN.md` v5, `AppTheme`, `IosShadowModifier`, `AppAtmosphericBackground`):**
+  - **Cấm hardcode mã màu Hex** (`Color(0xFF...)`) hoặc `Color.White` / `Color.Black` trực tiếp trong UI; luôn dùng `AppTheme.colors`, token đặt tên trong `Color.kt`, hoặc `MaterialTheme.colorScheme`.
+  - **Cấm hardcode kích thước chữ `< 12.sp`** và góc bo ngoài thang `AppShapes` (`12 / 16 / 20 / 24 / 28 / capsule / circle`) hoặc khoảng cách ngoài lưới `4.dp`.
+  - **Không dùng thẻ đen cho Hero Card:** Dùng Luminous iOS Hero Surface (`HomeHeroCardLightTop/Bottom/Rim` hoặc `HomeHeroCardDarkTop/Bottom/Rim`) + `Modifier.iosCardShadow(shape, elevated = true)` + 2 ô chỉ số lồng `corner16`.
+  - **Nền & Bóng đổ v5:** Mọi màn chính/phụ đặt trên `AppAtmosphericBackground` (`forceSoftBlurOnPhoto = true` trên màn dữ liệu dày). Thẻ nội dung & pill nổi đặt `Modifier.iosCardShadow(shape, elevated = false)` **trước** `.clip`/`.background`/`Surface` + viền `0.5.dp hairline`.
 
 ---
 
@@ -191,19 +192,62 @@ suspend fun Animatable<Float, AnimationVector1D>.triggerErrorShake(
 
 ---
 
-## Actionable Prompt Mẫu (Dùng để gọi kiểm tra bất kỳ màn hình nào)
+## Hạng mục 6: Checklist Áp Dụng & Kiểm Tra Giao Diện Chuẩn iOS Toàn App (Full-App v5.0 Tracking)
+
+### Cổng kiểm tra 8 điểm cho mỗi màn hình trước khi đánh dấu `[x]`
+1. **Nền Atmospheric:** Bọc gốc màn hình bằng `AppAtmosphericBackground` (bật `forceSoftBlurOnPhoto = true` nếu có biểu đồ, danh sách dày hoặc bàn phím).
+2. **Hero Card sáng chuẩn iOS (Không thẻ đen):** Mọi thẻ tổng quan dùng gradient `HomeHeroCard*Top -> Bottom` + viền `1.dp` `HomeHeroCard*Rim` + `iosCardShadow(corner28, elevated = true)` + ô chỉ số lồng `corner16` tự xếp dọc khi `fontScale >= 1.45f`.
+3. **Thẻ nội dung & Control Pills nổi:** Gắn `Modifier.iosCardShadow(shape, elevated = false)` **trước** `.clip`/`Surface` và viền `0.5.dp` `hairline`. Nút header tròn/pill phủ sương `48.dp`.
+4. **Vùng chạm `>= 48.dp`:** Toàn bộ nút, chip, hàng chọn, mũi tên điều hướng đạt `minHeight = 48.dp`.
+5. **Chữ & Co giãn 200%:** Không có chữ `< 12.sp`, không gán `.height(...)` cố định cho container chứa text; tiêu đề ngắn dùng `displaySerif` + `heading()`, số liệu dùng Inter `tnum`.
+6. **TalkBack & Trạng thái:** Đủ `contentDescription` / `mergeDescendants` / `Role` / `stateDescription` và xử lý đủ 4 trạng thái `Loading / Empty / Error / Content`.
+7. **Dialog -> ModalBottomSheet:** Mọi form/picker/nội dung cuộn dùng `ModalBottomSheet` (`sheetTop`, scrim 45%, `shakeOnError`, `AnimatedVisibility`).
+8. **Tương phản Light & Dark + Song ngữ:** Đạt `>= 4.5:1` cả 2 theme, không sót text hardcode ngoài `values/strings.xml` & `values-en/strings.xml`.
+
+---
+
+### Bảng tiến độ áp dụng toàn bộ 19 màn hình NotePay
+
+#### Tier 1 — 4 Tab Gốc & Luồng Nhập Giao Dịch Chính (Đã áp dụng chuẩn v5.0)
+- [x] **Trang chủ (`Home`)** — [HomeScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/home/HomeScreen.kt), `HomeHeroSection`, `HeroBalanceCard`, `SmartInsightsCard`, `HomeTransactionFeed`, `HomeCustomizationSheet`
+- [x] **Báo cáo (`Stats`)** — [StatsScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/stats/main/StatsScreen.kt), `StatsDashboard`, `StatsCategoryBreakdownSection`, `LongTermTrendSection`, `StatsAdvisorSection`
+- [x] **Tài sản (`Assets`)** — [AssetsScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/assets/main/AssetsScreen.kt), `AssetsCards`, `DebtSummaryCard`
+- [x] **Thêm / Sửa giao dịch (`AddTransaction` / `EditTransaction`)** — [TransactionFormScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/transaction/form/TransactionFormScreen.kt), `TransactionInputComponents`, `TransactionFormSections`, `TransactionCustomKeypad`
+- [x] **Thêm / Tiện ích (`Utilities`)** — [UtilitiesScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/utilities/UtilitiesScreen.kt)
+
+#### Tier 2 — Luồng Nghiệp Vụ Tài Chính (Triển khai tiếp theo theo từng đợt)
+- [ ] **Danh sách giao dịch (`TransactionList`)** — `feature/transaction/list/TransactionListScreen.kt`: thêm `AppAtmosphericBackground`, header frosted pills, `iosCardShadow` cho thanh tìm kiếm/filter chip/nhóm thẻ ngày (`>= 48.dp`, xóa `sp < 12`).
+- [ ] **Chi tiết giao dịch (`TransactionDetail`)** — `feature/transaction/detail/TransactionDetailScreen.kt`: thay header phẳng bằng iOS frosted bar, đưa thẻ tóm tắt số tiền thành Luminous Card + `iosCardShadow`, kiểm tra nút Sửa/Xóa & sheet xác nhận.
+- [ ] **Thêm / Sửa ví (`AddWallet` / `EditWallet`)** — `feature/assets/main/sheet/AddWalletScreen.kt`: thêm `AppAtmosphericBackground`, gom nhóm trường vào `Surface` `corner20` + `iosCardShadow`, kiểm tra `isError` + `shakeOnError`.
+- [ ] **Thành viên ví chung (`SharedWalletMembers`)** — `feature/assets/shared/SharedWalletMembersScreen.kt`: thêm `AppAtmosphericBackground`, `iosCardShadow` cho thẻ thành viên/mã mời, đảm bảo toàn bộ action `>= 48.dp`.
+- [ ] **Quản lý sổ nợ (`DebtManagement`)** — `feature/debt/management/DebtManagementScreen.kt` (*lưu ý:* `DebtSummaryCard` hero đã chuyển sang chuẩn Luminous v5 `[x]`): áp dụng `AppAtmosphericBackground`, header frosted pills, `iosCardShadow` cho thẻ khoản nợ và bộ lọc.
+- [ ] **Chi tiết khoản nợ (`DebtDetail`)** — `feature/debt/detail/DebtDetailScreen.kt`: thay thẻ đen/phẳng bằng Luminous Hero Card + lịch sử trả nợ nhóm `corner20` có `iosCardShadow` & vạch chia thụt lề.
+- [ ] **Chia hóa đơn (`BillSplit`)** — `feature/billsplit/main/BillSplitScreen.kt`: thêm `AppAtmosphericBackground`, `iosCardShadow` cho từng nhóm chia tiền và thanh tiến độ thanh toán.
+- [ ] **Chi tiết người nợ (`DebtorDetail`)** — `feature/billsplit/main/detail/DebtorDetailScreen.kt`: nâng cấp thẻ tổng công nợ + thẻ VietQR (`TransferDetailsCopyCard`) theo v5 + `iosCardShadow`.
+- [ ] **Gói đăng ký định kỳ (`Subscription`)** — `feature/subscription/main/SubscriptionScreen.kt` & `AddSubscriptionBottomSheet.kt`: nền `AppAtmosphericBackground`, `iosCardShadow` cho thẻ tóm tắt & item định kỳ, rà soát `>= 48.dp`.
+- [ ] **Quản lý danh mục (`CategoryManagement`)** — `feature/category/CategoryManagementScreen.kt`: nền `AppAtmosphericBackground`, tách 2 nhóm Chi tiêu / Thu nhập dạng grouped `corner20` + `iosCardShadow` + sheet tạo/sửa danh mục.
+
+#### Tier 3 — Cài Đặt Hệ Thống & Màn Hình Chào
+- [ ] **Giao diện & Ngôn ngữ (`AppearanceLanguage`)** — `feature/settings/appearance/AppearanceLanguageScreen.kt`: thêm mục lối tắt mở tùy chỉnh nền Trang chủ hoặc đồng bộ thẻ grouped `corner20` + `iosCardShadow`, `displaySerif` header, `AppAtmosphericBackground`.
+- [ ] **Cài đặt tiền tệ & Quy đổi (`CurrencySettings` / `CurrencyConverter`)** — `feature/settings/currency/CurrencySettingsScreen.kt` & `CurrencyConverterScreen.kt`: chuyển `ConverterInkResultCard` từ thẻ đen sang Luminous Hero Card, thêm `iosCardShadow` & `AppAtmosphericBackground`.
+- [ ] **Cài đặt AI (`AiSettings`)** — `feature/settings/ai/AiSettingsScreen.kt`: đồng bộ `AiEngineHeaderCard` sang Luminous/Surface có `iosCardShadow`, `AppAtmosphericBackground`, kiểm tra `>= 48.dp` trên các hàng setting.
+- [ ] **Cài đặt thông báo (`NotificationSettings`) & Sao lưu khôi phục (`BackupRestore`) & Giới thiệu (`About`) & Màn hình chào (`Onboarding`)** — `feature/settings/notification/NotificationSettingsScreen.kt`, `feature/backup/BackupRestoreScreen.kt`, `feature/settings/AboutScreen.kt`, `feature/onboarding/OnboardingScreen.kt`: áp dụng `AppAtmosphericBackground`, grouped cards `iosCardShadow`, `displaySerif` header và kiểm tra tương phản Light/Dark + `fontScale 2.0x`.
+
+---
+
+## Actionable Prompt Mẫu (Dùng để gọi kiểm tra / áp dụng v5.0 cho bất kỳ màn hình nào)
 
 ```text
 Hãy đóng vai Senior Mobile UI/UX Engineer (Material Design 3, Jetpack Compose, Accessibility, Motion Design).
-Đọc file quy chuẩn `ui-ux-audit-guide.md` và `DESIGN.md` của dự án, sau đó kiểm tra toàn diện màn hình `[TÊN MÀN HÌNH / ROUTE]` cùng toàn bộ component con, Dialog và BottomSheet được gọi bên trong nó.
+Đọc file quy chuẩn `DESIGN.md` (v5.0.0 Luminous iOS & Atmospheric Canvas) và `ui-ux-audit-guide.md`, sau đó kiểm tra / áp dụng style v5 cho màn hình `[TÊN MÀN HÌNH / ROUTE]` cùng toàn bộ component con, Dialog và BottomSheet được gọi bên trong nó.
 
 Yêu cầu:
-1. Kiểm tra đủ 5 hạng mục trong `ui-ux-audit-guide.md`:
-   - Luồng tương tác & Nút trùng chức năng (1 Primary Action, trạng thái Loading/Empty/Error/Content).
-   - Chuẩn hóa Material 3 (`ListItem`, `SegmentedButton`, `FilterChip`, `ModalBottomSheet` thay `Dialog` nhập liệu/danh sách, không hardcode hex/sp).
-   - Trợ năng a11y (vùng chạm >= 48dp, `contentDescription`, `Role`, `stateDescription`, `semantics(mergeDescendants = true)`, tương phản Light/Dark, fontScale 200%).
-   - Motion Design (Entrance/Transition mượt, `AnimatedContent`, `animateContentSize`, `animateItem`, tôn trọng `rememberNotePayReducedMotion()`).
-   - Micro-interactions & Error Feedback (Horizontal Shake bằng `Animatable` + `keyframes`, `LocalHapticFeedback`, `isError` + `AnimatedVisibility` cho `supportingText`).
-2. Trích dẫn chính xác file nguồn, tên hàm composable và số dòng cho từng vấn đề phát hiện.
-3. Đề xuất thứ tự ưu tiên nâng cấp (P0 -> P3) trước khi chỉnh sửa code.
+1. Kiểm tra đủ 6 hạng mục trong `ui-ux-audit-guide.md` (bao gồm Cổng kiểm tra 8 điểm ở Hạng mục 6):
+   - Bọc nền `AppAtmosphericBackground` (bật `forceSoftBlurOnPhoto = true` với màn dữ liệu dày).
+   - Không dùng thẻ đen cho Hero Card: chuyển sang Luminous iOS Hero Card + `Modifier.iosCardShadow(shape, elevated = true)`.
+   - Thẻ nội dung & pill nổi dùng `AppTheme.colors.surface` + `0.5.dp hairline` + `Modifier.iosCardShadow(shape, elevated = false)` đặt TRƯỚC `clip`/`Surface`.
+   - Chuẩn Material 3 (`ModalBottomSheet`, không hardcode hex/sp `< 12.sp`, đủ Loading/Empty/Error/Content).
+   - Trợ năng a11y (`>= 48dp`, `contentDescription`, `Role`, `stateDescription`, `heading()`, `semantics(mergeDescendants = true)`, Light/Dark `>= 4.5:1`, `fontScale 200%`).
+   - Motion (`AnimatedContent`, `animateContentSize`, `animateItem`, `rememberNotePayReducedMotion()`) & Error Feedback (`shakeOnError` + `isError` + `AnimatedVisibility`).
+2. Cập nhật dấu `[x]` tương ứng trong Bảng tiến độ Hạng mục 6 của `ui-ux-audit-guide.md` sau khi kiểm chứng build, test và ảnh/cây XML thực tế.
 ```

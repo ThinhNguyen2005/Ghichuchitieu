@@ -1,9 +1,26 @@
 package com.notepay.feature.home
 
 import androidx.compose.runtime.Immutable
+import com.notepay.domain.analytics.SmartTipItem
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
+
+enum class HomeBackgroundPreset(val id: String) {
+    WARM_SILK("warm_silk"),
+    OCEAN_MIST("ocean_mist"),
+    SAGE_MORNING("sage_morning"),
+    SUNSET_BLOOM("sunset_bloom"),
+    AURORA_LAVENDER("aurora_lavender"),
+    MINIMAL_CANVAS("minimal_canvas"),
+    CUSTOM("custom"),
+    ;
+
+    companion object {
+        fun fromId(id: String?): HomeBackgroundPreset =
+            entries.firstOrNull { it.id == id } ?: WARM_SILK
+    }
+}
 
 @Immutable
 data class WalletSummary(
@@ -42,8 +59,17 @@ data class HomeUiState(
     val dueRemindersCount: Int = 0,
     val streakDays: Int = 0,
     val isSmartInsightsDismissed: Boolean = false,
+    val smartTips: List<SmartTipItem> = emptyList(),
+    val activeSmartTipIndex: Int = 0,
+    val backgroundPreset: HomeBackgroundPreset = HomeBackgroundPreset.WARM_SILK,
+    val customBackgroundPath: String? = null,
+    val backgroundBlurEnabled: Boolean = false,
+    val isBalanceHidden: Boolean = false,
     val currentUserId: String? = null,
 ) {
+    val activeSmartTip: SmartTipItem?
+        get() = smartTips.getOrNull(activeSmartTipIndex)
+
     val selectedWalletSummary: WalletSummary?
         get() = walletsSummary.find { it.wallet.id == selectedWalletId }
 

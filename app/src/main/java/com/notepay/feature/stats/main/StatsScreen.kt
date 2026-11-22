@@ -7,23 +7,27 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,19 +40,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.money.Money
+import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.stats.main.component.AiInsightsCarousel
 import com.notepay.feature.stats.main.component.BudgetProgressBar
 import com.notepay.feature.stats.main.component.SpendingPredictionCard
@@ -93,11 +102,13 @@ fun StatsScreen(
     onTransactionClick: (Long) -> Unit = {},
     onConfigureLocalModel: () -> Unit = {},
     onConfigureBudget: (Long?) -> Unit = {},
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var showAmounts by rememberSaveable { mutableStateOf(true) }
     var isWalletPickerOpen by rememberSaveable { mutableStateOf(false) }
+    var isExportSheetVisible by rememberSaveable { mutableStateOf(false) }
     val reducedMotion = rememberNotePayReducedMotion()
 
     val contentState = when {
@@ -106,76 +117,61 @@ fun StatsScreen(
         else -> StatsContentState.CONTENT
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppTheme.colors.background),
-    ) {
-        GradientTopAppBar(
-            title = {
-                Text(
-                    text = stringResource(R.string.stats_screen_title),
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            },
-            topBarColor = AppTheme.colors.background,
-            actions = {
-                IconButton(onClick = { showAmounts = !showAmounts }) {
-                    Icon(
-                        imageVector = if (showAmounts) {
-                            Icons.Rounded.Visibility
-                        } else {
-                            Icons.Rounded.VisibilityOff
-                        },
-                        contentDescription = stringResource(
-                            if (showAmounts) R.string.stats_cd_hide_amounts else R.string.stats_cd_show_amounts
-                        ),
-                    )
-                }
-            },
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppAtmosphericBackground(
+            modifier = Modifier.matchParentSize(),
+            forceSoftBlurOnPhoto = true,
         )
 
-        AnimatedContent(
-            targetState = contentState,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(animationSpec = tween(180)) togetherWith
-                        fadeOut(animationSpec = tween(140))
-                }
-            },
-            label = "stats-content",
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        ) { target ->
-            when (target) {
-                StatsContentState.LOADING -> StatsLoadingState()
-                StatsContentState.EMPTY -> StatsEmptyState()
-                StatsContentState.CONTENT -> {
-                    StatsDashboard(
-                        state = state,
-                        showAmounts = showAmounts,
-                        onOpenWalletPicker = { isWalletPickerOpen = true },
-                        onPreviousMonth = viewModel::previousPeriod,
-                        onNextMonth = viewModel::nextPeriod,
-                        onSelectRange = viewModel::selectRange,
-                        onCategorySelected = viewModel::selectCategory,
-                        onTransactionClick = onTransactionClick,
-                        supportingContent = { metric ->
-                            StatsSupportingContent(
-                                state = state,
-                                metric = metric,
-                                showAmounts = showAmounts,
-                                onConfigureBudget = { onConfigureBudget(state.selectedWallet?.id) },
-                                onAdviceFeedback = viewModel::sendAdviceFeedback,
-                                onAddSubscription = viewModel::showAddSubscription,
-                                onGenerateLocalAdvice = viewModel::generateLocalAdvice,
-                                onSelectLocalModel = onConfigureLocalModel,
-                            )
-                        },
-                    )
+        Column(modifier = Modifier.fillMaxSize()) {
+            StatsEditorialHeader(
+                showAmounts = showAmounts,
+                onExportClick = { isExportSheetVisible = true },
+                onToggleAmounts = { showAmounts = !showAmounts },
+            )
+
+            AnimatedContent(
+                targetState = contentState,
+                transitionSpec = {
+                    if (reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        fadeIn(animationSpec = tween(180)) togetherWith
+                            fadeOut(animationSpec = tween(140))
+                    }
+                },
+                label = "stats-content",
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) { target ->
+                when (target) {
+                    StatsContentState.LOADING -> StatsLoadingState()
+                    StatsContentState.EMPTY -> StatsEmptyState()
+                    StatsContentState.CONTENT -> {
+                        StatsDashboard(
+                            state = state,
+                            showAmounts = showAmounts,
+                            onOpenWalletPicker = { isWalletPickerOpen = true },
+                            onPreviousMonth = viewModel::previousPeriod,
+                            onNextMonth = viewModel::nextPeriod,
+                            onSelectRange = viewModel::selectRange,
+                            onCategorySelected = viewModel::selectCategory,
+                            onTransactionClick = onTransactionClick,
+                            supportingContent = { metric ->
+                                StatsSupportingContent(
+                                    state = state,
+                                    metric = metric,
+                                    showAmounts = showAmounts,
+                                    onConfigureBudget = { onConfigureBudget(state.selectedWallet?.id) },
+                                    onAdviceFeedback = viewModel::sendAdviceFeedback,
+                                    onAddSubscription = viewModel::showAddSubscription,
+                                    onGenerateLocalAdvice = viewModel::generateLocalAdvice,
+                                    onSelectLocalModel = onConfigureLocalModel,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -212,6 +208,91 @@ fun StatsScreen(
             onAllWalletsSelected = { viewModel.selectWallet(null) },
             onDismiss = { isWalletPickerOpen = false },
         )
+    }
+
+    if (isExportSheetVisible) {
+        ExportReportBottomSheet(
+            onDismiss = { isExportSheetVisible = false },
+            onFeedback = onFeedback,
+        )
+    }
+}
+
+@Composable
+private fun StatsEditorialHeader(
+    showAmounts: Boolean,
+    onExportClick: () -> Unit,
+    onToggleAmounts: () -> Unit,
+) {
+    val pillContainerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.90f else 0.85f,
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.stats_screen_title),
+            style = AppTheme.typography.displaySerif,
+            color = AppTheme.colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+
+        Surface(
+            onClick = onExportClick,
+            shape = CircleShape,
+            color = pillContainerColor,
+            contentColor = AppTheme.colors.textPrimary,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(AppTheme.dimensions.minTouchTarget)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.FileDownload,
+                    contentDescription = stringResource(R.string.export_report_action_cd),
+                    tint = AppTheme.colors.textPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Surface(
+            onClick = onToggleAmounts,
+            shape = CircleShape,
+            color = pillContainerColor,
+            contentColor = AppTheme.colors.textPrimary,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(AppTheme.dimensions.minTouchTarget)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (showAmounts) {
+                        Icons.Rounded.Visibility
+                    } else {
+                        Icons.Rounded.VisibilityOff
+                    },
+                    contentDescription = stringResource(
+                        if (showAmounts) R.string.stats_cd_hide_amounts else R.string.stats_cd_show_amounts,
+                    ),
+                    tint = AppTheme.colors.textPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
     }
 }
 
@@ -341,11 +422,13 @@ internal fun SectionHeading(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppTheme.colors.textSecondary,
         )
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +18,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
@@ -39,10 +43,9 @@ import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,10 +61,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -73,8 +79,15 @@ import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkRim
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
+import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
+import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.model.Category
@@ -290,58 +303,68 @@ private fun StatsPeriodControlBar(
     )
     val selectedRange = state.currentPeriod?.range
     val hasArrows = selectedRange != StatsRange.ALL && selectedRange != StatsRange.CUSTOM
+    val compactTopRow = LocalDensity.current.fontScale < 1.35f && hasArrows
+    val periodLabel = if (state.isCurrentMonth) {
+        stringResource(R.string.stats_current_month)
+    } else {
+        state.dateRangeLabel.resolve()
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (state.wallets.isNotEmpty()) {
-            val walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets)
-            val selectWalletLabel = stringResource(R.string.home_select_wallet)
-            AssistChip(
-                onClick = onOpenWalletPicker,
-                label = {
-                    Text(
-                        text = walletLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.AccountBalanceWallet,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                },
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                },
-                shape = AppTheme.shapes.corner12,
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = AppTheme.colors.surface.copy(alpha = 0.72f),
-                    labelColor = AppTheme.colors.textPrimary,
-                    leadingIconContentColor = AppTheme.colors.textSecondary,
-                    trailingIconContentColor = AppTheme.colors.textSecondary,
-                ),
-                border = BorderStroke(1.dp, AppTheme.colors.hairline),
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics(mergeDescendants = true) {
-                        onClick(label = selectWalletLabel, action = null)
-                    },
-            )
+        if (state.wallets.isNotEmpty() && compactTopRow) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatsWalletFilterChip(
+                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
+                    onOpenWalletPicker = onOpenWalletPicker,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatsPeriodNavigatorPill(
+                    periodLabel = periodLabel,
+                    isLatestPeriod = state.isLatestPeriod,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
+                    fillLabel = false,
+                )
+            }
+        } else {
+            if (state.wallets.isNotEmpty()) {
+                StatsWalletFilterChip(
+                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
+                    onOpenWalletPicker = onOpenWalletPicker,
+                )
+            }
+            if (hasArrows) {
+                StatsPeriodNavigatorPill(
+                    periodLabel = periodLabel,
+                    isLatestPeriod = state.isLatestPeriod,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
+                    fillLabel = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
+
+        val rangeBarBg = AppTheme.colors.surface.copy(
+            alpha = if (AppTheme.colors.isLight) 0.88f else 0.82f,
+        )
         Surface(
             shape = AppTheme.shapes.capsule,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth(),
+            color = rangeBarBg,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .fillMaxWidth()
+                .iosCardShadow(shape = AppTheme.shapes.capsule, elevated = false),
         ) {
             Row(
                 modifier = Modifier
@@ -363,8 +386,8 @@ private fun StatsPeriodControlBar(
                                 onClick = { onSelectRange(range) },
                             ),
                         shape = AppTheme.shapes.capsule,
-                        color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                        border = if (isSelected) BorderStroke(1.dp, AppTheme.colors.border) else null,
+                        color = if (isSelected) AppTheme.colors.sand else Color.Transparent,
+                        border = if (isSelected) BorderStroke(0.5.dp, AppTheme.colors.hairline) else null,
                     ) {
                         Box(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
@@ -375,9 +398,9 @@ private fun StatsPeriodControlBar(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onSurface
+                                    AppTheme.colors.onSand
                                 } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    AppTheme.colors.textSecondary
                                 },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -387,65 +410,150 @@ private fun StatsPeriodControlBar(
                 }
             }
         }
+    }
+}
 
-        if (hasArrows) {
+@Composable
+private fun StatsWalletFilterChip(
+    walletLabel: String,
+    onOpenWalletPicker: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectWalletLabel = stringResource(R.string.home_select_wallet)
+    val pillShape = AppTheme.shapes.capsule
+    val containerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.92f else 0.86f,
+    )
+
+    Surface(
+        onClick = onOpenWalletPicker,
+        shape = pillShape,
+        color = containerColor,
+        contentColor = AppTheme.colors.textPrimary,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier
+            .heightIn(min = AppTheme.dimensions.minTouchTarget)
+            .iosCardShadow(shape = pillShape, elevated = false)
+            .semantics(mergeDescendants = true) {
+                onClick(label = selectWalletLabel, action = null)
+            },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AccountBalanceWallet,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = walletLabel,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsPeriodNavigatorPill(
+    periodLabel: String,
+    isLatestPeriod: Boolean,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onJumpToCurrent: () -> Unit,
+    fillLabel: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val jumpLabel = stringResource(R.string.stats_jump_to_current_period)
+    val pillShape = AppTheme.shapes.capsule
+    val containerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.92f else 0.86f,
+    )
+
+    Surface(
+        shape = pillShape,
+        color = containerColor,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier.iosCardShadow(shape = pillShape, elevated = false),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = onPreviousMonth,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronLeft,
+                    contentDescription = stringResource(R.string.stats_previous_month),
+                    tint = AppTheme.colors.textPrimary,
+                )
+            }
+            val labelModifier = (if (fillLabel) Modifier.weight(1f) else Modifier.widthIn(max = 160.dp))
+                .defaultMinSize(minHeight = 48.dp)
+                .clip(pillShape)
+                .clickable(
+                    enabled = !isLatestPeriod,
+                    role = Role.Button,
+                    onClickLabel = jumpLabel,
+                    onClick = onJumpToCurrent,
+                )
+                .padding(horizontal = 4.dp)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = labelModifier,
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronLeft,
-                        contentDescription = stringResource(R.string.stats_previous_month),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (state.isCurrentMonth) {
-                            stringResource(R.string.stats_current_month)
-                        } else {
-                            state.dateRangeLabel.resolve()
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                IconButton(
-                    onClick = onNextMonth,
-                    enabled = !state.isLatestPeriod,
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = stringResource(R.string.stats_next_month),
-                        tint = if (state.isLatestPeriod) {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = periodLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(
+                onClick = onNextMonth,
+                enabled = !isLatestPeriod,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = stringResource(R.string.stats_next_month),
+                    tint = if (isLatestPeriod) {
+                        AppTheme.colors.textMuted.copy(alpha = 0.45f)
+                    } else {
+                        AppTheme.colors.textPrimary
+                    },
+                )
             }
         }
     }
 }
 
-/** Thẻ Ink tâm điểm duy nhất của màn Báo cáo theo `DESIGN.md` §6 (`Sand & Ink`). */
+/** Luminous iOS elevated hero summary card for Reports (replaces legacy dark ink hero card). */
 @Composable
 private fun StatsInkHeroCard(
     state: StatsUiState,
@@ -453,27 +561,40 @@ private fun StatsInkHeroCard(
     showAmounts: Boolean,
     onMetricChanged: (StatsMetric) -> Unit,
 ) {
+    val colors = AppTheme.colors
+    val isLight = colors.isLight
     val isExpense = metric == StatsMetric.CHI_TIEU
     val total = if (isExpense) state.totalExpense else state.totalIncome
     val counterpartTotal = if (isExpense) state.totalIncome else state.totalExpense
     val previousTotal = if (isExpense) state.previousExpense else state.previousIncome
     val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
     val reducedMotion = rememberNotePayReducedMotion()
+    val cardShape = AppTheme.shapes.corner28
+    val isLargeFont = LocalDensity.current.fontScale >= 1.45f
+
+    val heroGradient = remember(isLight) {
+        val top = if (isLight) HomeHeroCardLightTop else HomeHeroCardDarkTop
+        val bottom = if (isLight) HomeHeroCardLightBottom else HomeHeroCardDarkBottom
+        Brush.verticalGradient(listOf(top, bottom))
+    }
+    val rimColor = if (isLight) HomeHeroCardLightRim else HomeHeroCardDarkRim
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner28,
-        color = AppTheme.colors.ink,
-        contentColor = AppTheme.colors.onInk,
-        border = if (!AppTheme.colors.isLight) BorderStroke(1.dp, AppTheme.colors.inkBorder) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = true),
+        shape = cardShape,
+        color = Color.Transparent,
+        contentColor = colors.textPrimary,
+        border = BorderStroke(1.dp, rimColor),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(heroGradient)
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Chuyển đổi Chi tiêu / Thu nhập: duy nhất mục đang chọn mang màu Sand.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -496,13 +617,16 @@ private fun StatsInkHeroCard(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     text = stringResource(
                         if (isExpense) R.string.stats_total_expense else R.string.stats_total_income,
                     ),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AppTheme.colors.onInkMuted,
+                    color = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -521,55 +645,33 @@ private fun StatsInkHeroCard(
                     Text(
                         text = MoneyFormatter.format(targetAmount, visible),
                         style = AppTheme.typography.amountHero,
-                        color = AppTheme.colors.onInk,
-                        maxLines = 1,
+                        color = colors.textPrimary,
+                        maxLines = if (isLargeFont) 2 else 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            val counterpartColor = if (isExpense) AppTheme.colors.onInkIncome else AppTheme.colors.onInkExpense
-            val counterpartIcon = if (isExpense) {
-                Icons.AutoMirrored.Rounded.TrendingUp
-            } else {
-                Icons.AutoMirrored.Rounded.TrendingDown
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics(mergeDescendants = true) {},
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = counterpartIcon,
-                    contentDescription = null,
-                    tint = counterpartColor,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = stringResource(
-                        if (isExpense) R.string.stats_income else R.string.stats_expense,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppTheme.colors.onInkMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = MoneyFormatter.format(counterpartTotal, showAmounts),
-                    style = MaterialTheme.typography.labelLarge.tabularNums,
-                    fontWeight = FontWeight.SemiBold,
-                    color = counterpartColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            HeroCashflowRatioBar(
+                incomeCents = state.totalIncome.amountInCents,
+                expenseCents = state.totalExpense.amountInCents,
+                showAmounts = showAmounts,
+            )
+
+            HorizontalDivider(thickness = 0.5.dp, color = colors.hairline)
+
+            HeroCashflowSummaryRow(
+                isExpense = isExpense,
+                counterpartTotal = counterpartTotal,
+                netCents = state.totalIncome.amountInCents - state.totalExpense.amountInCents,
+                showAmounts = showAmounts,
+                isLargeFont = isLargeFont,
+            )
 
             if (difference != null && difference != 0L && showAmounts) {
                 val isDecrease = difference < 0L
                 val isGood = if (isExpense) isDecrease else !isDecrease
-                val badgeColor = if (isGood) AppTheme.colors.onInkIncome else AppTheme.colors.onInkExpense
+                val badgeColor = if (isGood) colors.success else colors.error
                 val badgeIcon = if (isGood) Icons.Rounded.CheckCircle else Icons.Rounded.Warning
                 val absFormatted = MoneyFormatter.format(Money(abs(difference)))
                 val bannerText = when {
@@ -582,8 +684,8 @@ private fun StatsInkHeroCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(AppTheme.shapes.corner12)
-                        .background(badgeColor.copy(alpha = 0.16f))
+                        .clip(AppTheme.shapes.corner16)
+                        .background(badgeColor.copy(alpha = if (isLight) 0.10f else 0.16f))
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -609,6 +711,179 @@ private fun StatsInkHeroCard(
 }
 
 @Composable
+private fun HeroCashflowRatioBar(
+    incomeCents: Long,
+    expenseCents: Long,
+    showAmounts: Boolean,
+) {
+    if (!showAmounts || (incomeCents <= 0L && expenseCents <= 0L)) return
+    val totalFlow = (incomeCents + expenseCents).coerceAtLeast(1L)
+    val incomeWeight = (incomeCents.toFloat() / totalFlow.toFloat()).coerceIn(0f, 1f)
+    val expenseWeight = (1f - incomeWeight).coerceAtLeast(0f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(AppTheme.shapes.capsule)
+            .background(AppTheme.colors.surfaceSunken),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (incomeWeight > 0f) {
+            Box(
+                modifier = Modifier
+                    .weight(incomeWeight)
+                    .fillMaxHeight()
+                    .background(AppTheme.colors.success),
+            )
+        }
+        if (expenseWeight > 0f) {
+            Box(
+                modifier = Modifier
+                    .weight(expenseWeight)
+                    .fillMaxHeight()
+                    .background(AppTheme.colors.error),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroCashflowSummaryRow(
+    isExpense: Boolean,
+    counterpartTotal: Money,
+    netCents: Long,
+    showAmounts: Boolean,
+    isLargeFont: Boolean,
+) {
+    val isLight = AppTheme.colors.isLight
+    val tileAlpha = if (isLight) 0.10f else 0.16f
+    val counterpartColor = if (isExpense) AppTheme.colors.success else AppTheme.colors.error
+    val counterpartIcon = if (isExpense) {
+        Icons.AutoMirrored.Rounded.TrendingUp
+    } else {
+        Icons.AutoMirrored.Rounded.TrendingDown
+    }
+    val counterpartSign = if (!showAmounts) "" else if (isExpense) "+" else "−"
+    val counterpartAmount = "$counterpartSign${MoneyFormatter.format(counterpartTotal, showAmounts)}"
+    val counterpartLabel = stringResource(if (isExpense) R.string.stats_income else R.string.stats_expense)
+
+    val netColor = if (netCents >= 0L) AppTheme.colors.success else AppTheme.colors.error
+    val formattedNetAbs = MoneyFormatter.format(Money(abs(netCents)), showAmounts)
+    val netValueText = when {
+        !showAmounts -> formattedNetAbs
+        netCents >= 0L -> stringResource(R.string.amount_positive_format, formattedNetAbs)
+        else -> stringResource(R.string.amount_negative_format, formattedNetAbs)
+    }
+    val netLabel = stringResource(R.string.stats_net_balance_label)
+
+    if (isLargeFont) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatsHeroInsetTile(
+                label = counterpartLabel,
+                amountText = counterpartAmount,
+                accentColor = counterpartColor,
+                containerAlpha = tileAlpha,
+                icon = counterpartIcon,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            StatsHeroInsetTile(
+                label = netLabel,
+                amountText = netValueText,
+                accentColor = netColor,
+                containerAlpha = tileAlpha,
+                icon = if (netCents >= 0L) {
+                    Icons.AutoMirrored.Rounded.TrendingUp
+                } else {
+                    Icons.AutoMirrored.Rounded.TrendingDown
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatsHeroInsetTile(
+                label = counterpartLabel,
+                amountText = counterpartAmount,
+                accentColor = counterpartColor,
+                containerAlpha = tileAlpha,
+                icon = counterpartIcon,
+                modifier = Modifier.weight(1f),
+            )
+            StatsHeroInsetTile(
+                label = netLabel,
+                amountText = netValueText,
+                accentColor = netColor,
+                containerAlpha = tileAlpha,
+                icon = if (netCents >= 0L) {
+                    Icons.AutoMirrored.Rounded.TrendingUp
+                } else {
+                    Icons.AutoMirrored.Rounded.TrendingDown
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsHeroInsetTile(
+    label: String,
+    amountText: String,
+    accentColor: Color,
+    containerAlpha: Float,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppTheme.shapes.corner16,
+        color = accentColor.copy(alpha = containerAlpha),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {}
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = amountText,
+                style = MaterialTheme.typography.labelLarge.tabularNums,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
 private fun HeroMetricPill(
     label: String,
     icon: ImageVector,
@@ -626,8 +901,9 @@ private fun HeroMetricPill(
                 onClick = onClick,
             ),
         shape = AppTheme.shapes.capsule,
-        color = if (selected) AppTheme.colors.sand else AppTheme.colors.inkRaised,
-        contentColor = if (selected) AppTheme.colors.onSand else AppTheme.colors.onInkMuted,
+        color = if (selected) AppTheme.colors.sand else AppTheme.colors.surfaceSunken,
+        contentColor = if (selected) AppTheme.colors.onSand else AppTheme.colors.textSecondary,
+        border = if (selected) BorderStroke(0.5.dp, AppTheme.colors.hairline) else null,
     ) {
         Row(
             modifier = Modifier
@@ -671,10 +947,12 @@ private fun StatsCategoryStructureCard(
 
     Card(
         shape = AppTheme.shapes.corner24,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
     ) {
         Column(
             modifier = Modifier
@@ -688,7 +966,8 @@ private fun StatsCategoryStructureCard(
                 ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.semantics { heading() },
             )
 
             if (sortedBreakdown.isEmpty()) {
@@ -696,14 +975,14 @@ private fun StatsCategoryStructureCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(AppTheme.shapes.corner16)
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .background(AppTheme.colors.surfaceSunken)
                         .padding(vertical = 24.dp, horizontal = 16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = stringResource(R.string.stats_no_transactions_month),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AppTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -750,10 +1029,12 @@ private fun StatsTimeBarCard(
 ) {
     Card(
         shape = AppTheme.shapes.corner24,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
     ) {
         Column(
             modifier = Modifier
