@@ -32,13 +32,22 @@ class BackupRestoreViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(BackupRestoreUiState(
-        lastBackupDate = loadLastBackupDate()
-    ))
+    private val prefs by lazy {
+        context.getSharedPreferences("notepay_backup", Context.MODE_PRIVATE)
+    }
+
+    private val _state = MutableStateFlow(BackupRestoreUiState())
     val state = _state.asStateFlow()
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val lastBackup = loadLastBackupDate()
+            _state.update { it.copy(lastBackupDate = lastBackup) }
+        }
+    }
 
     fun exportToFile(uri: Uri) {
         if (_state.value.isExporting) return
@@ -108,14 +117,12 @@ class BackupRestoreViewModel @Inject constructor(
     }
 
     private fun loadLastBackupDate(): String? {
-        val prefs = context.getSharedPreferences("notepay_backup", Context.MODE_PRIVATE)
         return prefs.getString("last_backup_date", null)
     }
 
     private fun saveLastBackupDate() {
         val now = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
             .format(Date())
-        context.getSharedPreferences("notepay_backup", Context.MODE_PRIVATE)
-            .edit { putString("last_backup_date", now) }
+        prefs.edit { putString("last_backup_date", now) }
     }
 }

@@ -18,6 +18,7 @@ import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -114,6 +115,8 @@ class BillSplitViewModel @Inject constructor(
                         type = FeedbackType.Success
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _feedback.emit(
                     UiFeedback(
@@ -138,6 +141,8 @@ class BillSplitViewModel @Inject constructor(
                         type = FeedbackType.Success
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _feedback.emit(
                     UiFeedback(
@@ -159,6 +164,8 @@ class BillSplitViewModel @Inject constructor(
                         type = FeedbackType.Success
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _feedback.emit(
                     UiFeedback(
@@ -192,6 +199,8 @@ class BillSplitViewModel @Inject constructor(
                         type = FeedbackType.Success
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _feedback.emit(
                     UiFeedback(

@@ -1,5 +1,6 @@
 package com.notepay.feature.subscription.main
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.money.Money
@@ -10,6 +11,7 @@ import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,7 @@ import kotlin.time.Duration.Companion.days
 import javax.inject.Inject
 import kotlin.time.Instant
 
+@Immutable
 data class SubscriptionUiState(
     val allSubscriptions: List<Subscription> = emptyList(),
     val upcomingSubscriptions: List<Subscription> = emptyList(),
@@ -36,6 +39,7 @@ data class SubscriptionUiState(
 )
 
 // Dialog state tách riêng để tránh recompose toàn bộ
+@Immutable
 data class AddSubscriptionDialogState(
     val name: String = "",
     val amountInput: String = "",
@@ -148,6 +152,8 @@ class SubscriptionViewModel @Inject constructor(
                 )
                 subscriptionRepository.upsert(subscription)
                 hideAddDialog()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // Ignore validation errors silently — UI đã guard bằng canSave
             }

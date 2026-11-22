@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -78,8 +79,8 @@ private val categoryPaletteColors = listOf(
 @Composable
 fun CategoryManagementScreen(
     onBack: () -> Unit,
-    viewModel: CategoryManagementViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    viewModel: CategoryManagementViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -162,36 +163,74 @@ fun CategoryManagementScreen(
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 96.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                // Section: Danh mục tùy biến của bạn
-                item {
-                    SectionHeader(title = stringResource(R.string.category_section_custom))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (customList.isEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = AppTheme.shapes.corner16,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            ),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.category_custom_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(20.dp),
-                            )
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 96.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    // Section: Danh mục tùy biến của bạn
+                    item {
+                        SectionHeader(title = stringResource(R.string.category_section_custom))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (customList.isEmpty()) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppTheme.shapes.corner16,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                ),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.category_custom_empty),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(20.dp),
+                                )
+                            }
+                        } else {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppTheme.shapes.corner20,
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    customList.forEachIndexed { index, category ->
+                                        CategoryRow(
+                                            category = category,
+                                            onEdit = { categoryToEdit = category },
+                                            onDelete = { categoryToDelete = category },
+                                        )
+                                        if (index < customList.lastIndex) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(start = 68.dp),
+                                                thickness = 0.5.dp,
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    } else {
+                    }
+
+                    // Section: Danh mục mặc định hệ thống
+                    item {
+                        SectionHeader(title = stringResource(R.string.category_section_default))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = AppTheme.shapes.corner20,
@@ -199,47 +238,18 @@ fun CategoryManagementScreen(
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
-                                customList.forEachIndexed { index, category ->
+                                defaultList.forEachIndexed { index, category ->
                                     CategoryRow(
                                         category = category,
-                                        onEdit = { categoryToEdit = category },
-                                        onDelete = { categoryToDelete = category },
+                                        isDefault = true,
                                     )
-                                    if (index < customList.lastIndex) {
+                                    if (index < defaultList.lastIndex) {
                                         HorizontalDivider(
                                             modifier = Modifier.padding(start = 68.dp),
                                             thickness = 0.5.dp,
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                                         )
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Section: Danh mục mặc định hệ thống
-                item {
-                    SectionHeader(title = stringResource(R.string.category_section_default))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppTheme.shapes.corner20,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            defaultList.forEachIndexed { index, category ->
-                                CategoryRow(
-                                    category = category,
-                                    isDefault = true,
-                                )
-                                if (index < defaultList.lastIndex) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(start = 68.dp),
-                                        thickness = 0.5.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                    )
                                 }
                             }
                         }

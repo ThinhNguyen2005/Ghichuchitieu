@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- App -->
     <string name="app_name">NotePay</string>
 
 
     <!-- Bottom navigation labels -->
     <string name="nav_home">Home</string>
-    <string name="nav_transactions">Transactions</string>
     <string name="quick_add_open_menu">Open create menu</string>
     <string name="quick_add_close_menu">Close create menu</string>
-    <string name="nav_stats">Stats</string>
     <string name="nav_report">Report</string>
     <string name="nav_assets">Assets</string>
     <string name="nav_more">More</string>
-    <string name="nav_bill_split">Split</string>
 
     <!-- Common actions -->
     <string name="action_add">Add</string>
@@ -23,7 +20,6 @@
     <string name="action_close">Close</string>
     <string name="action_delete">Delete</string>
     <string name="action_edit">Edit</string>
-    <string name="action_setup">Set up</string>
     <string name="action_see_all">See all</string>
     <string name="action_back">Back</string>
     <string name="action_edit_wallet">Edit wallet</string>
@@ -42,11 +38,8 @@
     <string name="home_empty_wallet_title">No wallets yet</string>
     <string name="home_empty_wallet_desc">Create a wallet to start tracking transactions and managing your spending.</string>
     <string name="home_create_wallet">Create wallet</string>
-    <string name="home_battery_title">Background optimization (recommended)</string>
-    <string name="home_battery_desc">Open Battery → choose Unrestricted for smoother auto-capture.</string>
     <string name="home_recent_transactions">Recent transactions</string>
     <string name="home_empty_transactions">No transactions yet. Tap Add to start.</string>
-    <string name="home_choose_wallet">Choose wallet</string>
     <string name="home_add_new_wallet">Add new wallet</string>
     <string name="home_total_balance_all">Total balance (all wallets)</string>
     <string name="home_wallet_balance_format">%1$s balance</string>
@@ -55,41 +48,26 @@
     <string name="home_day_today">TODAY</string>
     <string name="home_day_yesterday">YESTERDAY</string>
     <!-- %1$d = day, %2$s = short month name, %3$d = month number -->
-    <string name="home_day_other">%2$s %1$d</string>
+    <string name="home_day_other" tools:ignore="StringFormatCount">%2$s %1$d</string>
     <string name="home_income_month">Monthly income</string>
     <string name="home_expense_month">Monthly expense</string>
-    <string name="home_add_wallet">Add wallet</string>
 
     <!-- Hero block + quick action strip of the Home screen ("Mint" style) -->
     <string name="home_hide_balance">Hide balance</string>
     <string name="home_show_balance">Show balance</string>
     <!-- %1$s = change sign, %2$d = net monthly percentage -->
-    <string name="home_net_change_format">%1$s%2$d%%</string>
-    <string name="home_budget_used_percent">%1$d%% of budget used</string>
     <!-- %1$s = amount spent, %2$s = monthly limit -->
-    <string name="home_budget_spent_limit_format">%1$s / %2$s</string>
-    <string name="home_auto_capture_on">Auto-capture: %1$d sources</string>
-    <string name="home_ai_assistant_label">Finance assistant</string>
-    <string name="home_open_analytics">View full analysis</string>
-    <string name="home_local_forecast_note">On-device forecast</string>
-    <string name="home_action_quick_add">Quick add</string>
-    <string name="home_action_scan_bill">Scan bill AI</string>
-    <string name="home_action_debt_book">Debt book</string>
-    <string name="home_action_split_group">Split group</string>
 
     <!-- Budget projection messages -->
     <string name="budget_overspent">🚨 You have overspent your wallet limit by %1$s!</string>
     <string name="budget_will_exceed">⚠️ Projected to exceed limit by %1$s. Reduce daily spending below %2$s to stay safe.</string>
     <string name="budget_safe">💚 Spending is on track. Projected end-of-month total: %1$s (under limit).</string>
-    <string name="budget_title">Budget forecast</string>
 
     <!-- Add / Edit transaction screen -->
     <string name="add_transaction_title">Add transaction</string>
     <string name="edit_transaction_title">Edit transaction</string>
     <string name="transaction_type_expense">Expense</string>
     <string name="transaction_type_income">Income</string>
-    <string name="transaction_field_date">Date</string>
-    <string name="transaction_field_amount">Amount</string>
     <string name="transaction_field_wallet">Wallet</string>
     <string name="transaction_field_note">Note</string>
     <string name="transaction_field_note_placeholder">Add transaction details…</string>
@@ -99,7 +77,6 @@
     <string name="transaction_validation_wallet">Select a payment wallet.</string>
     <string name="transaction_validation_amount_wallet">Enter an amount and select a payment wallet.</string>
     <string name="transaction_validation_form">Complete the required information before saving.</string>
-    <string name="transaction_save_button">Save transaction</string>
     <string name="transaction_suggestion_label">💡 Suggested:</string>
     <string name="transaction_suggestion_applied_label">Selected automatically:</string>
 
@@ -118,25 +95,14 @@
     <string name="magnitude_words_prefix">In words: %1$s</string>
 
     <!-- Transaction list screen -->
-    <string name="transaction_list_search_hint">Search by note</string>
     <string name="transaction_list_filter_all">All</string>
-    <string name="transaction_list_empty">No transactions in this period.</string>
 
     <!-- Stats screen -->
-    <string name="stats_filter_month">Month</string>
-    <string name="stats_filter_week">Week</string>
-    <string name="stats_filter_quarter">Quarter</string>
-    <string name="stats_filter_year">Year</string>
-    <string name="stats_filter_custom">Custom</string>
-    <string name="stats_kpi_net">Net</string>
-    <string name="stats_section_categories">By category</string>
-    <string name="stats_section_budget">Budget</string>
     <string name="stats_section_advice">Advice</string>
     <string name="stats_empty">No data in the selected period.</string>
 
     <!-- Bill split screen -->
     <string name="bill_split_title">Bill Split</string>
-    <string name="bill_split_tab_unpaid">Pending</string>
     <string name="bill_split_empty">No bills yet.\nTap (+) to create the first split.</string>
     <string name="bill_split_empty_unpaid">No pending debts.</string>
     <string name="bill_split_empty_paid">No paid debts yet.</string>
@@ -166,30 +132,22 @@
 
     <!-- Subscription screen -->
     <string name="subscription_title">Subscriptions</string>
-    <string name="subscription_empty">No subscriptions yet.</string>
     <string name="utilities_reminder_title">Renewal reminders</string>
 
     <!-- AddWallet screen -->
-    <string name="edit_wallet_title">Edit wallet</string>
     <string name="wallet_field_name">Wallet name</string>
     <string name="wallet_field_initial_balance">Initial balance</string>
     <string name="wallet_field_icon">Icon</string>
     <string name="wallet_field_color">Color</string>
     <string name="wallet_field_budget">Spending limit</string>
-    <string name="wallet_budget_off">Off</string>
     <string name="wallet_field_vietqr">Receiving account (VietQR)</string>
     <string name="wallet_vietqr_bank_error">Please select a bank</string>
 
     <!-- Confirm delete dialog -->
     <string name="confirm_delete_transaction_title">Delete transaction?</string>
     <string name="confirm_delete_bill_title">Delete debt?</string>
-    <string name="confirm_delete_subscription_title">Delete subscription?</string>
-    <string name="confirm_delete_permanent">This item will be permanently deleted and cannot be restored.</string>
 
     <!-- Feedback / Snackbar messages -->
-    <string name="feedback_save_success">Saved successfully</string>
-    <string name="feedback_save_error">Couldn\'t save, please try again</string>
-    <string name="feedback_delete_success">Deleted</string>
     <string name="feedback_undo">Undo</string>
     <string name="feedback_bill_split_created">Bill split created</string>
     <string name="bill_split_create_btn">Create new bill</string>
@@ -204,13 +162,11 @@
     <string name="feedback_vietqr_failed">Couldn\'t update VietQR settings</string>
 
     <!-- Subscription notification channel -->
-    <string name="notif_channel_subscription_name">Renewal reminders</string>
     <string name="notif_channel_subscription_desc">Reminders for recurring service renewals</string>
 
     <!-- Errors -->
     <string name="error_wallet_not_found">Wallet not found</string>
     <string name="error_bill_split_not_found">Bill split not found</string>
-    <string name="error_parent_tx_not_found">Parent transaction not found</string>
 
     <!-- Accessibility / content descriptions -->
     <string name="cd_vietqr_logo">VietQR Logo</string>
@@ -219,13 +175,9 @@
 
     <!-- Extractions -->
     <string name="transaction_deleted">Transaction deleted</string>
-    <string name="transaction_search_placeholder">Search transactions…</string>
     <string name="action_search">Search</string>
     <string name="cd_switch_to_list">Switch to list</string>
     <string name="cd_switch_to_calendar">Switch to calendar</string>
-    <string name="transaction_day_details_format">Details of %1$d/%2$d</string>
-    <string name="transaction_no_transactions_today">No transactions on this day</string>
-    <string name="transaction_none_found">No matching transactions found.\nAdd your first transaction to start\ntracking cash flow.</string>
     <string name="date_today_format">Today, %1$d M%2$d</string>
     <string name="date_yesterday_format">Yesterday, %1$d M%2$d</string>
     <string name="day_monday">Monday</string>
@@ -237,7 +189,6 @@
     <string name="day_sunday">Sunday</string>
     <string name="date_other_format">%1$s, %2$d M%3$d</string>
     <string name="cd_clear_search">Clear search</string>
-    <string name="transaction_search_notes_category_placeholder">Search by notes or category</string>
     <string name="date_today">Today</string>
     <plurals name="date_days_remaining">
         <item quantity="one">%1$d day remaining</item>
@@ -259,7 +210,6 @@
     </plurals>
     <string name="subscription_due_today">Due today</string>
     <string name="subscription_due_tomorrow">Due tomorrow</string>
-    <string name="subscription_due_one_day">1 day left</string>
     <plurals name="subscription_due_days">
         <item quantity="one">%1$d day left</item>
         <item quantity="other">%1$d days left</item>
@@ -278,36 +228,12 @@
     </plurals>
     <string name="subscription_detail_summary_format">%1$s • %2$s</string>
     <string name="day_detail_transactions_title">Transactions today</string>
-    <string name="transaction_cash_flow_this_month">Cash flow this month</string>
-    <plurals name="transaction_recorded_count">
-        <item quantity="one">%1$d transaction recorded</item>
-        <item quantity="other">%1$d transactions recorded</item>
-    </plurals>
     <string name="state_empty_note">Empty</string>
-    <string name="stats_empty_state">Add income/expense transactions during this period to analyze financial structure.</string>
     <string name="stats_tab_expense_structure">Expense structure</string>
     <string name="stats_tab_income_structure">Income structure</string>
-    <string name="action_confirm">Confirm</string>
-    <string name="stats_select_date_range">Select date range</string>
-    <string name="wallet_all">All wallets</string>
-    <string name="stats_month_year_format">Month %1$02d/%2$d</string>
     <string name="stats_total_expense">Total expense</string>
-    <string name="stats_expense_category_detail">Expense category details</string>
     <string name="stats_transaction_history_format">Transaction history %1$s</string>
     <string name="stats_total_income">Total income</string>
-    <string name="stats_income_category_detail">Income category details</string>
-    <string name="stats_income_history_format">Income history %1$s</string>
-    <string name="cd_previous">Previous</string>
-    <string name="cd_next">Next</string>
-    <string name="stats_ai_insights_title">AI Insights &amp; Smart Assistant</string>
-    <string name="stats_flexible_daily_budget">Flexible daily budget</string>
-    <string name="stats_remaining_today_format">Remaining today: %1$s</string>
-    <string name="stats_daily_budget_detail_format">Original limit: %1$s (Spent: %2$s)</string>
-    <string name="stats_budget_exceeded_advice_format">⚠️ Exceeded limit! Tomorrow is budget reduced to %1$s to compensate.</string>
-    <string name="stats_budget_safe_advice">💡 Smart spending preserves monthly budget.</string>
-    <string name="stats_subscription_detected">Subscription detected</string>
-    <string name="stats_subscription_amount_monthly_format">%1$s / month</string>
-    <string name="stats_add_subscription">Add subscription</string>
     <string name="stats_action_analyze">Analyze</string>
     <string name="stats_action_local_analysis">View local analysis</string>
     <string name="stats_action_set_budget">Set a budget</string>
@@ -321,7 +247,7 @@
     <string name="bill_split_vietqr_prompt_format">Set up the bank and account number for the active wallet \"%1$s\" to generate a combined QR code automatically.</string>
     <string name="action_configure_vietqr">Configure VietQR</string>
     <string name="debt_reconciliation_history">Reconciliation history</string>
-    <string name="debt_reconciliation_summary_format">%1$d to collect · %2$d paid</string>
+    <string name="debt_reconciliation_summary_format" tools:ignore="PluralsCandidate">%1$d to collect · %2$d paid</string>
     <string name="debt_hold_to_delete">Hold to delete</string>
     <string name="debt_transaction_fallback">Split transaction</string>
     <string name="debt_paid">Paid</string>
@@ -350,46 +276,23 @@
     <string name="feedback_copy_account_name">Account holder copied</string>
     <string name="feedback_copy_amount_format">Amount copied: %1$s</string>
     <string name="feedback_copy_memo">Transfer note copied</string>
-    <string name="error_generate_qr">Could not generate QR code</string>
-    <string name="action_share_vietqr">Share payment QR code</string>
-    <string name="error_share_vietqr">Could not create and share the VietQR image</string>
-    <string name="cd_napas">napas 247</string>    <string name="settings_backup_restore_title">Backup &amp; restore</string>
-    <string name="settings_backup_restore_description">Export or restore data on this device.</string>
-    <string name="backup_privacy_warning">Backup files contain sensitive financial data. Store them only in a trusted location.</string>
-    <string name="backup_restore_capture_notice">Notification tracking stays off after restoration; enable it again only when needed.</string>
+<string name="settings_backup_restore_title">Backup &amp; restore</string>
     <string name="stats_screen_title">Income and expenses</string>
     <string name="stats_cd_hide_amounts">Hide amounts</string>
     <string name="stats_cd_show_amounts">Show amounts</string>
-    <string name="stats_view_allocation">Allocation</string>
-    <string name="stats_view_trend">Trend</string>
     <string name="stats_current_month">This month</string>
     <string name="stats_previous_month">Previous month</string>
     <string name="stats_next_month">Next month</string>
     <string name="stats_expense">Expenses</string>
     <string name="stats_income">Income</string>
-    <string name="stats_unchanged">No change</string>
-    <string name="stats_decrease">Decreased</string>
-    <string name="stats_increase">Increased</string>
-    <string name="stats_compare_previous_format">%1$s from last month</string>
     <string name="stats_amounts_hidden">Amounts hidden</string>
-    <string name="stats_stable_previous">Stable from last month</string>
-    <string name="stats_increase_amount_format">Up %1$s</string>
-    <string name="stats_decrease_amount_format">Down %1$s</string>
     <string name="stats_no_data">No data yet</string>
     <string name="stats_no_transactions_month">No transactions this month</string>
     <string name="stats_advisor_title">Spending advisor</string>
     <string name="stats_advisor_privacy">Private · On-device</string>
     <string name="stats_allocation_no_data">No category allocation yet</string>
-    <string name="stats_total_allocation">Total allocation</string>
     <string name="stats_amounts_mask">••••••</string>
-    <string name="stats_forecast_legend">Shaded area: end-of-month forecast</string>
-    <string name="stats_forecast_passed">End-of-month forecast mark passed</string>
-    <string name="stats_forecast_within_budget">Forecast stays within this month\'s budget</string>
-    <string name="stats_forecast_over_budget">Forecast exceeds this month\'s budget</string>
     <string name="stats_month_label_format">M%1$d</string>
-    <string name="stats_trend_point_cd_format">Month %1$d: %2$s</string>
-    <string name="stats_trend_average_label">Monthly average</string>
-    <string name="stats_trend_window_short_format">%1$dM</string>
     <string name="stats_allocation_chart_cd_format">Allocation chart: %1$s</string>
     <string name="stats_banner_expense_increase">Up %1$s vs. the same period last month</string>
     <string name="stats_banner_expense_decrease">Down sharply %1$s vs. the same period last month</string>
@@ -406,7 +309,6 @@
     <string name="theme_dynamic_color">System color</string>
 
     <!-- Scan & BillSplit -->
-    <string name="scan_image_reading">Reading image…</string>
     <string name="scan_image_button">Scan transaction image or VietQR</string>
     <string name="billsplit_cd_back">Back to Bill Split</string>
     <string name="billsplit_tab_paid">Paid</string>
@@ -434,13 +336,8 @@
     <string name="icon_label_insurance">Insurance</string>
     <string name="icon_label_other">Other</string>
     <string name="icon_label_cash">Cash</string>
-    <string name="icon_label_bank">Bank</string>
     <string name="icon_label_ewallet">E-wallet</string>
     <string name="icon_label_credit_card">Credit card</string>
-    <string name="icon_label_atm">ATM card</string>
-    <string name="icon_label_business">Business</string>
-    <string name="icon_label_work">Work</string>
-    <string name="icon_label_crypto">Crypto</string>
     <string name="icon_label_car">Vehicle</string>
 
 
@@ -493,11 +390,8 @@
     <string name="ai_fallback_more_data_action">Record more transactions over the next 7 days to improve forecast confidence.</string>
     <string name="backup_restore_success">Data restored successfully</string>
     <string name="backup_export_success">Data backed up successfully</string>
-    <string name="backup_export_error">Could not back up data</string>
-    <string name="backup_import_error">Could not restore data</string>
     <string name="backup_restore_confirm_title">Restore data?</string>
     <string name="backup_restore_action">Restore</string>
-    <string name="backup_last_backup">Last backup</string>
     <string name="backup_file_read_error">Could not read file</string>
     <string name="backup_file_write_error">Could not write file</string>
     <string name="backup_export_error_format">Backup error: %1$s</string>
@@ -520,34 +414,20 @@
     <string name="backup_last_backup_format">Last backup: %1$s</string>
 
     <!-- Common UI labels not covered by the original resource set -->
-    <string name="action_change_wallet">Change wallet</string>
-    <string name="balance_available">Available balance</string>
-    <string name="budget_spending_exceeded">Spending limit exceeded</string>
-    <string name="budget_monthly_limit">Monthly spending limit</string>
-    <string name="budget_progress_format">%1$d%% (%2$s / %3$s)</string>
     <string name="transaction_details_title">Transaction details</string>
     <string name="transaction_auto_capture_cd">Automatically captured from bank</string>
-    <string name="transaction_edit_locked">Cannot edit</string>
-    <string name="transaction_suggested_category">💡 Suggested category:</string>
-    <string name="transaction_auto_note_edit_only">Only notes can be edited for automatic transactions</string>
-    <string name="transaction_date_format">Date: %1$s</string>
     <string name="action_save_changes">Save changes</string>
     <string name="dialog_delete_confirm_format">Are you sure you want to delete "%1$s"? This action cannot be undone.</string>
     <string name="content_description_close_suggestion">Close suggestion</string>
     <string name="content_description_backspace">Delete last character</string>
-    <string name="content_description_open_calendar">Open calendar</string>
-    <string name="content_description_more_options">More options</string>
     <string name="content_description_copy">Copy</string>
     <string name="content_description_share">Share</string>
-    <string name="content_description_add_photo">Add photo</string>
-    <string name="content_description_remove_photo">Remove photo</string>
-    <string name="content_description_show_password">Show password</string>
-    <string name="content_description_hide_password">Hide password</string>
-    <string name="content_description_paste">Paste from clipboard</string>
     <string name="content_description_clear_text">Clear content</string>
     <string name="category_section_title">Category</string>
-    <string name="category_choices_format">%1$d choices</string>
-    <string name="category_section_description">Choose the best category for this transaction</string>
+    <plurals name="category_choices_format">
+        <item quantity="one">%1$d choice</item>
+        <item quantity="other">%1$d choices</item>
+    </plurals>
     <string name="category_search_placeholder">Search categories…</string>
     <string name="category_group_all">All</string>
     <string name="category_group_food_transport">Food &amp; Transport</string>
@@ -577,25 +457,16 @@
     <string name="amount_input_title">Enter amount</string>
     <string name="numeric_keypad_title">Number keypad</string>
     <string name="content_description_collapse_keypad">Collapse keypad</string>
-    <string name="insight_budget_exceeded_title">Monthly limit exceeded</string>
-    <string name="insight_budget_exceeded_description">You have exceeded your budget. Review unnecessary expenses.</string>
-    <string name="insight_budget_near_limit_title">%1$d%% of limit used</string>
-    <string name="insight_budget_near_limit_description">You are close to this month\'s expected spending threshold. Consider new purchases carefully.</string>
-    <string name="insight_streak_title">%1$d-day logging streak</string>
-    <string name="insight_streak_description">Your financial habits are looking great. Keep it going!</string>
-    <string name="insight_default_title">Smart money tip</string>
-    <string name="insight_default_description">Recording spending right away helps you avoid missing small expenses.</string>
 
     <!-- Local notification and background worker copy -->
     <string name="notif_channel_auto_capture_name">Automatic spending recognition</string>
     <string name="notif_channel_auto_capture_desc">Notifications for automatically recorded NotePay transactions</string>
     <string name="notif_channel_budget_name">Spending budget alerts</string>
     <string name="notif_channel_budget_desc">Alerts when monthly spending crosses the budget threshold</string>
-    <string name="notif_daily_reminder_title_streak">🔥 Keep your %1$d-day tracking streak going!</string>
-    <string name="notif_daily_reminder_title_default">☕ Have you recorded today\'s spending yet?</string>
-    <string name="notif_daily_reminder_content">It takes only 5 seconds to record spending and keep your finances under control.</string>
-    <string name="notif_daily_reminder_channel_name">Daily tracking reminder</string>
-    <string name="notif_daily_reminder_channel_desc">Reminder notifications to record evening spending</string>
+    <plurals name="notif_daily_reminder_title_streak">
+        <item quantity="one">🔥 Keep your %1$d-day tracking streak going!</item>
+        <item quantity="other">🔥 Keep your %1$d-day tracking streak going!</item>
+    </plurals>
     <string name="notif_expense_big_title">Expense recorded successfully ✨</string>
     <string name="notif_expense_title">Expense saved automatically</string>
     <string name="notif_expense_big_text">• Amount: -%1$s\n• Account: %2$s\n• Category: %3$s %4$s\n• Note: %5$s</string>
@@ -610,8 +481,14 @@
     <string name="notif_debt_single_content">Received +%1$s | Remaining debt: %2$s</string>
     <string name="notif_debt_bulk_big_title">Bulk debt payment recorded successfully! 🤝</string>
     <string name="notif_debt_bulk_title">%1$s cleared the debt</string>
-    <string name="notif_debt_bulk_big_text">• Payer: %1$s\n• Total received: +%2$s (Into %3$s)\n• Invoices cleared: %4$d</string>
-    <string name="notif_debt_bulk_content">Received +%1$s | %2$d invoices cleared</string>
+    <plurals name="notif_debt_bulk_big_text">
+        <item quantity="one">• Payer: %1$s\n• Total received: +%2$s (Into %3$s)\n• Invoices cleared: %4$d</item>
+        <item quantity="other">• Payer: %1$s\n• Total received: +%2$s (Into %3$s)\n• Invoices cleared: %4$d</item>
+    </plurals>
+    <plurals name="notif_debt_bulk_content">
+        <item quantity="one">Received +%1$s | %2$d invoice cleared</item>
+        <item quantity="other">Received +%1$s | %2$d invoices cleared</item>
+    </plurals>
     <string name="notif_budget_exceeded_title">⚠️ Warning: Spending limit exceeded!</string>
     <string name="notif_budget_warning_title">⚠️ Reminder: Spending limit nearly reached!</string>
     <string name="notif_budget_exceeded_content">You spent %1$s over the %2$s limit (%3$d%%)</string>
@@ -629,19 +506,13 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="notif_transfer_big_text">• Amount: %1$s\n• From: %2$s\n• To: %3$s\n%4$s</string>
     <string name="notif_transfer_content">%1$s ➔ %2$s: %3$s</string>
     <string name="notif_source_wallet_fallback">Source account</string>
-    <string name="notif_auto_subscription_note">Automatically detected from notification</string>
     <!-- Bill split and VietQR presentation -->
     <string name="billsplit_choose_bank">Choose bank</string>
-    <string name="billsplit_search_bank">Search banks…</string>
-    <string name="billsplit_bank_not_found">Bank not found</string>
     <string name="billsplit_wallet_format">Wallet: %1$s</string>
-    <string name="billsplit_qr_description">A receiving QR code is created automatically when splitting a bill. Account details must be accurate for the transfer code.</string>
     <string name="billsplit_receiving_bank">Receiving bank</string>
     <string name="billsplit_account_number_label">Receiving account number</string>
     <string name="billsplit_account_number_placeholder">e.g. 0123456789</string>
     <string name="billsplit_account_name_placeholder">NGUYEN VAN A</string>
-    <string name="billsplit_account_name_hint">Enter uppercase Vietnamese without accents (matching the bank account)</string>
-    <string name="billsplit_save_config">Save configuration</string>
     <string name="billsplit_choose_bank_again">Choose another bank</string>
     <string name="billsplit_close_config">Close VietQR configuration</string>
     <string name="billsplit_choose_receiving_bank">Choose a receiving bank</string>
@@ -738,7 +609,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="subscription_save_reminder">Save reminder</string>
     <string name="subscription_choose_category">Choose category</string>
     <string name="subscription_selected">Selected</string>
-    <string name="subscription_prefill_hint">Choose a transaction to fill the name, amount, and category.</string>
     <string name="subscription_filter_overdue">Overdue</string>
     <string name="subscription_filter_upcoming">Upcoming</string>
     <string name="subscription_filter_completed">Completed</string>
@@ -752,7 +622,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_budget_exceeded_format">Over by %1$s</string>
     <string name="stats_budget_remaining_format">%1$s remaining</string>
     <string name="stats_budget_in_limit">Within limit</string>
-    <string name="stats_budget_used_cd">%1$d percent of limit used</string>
+    <string name="stats_budget_used_cd" tools:ignore="PluralsCandidate">%1$d percent of limit used</string>
     <string name="stats_spent_format">Spent %1$s</string>
     <string name="stats_limit_format">Limit %1$s</string>
     <string name="stats_confidence_low">Low</string>
@@ -762,8 +632,14 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_processed_on_device">Processed on device</string>
     <string name="stats_confidence_format">Confidence: %1$s</string>
     <string name="stats_expected_range_format">Expected range: %1$s – %2$s</string>
-    <string name="stats_probability_format">%1$d%% chance of exceeding the limit · Based on %2$d days of data</string>
-    <string name="stats_probability_no_limit_format">Set a limit to see exceedance probability · Based on %1$d days of data</string>
+    <plurals name="stats_probability_format">
+        <item quantity="one">%1$d%% chance of exceeding the limit · Based on %2$d day of data</item>
+        <item quantity="other">%1$d%% chance of exceeding the limit · Based on %2$d days of data</item>
+    </plurals>
+    <plurals name="stats_probability_no_limit_format">
+        <item quantity="one">Set a limit to see exceedance probability · Based on %1$d day of data</item>
+        <item quantity="other">Set a limit to see exceedance probability · Based on %1$d days of data</item>
+    </plurals>
     <string name="stats_advisor_gemini_description">Gemini Nano explains aggregated figures on this device.</string>
     <string name="stats_advisor_cloud_ready_format">Cloud Gemini (%1$s) ready via personal API Key.</string>
     <string name="stats_advisor_statistical_description">Gemini Nano is unavailable. You can add a Gemini API Key in Settings or use on-device statistics.</string>
@@ -774,14 +650,9 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_provider_statistics">Local statistics</string>
     <string name="stats_cd_open_ai_settings">Open AI settings</string>
     <string name="stats_refresh">Refresh</string>
-    <string name="stats_daily_budget_title">Today\'s budget</string>
-    <string name="stats_daily_budget_exceeded">Over the limit</string>
-    <string name="stats_daily_budget_auto">Adjusts automatically with the monthly budget</string>
     <string name="stats_daily_spent_format">Spent %1$s</string>
     <string name="stats_daily_remaining_format">%1$s remaining</string>
     <string name="stats_daily_limit_format">Today\'s limit %1$s</string>
-    <string name="stats_tomorrow_adjust_format">Tomorrow\'s limit will adjust to %1$s.</string>
-    <string name="stats_budget_on_track">Your spending pace is aligned with the monthly budget.</string>
     <string name="stats_feedback_thanks">Thanks for the feedback</string>
     <string name="stats_feedback_question">Was this suggestion helpful?</string>
     <string name="stats_feedback_helpful">Helpful</string>
@@ -792,10 +663,12 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_subscription_detected_history">Detected from transaction history</string>
     <string name="stats_subscription_monthly_format">%1$s per month</string>
     <string name="stats_add_to_subscriptions">Add to bills</string>
-    <string name="stats_advice_count_format">%1$d suggestions · Swipe to see more</string>
+    <plurals name="stats_advice_count_format">
+        <item quantity="one">%1$d suggestion · Swipe to see more</item>
+        <item quantity="other">%1$d suggestions · Swipe to see more</item>
+    </plurals>
     <string name="stats_date_month_format">Month %1$02d/%2$d</string>
     <string name="stats_date_week_format">This week (%1$02d/%2$02d - %3$02d/%4$02d)</string>
-    <string name="stats_date_quarter_format">Quarter %1$d (%2$d)</string>
     <string name="stats_date_year_format">Year %1$d</string>
     <string name="stats_date_range_format">%1$s - %2$s</string>
     <string name="stats_forecast_probability_suffix"> Chance of exceeding the limit: %1$d%%.</string>
@@ -804,15 +677,12 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_advice_food_content">Food spending is %1$s of your monthly spending. Try cooking at home to save money!</string>
     <string name="stats_advice_bill_title">Prepare bill money</string>
     <string name="stats_advice_bill_content">The \'%1$s\' bill (%2$s) is due in a few days. Your current wallet balance is not enough; consider adding funds.</string>
-    <string name="stats_advice_saving_title">Smart spending</string>
-    <string name="stats_advice_saving_content" formatted="false">Great job! You are spending carefully (on average only 85% of the safe daily limit). Keep up this good habit!</string>
     <!-- Wallet, detail, utilities, and list presentation -->
     <string name="wallet_back">Back</string>
     <string name="wallet_budget_alert_title">Set warning limit</string>
     <string name="wallet_budget_alert_description">Warn when spending exceeds the budget</string>
     <string name="wallet_period_daily">Daily</string>
     <string name="wallet_period_weekly">Weekly</string>
-    <string name="wallet_period_monthly">Monthly</string>
     <string name="wallet_budget_amount">Limit amount</string>
     <string name="wallet_monthly_budget_format">Converted monthly warning amount: %1$s/month</string>
     <string name="wallet_icon_title">Wallet icon</string>
@@ -834,22 +704,16 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <!-- Assets screen -->
     <string name="assets_total_balance">Total Net Worth</string>
     <!-- The Ink card sums wallet balances only; debts are not added or subtracted. -->
-    <string name="assets_net_worth_title">Total wallet balance</string>
     <string name="assets_negative_balance_hint">Total balance is negative: wallets have spent more than they hold</string>
     <string name="asset_negative_balance_badge">Negative balance</string>
-    <string name="assets_positive_allocation_title">Positive balance allocation by wallet</string>
-    <string name="assets_wallets_header">Wallets</string>
-    <string name="assets_wallet_balance">Balance</string>
     <string name="assets_view_transactions">View transactions</string>
-    <string name="assets_view_ledger">View ledger</string>
-    <string name="assets_add_wallet_btn">Add wallet</string>
-    <string name="assets_transfer_btn">Transfer</string>
     <string name="action_transfer">Transfer</string>
     <string name="action_add_wallet">Add wallet</string>
-    <string name="wallet_tx_count">%1$d transactions</string>
+    <plurals name="wallet_tx_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
     <string name="badge_stable">Stable</string>
-    <string name="wallets_count_label">accounts</string>
-    <string name="transactions_count_label">transactions</string>
     <string name="wallet_badge_active">Active</string>
     <string name="set_as_active_wallet">Set as primary wallet</string>
     <string name="assets_transfer_dialog_title">Transfer between wallets</string>
@@ -860,9 +724,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="assets_transfer_note_hint">Enter transfer reason…</string>
     <string name="assets_transfer_confirm_btn">Confirm transfer</string>
     <string name="assets_transfer_need_two_wallets">You need at least 2 wallets to transfer</string>
-    <string name="assets_balance_stable">Balance stable</string>
     <string name="assets_allocation_other">Others</string>
-    <string name="assets_monthly_flow_format">This month: +%1$s · -%2$s</string>
     <string name="tx_empty_title">No transactions found</string>
     <string name="tx_empty_subtitle">Try changing the filter criteria or time period</string>
     <string name="tx_select_wallet_sheet_title">Select account / wallet</string>
@@ -882,7 +744,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="date_range_last_year">Last year</string>
     <string name="date_range_all_time">All time</string>
     <string name="date_range_custom">Custom</string>
-    <string name="cd_filter_active_count">Filter, %1$d active</string>
+    <string name="cd_filter_active_count" tools:ignore="PluralsCandidate">Filter, %1$d active</string>
     <string name="filter_advanced">Filter</string>
     <string name="filter_clear_all">Clear all</string>
     <string name="filter_apply">Apply</string>
@@ -899,52 +761,28 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="summary_export_file">Export file</string>
     <string name="tx_export_file_name">transactions-%1$s</string>
     <string name="tx_export_csv_header">Date,Time,Category,Wallet,Type,Amount,Note</string>
-    <string name="tx_export_success">Exported %1$d transactions</string>
+    <plurals name="tx_export_success">
+        <item quantity="one">Exported %1$d transaction</item>
+        <item quantity="other">Exported %1$d transactions</item>
+    </plurals>
     <string name="tx_export_failed">Could not export the file</string>
-    <string name="summary_sub_format">%1$d transactions · net %2$s</string>
+    <plurals name="summary_sub_format">
+        <item quantity="one">%1$d transaction · net %2$s</item>
+        <item quantity="other">%1$d transactions · net %2$s</item>
+    </plurals>
 
-    <string name="utilities_title">Utilities</string>
-    <string name="utilities_tools_title">Helpful tools</string>
-    <string name="utilities_bill_split_description">Record shared expenses, split them automatically, and generate VietQR codes for quick collection.</string>
-    <string name="home_streak_format">🔥 %1$dd</string>
     <!-- Small date line above the greeting: %1$s = weekday, %2$d = day, %3$s = month abbreviation. -->
     <string name="home_greeting_date_format">%1$s, %2$d %3$s</string>
-    <string name="utilities_subscription_description">Manage recurring fees (Netflix, Spotify, rent, insurance…), with automatic due-date reminders.</string>
     <!-- Consecutive logging days, shown in the badge next to the greeting. -->
     <plurals name="home_streak_days">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
     <string name="wallet_fallback">Wallet</string>
-    <string name="transaction_income_label">Income</string>
-    <string name="transaction_expense_label">Spent</string>
-    <string name="settings_ai_engine_subtitle">Smart hierarchy: Gemini Nano -&gt; Cloud Gemini -&gt; Statistics</string>
-    <string name="settings_ai_engine_subtitle_local">100% Offline: Gemini Nano on-device &amp; internal Statistical Advisor</string>
     <string name="settings_ai_local_offline_title">Local Version (100% Offline)</string>
-    <string name="settings_ai_local_offline_desc" formatted="false">This build has completely stripped Android Internet permission at the Manifest level to ensure your financial data never leaves the device. All expense analysis and receipt scanning operate 100% locally.</string>
-    <string name="settings_ai_gemini_nano_ready">Gemini Nano on-device: Ready (100% Offline)</string>
-    <string name="settings_ai_gemini_nano_unsupported">Gemini Nano on-device: Unsupported on this device</string>
-    <string name="settings_ai_api_key_label">Google Gemini API Key (BYOK)</string>
-    <string name="settings_ai_api_key_placeholder">Paste API Key (AIzaSy…)</string>
-    <string name="settings_ai_api_key_get_free">Get free API Key from Google AI Studio</string>
-    <string name="settings_ai_api_key_save">Save Key</string>
-    <string name="settings_ai_api_key_saved">API Key saved</string>
-    <string name="settings_ai_api_key_clear">Clear Key</string>
     <string name="settings_ai_api_key_test">Test Connection</string>
     <string name="settings_ai_api_key_testing">Testing connection…</string>
-    <string name="settings_ai_api_key_test_success">Connection successful! Gemini replied: %1$s</string>
-    <string name="settings_ai_api_key_test_failed">Connection failed: %1$s</string>
-    <string name="settings_ai_cloud_toggle_title">Enable Cloud Gemini AI</string>
-    <string name="settings_ai_cloud_toggle_desc">Call Gemini 3.6 Flash when Gemini Nano is unavailable</string>
-    <string name="settings_ai_receipt_toggle_title">Smart receipt extraction</string>
-    <string name="settings_ai_receipt_toggle_desc">Enhance receipt extraction with AI when Regex is incomplete</string>
-    <string name="settings_ai_privacy_notice">Privacy commitment: Data is sent directly from your device to Google AI via your personal API Key; NotePay has no intermediary servers and never stores your data.</string>
-    <string name="settings_daily_reminder_title">Evening tracking reminder</string>
-    <string name="settings_daily_reminder_enabled">Notify at 8:30 PM if you have not recorded spending today.</string>
-    <string name="settings_daily_reminder_disabled">Tracking reminders are off.</string>
     <string name="settings_theme_title">Theme colors</string>
-    <string name="settings_theme_description">Choose the interface color tone you want to use</string>
-    <string name="theme_ios">iOS (White/Black)</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System</string>
@@ -960,7 +798,10 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="autocapture_status_unsupported">Not supported</string>
     <string name="notif_subscription_due_today">⏰ %1$s is due today!</string>
     <string name="notif_subscription_due_tomorrow">⚠️ %1$s is due tomorrow</string>
-    <string name="notif_subscription_due_days">🔔 %1$s is due in %2$d days</string>
+    <plurals name="notif_subscription_due_days">
+        <item quantity="one">🔔 %1$s is due in %2$d day</item>
+        <item quantity="other">🔔 %1$s is due in %2$d days</item>
+    </plurals>
     <string name="notif_subscription_renew_format">Renew %1$s on %2$s</string>
     <string name="wallet_updated">Wallet updated</string>
     <string name="wallet_created">Wallet created</string>
@@ -973,30 +814,19 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <!-- Screen reader description of a category card: %1$s name, %2$s amount, %3$s share -->
     <string name="stats_category_row_cd">%1$s, %2$s, %3$s of total</string>
     <string name="stats_category_row_open_cd">%1$s, %2$s, %3$s of total, %4$s</string>
-    <string name="stats_show_more_transactions">Show %1$d more transactions</string>
+    <plurals name="stats_show_more_transactions">
+        <item quantity="one">Show %1$d more transaction</item>
+        <item quantity="other">Show %1$d more transactions</item>
+    </plurals>
     <string name="subscription_service_electricity">Electricity bill</string>
     <string name="subscription_service_water">Water bill</string>
     <string name="subscription_service_rent">Rent</string>
     <string name="category_suggestion_reason_history">Based on a similar note you saved before</string>
     <string name="category_suggestion_reason_phrase">Matched the phrase “%1$s” in the note</string>
     <string name="category_suggestion_reason_learned">Based on your categorization habits for similar words</string>
-    <string name="ai_advisor_fallback_title">Spending suggestion</string>
-    <string name="ai_advisor_fallback_action">Compare this suggestion with recent transactions before adjusting your spending.</string>
-    <string name="ai_reason_insufficient_memory">not enough memory</string>
-    <string name="ai_reason_timeout">the response took too long</string>
-    <string name="ai_reason_incompatible_model">the model is not compatible</string>
-    <string name="ai_reason_initialization_failed">initialization failed</string>
     <string name="currency_vnd_symbol">đ</string>
-    <string name="stats_insight_forecast_format">Recent pace: %1$s/day; month-end forecast: %2$s.</string>
-    <string name="stats_insight_forecast_exceeded"> ⚠️ Limit exceeded by %1$s!</string>
-    <string name="stats_insight_forecast_previous">\nPrevious month: %1$s/day</string>
-    <string name="stats_insight_trend_up">📈 Spending increased %1$s%% from last month</string>
-    <string name="stats_insight_trend_down">📉 Spending decreased %1$s%% from last month</string>
-    <string name="stats_insight_trend_stable">➡️ Spending is stable from last month</string>
     <string name="stats_insight_early_warning_first_days">⚠️ You spent %1$s in the first three days — twice the daily limit. Slow down!</string>
     <string name="stats_insight_early_warning_first_week">⚠️ First-week spending reached %1$d%% of the daily limit. Consider reducing it to %2$s/day.</string>
-    <string name="stats_engine_advice_food_content">Food spending is %1$s of total spending. Try cooking at home to save money!</string>
-    <string name="stats_engine_advice_bill_content">The \'%1$s\' bill (%2$s) is due in a few days. Your current wallet balance is not enough!</string>
     <string name="stats_engine_advice_spike_title">Unusual spending</string>
     <string name="stats_engine_advice_spike_content">You spent %1$s today — %2$d%% of the daily average (%3$s). Check it again!</string>
     <string name="stats_engine_advice_trend_up_title">Spending is rising quickly</string>
@@ -1007,19 +837,12 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_engine_advice_saving_content">Average spending is only %1$d%% of the daily limit. Great job!</string>
 
     <!-- Utilities screen -->
-    <string name="utilities_mascot_title">Choose your cat 🐱</string>
-    <string name="utilities_mascot_subtitle">Your smart financial companion</string>
     <string name="utilities_section_ledger">LEDGER SETTINGS</string>
     <string name="utilities_bill_split_subtitle">Group split, generate VietQR collection</string>
     <string name="utilities_subscriptions_subtitle">Recurring bills, reminders, auto deduction</string>
-    <string name="utilities_wallet_manage_title">Manage wallets &amp; assets</string>
-    <string name="utilities_wallet_manage_subtitle">Independent ledgers, internal transfers</string>
     <string name="utilities_currency_title">Primary currency</string>
-    <string name="utilities_currency_subtitle">VND (₫)</string>
     <string name="utilities_categories_title">Income &amp; Expense categories</string>
     <string name="utilities_categories_subtitle">Customize transaction categories</string>
-    <string name="utilities_export_backup_title">Export data &amp; Backup</string>
-    <string name="utilities_export_backup_subtitle">Export CSV, JSON, full ledger backup</string>
     <string name="utilities_section_app">APP SETTINGS</string>
     <string name="utilities_appearance_language_title">Appearance &amp; Language</string>
     <string name="utilities_appearance_language_subtitle">Light/Dark theme, Vietnamese, English</string>
@@ -1035,7 +858,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="currency_preview_note">This format applies to all balances and transactions.</string>
     <string name="currency_preview_positive">Sample Income</string>
     <string name="currency_preview_negative">Sample Expense</string>
-    <string name="currency_primary_unit_title">Primary Currency</string>
     <string name="currency_symbol_position_title">Symbol Position</string>
     <string name="currency_position_after">After amount (100,000 ₫)</string>
     <string name="currency_position_before">Before amount (₫ 100,000)</string>
@@ -1050,6 +872,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="currency_krw">Korean Won (KRW)</string>
     <string name="currency_sgd">Singapore Dollar (SGD)</string>
     <string name="currency_thb">Thai Baht (THB)</string>
+    <string name="currency_open_converter_action">Open currency converter</string>
 
     <!-- Category management screen -->
     <string name="category_management_title">Categories</string>
@@ -1057,32 +880,18 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="category_tab_income">Income</string>
     <string name="category_section_custom">Your Custom Categories</string>
     <string name="category_section_default">System Default Categories</string>
-    <string name="category_badge_default">Default</string>
     <string name="category_custom_empty">No custom categories yet. Tap \'+\' to add.</string>
     <string name="category_dialog_add_title">Add New Category</string>
     <string name="category_dialog_edit_title">Edit Category</string>
-    <string name="category_field_name">Category Name</string>
     <string name="category_field_name_error">Category name cannot be empty</string>
     <string name="category_field_color">Color Tag</string>
-    <string name="category_field_icon">Icon</string>
     <string name="category_delete_dialog_title">Delete Category?</string>
     <string name="category_delete_dialog_message">Are you sure you want to delete category \"%1$s\"? Existing transactions will be moved to \"Other\".</string>
-    <string name="category_type_label">Category Type</string>
 
     <!-- Appearance & Language screen -->
-    <string name="appearance_language_title">Appearance &amp; Language</string>
     <string name="appearance_section_theme">Theme Mode</string>
-    <string name="appearance_theme_light">Light</string>
-    <string name="appearance_theme_dark">Dark</string>
-    <string name="appearance_theme_system">System</string>
-    <string name="appearance_section_color">Theme Accent Color</string>
     <string name="appearance_color_sand">Sand &amp; Ink</string>
     <string name="appearance_color_ios">iOS Monochrome</string>
-    <string name="appearance_color_dynamic">Dynamic Material You</string>
-    <string name="appearance_color_ocean">Ocean Blue</string>
-    <string name="appearance_color_emerald">Emerald Green</string>
-    <string name="appearance_color_amber">Amber Gold</string>
-    <string name="appearance_color_rose">Rose Pink</string>
     <string name="appearance_section_glass">Visual Effects</string>
     <string name="appearance_liquid_glass_title">Liquid Glass Blur</string>
     <string name="appearance_liquid_glass_desc">Physical blur effect on navigation bar</string>
@@ -1096,7 +905,7 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <!-- AI settings screen -->
     <string name="ai_settings_title">Artificial Intelligence (AI)</string>
     <string name="ai_nano_banner_title">Gemini Nano on-device</string>
-    <string name="ai_nano_banner_ready">Running on-device. All analytics are 100% offline and never sent to cloud.</string>
+    <string name="ai_nano_banner_ready" formatted="false">Running on-device. All analytics are 100% offline and never sent to cloud.</string>
     <string name="ai_nano_banner_unsupported">Device does not support on-device Gemini Nano. App will use Cloud AI or local fallback model.</string>
     <string name="ai_section_cloud">Gemini Cloud AI</string>
     <string name="ai_cloud_toggle_title">Enable Gemini Cloud AI</string>
@@ -1105,14 +914,10 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="ai_api_key_hint">Enter or paste API key here</string>
     <string name="ai_api_key_supporting">Get free API Key at Google AI Studio</string>
     <string name="ai_api_key_paste">Paste</string>
-    <string name="ai_api_key_clear">Clear</string>
-    <string name="ai_test_connection">Test Connection</string>
-    <string name="ai_testing_connection">Testing connection…</string>
     <string name="ai_test_success">Connection successful! API Key is active.</string>
     <string name="ai_test_failure">Connection failed. Please check your API key and network.</string>
     <string name="ai_test_empty_key">Please enter an API key before testing.</string>
     <string name="ai_model_selection_title">AI Model Version</string>
-    <string name="ai_section_features">AI Features</string>
     <string name="ai_smart_receipt_title">Smart Receipt AI</string>
     <string name="ai_smart_receipt_desc">Automatically extract amount, date, and category from receipt images</string>
     <string name="ai_section_privacy">Privacy &amp; Security</string>
@@ -1161,9 +966,18 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="notif_streak_milestone_30_title">👑 Tracking Legend: 30-day streak!</string>
     <string name="notif_streak_milestone_30_content">An admirable month of consistency! Record today to set a new record.</string>
 
-    <string name="notif_streak_rotate_1">Your wallet needs an update! Record today\'s spending to protect your %1$d-day streak 🔥.</string>
-    <string name="notif_streak_rotate_2">Only takes 5 seconds in NotePay to keep your %1$d-day streak 🔥 intact.</string>
-    <string name="notif_streak_rotate_3">Financial discipline starts with every cup of coffee. Record today to keep your %1$d-day streak 🔥!</string>
+    <plurals name="notif_streak_rotate_1">
+        <item quantity="one">Your wallet needs an update! Record today\'s spending to protect your %1$d-day streak 🔥.</item>
+        <item quantity="other">Your wallet needs an update! Record today\'s spending to protect your %1$d-day streak 🔥.</item>
+    </plurals>
+    <plurals name="notif_streak_rotate_2">
+        <item quantity="one">Only takes 5 seconds in NotePay to keep your %1$d-day streak 🔥 intact.</item>
+        <item quantity="other">Only takes 5 seconds in NotePay to keep your %1$d-day streak 🔥 intact.</item>
+    </plurals>
+    <plurals name="notif_streak_rotate_3">
+        <item quantity="one">Financial discipline starts with every cup of coffee. Record today to keep your %1$d-day streak 🔥!</item>
+        <item quantity="other">Financial discipline starts with every cup of coffee. Record today to keep your %1$d-day streak 🔥!</item>
+    </plurals>
 
     <string name="notif_daily_rotate_title_1">☕ Any spending to record today?</string>
     <string name="notif_daily_rotate_content_1">Record now to start your personal finance mastery streak with NotePay!</string>
@@ -1177,18 +991,13 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="settings_notification_subtitle">Manage reminders and alerts</string>
     <string name="settings_notif_budget_alerts_title">Budget Alerts</string>
     <string name="settings_notif_budget_alerts_desc" formatted="false">Notify when spending reaches 80% or 100% of budget</string>
-    <string name="settings_notif_weekly_digest_title">Weekly Financial Digest</string>
     <string name="settings_notif_weekly_digest_desc">Summary spending report at 20:00 every Sunday</string>
-    <string name="settings_notif_daily_reminder_title">Daily Tracking &amp; Streak</string>
     <string name="settings_notif_daily_reminder_desc">Remind in the evening if no transactions recorded</string>
     <string name="settings_notif_reminder_time_title">Reminder Time</string>
     <string name="settings_notif_reminder_time_dialog">Select Reminder Time</string>
 
     <!-- Debt Management Feature -->
     <string name="debt_nav_title">Debts &amp; Loans</string>
-    <string name="debt_nav_desc">Track lent, borrowed debts and reminders</string>
-    <string name="debt_tab_all">All</string>
-    <string name="debt_tab_lend">To Collect</string>
     <string name="debt_tab_borrow">To Pay</string>
     <string name="debt_filter_unsettled_only">Unsettled</string>
     <string name="debt_action_search">Search</string>
@@ -1206,7 +1015,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_amount_label">Amount *</string>
     <string name="debt_due_date_label">Due date (optional)</string>
     <string name="debt_due_date_hint">Select repayment due date</string>
-    <string name="debt_note_label">Note</string>
     <string name="debt_note_hint">Reason / details…</string>
     <string name="debt_wallet_label">Linked wallet</string>
     <string name="debt_sync_wallet_label">Auto-update wallet balance</string>
@@ -1228,18 +1036,13 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_payment_sync_label">Update wallet balance</string>
     <string name="debt_payment_history_title">Repayment History (%1$d)</string>
     <string name="debt_payment_empty_history">No payments recorded yet</string>
-    <string name="debt_payment_item_format">%1$s • %2$s</string>
     <string name="debt_action_remind_vietqr">Remind via VietQR</string>
     <string name="debt_share_remind_text_format">Hi %1$s, the debt of %2$s is due. Please transfer to account: %3$s (%4$s - %5$s). Thank you!</string>
     <string name="debt_share_remind_simple_format">Hi %1$s, the debt of %2$s is due soon. Thank you!</string>
     <string name="debt_summary_card_title">Personal Debts</string>
-    <string name="debt_summary_to_collect">To collect</string>
-    <string name="debt_summary_to_pay">To pay</string>
     <string name="debt_summary_net">Net debt: %1$s</string>
     <string name="debt_confirm_delete_title">Delete this debt?</string>
     <string name="debt_confirm_delete_desc">This debt and all its repayment history will be permanently deleted.</string>
-    <string name="debt_error_invalid_amount">Please enter a valid amount greater than 0</string>
-    <string name="debt_error_invalid_person">Please enter the person\'s name</string>
     <string name="debt_payment_success">Repayment recorded successfully!</string>
     <string name="debt_create_success">Debt created successfully!</string>
     <string name="debt_delete_success">Debt deleted successfully!</string>
@@ -1249,12 +1052,10 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_copied_reminder">Reminder message copied!</string>
     <string name="debt_action_call">Call</string>
     <string name="debt_action_sms">Send SMS</string>
-    <string name="debt_action_share">Share</string>
     <string name="debt_qr_dialog_title">Payment QR Code</string>
     <string name="debt_qr_dialog_desc">Scan QR to pay via Napas247</string>
     <string name="debt_qr_not_configured">Bank account has not been configured in wallet.</string>
     <string name="debt_action_copy_message">Copy message</string>
-    <string name="debt_action_copy_done">Copied</string>
     <string name="debt_chip_all">All (%1$s)</string>
     <string name="error_no_dialer_app">No phone dialer application found</string>
     <string name="error_no_sms_app">No SMS messaging application found</string>
@@ -1268,25 +1069,15 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="debt_tx_note_repay_borrow_with_note">Repaid debt to %1$s (%2$s)</string>
     <string name="day_detail_date_format">%1$s, %2$02d/%3$02d/%4$d</string>
     <string name="extracted_string">! (TODO)</string>
-    <string name="ui_moneyformatter_formatcompactvi">+${MoneyFormatter.formatCompactVietnamese(day.totalIncome)} (TODO)</string>
-    <string name="ui_sign_moneyformatter_format_tra">$sign${MoneyFormatter.format(transaction.amount)} (TODO)</string>
     <string name="ui_0">0 (TODO)</string>
-    <string name="ui_notepay">NotePay (TODO)</string>
-    <string name="ui_walletname_presentationdatefor">$walletName • ${PresentationDateFormatter.formatDayMonthTime(tx.occurredAt)} (TODO)</string>
-    <string name="ui_moneyformatter_format_tx_amoun">+${MoneyFormatter.format(tx.amount)} (TODO)</string>
-    <string name="ui_datestr_notetext">$dateStr$noteText (TODO)</string>
     <string name="ui_debt_reminder">debt_reminder (TODO)</string>
     <string name="ui_50">50% (TODO)</string>
-    <string name="ui_item_percentage_100_toint">${(item.percentage * 100).toInt()}% (TODO)</string>
-    <string name="ui_unitlabel">($unitLabel) (TODO)</string>
     <string name="percent_change_positive">+%1$s%%</string>
     <string name="percent_change_negative">-%1$s%%</string>
     <string name="amount_positive_format">+%1$s</string>
     <string name="amount_negative_format">-%1$s</string>
     <string name="percent_format">%1$d%%</string>
-    <string name="bullet_separator">·</string>
     <string name="assets_wallets_count_format">%1$d %2$s</string>
-    <string name="assets_transactions_count_format">%1$d %2$s</string>
     <string name="ui_version_appinfo">Version %1$s</string>
     <string name="ui_samplepositive">+%1$s</string>
     <string name="ui_samplenegative">-%1$s</string>
@@ -1324,7 +1115,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="auth_section_desc_unauthenticated">Sign in with Google to get ready for cloud sync and data backup.</string>
     <string name="auth_sign_in_with_google">Sign in with Google</string>
     <string name="auth_signing_in">Signing in…</string>
-    <string name="auth_signed_in_as">Signed in</string>
     <string name="auth_sign_out">Sign out</string>
     <string name="auth_signing_out">Signing out…</string>
     <string name="auth_error_sign_in_failed">Sign in failed: %1$s</string>
@@ -1359,7 +1149,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="auth_card_unauthenticated_subtitle">Sign in with Google to sync your data</string>
     <string name="auth_card_authenticated_subtitle">Google account linked</string>
     <string name="auth_details_title">Account Details</string>
-    <string name="auth_details_status_connected">Connected</string>
 
     <!-- Personalized Greetings -->
     <string name="greeting_morning_with_name">Good morning, %1$s</string>
@@ -1374,7 +1163,6 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="stats_range_month">Month</string>
     <string name="stats_range_year">Year</string>
     <string name="stats_range_all">All</string>
-    <string name="stats_trend_unavailable">Trend chart is currently being updated for this mode.</string>
     <!-- Categories -->
     <string name="category_food">Food &amp; dining</string>
     <string name="category_transport">Transport</string>
@@ -1425,4 +1213,378 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="onboarding_action_continue">Continue</string>
     <string name="onboarding_action_start">Get started</string>
     <string name="onboarding_action_skip">Skip</string>
+
+    <!-- Stats Allocation & Period Spending Bar Chart -->
+    <string name="stats_allocation_selected">Selected</string>
+    <string name="stats_allocation_unselected">Not selected</string>
+    <string name="stats_period_bar_daily_expense">Daily spending</string>
+    <string name="stats_period_bar_daily_income">Daily income</string>
+    <string name="stats_period_bar_monthly_expense">Monthly spending</string>
+    <string name="stats_period_bar_monthly_income">Monthly income</string>
+    <string name="stats_period_bar_yearly_expense">Yearly spending</string>
+    <string name="stats_period_bar_yearly_income">Yearly income</string>
+    <string name="stats_period_bar_peak_format">Peak: %1$s</string>
+    <string name="stats_period_bar_clear_selection">Clear selected bar</string>
+    <string name="stats_period_bar_empty">No activity recorded in this period</string>
+    <string name="stats_period_bar_point_cd_format">%1$s: %2$s</string>
+    <string name="stats_period_bar_chart_cd_format">%1$s. Peak %2$s, average %3$s</string>
+    <string name="stats_period_bar_date_short_format">%1$d/%2$d</string>
+    <string name="stats_period_bar_day_of_month_format">Day %1$d/%2$d</string>
+
+    <!-- Transaction Calculator Keypad -->
+    <string name="error_division_by_zero">Cannot divide by zero</string>
+    <string name="transaction_auto_capture_amount_locked">Bank transaction amount is locked for ledger accuracy</string>
+    <string name="cd_calc_add">Add</string>
+    <string name="cd_calc_subtract">Subtract</string>
+    <string name="cd_calc_multiply">Multiply</string>
+    <string name="cd_calc_divide">Divide</string>
+    <string name="cd_calc_equals">Equals</string>
+    <string name="cd_calc_three_zeros">Append three zeros</string>
+    <string name="cd_calc_clear_all">Clear all</string>
+    <string name="cd_calc_date_format">Transaction date: %1$s</string>
+    <string name="cd_calc_note_format">Note: %1$s</string>
+    <string name="cd_calc_note_empty">Add note</string>
+
+    <!-- Account Nature & Wallet Types -->
+    <string name="account_nature_asset">Assets</string>
+    <string name="account_nature_liability">Liabilities &amp; Credit</string>
+    <string name="wallet_type_cash">Cash</string>
+    <string name="wallet_type_bank">Bank Account</string>
+    <string name="wallet_type_ewallet">E-Wallet</string>
+    <string name="wallet_type_savings">Term Savings</string>
+    <string name="wallet_type_fund">Investment Fund</string>
+    <string name="wallet_type_stock">Stocks</string>
+    <string name="wallet_type_crypto">Cryptocurrency</string>
+    <string name="wallet_type_gold">Gold &amp; Precious Metals</string>
+    <string name="wallet_type_real_estate">Real Estate</string>
+    <string name="wallet_type_vehicle">Vehicles &amp; Transport</string>
+    <string name="wallet_type_other_asset">Other Asset</string>
+    <string name="wallet_type_credit_card">Credit Card</string>
+    <string name="wallet_type_credit_line">Credit Line / Overdraft</string>
+    <string name="wallet_type_loan">Loan</string>
+    <string name="wallet_type_mortgage">Mortgage / Installment</string>
+    <string name="wallet_type_other_liability">Other Liability</string>
+
+    <!-- Assets Screen Net Worth & Multi-Currency -->
+    <string name="assets_total_assets_label">Total Assets</string>
+    <string name="assets_total_liabilities_label">Total Liabilities</string>
+    <string name="assets_section_assets_title">Assets (%1$d)</string>
+    <string name="assets_section_liabilities_title">Liabilities &amp; Cards (%1$d)</string>
+    <string name="assets_section_archived_title">Archived (%1$d)</string>
+    <string name="assets_allocation_no_liabilities">No liabilities recorded</string>
+    <string name="assets_rates_updated_format">Rates: %1$s</string>
+    <string name="assets_rate_today">Today</string>
+    <string name="assets_card_action_pay_card">Pay card</string>
+    <string name="assets_card_action_adjust_balance">Update balance</string>
+    <string name="assets_credit_limit_format">Limit: %1$s</string>
+    <string name="assets_credit_available_format">Available: %1$s</string>
+    <string name="assets_overdraft_warning">Overdraft</string>
+    <string name="assets_approx_vnd_format">≈ %1$s</string>
+
+    <!-- Add/Edit Wallet Features -->
+    <string name="wallet_field_account_nature">Account Nature</string>
+    <string name="wallet_field_wallet_type">Account Type</string>
+    <string name="wallet_field_currency">Currency</string>
+    <plurals name="wallet_currency_locked_hint">
+        <item quantity="one">Locked — this wallet has %1$d transaction</item>
+        <item quantity="other">Locked — this wallet has %1$d transactions</item>
+    </plurals>
+    <string name="wallet_field_credit_limit">Credit limit</string>
+    <string name="wallet_action_archive">Archive wallet</string>
+    <string name="wallet_action_unarchive">Unarchive wallet</string>
+    <string name="wallet_action_delete">Delete wallet</string>
+    <string name="wallet_delete_confirm_title">Confirm delete wallet</string>
+    <string name="wallet_delete_confirm_message">Are you sure you want to delete wallet \"%1$s\"? This action cannot be undone.</string>
+    <string name="wallet_archive_confirm_title">Archive wallet</string>
+    <plurals name="wallet_archive_confirm_message">
+        <item quantity="one">Wallet \"%1$s\" has %2$d transaction. Archiving will hide it from the active picker when creating new transactions while preserving 100%% of its history.</item>
+        <item quantity="other">Wallet \"%1$s\" has %2$d transactions. Archiving will hide it from the active picker when creating new transactions while preserving 100%% of its history.</item>
+    </plurals>
+    <string name="wallet_unarchive_confirm_message">Restore wallet \"%1$s\" to active wallets?</string>
+    <string name="wallet_archived_success">Wallet archived</string>
+    <string name="wallet_unarchived_success">Wallet restored</string>
+    <string name="wallet_deleted_success">Wallet permanently deleted</string>
+    <string name="wallet_adjust_balance_title">Update actual balance</string>
+    <string name="wallet_adjust_balance_desc">Adjust balance to current market valuation without affecting regular expense or income reports.</string>
+    <string name="wallet_adjust_new_balance_label">New market balance</string>
+    <string name="wallet_adjust_success">Market balance updated</string>
+
+    <!-- Live Currency Converter & Exchange Rates -->
+    <string name="currency_converter_title">Currency Converter</string>
+    <string name="currency_converter_subtitle">Independent reference tool. Wallet balances and transactions are not modified.</string>
+    <string name="currency_converter_source_label">From</string>
+    <string name="currency_converter_target_label">To</string>
+    <string name="currency_converter_amount_label">Amount to convert</string>
+    <string name="currency_converter_result_label">Converted value</string>
+    <string name="currency_converter_swap_cd">Swap source and target currencies</string>
+    <string name="currency_converter_clear_cd">Clear amount</string>
+    <string name="currency_converter_refresh_cd">Refresh live exchange rates</string>
+    <string name="currency_converter_retry">Retry</string>
+    <string name="currency_converter_quick_table_title">Quick conversion table</string>
+    <string name="currency_converter_no_input">Enter a valid amount to convert</string>
+    <string name="currency_converter_disclaimer">Rates are for reference only from open API (%1$s) and may differ from bank buy/sell rates.</string>
+    <string name="currency_rate_unit_format">1 %1$s ≈ %2$s</string>
+    <string name="currency_rate_live_updated">%1$s • Updated: %2$s</string>
+    <string name="currency_rate_offline_badge">Offline estimated rate</string>
+    <string name="currency_rate_refresh_failed">Couldn\'t fetch live rates — using estimated rate.</string>
+    <string name="currency_rate_updating">Updating exchange rate…</string>
+    <string name="currency_converter_select_source_cd">Select source currency: %1$s</string>
+    <string name="currency_converter_select_target_cd">Select target currency: %1$s</string>
+
+    <!-- Onboarding v4 & About Replay -->
+    <string name="onboarding_step_counter_format">%1$02d / %2$02d</string>
+    <string name="onboarding_step1_eyebrow">STEP 01 • PERSONALIZE</string>
+    <string name="onboarding_step2_eyebrow">STEP 02 • PRIMARY WALLET</string>
+    <string name="onboarding_step3_eyebrow">STEP 03 • DAILY HABIT</string>
+    <string name="onboarding_preview_balance_label">Sample balance preview</string>
+    <string name="onboarding_wallet_primary_badge">PRIMARY</string>
+    <string name="onboarding_wallet_name_placeholder">E.g. Cash, Main Bank…</string>
+    <string name="onboarding_wallet_suggestions_label">Quick name suggestions</string>
+    <string name="onboarding_wallet_meta_format">%1$s • %2$s</string>
+    <string name="onboarding_wallet_starting_balance_label">Starting balance</string>
+    <string name="onboarding_wallet_name_counter_format">%1$d/%2$d</string>
+    <string name="onboarding_wallet_clear_cd">Clear wallet name</string>
+    <string name="onboarding_reminder_toggle_desc">Gentle evening nudge if you haven\'t logged today</string>
+    <string name="onboarding_reminder_preview_title">Time to log today</string>
+    <string name="onboarding_reminder_preview_body">Take 10 seconds to capture today\'s spending with NotePay.</string>
+    <string name="onboarding_reminder_off_label">Off</string>
+    <string name="onboarding_reminder_preview_off_body">Reminders are off. You can turn them back on anytime in Settings.</string>
+    <string name="onboarding_save_error_message">Couldn\'t save setup right now. Please try again.</string>
+    <string name="about_replay_onboarding_action">Replay welcome guide</string>
+
+    <!-- Natural Language Quick Entry (Phase 1) -->
+    <string name="natural_entry_title">Natural quick entry</string>
+    <string name="natural_entry_placeholder">e.g. Lunch 45k then milk tea 55k</string>
+    <string name="natural_entry_preview_header">Detected items (%1$d)</string>
+    <string name="natural_entry_source_device">Instant on-device</string>
+    <string name="natural_entry_source_ai">Analyzed by AI</string>
+    <string name="natural_entry_ai_button">Deep AI analysis</string>
+    <string name="natural_entry_ai_analyzing">Analyzing with AI…</string>
+    <string name="natural_entry_ai_fallback_notice">AI unavailable, keeping on-device result.</string>
+    <plurals name="natural_entry_save_all">
+        <item quantity="one">Save all (%1$d item)</item>
+        <item quantity="other">Save all (%1$d items)</item>
+    </plurals>
+    <string name="natural_entry_apply_note">Use as note only</string>
+    <string name="natural_entry_edit_cd">Edit item</string>
+    <string name="natural_entry_delete_cd">Remove item</string>
+    <string name="natural_entry_amount_label">Amount (VND)</string>
+    <string name="natural_entry_note_label">Description</string>
+    <string name="natural_entry_done_edit">Done</string>
+    <plurals name="natural_entry_saved_batch">
+        <item quantity="one">Saved %1$d transaction</item>
+        <item quantity="other">Saved %1$d transactions</item>
+    </plurals>
+    <string name="natural_entry_partial_error">Some transactions could not be saved</string>
+
+    <!-- Multi-Purpose Wallets & Financial Report Export (Phase 2) -->
+    <string name="wallet_purpose_label">Wallet purpose</string>
+    <string name="wallet_purpose_all">All</string>
+    <string name="wallet_purpose_personal">Personal</string>
+    <string name="wallet_purpose_business">Business</string>
+    <string name="wallet_purpose_savings_goal">Savings Goal</string>
+    <string name="wallet_purpose_travel">Travel</string>
+    <string name="wallet_purpose_shared">Shared</string>
+    <string name="wallet_target_amount_label">Target amount (VND)</string>
+    <string name="wallet_target_date_label">Target date (optional)</string>
+    <string name="wallet_target_date_placeholder">Pick target date</string>
+    <string name="wallet_target_clear_date">Clear date</string>
+    <string name="wallet_goal_progress_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="wallet_goal_due_format">Target: %1$s</string>
+    <string name="wallet_include_in_total_title">Include in net worth</string>
+    <string name="wallet_include_in_total_desc">Turn off to keep business or separate funds out of personal totals</string>
+    <string name="wallet_excluded_from_total_badge">Excluded from total</string>
+
+    <string name="export_report_title">Export financial report</string>
+    <string name="export_report_action_cd">Export Excel or CSV report</string>
+    <string name="export_report_button">Export report</string>
+    <string name="export_report_period_label">Date range</string>
+    <string name="export_preset_month">This month</string>
+    <string name="export_preset_quarter">This quarter</string>
+    <string name="export_preset_year">This year</string>
+    <string name="export_preset_custom">Custom</string>
+    <string name="export_date_from">From</string>
+    <string name="export_date_to">To</string>
+    <string name="export_wallets_label">Wallets to include</string>
+    <string name="export_wallets_all">All wallets</string>
+    <string name="export_type_label">Transaction type</string>
+    <string name="export_type_all">Income &amp; Expense</string>
+    <string name="export_format_label">File format</string>
+    <string name="export_format_xlsx">Excel (.xlsx)</string>
+    <string name="export_format_csv">CSV (UTF-8 BOM)</string>
+    <plurals name="export_matching_count">
+        <item quantity="one">Matching %1$d transaction</item>
+        <item quantity="other">Matching %1$d transactions</item>
+    </plurals>
+    <string name="export_save_to_device">Save to device</string>
+    <string name="export_share_action">Share</string>
+    <string name="export_success">Report exported successfully</string>
+    <string name="export_failed">Couldn\'t export report, please try again</string>
+    <string name="export_share_chooser_title">Share financial report</string>
+
+    <!-- Long-Term YoY & Vietnamese Seasonal Trends (Phase 3) -->
+    <string name="stats_long_term_title">Long-term &amp; Seasonal Trends</string>
+    <plurals name="stats_tet_countdown_badge">
+        <item quantity="one">%1$d day to Lunar New Year</item>
+        <item quantity="other">%1$d days to Lunar New Year</item>
+    </plurals>
+    <string name="stats_yoy_same_month_label">vs. same month last year</string>
+    <string name="stats_yoy_no_prior_spend">Prior year had 0 spend</string>
+    <string name="stats_yoy_rising_label">Top rising:</string>
+    <string name="stats_yoy_falling_label">Top falling:</string>
+    <string name="stats_chart_this_year">Last 12 months</string>
+    <string name="stats_chart_last_year">Prior year</string>
+    <string name="stats_season_pre_tet">Pre-Tết (30 days)</string>
+    <string name="stats_season_post_tet">Post-Tết (30 days)</string>
+    <string name="stats_season_wedding">Wedding season</string>
+    <string name="stats_season_summer">Summer &amp; Travel</string>
+    <string name="stats_season_spike_desc">Spending rises +%1$d%% vs. normal months (%2$s/mo)</string>
+    <string name="stats_season_dip_desc">Spending drops %1$d%% vs. normal months (%2$s/mo)</string>
+    <string name="stats_season_top_categories">Mainly in: %1$s</string>
+    <plurals name="stats_cold_start_title">
+        <item quantity="one">Building long-term history (%1$d/%2$d month)</item>
+        <item quantity="other">Building long-term history (%1$d/%2$d months)</item>
+    </plurals>
+    <string name="stats_cold_start_desc">At least 12 months of history are needed for Year-over-Year (YoY) and Tết seasonal patterns.</string>
+    <string name="stats_cold_start_mom_label">vs. 3-month average: %1$s</string>
+    <string name="stats_long_term_chart_cd">Line chart comparing spending across the last 12 months vs. prior year</string>
+
+    <!-- Shared Wallets & Supabase Sync (Phase 4) -->
+    <string name="shared_wallet_create_action">Create shared</string>
+    <string name="shared_wallet_join_action">Join with code</string>
+    <string name="shared_wallet_create_title">Create shared wallet</string>
+    <string name="shared_wallet_name_label">Shared wallet name (e.g. Family)</string>
+    <string name="shared_wallet_budget_label">Monthly budget (optional)</string>
+    <string name="shared_wallet_create_submit">Create</string>
+    <string name="shared_wallet_join_title">Join shared wallet</string>
+    <string name="shared_wallet_invite_code_label">Invite code (6-12 chars)</string>
+    <string name="shared_wallet_display_name_label">Your display name</string>
+    <string name="shared_wallet_join_submit">Join wallet</string>
+    <string name="shared_wallet_offline_hint">Offline mode: Supabase is not configured or Google sign-in is required. Personal wallets continue working locally.</string>
+    <string name="shared_wallet_create_success">Created shared wallet \"%1$s\"</string>
+    <string name="shared_wallet_join_success">Joined shared wallet \"%1$s\"</string>
+    <string name="shared_wallet_action_failed">Shared wallet sync failed: %1$s</string>
+    <string name="shared_wallet_members_action">Members</string>
+    <string name="shared_wallet_members_title">Shared wallet members</string>
+    <string name="shared_wallet_role_owner">Owner</string>
+    <string name="shared_wallet_role_editor">Editor</string>
+    <string name="shared_wallet_role_viewer">Viewer</string>
+    <string name="shared_wallet_members_section">Members (%1$d)</string>
+    <string name="shared_wallet_members_empty">No members loaded yet</string>
+    <string name="shared_wallet_member_limit_format">Limit: %1$s/mo</string>
+    <string name="shared_wallet_member_no_limit">No spending limit</string>
+    <string name="shared_wallet_member_edit_title">Edit role &amp; spending limit</string>
+    <string name="shared_wallet_member_limit_input">Monthly spending limit (blank for unlimited)</string>
+    <string name="shared_wallet_member_remove">Remove</string>
+    <string name="shared_wallet_member_remove_confirm">Remove %1$s from this shared wallet?</string>
+    <string name="shared_wallet_invites_section">Active invite codes</string>
+    <string name="shared_wallet_invite_create_action">New invite</string>
+    <string name="shared_wallet_invite_create_title">Create shared wallet invite</string>
+    <string name="shared_wallet_invite_role_label">Role on join</string>
+    <string name="shared_wallet_invite_expiry_label">Expiration</string>
+    <string name="shared_wallet_invite_expiry_24h">24 hours</string>
+    <string name="shared_wallet_invite_expiry_7d">7 days</string>
+    <string name="shared_wallet_invite_uses_label">Max uses</string>
+    <string name="shared_wallet_invite_uses_format">Used %1$d/%2$d</string>
+    <string name="shared_wallet_invite_copy">Copy</string>
+    <string name="shared_wallet_invite_copied">Copied invite code %1$s</string>
+    <string name="shared_wallet_invite_share">Share</string>
+    <string name="shared_wallet_invite_share_text">Join \"%1$s\" shared wallet on NotePay with invite code: %2$s</string>
+    <string name="shared_wallet_invite_revoke">Revoke</string>
+    <string name="shared_wallet_invite_empty">No active invites. Generate a time-limited invite code to share.</string>
+    <string name="shared_wallet_sync_now">Sync now</string>
+    <plurals name="shared_wallet_sync_success">
+        <item quantity="one">Synced: pushed %1$d, pulled %2$d transaction</item>
+        <item quantity="other">Synced: pushed %1$d, pulled %2$d transactions</item>
+    </plurals>
+    <string name="shared_tx_recorded_by">Recorded by %1$s</string>
+    <string name="shared_tx_author_label">Recorded by</string>
+    <string name="shared_wallet_viewer_readonly_hint">View-only access — only the Owner or the Editor who created this transaction can edit it.</string>
+    <string name="shared_wallet_viewer_cannot_write">This shared wallet is view-only; you cannot add or edit transactions.</string>
+    <string name="shared_wallet_not_found">Shared wallet not found</string>
+
+    <!-- Stats & Assets UX/UI redesign -->
+    <string name="stats_net_balance_label">Net cash flow</string>
+    <string name="stats_jump_to_current_period">Jump to current period</string>
+    <string name="assets_allocation_title">Wallet allocation</string>
+    <string name="assets_allocation_tab_asset">Assets</string>
+    <string name="assets_allocation_tab_liability">Debt</string>
+    <string name="percent_change_positive_cap">+999%+</string>
+    <string name="percent_change_negative_cap">-999%+</string>
+    <string name="shared_wallet_error_name_required">Please enter a shared wallet name</string>
+    <string name="shared_wallet_error_code_invalid">Invite code must be at least 6 characters</string>
+    <string name="wallet_adjust_error_invalid">Please enter a valid amount</string>
+
+    <!-- iOS Home Redesign, Background Customization & Diverse Smart Tips -->
+    <string name="home_customize_action">Customize Home</string>
+    <string name="home_customize_title">Customize Home</string>
+    <string name="home_bg_section_title">Home Background</string>
+    <string name="home_bg_pick_photo">Choose photo from gallery</string>
+    <string name="home_bg_change_photo">Change photo</string>
+    <string name="home_bg_remove_photo">Reset background</string>
+    <string name="home_bg_blur_title">Softly blur background photo</string>
+    <string name="home_bg_blur_desc">Keeps your balance card and recent transactions crisp and legible</string>
+    <string name="home_bg_photo_saved">Home background updated</string>
+    <string name="home_bg_photo_error">Unable to load selected photo. Please try another image.</string>
+    <string name="home_bg_preset_warm_silk">Warm Silk</string>
+    <string name="home_bg_preset_ocean_mist">Ocean Mist</string>
+    <string name="home_bg_preset_sage_morning">Sage Morning</string>
+    <string name="home_bg_preset_sunset_bloom">Sunset Bloom</string>
+    <string name="home_bg_preset_aurora_lavender">Aurora Lavender</string>
+    <string name="home_bg_preset_minimal_canvas">iOS Minimal</string>
+    <string name="home_widgets_section_title">Home Widgets</string>
+    <string name="home_show_smart_tips_title">Smart Financial Tips</string>
+    <string name="home_show_smart_tips_desc">Show personalized spending and saving insights on Home</string>
+    <string name="home_tip_next_cd">Next tip</string>
+    <string name="home_tip_counter_format">%1$d/%2$d</string>
+    <string name="home_tip_domain_spending">Spending</string>
+    <string name="home_tip_domain_savings">Savings</string>
+    <string name="home_tip_domain_budget">Budget</string>
+    <string name="home_tip_domain_habit">Habit</string>
+    <string name="home_tip_domain_subscription">Recurring</string>
+    <string name="home_tip_domain_wallet">Wallets</string>
+    <string name="home_tip_top_category_title">%1$s is %2$d%% of monthly spend</string>
+    <string name="home_tip_top_category_desc">You have spent %1$s on this category this month. Setting a dedicated limit or trimming 10–15%% can help rebalance.</string>
+    <string name="home_tip_savings_high_title">Saving %1$d%% of your income so far</string>
+    <string name="home_tip_savings_high_desc">A positive net flow of %1$s this month is strong momentum. Consider moving part of it into your emergency or goal savings.</string>
+    <string name="home_tip_deficit_title">Spending exceeds income this month</string>
+    <string name="home_tip_deficit_desc">Expenses currently exceed income by %1$s. Pausing non-essential purchases until your next payday will help close the gap.</string>
+    <plurals name="home_tip_subscriptions_due_title">
+        <item quantity="one">%1$d recurring payment due soon</item>
+        <item quantity="other">%1$d recurring payments due soon</item>
+    </plurals>
+    <string name="home_tip_subscriptions_due_desc">Review your upcoming subscriptions so your wallet stays funded for auto-pay or cancel services you no longer need.</string>
+    <plurals name="home_tip_small_expenses_title">
+        <item quantity="one">%1$d small purchase adds up fast</item>
+        <item quantity="other">%1$d small purchases add up fast</item>
+    </plurals>
+    <string name="home_tip_small_expenses_desc">Small purchases under 100,000 VND now total %1$s this month. Watching small daily buys is one of the easiest ways to save more.</string>
+    <string name="home_tip_set_budget_title">Set a monthly budget for your wallet</string>
+    <string name="home_tip_set_budget_desc">\"%1$s\" does not have a monthly spending limit yet. Adding a budget unlocks early overspending alerts on the home screen.</string>
+    <plurals name="home_tip_streak_title">
+        <item quantity="one">Keeping a %1$d-day logging streak alive</item>
+        <item quantity="other">Keeping a %1$d-day logging streak alive</item>
+    </plurals>
+    <string name="home_tip_streak_desc">Logging your finances every day builds clarity and helps you spot subtle spending leaks well before month-end.</string>
+    <string name="home_tip_concentrated_wallet_title">%1$d%% of your balance sits in one wallet</string>
+    <string name="home_tip_concentrated_wallet_desc">\"%1$s\" holds most of your positive balance. Separating a savings wallet helps protect reserve funds from everyday spending.</string>
+    <string name="home_tip_rule_503020_title">Try the 50 / 30 / 20 cashflow rule</string>
+    <string name="home_tip_rule_503020_desc" formatted="false">Aim for roughly 50% on essentials, 30% on personal wants, and at least 20% toward savings or debt reduction.</string>
+    <string name="home_tip_emergency_fund_title">Build a 3–6 month emergency buffer</string>
+    <string name="home_tip_emergency_fund_desc">Keeping three to six months of essential living expenses in a dedicated reserve protects you from unexpected shocks.</string>
+    <string name="home_tip_wait_24h_title">Use the 24-hour cooling-off rule</string>
+    <string name="home_tip_wait_24h_desc">For unplanned purchases, wait 24 hours before paying to separate genuine needs from impulse buys.</string>
+    <string name="home_tip_pay_yourself_title">Pay yourself first on payday</string>
+    <string name="home_tip_pay_yourself_desc">Move your target savings into a separate wallet as soon as income arrives instead of saving only what is left over.</string>
+    <string name="home_tip_audit_subs_title">Audit recurring subscriptions monthly</string>
+    <string name="home_tip_audit_subs_desc">Auto-renewing apps and memberships add silent drag. Spend five minutes a month pruning subscriptions you rarely open.</string>
+    <string name="home_tip_weekly_review_title">Do a 5-minute Sunday money check-in</string>
+    <string name="home_tip_weekly_review_desc">Scanning your top spending categories and reconciling wallet balances once a week keeps your budget on track.</string>
+    <string name="home_tip_separate_wallets_title">Separate daily spend from savings wallets</string>
+    <string name="home_tip_separate_wallets_desc">Keeping everyday spending money separate from savings ensures your available balance accurately reflects what you can spend.</string>
+    <string name="home_tip_log_now_title">Log transactions right after paying</string>
+    <string name="home_tip_log_now_desc">Taking a few seconds right after paying keeps small daily expenses from slipping through the cracks.</string>
+    <string name="cd_hide_api_key">Hide API key</string>
+    <string name="cd_show_api_key">Show API key</string>
+    <string name="cd_clear_due_date">Clear due date</string>
 </resources>

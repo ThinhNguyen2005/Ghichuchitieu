@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -166,7 +167,7 @@ fun BillSplitCreateSheet(
     }
 
     var step by rememberSaveable { mutableStateOf(BillSplitStep.SELECT_TRANSACTION) }
-    var selectedTransactionId by rememberSaveable { mutableStateOf(NoTransactionSelected) }
+    var selectedTransactionId by rememberSaveable { mutableLongStateOf(NoTransactionSelected) }
     var newDebtorName by rememberSaveable { mutableStateOf("") }
     var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
 

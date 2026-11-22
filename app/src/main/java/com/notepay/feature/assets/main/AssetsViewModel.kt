@@ -1,22 +1,27 @@
 package com.notepay.feature.assets.main
 
 import android.content.Context
-import com.notepay.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.domain.money.Money
+import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.data.remote.CurrencyRateRepository
+import com.notepay.data.remote.CurrencyRateSnapshot
+import com.notepay.domain.model.CurrencyConverter
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletStats
+import com.notepay.domain.money.Money
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.TransferBetweenWalletsUseCase
 import com.notepay.domain.usecase.debt.DebtSummary
 import com.notepay.domain.usecase.debt.GetDebtSummaryUseCase
-import com.notepay.core.designsystem.feedback.FeedbackType
-import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -28,8 +33,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -40,53 +45,117 @@ import kotlin.math.abs
 
 @HiltViewModel
 class AssetsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val walletRepository: WalletRepository,
     private val transactionRepository: TransactionRepository,
     private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
     private val transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
+    private val currencyRateRepository: CurrencyRateRepository,
+    private val sharedWalletRepository: SharedWalletRepository?,
 ) : ViewModel() {
 
-    /**
-     * Trạng thái tức thời của form chuyển khoản. Tách khỏi dữ liệu Room để luồng dữ liệu
-     * không phải khởi động lại mỗi lần người dùng gõ số tiền.
-     */
+    internal constructor(
+        context: Context,
+        walletRepository: WalletRepository,
+        transactionRepository: TransactionRepository,
+        getDebtSummaryUseCase: GetDebtSummaryUseCase,
+        transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
+        currencyRateRepository: CurrencyRateRepository,
+    ) : this(
+        context = context,
+        walletRepository = walletRepository,
+        transactionRepository = transactionRepository,
+        getDebtSummaryUseCase = getDebtSummaryUseCase,
+        transferBetweenWalletsUseCase = transferBetweenWalletsUseCase,
+        currencyRateRepository = currencyRateRepository,
+        sharedWalletRepository = null,
+    )
+
     private val _transferForm = MutableStateFlow(TransferFormState())
     private val retryVersion = MutableStateFlow(0)
+    private val _allocationMode = MutableStateFlow(AllocationMode.ASSET)
+    private val _adjustBalanceWallet = MutableStateFlow<WalletAssetItem?>(null)
+    private val _ratesSnapshot = MutableStateFlow<CurrencyRateSnapshot?>(null)
+    private val _selectedPurpose = MutableStateFlow<WalletPurpose?>(null)
+    private val _isSharedActionSubmitting = MutableStateFlow(false)
 
-    /** Form chuyển khoản là một nguồn riêng, không chép lại từng trường sang [AssetsUiState]. */
     val transferForm: StateFlow<TransferFormState> = _transferForm.asStateFlow()
 
-    /**
-     * Dữ liệu tài sản dẫn xuất từ Room. `WhileSubscribed(5_000)` giữ kết nối thêm 5 giây
-     * sau khi UI ngừng quan sát (đổi tab, xoay màn hình) rồi mới huỷ, nên khi app xuống
-     * background sẽ không còn tốn CPU để dựng lại phân bổ tài sản.
-     */
-    val state: StateFlow<AssetsUiState> = observeAssets()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AssetsUiState(),
-        )
+    init {
+        viewModelScope.launch {
+            val snapshot = runCatching { currencyRateRepository.getVndRates() }.getOrNull()
+            _ratesSnapshot.value = snapshot
+        }
+        if (sharedWalletRepository?.isCloudConfigured == true) {
+            viewModelScope.launch {
+                runCatching { sharedWalletRepository.startRealtimeSync() }
+            }
+        }
+    }
+
+    val state: StateFlow<AssetsUiState> = combine(
+        observeAssets(),
+        _selectedPurpose,
+        _isSharedActionSubmitting,
+    ) { base, purpose, sharedSubmitting ->
+        val cloudConfigured = sharedWalletRepository?.isCloudConfigured == true
+        if (base.isLoading || base.hasError || purpose == null) {
+            base.copy(
+                selectedPurpose = purpose,
+                isCloudConfigured = cloudConfigured,
+                isSharedActionSubmitting = sharedSubmitting,
+            )
+        } else {
+            base.copy(
+                selectedPurpose = purpose,
+                assetWallets = base.assetWallets.filter { it.wallet.purpose == purpose },
+                liabilityWallets = base.liabilityWallets.filter { it.wallet.purpose == purpose },
+                isCloudConfigured = cloudConfigured,
+                isSharedActionSubmitting = sharedSubmitting,
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = AssetsUiState(),
+    )
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
-    /**
-     * Kỳ tháng đi vào như một tham số của query: sang ngày mới thì kỳ được phát lại và
-     * thống kê tháng tự nạp lại, thay vì đóng băng ở tháng lúc mở màn hình.
-     */
+    private data class ObserveTuple(
+        val period: AssetsPeriod,
+        val allocMode: AllocationMode,
+        val adjustWallet: WalletAssetItem?,
+        val ratesSnapshot: CurrencyRateSnapshot?,
+    )
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun observeAssets(): Flow<AssetsUiState> = combine(assetsPeriodFlow(), retryVersion) { period, _ ->
-        period
-    }.flatMapLatest { period ->
+    private fun observeAssets(): Flow<AssetsUiState> = combine(
+        assetsPeriodFlow(),
+        retryVersion,
+        _allocationMode,
+        _adjustBalanceWallet,
+        _ratesSnapshot,
+    ) { period, _, allocMode, adjustWallet, ratesSnapshot ->
+        ObserveTuple(period, allocMode, adjustWallet, ratesSnapshot)
+    }.flatMapLatest { tuple ->
         combine(
             walletRepository.observeAll(),
-            transactionRepository.observeWalletStats(period.monthStartMillis, period.monthEndMillis),
-            transactionRepository.observeRecentNonTransfers(period.comparisonStartMillis),
+            transactionRepository.observeWalletStats(tuple.period.monthStartMillis, tuple.period.monthEndMillis),
+            transactionRepository.observeRecentNonTransfers(tuple.period.comparisonStartMillis),
             getDebtSummaryUseCase(),
         ) { wallets, walletStats, nonTransferTxs, debtSummary ->
-            buildAssetsState(wallets, walletStats, nonTransferTxs, debtSummary)
+            buildAssetsState(
+                wallets = wallets,
+                walletStats = walletStats,
+                nonTransferTxs = nonTransferTxs,
+                debtSummary = debtSummary,
+                allocationMode = tuple.allocMode,
+                adjustWallet = tuple.adjustWallet,
+                ratesSnapshot = tuple.ratesSnapshot,
+                selectedPurpose = null,
+            )
         }.onStart { emit(AssetsUiState()) }
             .catch { error ->
                 if (error is CancellationException) throw error
@@ -103,49 +172,268 @@ class AssetsViewModel @Inject constructor(
         walletStats: List<WalletStats>,
         nonTransferTxs: List<Transaction>,
         debtSummary: DebtSummary,
+        allocationMode: AllocationMode,
+        adjustWallet: WalletAssetItem?,
+        ratesSnapshot: CurrencyRateSnapshot?,
+        selectedPurpose: WalletPurpose?,
     ): AssetsUiState {
-        // Một lượt tra cứu dùng chung thay vì find() lặp lại cho từng ví.
         val statsByWallet = walletStats.associateBy { it.walletId }
-        var totalBalance = Money.ZERO
+        val rates = ratesSnapshot?.rates
 
-        val items = wallets.map { wallet ->
+        val allItems = wallets.map { wallet ->
             val stats = statsByWallet[wallet.id]
             val netBalance = wallet.initialBalance +
                 (stats?.allTimeIncome ?: Money.ZERO) -
                 (stats?.allTimeExpense ?: Money.ZERO)
-            totalBalance += netBalance
-
+            val convertedCents = CurrencyConverter.convertToVndCents(
+                amountCents = netBalance.amountInCents,
+                fromCurrency = wallet.currencyCode,
+                rates = rates,
+            )
             WalletAssetItem(
                 wallet = wallet,
                 balance = netBalance,
+                convertedBalanceVnd = Money(convertedCents),
                 monthlyIncome = stats?.currentMonthIncome ?: Money.ZERO,
                 monthlyExpense = stats?.currentMonthExpense ?: Money.ZERO,
                 transactionCount = stats?.txCount ?: 0,
             )
         }
 
-        // Dòng tiền ròng của cửa sổ so sánh = các giao dịch không phải chuyển khoản nội bộ.
-        val netFlow = nonTransferTxs.fold(Money.ZERO) { acc, tx ->
-            when (tx.type) {
-                TransactionType.INCOME -> acc + tx.amount
-                TransactionType.EXPENSE -> acc - tx.amount
-            }
+        val activeItems = allItems.filter { !it.wallet.isArchived }
+        val archivedItems = allItems.filter { it.wallet.isArchived }
+
+        val includedItems = activeItems.filter { it.wallet.includeInTotalBalance }
+        val includedWalletIds = includedItems.mapTo(hashSetOf()) { it.wallet.id }
+        val excludedCount = activeItems.size - includedItems.size
+
+        val totalPositiveAssetVnd = includedItems
+            .filter { it.wallet.isAsset && it.convertedBalanceVnd.amountInCents > 0L }
+            .sumOf { it.convertedBalanceVnd.amountInCents }
+
+        val visibleItems = if (selectedPurpose == null) {
+            activeItems
+        } else {
+            activeItems.filter { it.wallet.purpose == selectedPurpose }
         }
-        val startBalance = totalBalance - netFlow
-        // Số dư đầu kỳ bằng 0 thì tỷ lệ không xác định (null), khác hẳn "không thay đổi".
+        val assetItemsRaw = visibleItems.filter { it.wallet.isAsset }
+        val liabilityItemsRaw = visibleItems.filter { it.wallet.isLiability }
+
+        val assetItems = assetItemsRaw.map { item ->
+            val pct = if (item.wallet.includeInTotalBalance && totalPositiveAssetVnd > 0L && item.convertedBalanceVnd.amountInCents > 0L) {
+                item.convertedBalanceVnd.amountInCents.toFloat() / totalPositiveAssetVnd.toFloat()
+            } else {
+                0f
+            }
+            item.copy(groupPercentage = pct)
+        }
+
+        val totalLiabilityDebtVnd = includedItems
+            .filter { it.wallet.isLiability }
+            .sumOf { item ->
+                if (item.convertedBalanceVnd.amountInCents < 0L) {
+                    -item.convertedBalanceVnd.amountInCents
+                } else {
+                    item.convertedBalanceVnd.amountInCents
+                }
+            }
+
+        val liabilityItems = liabilityItemsRaw.map { item ->
+            val debt = if (item.convertedBalanceVnd.amountInCents < 0L) {
+                -item.convertedBalanceVnd.amountInCents
+            } else {
+                item.convertedBalanceVnd.amountInCents
+            }
+            val pct = if (item.wallet.includeInTotalBalance && totalLiabilityDebtVnd > 0L && debt > 0L) {
+                debt.toFloat() / totalLiabilityDebtVnd.toFloat()
+            } else {
+                0f
+            }
+            item.copy(groupPercentage = pct)
+        }
+
+        val totalAssetsCents = totalPositiveAssetVnd
+        val totalLiabilitiesCents = totalLiabilityDebtVnd + debtSummary.totalToPay.amountInCents
+        val netWorthCents = totalAssetsCents - totalLiabilitiesCents
+        val totalNetWorth = Money(netWorthCents)
+
+        val netFlow = nonTransferTxs
+            .filter { it.walletId in includedWalletIds }
+            .fold(Money.ZERO) { acc, tx ->
+                when (tx.type) {
+                    TransactionType.INCOME -> acc + tx.amount
+                    TransactionType.EXPENSE -> acc - tx.amount
+                }
+            }
+        val startBalance = totalNetWorth - netFlow
         val netWorthChangePercentage = if (startBalance.amountInCents != 0L) {
             (netFlow.amountInCents.toDouble() / abs(startBalance.amountInCents.toDouble()) * 100.0).toFloat()
         } else {
             null
         }
 
+        val hasForeign = wallets.any { !it.currencyCode.equals("VND", ignoreCase = true) }
+        val ratesUpdatedString = ratesSnapshot?.lastUpdatedUtc?.takeIf { it.isNotBlank() }
+        val allocationItems = buildAllocation(includedItems, allocationMode, rates)
+
         return AssetsUiState(
-            totalNetWorth = totalBalance,
-            wallets = items,
+            totalNetWorth = totalNetWorth,
+            totalAssetsVnd = Money(totalAssetsCents),
+            totalLiabilitiesVnd = Money(totalLiabilitiesCents),
+            assetCount = includedItems.count { it.wallet.isAsset },
+            liabilityCount = includedItems.count { it.wallet.isLiability },
+            wallets = activeItems,
+            assetWallets = assetItems,
+            liabilityWallets = liabilityItems,
+            archivedWallets = archivedItems,
             isLoading = false,
-            allocationItems = buildAllocation(items),
+            allocationMode = allocationMode,
+            allocationItems = allocationItems,
             netWorthChangePercentage = netWorthChangePercentage,
             debtSummary = debtSummary,
+            hasForeignCurrency = hasForeign,
+            ratesLastUpdated = ratesUpdatedString,
+            adjustBalanceWallet = adjustWallet,
+            selectedPurpose = selectedPurpose,
+            excludedWalletCount = excludedCount,
+        )
+    }
+
+    fun onPurposeFilterChanged(purpose: WalletPurpose?) {
+        _selectedPurpose.value = purpose
+    }
+
+    fun createSharedWallet(
+        name: String,
+        currencyCode: String,
+        monthlyBudgetMinor: Long?,
+        onCreated: (Long) -> Unit = {},
+    ) {
+        val repo = sharedWalletRepository ?: return
+        if (_isSharedActionSubmitting.value) return
+        _isSharedActionSubmitting.value = true
+        viewModelScope.launch {
+            try {
+                val result = repo.createSharedWallet(name, currencyCode, monthlyBudgetMinor)
+                result.fold(
+                    onSuccess = { wallet ->
+                        runCatching { repo.startRealtimeSync() }
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_create_success, wallet.name),
+                                type = FeedbackType.Success,
+                            ),
+                        )
+                        onCreated(wallet.id)
+                    },
+                    onFailure = { err ->
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_action_failed, err.message.orEmpty()),
+                                type = FeedbackType.Error,
+                            ),
+                        )
+                    },
+                )
+            } finally {
+                _isSharedActionSubmitting.value = false
+            }
+        }
+    }
+
+    fun joinSharedWallet(
+        inviteCode: String,
+        displayName: String,
+        onJoined: (Long) -> Unit = {},
+    ) {
+        val repo = sharedWalletRepository ?: return
+        if (_isSharedActionSubmitting.value) return
+        _isSharedActionSubmitting.value = true
+        viewModelScope.launch {
+            try {
+                val result = repo.joinWalletByCode(inviteCode, displayName)
+                result.fold(
+                    onSuccess = { wallet ->
+                        runCatching { repo.startRealtimeSync() }
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_join_success, wallet.name),
+                                type = FeedbackType.Success,
+                            ),
+                        )
+                        onJoined(wallet.id)
+                    },
+                    onFailure = { err ->
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_action_failed, err.message.orEmpty()),
+                                type = FeedbackType.Error,
+                            ),
+                        )
+                    },
+                )
+            } finally {
+                _isSharedActionSubmitting.value = false
+            }
+        }
+    }
+
+    fun onAllocationModeChanged(mode: AllocationMode) {
+        _allocationMode.value = mode
+    }
+
+    fun openAdjustBalance(item: WalletAssetItem) {
+        _adjustBalanceWallet.value = item
+    }
+
+    fun closeAdjustBalance() {
+        _adjustBalanceWallet.value = null
+    }
+
+    fun submitAdjustBalance(walletId: Long, newBalanceCents: Long) {
+        viewModelScope.launch {
+            try {
+                val targetWallet = walletRepository.getById(walletId) ?: return@launch
+                val currentItem = state.value.wallets.firstOrNull { it.wallet.id == walletId }
+                    ?: state.value.archivedWallets.firstOrNull { it.wallet.id == walletId }
+                val currentBalanceCents = currentItem?.balance?.amountInCents ?: targetWallet.initialBalance.amountInCents
+                val diff = newBalanceCents - currentBalanceCents
+                val newInitial = targetWallet.initialBalance.amountInCents + diff
+                val updatedWallet = targetWallet.copy(initialBalance = Money(newInitial))
+                walletRepository.upsert(updatedWallet)
+                _adjustBalanceWallet.value = null
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.wallet_adjust_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.wallet_update_failed),
+                        type = FeedbackType.Error,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun openPayCreditCard(walletId: Long) {
+        if (_transferForm.value.isSubmitting) return
+        val currentWallets = state.value.wallets
+        val target = currentWallets.firstOrNull { it.wallet.id == walletId } ?: return
+        val fromId = currentWallets.firstOrNull { it.wallet.isAsset && it.wallet.id != walletId }?.wallet?.id
+        val debtCents = if (target.balance.amountInCents < 0L) -target.balance.amountInCents else 0L
+        val defaultAmount = if (debtCents > 0L) (debtCents / 100L).toString() else ""
+        _transferForm.value = TransferFormState(
+            isVisible = true,
+            fromWalletId = fromId,
+            toWalletId = walletId,
+            amountInput = defaultAmount,
+            note = "${context.getString(R.string.assets_card_action_pay_card)}: ${target.wallet.name}",
         )
     }
 
@@ -153,17 +441,26 @@ class AssetsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 walletRepository.setActive(walletId)
-                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_set_active), type = FeedbackType.Success))
+                _feedback.tryEmit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_wallet_set_active),
+                        type = FeedbackType.Success,
+                    ),
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (e: Exception) {
-                _feedback.tryEmit(UiFeedback(message = context.getString(R.string.feedback_wallet_switch_failed), type = FeedbackType.Error))
+            } catch (_: Exception) {
+                _feedback.tryEmit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_wallet_switch_failed),
+                        type = FeedbackType.Error,
+                    ),
+                )
             }
         }
     }
 
     fun openTransferSheet(fromWalletId: Long? = null) {
-        // Đang gửi thì không mở form mới: kết quả lần gửi trước sẽ ghi đè form này.
         if (_transferForm.value.isSubmitting) return
         val currentWallets = state.value.wallets
         val fromId = fromWalletId ?: currentWallets.firstOrNull()?.wallet?.id
@@ -176,7 +473,6 @@ class AssetsViewModel @Inject constructor(
     }
 
     fun closeTransferSheet() {
-        // Đang gửi thì giữ sheet lại để kết quả không rơi vào hư không.
         _transferForm.update { form ->
             if (form.isSubmitting) form else form.copy(isVisible = false)
         }
@@ -209,10 +505,6 @@ class AssetsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Chỉ nhận chữ số: [VietnamCurrencyVisualTransformation] định dạng chuỗi thô thành
-     * "5.000.000 đ", nên state phải giữ dạng chữ số thuần.
-     */
     fun onTransferAmountChanged(input: String) {
         _transferForm.update { form ->
             if (form.isSubmitting) {
@@ -234,7 +526,6 @@ class AssetsViewModel @Inject constructor(
 
     fun executeTransfer() {
         val form = _transferForm.value
-        // Chống bấm đúp: nút trên UI chỉ tắt sau khi recompose, ViewModel phải tự chặn.
         if (form.isSubmitting) return
 
         when (val validation = validateTransfer(
@@ -243,7 +534,6 @@ class AssetsViewModel @Inject constructor(
             amountInput = form.amountInput,
             wallets = state.value.wallets,
         )) {
-            // Lỗi nhập liệu đã hiện ngay tại trường tương ứng nên không báo thêm lần nữa.
             is TransferValidation.Invalid -> Unit
             is TransferValidation.Valid -> submitTransfer(validation, form.note)
         }
@@ -283,10 +573,9 @@ class AssetsViewModel @Inject constructor(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _transferForm.update { it.copy(submitError = TransferError.Failed) }
             } finally {
-                // Không để form kẹt ở trạng thái "đang gửi" dù use case trả Result hay ném lỗi.
                 _transferForm.update { it.copy(isSubmitting = false) }
             }
         }

@@ -1,10 +1,12 @@
 package com.notepay.feature.debt.management
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.DebtType
 import com.notepay.domain.model.DebtWithHistory
 import com.notepay.domain.usecase.debt.DebtSummary
 
+@Immutable
 data class DebtUiState(
     val debts: List<DebtWithHistory> = emptyList(),
     val selectedTab: DebtType? = null, // null = Tất cả, LEND = Cần thu, BORROW = Cần trả

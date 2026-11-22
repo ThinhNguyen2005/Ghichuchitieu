@@ -8,7 +8,7 @@ import androidx.navigation.navArgument
 import com.notepay.core.navigation.PredictiveBackDestination
 import com.notepay.feature.transaction.form.TransactionFormScreen
 import com.notepay.feature.transaction.detail.TransactionDetailScreen
-import com.notepay.feature.transaction.list.TransactionListScreen
+import com.notepay.feature.transaction.list.TransactionListRoute
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.Route
 
@@ -69,7 +69,7 @@ fun NavGraphBuilder.transactionGraph(
         )
     ) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            TransactionListScreen(
+            TransactionListRoute(
                 onBack = { navController.popBackStack() },
                 onTransactionClick = { txId ->
                     navController.navigate(Route.TransactionDetail(txId).path)

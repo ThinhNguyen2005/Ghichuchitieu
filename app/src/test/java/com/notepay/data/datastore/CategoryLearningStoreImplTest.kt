@@ -162,4 +162,31 @@ class CategoryLearningStoreImplTest {
         assertThat(store.findExact(CategoryLearningType.EXPENSE, "mua cafe")?.timesSeen)
             .isEqualTo(expected)
     }
+
+    @Test
+    fun `warmUp preloads vocabulary size without altering read or findExact results`() {
+        val exactKey = "v2_exact_income_9a900f538965a426994e1e90600920aff0b4e8d26b3f9207b28f92e153263d12"
+        preferences.edit()
+            .putInt("v2_total_income", 2)
+            .putStringSet("v2_vocabulary_income", setOf("luong", "thang"))
+            .putInt("v2_category_income_SALARY", 2)
+            .putInt("v2_words_income_SALARY", 4)
+            .putInt("v2_token_income_luong_SALARY", 2)
+            .putString(exactKey, "SALARY")
+            .putInt("${exactKey}_count", 2)
+            .commit()
+
+        val store = CategoryLearningStoreImpl(RuntimeEnvironment.getApplication())
+        store.warmUp()
+
+        val snapshot = store.read(
+            type = CategoryLearningType.INCOME,
+            categoryIds = setOf("SALARY"),
+            tokens = setOf("luong"),
+        )
+        assertThat(snapshot.totalSamples).isEqualTo(2)
+        assertThat(snapshot.vocabularySize).isEqualTo(2)
+        assertThat(snapshot.categorySamples("SALARY")).isEqualTo(2)
+        assertThat(snapshot.tokenSamples("SALARY", "luong")).isEqualTo(2)
+    }
 }

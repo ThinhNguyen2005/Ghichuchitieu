@@ -107,11 +107,11 @@ class DailyReminderWorker @AssistedInject constructor(
                     context.getString(R.string.notif_streak_milestone_3_content)
             }
             streak > 0 -> {
-                val titleStr = context.getString(R.string.notif_daily_reminder_title_streak, streak)
+                val titleStr = context.resources.getQuantityString(R.plurals.notif_daily_reminder_title_streak, streak, streak)
                 val contentStr = when (dayOfMonth % 3) {
-                    0 -> context.getString(R.string.notif_streak_rotate_1, streak)
-                    1 -> context.getString(R.string.notif_streak_rotate_2, streak)
-                    else -> context.getString(R.string.notif_streak_rotate_3, streak)
+                    0 -> context.resources.getQuantityString(R.plurals.notif_streak_rotate_1, streak, streak)
+                    1 -> context.resources.getQuantityString(R.plurals.notif_streak_rotate_2, streak, streak)
+                    else -> context.resources.getQuantityString(R.plurals.notif_streak_rotate_3, streak, streak)
                 }
                 titleStr to contentStr
             }

@@ -8,11 +8,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.core.designsystem.adaptive.ProvideWindowLayout
+import com.notepay.core.designsystem.component.effect.LocalAppAtmosphericBackground
 import com.notepay.core.designsystem.theme.NotePayTheme
 import com.notepay.core.navigation.MainViewModel
 import com.notepay.core.navigation.NotePayNavHost
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
             val targetRoute by viewModel.pendingRoute.collectAsStateWithLifecycle()
             val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
             val authUser by viewModel.authUser.collectAsStateWithLifecycle()
+            val backgroundConfig by viewModel.appBackgroundConfig.collectAsStateWithLifecycle()
 
             if (startDestination != null && appearance != null) {
                 val settings = appearance ?: return@setContent
@@ -73,15 +76,17 @@ class MainActivity : ComponentActivity() {
                         appLanguage = settings.appLanguage,
                         reduceMotion = reduceMotion,
                     ) {
-                        NotePayNavHost(
-                            authUser = authUser,
-                            startDestination = startDestination ?: Route.Home.path,
-                            liquidGlassEnabled = glassEnabled,
-                            hapticFeedbackEnabled = hapticEnabled,
-                            pendingRoute = targetRoute,
-                            onRouteHandled = viewModel::onRouteHandled,
-                            onCompleteWelcome = viewModel::completeWelcome,
-                        )
+                        CompositionLocalProvider(LocalAppAtmosphericBackground provides backgroundConfig) {
+                            NotePayNavHost(
+                                authUser = authUser,
+                                startDestination = startDestination ?: Route.Home.path,
+                                liquidGlassEnabled = glassEnabled,
+                                hapticFeedbackEnabled = hapticEnabled,
+                                pendingRoute = targetRoute,
+                                onRouteHandled = viewModel::onRouteHandled,
+                                onCompleteWelcome = viewModel::completeWelcome,
+                            )
+                        }
                     }
                 }
             }

@@ -3,6 +3,7 @@ package com.notepay.feature.transaction.list
 import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
+import com.notepay.domain.export.sanitizeAndEscapeCsvField
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import kotlinx.coroutines.CancellationException
@@ -82,11 +83,7 @@ private fun isoDate(year: Int, month: Int, day: Int): String =
  * và nhân đôi dấu nháy bên trong — đúng RFC 4180. Không có bước này thì một ghi chú chứa dấu
  * phẩy sẽ làm lệch toàn bộ các cột phía sau.
  */
-private fun csvField(value: String): String {
-    val needsQuoting = value.any { it == ',' || it == '"' || it == '\n' || it == '\r' || it == ';' }
-    if (!needsQuoting) return value
-    return '"' + value.replace("\"", "\"\"") + '"'
-}
+private fun csvField(value: String): String = sanitizeAndEscapeCsvField(value)
 
 /** Phần tên tệp gợi ý, dạng `20261029`. */
 internal fun csvFileNameStem(zone: TimeZone = TimeZone.currentSystemDefault()): String {

@@ -1,42 +1,47 @@
 package com.notepay.feature.stats.main.component
 
-import com.notepay.core.designsystem.theme.AppTheme
-
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.NorthEast
-import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.SouthEast
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,65 +51,91 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
-import com.notepay.domain.analytics.StatsRange
-import com.notepay.domain.model.Category
-import com.notepay.domain.money.Money
-import com.notepay.feature.stats.main.MonthlyTrendPoint
-import com.notepay.feature.stats.main.StatsUiState
-import com.notepay.feature.stats.main.TrendWindow
-import com.notepay.feature.stats.main.resolve
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkRim
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
+import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
+import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
+import com.notepay.core.navigation.rememberNotePayReducedMotion
+import com.notepay.domain.analytics.StatsRange
+import com.notepay.domain.model.Category
+import com.notepay.domain.model.Transaction
+import com.notepay.domain.model.TransactionType
+import com.notepay.domain.money.Money
+import com.notepay.feature.stats.main.CategoryBreakdownItem
+import com.notepay.feature.stats.main.StatsUiState
+import com.notepay.feature.stats.main.resolve
+import com.notepay.feature.stats.main.tabularNums
 import kotlin.math.abs
 
-internal enum class StatsViewType { PHAN_BO, XU_HUONG }
 enum class StatsMetric { CHI_TIEU, THU_NHAP }
 
 @Composable
 internal fun StatsDashboard(
     state: StatsUiState,
     showAmounts: Boolean,
-    viewType: StatsViewType,
+    onOpenWalletPicker: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectRange: (StatsRange) -> Unit,
-    onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
-    onTrendWindowSelected: (TrendWindow) -> Unit,
-    onViewTypeChanged: (StatsViewType) -> Unit,
+    onTransactionClick: (Long) -> Unit,
     supportingContent: @Composable (StatsMetric) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var metric by rememberSaveable { mutableStateOf(StatsMetric.CHI_TIEU) }
-    // Đổi tab Thu/Chi phải đóng danh mục đang mở ngay trong handler: danh mục của tab cũ
-    // không tồn tại trong breakdown của tab mới. Để LaunchedEffect đuổi theo sẽ dư một frame
-    // hiển thị sai và thêm một lần recompose.
+    // Đổi tab Thu/Chi phải đóng danh mục đang mở ngay trong handler để tránh dư một frame sai.
     val handleMetricChanged: (StatsMetric) -> Unit = { newMetric ->
         if (newMetric != metric) {
             metric = newMetric
             if (state.selectedCategory != null) onCategorySelected(null)
+        }
+    }
+
+    val isExpense = metric == StatsMetric.CHI_TIEU
+    val breakdown = if (isExpense) state.breakdown else state.incomeBreakdown
+    val activeSelectedCategory = remember(breakdown, state.selectedCategory) {
+        state.selectedCategory?.takeIf { selected ->
+            breakdown.any { it.category == selected }
+        }
+    }
+    val selectedTransactions = remember(state.transactions, activeSelectedCategory, isExpense) {
+        if (activeSelectedCategory == null) return@remember emptyList()
+        val expectedType = if (isExpense) TransactionType.EXPENSE else TransactionType.INCOME
+        state.transactions.filter { tx ->
+            tx.type == expectedType && tx.category == activeSelectedCategory
         }
     }
 
@@ -118,7 +149,7 @@ internal fun StatsDashboard(
     )
 
     if (windowLayout == WindowLayout.Expanded) {
-        // Expanded: biểu đồ + bộ lọc thời gian bên trái, phân tích chi tiết/insights bên phải.
+        // Expanded: bộ lọc + thẻ Ink + biểu đồ bên trái, ngân sách/insights bên phải.
         Row(
             modifier = modifier
                 .fillMaxSize()
@@ -132,22 +163,21 @@ internal fun StatsDashboard(
                 contentPadding = PaddingValues(bottom = bottomClearance),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                item(key = "stats-chart-mode") {
-                    StatsChartPane(
-                        state = state,
-                        metric = metric,
-                        viewType = viewType,
-                        showAmounts = showAmounts,
-                        onMetricChanged = handleMetricChanged,
-                        onPreviousMonth = onPreviousMonth,
-                        onNextMonth = onNextMonth,
-                        onSelectRange = onSelectRange,
-                        onMonthSelected = onMonthSelected,
-                        onCategorySelected = onCategorySelected,
-                        onTrendWindowSelected = onTrendWindowSelected,
-                        onViewTypeChanged = onViewTypeChanged,
-                    )
-                }
+                statsMainItems(
+                    state = state,
+                    metric = metric,
+                    showAmounts = showAmounts,
+                    breakdown = breakdown,
+                    activeSelectedCategory = activeSelectedCategory,
+                    selectedTransactions = selectedTransactions,
+                    onOpenWalletPicker = onOpenWalletPicker,
+                    onMetricChanged = handleMetricChanged,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onSelectRange = onSelectRange,
+                    onCategorySelected = onCategorySelected,
+                    onTransactionClick = onTransactionClick,
+                )
             }
 
             LazyColumn(
@@ -166,474 +196,861 @@ internal fun StatsDashboard(
             contentPadding = PaddingValues(
                 start = 16.dp + contentGutter,
                 end = 16.dp + contentGutter,
-                top = 16.dp,
+                top = 12.dp,
                 bottom = bottomClearance,
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item(key = "stats-chart-mode") {
-                StatsChartPane(
-                    state = state,
-                    metric = metric,
-                    viewType = viewType,
-                    showAmounts = showAmounts,
-                    onMetricChanged = handleMetricChanged,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onSelectRange = onSelectRange,
-                    onMonthSelected = onMonthSelected,
-                    onCategorySelected = onCategorySelected,
-                    onTrendWindowSelected = onTrendWindowSelected,
-                    onViewTypeChanged = onViewTypeChanged,
-                )
-            }
-            item { supportingContent(metric) }
+            statsMainItems(
+                state = state,
+                metric = metric,
+                showAmounts = showAmounts,
+                breakdown = breakdown,
+                activeSelectedCategory = activeSelectedCategory,
+                selectedTransactions = selectedTransactions,
+                onOpenWalletPicker = onOpenWalletPicker,
+                onMetricChanged = handleMetricChanged,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                onSelectRange = onSelectRange,
+                onCategorySelected = onCategorySelected,
+                onTransactionClick = onTransactionClick,
+            )
+            item(key = "stats-supporting") { supportingContent(metric) }
         }
     }
 }
 
-/** Biểu đồ tổng quan + bộ lọc thời gian/kỳ dùng chung cho bố cục 1 cột và 2 cột. */
-@Composable
-private fun StatsChartPane(
+private fun LazyListScope.statsMainItems(
     state: StatsUiState,
     metric: StatsMetric,
-    viewType: StatsViewType,
     showAmounts: Boolean,
+    breakdown: List<CategoryBreakdownItem>,
+    activeSelectedCategory: Category?,
+    selectedTransactions: List<Transaction>,
+    onOpenWalletPicker: () -> Unit,
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectRange: (StatsRange) -> Unit,
-    onMonthSelected: (MonthlyTrendPoint) -> Unit,
     onCategorySelected: (Category?) -> Unit,
-    onTrendWindowSelected: (TrendWindow) -> Unit,
-    onViewTypeChanged: (StatsViewType) -> Unit,
+    onTransactionClick: (Long) -> Unit,
 ) {
-    val total = if (metric == StatsMetric.CHI_TIEU) state.totalExpense else state.totalIncome
-    val previousTotal = if (metric == StatsMetric.CHI_TIEU) state.previousExpense else state.previousIncome
-    val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
-    val breakdown = if (metric == StatsMetric.CHI_TIEU) state.breakdown else state.incomeBreakdown
-
-    // Bộ chuyển Phân bổ / Xu hướng nằm ngay trên biểu đồ nó điều khiển, không chiếm chỗ
-    // trên TopAppBar để tranh chỗ với tiêu đề màn hình.
-    val chartHeader: @Composable () -> Unit = {
-        if (state.currentPeriod?.range == StatsRange.MONTH) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                ViewModeToggle(viewType = viewType, onChanged = onViewTypeChanged)
-            }
-        }
+    item(key = "stats-period-controls") {
+        StatsPeriodControlBar(
+            state = state,
+            onOpenWalletPicker = onOpenWalletPicker,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            onSelectRange = onSelectRange,
+        )
     }
 
-    when (viewType) {
-        StatsViewType.PHAN_BO -> OverviewCard(
+    item(key = "stats-hero-ink") {
+        StatsInkHeroCard(
             state = state,
             metric = metric,
             showAmounts = showAmounts,
-            difference = difference,
             onMetricChanged = onMetricChanged,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
-            onSelectRange = onSelectRange,
-            chartHeader = chartHeader,
-        ) {
-            AllocationChartContent(
-                breakdown = breakdown,
-                total = total,
+        )
+    }
+
+    item(key = "stats-category-structure") {
+        StatsCategoryStructureCard(
+            metric = metric,
+            breakdown = breakdown,
+            showAmounts = showAmounts,
+            activeSelectedCategory = activeSelectedCategory,
+            selectedTransactions = selectedTransactions,
+            onCategorySelected = onCategorySelected,
+            onTransactionClick = onTransactionClick,
+        )
+    }
+
+    item(key = "stats-time-bar") {
+        StatsTimeBarCard(
+            state = state,
+            metric = metric,
+            activeSelectedCategory = activeSelectedCategory,
+            showAmounts = showAmounts,
+        )
+    }
+
+    state.longTermTrend?.let { trend ->
+        item(key = "stats-long-term-trend") {
+            LongTermTrendSection(
+                analysis = trend,
                 showAmounts = showAmounts,
-                selectedCategory = state.selectedCategory,
-                onCategorySelected = onCategorySelected,
             )
         }
+    }
+}
 
-        StatsViewType.XU_HUONG -> OverviewCard(
-            state = state,
-            metric = metric,
-            showAmounts = showAmounts,
-            difference = difference,
-            onMetricChanged = onMetricChanged,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
-            onSelectRange = onSelectRange,
-            chartHeader = chartHeader,
-        ) {
-            if (state.currentPeriod?.range == StatsRange.MONTH) {
-                TrendChartContent(
-                    points = state.recentMonths,
-                    metric = metric,
-                    isSelectedMonthCurrent = state.isCurrentMonth,
-                    forecast = if (metric == StatsMetric.CHI_TIEU && state.spendingForecast?.prediction != null) state.spendingForecast.projectedSpend else null,
-                    // Dự báo chỉ được cảnh báo khi có hạn mức tháng thật để so sánh.
-                    budget = state.budgetLimit,
-                    showAmounts = showAmounts,
-                    trendWindow = state.trendWindow,
-                    onTrendWindowSelected = onTrendWindowSelected,
-                    onPointClick = onMonthSelected,
+/** Thanh chọn ví + chọn kỳ trung tính theo `filter-chip` v4 và bộ lùi/tiến kỳ gọn gàng. */
+@Composable
+private fun StatsPeriodControlBar(
+    state: StatsUiState,
+    onOpenWalletPicker: () -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onSelectRange: (StatsRange) -> Unit,
+) {
+    val ranges = listOf(
+        StatsRange.WEEK to stringResource(R.string.stats_range_week),
+        StatsRange.MONTH to stringResource(R.string.stats_range_month),
+        StatsRange.YEAR to stringResource(R.string.stats_range_year),
+        StatsRange.ALL to stringResource(R.string.stats_range_all),
+    )
+    val selectedRange = state.currentPeriod?.range
+    val hasArrows = selectedRange != StatsRange.ALL && selectedRange != StatsRange.CUSTOM
+    val compactTopRow = LocalDensity.current.fontScale < 1.35f && hasArrows
+    val periodLabel = if (state.isCurrentMonth) {
+        stringResource(R.string.stats_current_month)
+    } else {
+        state.dateRangeLabel.resolve()
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (state.wallets.isNotEmpty() && compactTopRow) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatsWalletFilterChip(
+                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
+                    onOpenWalletPicker = onOpenWalletPicker,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-            } else {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.stats_trend_unavailable),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatsPeriodNavigatorPill(
+                    periodLabel = periodLabel,
+                    isLatestPeriod = state.isLatestPeriod,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
+                    fillLabel = false,
+                )
+            }
+        } else {
+            if (state.wallets.isNotEmpty()) {
+                StatsWalletFilterChip(
+                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
+                    onOpenWalletPicker = onOpenWalletPicker,
+                )
+            }
+            if (hasArrows) {
+                StatsPeriodNavigatorPill(
+                    periodLabel = periodLabel,
+                    isLatestPeriod = state.isLatestPeriod,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
+                    fillLabel = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        val rangeBarBg = AppTheme.colors.surface.copy(
+            alpha = if (AppTheme.colors.isLight) 0.88f else 0.82f,
+        )
+        Surface(
+            shape = AppTheme.shapes.capsule,
+            color = rangeBarBg,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .fillMaxWidth()
+                .iosCardShadow(shape = AppTheme.shapes.capsule, elevated = false),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp)
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                ranges.forEach { (range, label) ->
+                    val isSelected = range == selectedRange
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .clip(AppTheme.shapes.capsule)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelectRange(range) },
+                            ),
+                        shape = AppTheme.shapes.capsule,
+                        color = if (isSelected) AppTheme.colors.sand else Color.Transparent,
+                        border = if (isSelected) BorderStroke(0.5.dp, AppTheme.colors.hairline) else null,
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) {
+                                    AppTheme.colors.onSand
+                                } else {
+                                    AppTheme.colors.textSecondary
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-/** Bộ chọn đơn Material 3 dùng chung cho các bộ lọc trên màn Thống kê. */
 @Composable
-internal fun <T> StatsSegmentedButtonRow(
-    options: List<Pair<T, String>>,
-    selected: T?,
-    onSelected: (T) -> Unit,
+private fun StatsWalletFilterChip(
+    walletLabel: String,
+    onOpenWalletPicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        options.forEachIndexed { index, (value, label) ->
-            val isSelected = value == selected
-            SegmentedButton(
-                selected = isSelected,
-                onClick = { onSelected(value) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                // M3 mặc định tô segment đang chọn bằng secondaryContainer (#F4F1EC) trên
-                // segment chưa chọn màu trắng: 1.13:1, dưới ngưỡng 3:1 của WCAG 1.4.11 nên
-                // không nhận ra được đang chọn mục nào. Tô bằng ink để đạt 17.5:1 và nâng
-                // vùng chạm lên 48dp (mặc định M3 là 40dp).
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                    activeBorderColor = MaterialTheme.colorScheme.primary,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                ),
-                modifier = Modifier.heightIn(min = 48.dp),
-                icon = {},
+    val selectWalletLabel = stringResource(R.string.home_select_wallet)
+    val pillShape = AppTheme.shapes.capsule
+    val containerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.92f else 0.86f,
+    )
+
+    Surface(
+        onClick = onOpenWalletPicker,
+        shape = pillShape,
+        color = containerColor,
+        contentColor = AppTheme.colors.textPrimary,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier
+            .heightIn(min = AppTheme.dimensions.minTouchTarget)
+            .iosCardShadow(shape = pillShape, elevated = false)
+            .semantics(mergeDescendants = true) {
+                onClick(label = selectWalletLabel, action = null)
+            },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AccountBalanceWallet,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = walletLabel,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsPeriodNavigatorPill(
+    periodLabel: String,
+    isLatestPeriod: Boolean,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onJumpToCurrent: () -> Unit,
+    fillLabel: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val jumpLabel = stringResource(R.string.stats_jump_to_current_period)
+    val pillShape = AppTheme.shapes.capsule
+    val containerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.92f else 0.86f,
+    )
+
+    Surface(
+        shape = pillShape,
+        color = containerColor,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        modifier = modifier.iosCardShadow(shape = pillShape, elevated = false),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = onPreviousMonth,
+                modifier = Modifier.size(48.dp),
             ) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronLeft,
+                    contentDescription = stringResource(R.string.stats_previous_month),
+                    tint = AppTheme.colors.textPrimary,
+                )
+            }
+            val labelModifier = (if (fillLabel) Modifier.weight(1f) else Modifier.widthIn(max = 160.dp))
+                .defaultMinSize(minHeight = 48.dp)
+                .clip(pillShape)
+                .clickable(
+                    enabled = !isLatestPeriod,
+                    role = Role.Button,
+                    onClickLabel = jumpLabel,
+                    onClick = onJumpToCurrent,
+                )
+                .padding(horizontal = 4.dp)
+            Row(
+                modifier = labelModifier,
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    text = periodLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            IconButton(
+                onClick = onNextMonth,
+                enabled = !isLatestPeriod,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = stringResource(R.string.stats_next_month),
+                    tint = if (isLatestPeriod) {
+                        AppTheme.colors.textMuted.copy(alpha = 0.45f)
+                    } else {
+                        AppTheme.colors.textPrimary
+                    },
+                )
+            }
         }
     }
 }
 
-/** Bộ chọn một chế độ hiển thị bằng segmented buttons của Material 3. */
+/** Luminous iOS elevated hero summary card for Reports (replaces legacy dark ink hero card). */
 @Composable
-private fun ViewModeToggle(
-    viewType: StatsViewType,
-    onChanged: (StatsViewType) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val options = listOf(
-        StatsViewType.PHAN_BO to stringResource(R.string.stats_view_allocation),
-        StatsViewType.XU_HUONG to stringResource(R.string.stats_view_trend),
-    )
-
-    StatsSegmentedButtonRow(
-        options = options,
-        selected = viewType,
-        onSelected = onChanged,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun OverviewCard(
+private fun StatsInkHeroCard(
     state: StatsUiState,
     metric: StatsMetric,
     showAmounts: Boolean,
-    difference: Long?,
     onMetricChanged: (StatsMetric) -> Unit,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onSelectRange: (StatsRange) -> Unit,
-    chartHeader: (@Composable () -> Unit)? = null,
-    chartContent: (@Composable () -> Unit)? = null,
 ) {
-    val previousExpense = state.previousExpense
-    val previousIncome = state.previousIncome
+    val colors = AppTheme.colors
+    val isLight = colors.isLight
+    val isExpense = metric == StatsMetric.CHI_TIEU
+    val total = if (isExpense) state.totalExpense else state.totalIncome
+    val counterpartTotal = if (isExpense) state.totalIncome else state.totalExpense
+    val previousTotal = if (isExpense) state.previousExpense else state.previousIncome
+    val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
+    val reducedMotion = rememberNotePayReducedMotion()
+    val cardShape = AppTheme.shapes.corner28
+    val isLargeFont = LocalDensity.current.fontScale >= 1.45f
 
-    val expenseDelta = if (previousExpense != null) state.totalExpense.amountInCents - previousExpense.amountInCents else null
-    val incomeDelta = if (previousIncome != null) state.totalIncome.amountInCents - previousIncome.amountInCents else null
+    val heroGradient = remember(isLight) {
+        val top = if (isLight) HomeHeroCardLightTop else HomeHeroCardDarkTop
+        val bottom = if (isLight) HomeHeroCardLightBottom else HomeHeroCardDarkBottom
+        Brush.verticalGradient(listOf(top, bottom))
+    }
+    val rimColor = if (isLight) HomeHeroCardLightRim else HomeHeroCardDarkRim
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth(),
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = true),
+        shape = cardShape,
+        color = Color.Transparent,
+        contentColor = colors.textPrimary,
+        border = BorderStroke(1.dp, rimColor),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val ranges = listOf(
-                StatsRange.WEEK to stringResource(R.string.stats_range_week),
-                StatsRange.MONTH to stringResource(R.string.stats_range_month),
-                StatsRange.YEAR to stringResource(R.string.stats_range_year),
-                StatsRange.ALL to stringResource(R.string.stats_range_all)
-            )
-            StatsSegmentedButtonRow(
-                options = ranges,
-                selected = state.currentPeriod?.range,
-                onSelected = onSelectRange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-            )
-
-            // Month navigation row
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val hasArrows = state.currentPeriod?.range != StatsRange.ALL &&
-                                state.currentPeriod?.range != StatsRange.CUSTOM
-                if (hasArrows) {
-                    IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.stats_previous_month))
-                    }
-                } else {
-                    Spacer(Modifier.size(48.dp))
-                }
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (state.isCurrentMonth) stringResource(R.string.stats_current_month)
-                        else state.dateRangeLabel.resolve(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                if (hasArrows) {
-                    IconButton(onClick = onNextMonth, enabled = !state.isLatestPeriod, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.stats_next_month))
-                    }
-                } else {
-                    Spacer(Modifier.size(48.dp))
-                }
-            }
-
-            // 2 Metric Cards: Chi tiêu | Thu nhập
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(heroGradient)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MetricCard(
-                    title = stringResource(R.string.stats_expense),
-                    amount = state.totalExpense,
-                    showAmounts = showAmounts,
-                    delta = expenseDelta,
-                    positiveDeltaIsGood = false,
-                    active = metric == StatsMetric.CHI_TIEU,
+                HeroMetricPill(
+                    label = stringResource(R.string.stats_expense),
                     icon = Icons.AutoMirrored.Rounded.TrendingDown,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = isExpense,
                     onClick = { onMetricChanged(StatsMetric.CHI_TIEU) },
                     modifier = Modifier.weight(1f),
                 )
-                MetricCard(
-                    title = stringResource(R.string.stats_income),
-                    amount = state.totalIncome,
-                    showAmounts = showAmounts,
-                    delta = incomeDelta,
-                    positiveDeltaIsGood = true,
-                    active = metric == StatsMetric.THU_NHAP,
+                HeroMetricPill(
+                    label = stringResource(R.string.stats_income),
                     icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = !isExpense,
                     onClick = { onMetricChanged(StatsMetric.THU_NHAP) },
                     modifier = Modifier.weight(1f),
                 )
             }
 
-            // Comparison alert banner below tabs
-            if (difference != null) {
-                val isExpense = metric == StatsMetric.CHI_TIEU
-                val isDecrease = difference < 0
-                val isFlat = difference == 0L
-                val isGood = if (isExpense) isDecrease else !isDecrease && !isFlat
-    
-                val bannerBg = when {
-                    isFlat -> MaterialTheme.colorScheme.surfaceContainerHigh
-                    isGood -> MaterialTheme.colorScheme.secondaryContainer
-                    else -> MaterialTheme.colorScheme.errorContainer
-                }
-                val bannerContentColor = when {
-                    isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-                    isGood -> AppTheme.colors.success
-                    else -> MaterialTheme.colorScheme.error
-                }
-                val bannerIcon = when {
-                    isFlat -> Icons.Rounded.Info
-                    isGood -> Icons.Rounded.CheckCircle
-                    else -> Icons.Rounded.Warning
-                }
-    
-                val absFormatted = MoneyFormatter.format(Money(abs(difference)))
-                val bannerText = when {
-                    !showAmounts -> stringResource(R.string.stats_amounts_hidden)
-                    isFlat -> stringResource(R.string.stats_stable_previous)
-                    isExpense -> if (isDecrease) {
-                        stringResource(R.string.stats_banner_expense_decrease, absFormatted)
-                    } else {
-                        stringResource(R.string.stats_banner_expense_increase, absFormatted)
-                    }
-                    else -> if (!isDecrease) {
-                        stringResource(R.string.stats_banner_income_increase, absFormatted)
-                    } else {
-                        stringResource(R.string.stats_banner_income_decrease, absFormatted)
-                    }
-                }
-    
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(AppTheme.shapes.corner12)
-                        .background(bannerBg)
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        bannerIcon,
-                        contentDescription = null,
-                        tint = bannerContentColor,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
+            Column(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        if (isExpense) R.string.stats_total_expense else R.string.stats_total_income,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                AnimatedContent(
+                    targetState = total to showAmounts,
+                    transitionSpec = {
+                        if (reducedMotion) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            fadeIn(tween(180)) togetherWith fadeOut(tween(140))
+                        }
+                    },
+                    label = "StatsHeroAmount",
+                ) { (targetAmount, visible) ->
                     Text(
-                        bannerText,
-                        color = bannerContentColor,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
+                        text = MoneyFormatter.format(targetAmount, visible),
+                        style = AppTheme.typography.amountHero,
+                        color = colors.textPrimary,
+                        maxLines = if (isLargeFont) 2 else 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            chartContent?.let { content ->
-                chartHeader?.invoke()
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f))
-                content()
+            HeroCashflowRatioBar(
+                incomeCents = state.totalIncome.amountInCents,
+                expenseCents = state.totalExpense.amountInCents,
+                showAmounts = showAmounts,
+            )
+
+            HorizontalDivider(thickness = 0.5.dp, color = colors.hairline)
+
+            HeroCashflowSummaryRow(
+                isExpense = isExpense,
+                counterpartTotal = counterpartTotal,
+                netCents = state.totalIncome.amountInCents - state.totalExpense.amountInCents,
+                showAmounts = showAmounts,
+                isLargeFont = isLargeFont,
+            )
+
+            if (difference != null && difference != 0L && showAmounts) {
+                val isDecrease = difference < 0L
+                val isGood = if (isExpense) isDecrease else !isDecrease
+                val badgeColor = if (isGood) colors.success else colors.error
+                val badgeIcon = if (isGood) Icons.Rounded.CheckCircle else Icons.Rounded.Warning
+                val absFormatted = MoneyFormatter.format(Money(abs(difference)))
+                val bannerText = when {
+                    isExpense && isDecrease -> stringResource(R.string.stats_banner_expense_decrease, absFormatted)
+                    isExpense -> stringResource(R.string.stats_banner_expense_increase, absFormatted)
+                    !isDecrease -> stringResource(R.string.stats_banner_income_increase, absFormatted)
+                    else -> stringResource(R.string.stats_banner_income_decrease, absFormatted)
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(AppTheme.shapes.corner16)
+                        .background(badgeColor.copy(alpha = if (isLight) 0.10f else 0.16f))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = badgeIcon,
+                        contentDescription = null,
+                        tint = badgeColor,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = bannerText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = badgeColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MetricCard(
-    title: String,
-    amount: Money,
+private fun HeroCashflowRatioBar(
+    incomeCents: Long,
+    expenseCents: Long,
     showAmounts: Boolean,
-    delta: Long?,
-    positiveDeltaIsGood: Boolean,
-    active: Boolean,
+) {
+    if (!showAmounts || (incomeCents <= 0L && expenseCents <= 0L)) return
+    val totalFlow = (incomeCents + expenseCents).coerceAtLeast(1L)
+    val incomeWeight = (incomeCents.toFloat() / totalFlow.toFloat()).coerceIn(0f, 1f)
+    val expenseWeight = (1f - incomeWeight).coerceAtLeast(0f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(AppTheme.shapes.capsule)
+            .background(AppTheme.colors.surfaceSunken),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (incomeWeight > 0f) {
+            Box(
+                modifier = Modifier
+                    .weight(incomeWeight)
+                    .fillMaxHeight()
+                    .background(AppTheme.colors.success),
+            )
+        }
+        if (expenseWeight > 0f) {
+            Box(
+                modifier = Modifier
+                    .weight(expenseWeight)
+                    .fillMaxHeight()
+                    .background(AppTheme.colors.error),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroCashflowSummaryRow(
+    isExpense: Boolean,
+    counterpartTotal: Money,
+    netCents: Long,
+    showAmounts: Boolean,
+    isLargeFont: Boolean,
+) {
+    val isLight = AppTheme.colors.isLight
+    val tileAlpha = if (isLight) 0.10f else 0.16f
+    val counterpartColor = if (isExpense) AppTheme.colors.success else AppTheme.colors.error
+    val counterpartIcon = if (isExpense) {
+        Icons.AutoMirrored.Rounded.TrendingUp
+    } else {
+        Icons.AutoMirrored.Rounded.TrendingDown
+    }
+    val counterpartSign = if (!showAmounts) "" else if (isExpense) "+" else "−"
+    val counterpartAmount = "$counterpartSign${MoneyFormatter.format(counterpartTotal, showAmounts)}"
+    val counterpartLabel = stringResource(if (isExpense) R.string.stats_income else R.string.stats_expense)
+
+    val netColor = if (netCents >= 0L) AppTheme.colors.success else AppTheme.colors.error
+    val formattedNetAbs = MoneyFormatter.format(Money(abs(netCents)), showAmounts)
+    val netValueText = when {
+        !showAmounts -> formattedNetAbs
+        netCents >= 0L -> stringResource(R.string.amount_positive_format, formattedNetAbs)
+        else -> stringResource(R.string.amount_negative_format, formattedNetAbs)
+    }
+    val netLabel = stringResource(R.string.stats_net_balance_label)
+
+    if (isLargeFont) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatsHeroInsetTile(
+                label = counterpartLabel,
+                amountText = counterpartAmount,
+                accentColor = counterpartColor,
+                containerAlpha = tileAlpha,
+                icon = counterpartIcon,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            StatsHeroInsetTile(
+                label = netLabel,
+                amountText = netValueText,
+                accentColor = netColor,
+                containerAlpha = tileAlpha,
+                icon = if (netCents >= 0L) {
+                    Icons.AutoMirrored.Rounded.TrendingUp
+                } else {
+                    Icons.AutoMirrored.Rounded.TrendingDown
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatsHeroInsetTile(
+                label = counterpartLabel,
+                amountText = counterpartAmount,
+                accentColor = counterpartColor,
+                containerAlpha = tileAlpha,
+                icon = counterpartIcon,
+                modifier = Modifier.weight(1f),
+            )
+            StatsHeroInsetTile(
+                label = netLabel,
+                amountText = netValueText,
+                accentColor = netColor,
+                containerAlpha = tileAlpha,
+                icon = if (netCents >= 0L) {
+                    Icons.AutoMirrored.Rounded.TrendingUp
+                } else {
+                    Icons.AutoMirrored.Rounded.TrendingDown
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsHeroInsetTile(
+    label: String,
+    amountText: String,
+    accentColor: Color,
+    containerAlpha: Float,
     icon: ImageVector,
-    tint: Color,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = AppTheme.shapes.corner16
-    val amountText = if (showAmounts) MoneyFormatter.format(amount) else "••••••"
-    val amountStyle = if (amountText.length > 13) {
-        MaterialTheme.typography.titleSmall
-    } else {
-        MaterialTheme.typography.titleMedium
-    }
-
-    val containerColor = if (active) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
-    }
-
-    val isIncrease = delta != null && delta > 0L
-    val isFlat = delta == null || delta == 0L
-    val isGood = if (isFlat) true else if (positiveDeltaIsGood) isIncrease else !isIncrease
-    val statusColor = when {
-        isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
-        isGood -> AppTheme.colors.success
-        else -> AppTheme.colors.error
-    }
-    val statusIcon = when {
-        delta == null -> Icons.Rounded.Remove
-        isFlat -> Icons.Rounded.Remove
-        isIncrease -> Icons.Rounded.NorthEast
-        else -> Icons.Rounded.SouthEast
-    }
-    val trendLabel = when {
-        isFlat -> stringResource(R.string.stats_unchanged)
-        isIncrease -> stringResource(R.string.stats_increase)
-        else -> stringResource(R.string.stats_decrease)
-    }
-
     Surface(
-        modifier = modifier
-            .clip(shape)
-            .selectable(
-                selected = active,
-                role = Role.RadioButton,
-                onClick = onClick,
-            ),
-        shape = shape,
-        color = containerColor,
-        border = BorderStroke(
-            width = if (active) 1.5.dp else 1.dp,
-            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-        ),
+        modifier = modifier,
+        shape = AppTheme.shapes.corner16,
+        color = accentColor.copy(alpha = containerAlpha),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {}
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(14.dp),
+                )
                 Text(
-                    title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // Trend status icon ONLY in subtle circle badge
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(statusColor.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = statusIcon,
-                        contentDescription = trendLabel,
-                        tint = statusColor,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
             }
-
             Text(
-                amountText,
-                style = amountStyle,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = amountText,
+                style = MaterialTheme.typography.labelLarge.tabularNums,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroMetricPill(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .clip(AppTheme.shapes.capsule)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            ),
+        shape = AppTheme.shapes.capsule,
+        color = if (selected) AppTheme.colors.sand else AppTheme.colors.surfaceSunken,
+        contentColor = if (selected) AppTheme.colors.onSand else AppTheme.colors.textSecondary,
+        border = if (selected) BorderStroke(0.5.dp, AppTheme.colors.hairline) else null,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Thẻ Cơ cấu danh mục: gộp Donut gọn + danh sách Accordion ngay bên dưới. */
+@Composable
+private fun StatsCategoryStructureCard(
+    metric: StatsMetric,
+    breakdown: List<CategoryBreakdownItem>,
+    showAmounts: Boolean,
+    activeSelectedCategory: Category?,
+    selectedTransactions: List<Transaction>,
+    onCategorySelected: (Category?) -> Unit,
+    onTransactionClick: (Long) -> Unit,
+) {
+    val isExpense = metric == StatsMetric.CHI_TIEU
+    val sortedBreakdown = remember(breakdown) {
+        breakdown.sortedByDescending { it.amount.amountInCents }
+    }
+
+    Card(
+        shape = AppTheme.shapes.corner24,
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(
+                    if (isExpense) R.string.stats_tab_expense_structure else R.string.stats_tab_income_structure,
+                ),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.semantics { heading() },
+            )
+
+            if (sortedBreakdown.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(AppTheme.shapes.corner16)
+                        .background(AppTheme.colors.surfaceSunken)
+                        .padding(vertical = 24.dp, horizontal = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.stats_no_transactions_month),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                AllocationChartContent(
+                    breakdown = sortedBreakdown,
+                    showAmounts = showAmounts,
+                    selectedCategory = activeSelectedCategory,
+                    onCategorySelected = onCategorySelected,
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    sortedBreakdown.forEach { item ->
+                        key(item.category.id) {
+                            val isSelected = item.category == activeSelectedCategory
+                            CategoryBreakdownAccordionCard(
+                                item = item,
+                                isSelected = isSelected,
+                                showAmounts = showAmounts,
+                                transactions = if (isSelected) selectedTransactions else emptyList(),
+                                onToggle = {
+                                    onCategorySelected(if (isSelected) null else item.category)
+                                },
+                                onTransactionClick = onTransactionClick,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Thẻ Diễn biến theo thời gian tách riêng dưới thẻ Cơ cấu danh mục. */
+@Composable
+private fun StatsTimeBarCard(
+    state: StatsUiState,
+    metric: StatsMetric,
+    activeSelectedCategory: Category?,
+    showAmounts: Boolean,
+) {
+    Card(
+        shape = AppTheme.shapes.corner24,
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            PeriodSpendingBarChart(
+                bars = if (metric == StatsMetric.CHI_TIEU) {
+                    state.periodExpenseBars
+                } else {
+                    state.periodIncomeBars
+                },
+                metric = metric,
+                periodRange = state.currentPeriod?.range,
+                selectedCategory = activeSelectedCategory,
+                showAmounts = showAmounts,
             )
         }
     }

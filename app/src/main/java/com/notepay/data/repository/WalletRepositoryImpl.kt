@@ -8,6 +8,8 @@ import com.notepay.data.mapper.WalletMapper
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.shared.SharedWalletPermissionDeniedException
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -27,6 +29,9 @@ class WalletRepositoryImpl @Inject constructor(
     override fun observeAll(): Flow<List<Wallet>> =
         dao.observeAll().map { list -> list.map(mapper::toDomain) }.flowOn(dispatcher)
 
+    override fun observeNonArchived(): Flow<List<Wallet>> =
+        dao.observeNonArchived().map { list -> list.map(mapper::toDomain) }.flowOn(dispatcher)
+
     override fun observeActive(): Flow<Wallet?> =
         dao.observeActive().map { entity -> entity?.let(mapper::toDomain) }.flowOn(dispatcher)
 
@@ -38,10 +43,30 @@ class WalletRepositoryImpl @Inject constructor(
 
     override suspend fun delete(id: Long) {
         database.withTransaction {
+            val wallet = dao.getById(id)?.let(mapper::toDomain)
+            if (wallet != null && !SharedWalletPermissionGuard.canDeleteWallet(wallet)) {
+                throw SharedWalletPermissionDeniedException("Only shared wallet OWNER can delete it")
+            }
             require(!transactionDao.hasInternalTransfer(id)) {
                 "Cannot delete a wallet containing internal transfer entries"
             }
             dao.delete(id)
+        }
+    }
+
+    override suspend fun setArchived(id: Long, isArchived: Boolean) {
+        database.withTransaction {
+            if (isArchived) {
+                val current = dao.getById(id)
+                if (current?.isActive == true) {
+                    dao.clearActive()
+                    val fallback = dao.getAll().firstOrNull { it.id != id && !it.isArchived }
+                    if (fallback != null) {
+                        dao.setActive(fallback.id)
+                    }
+                }
+            }
+            dao.setArchived(id, isArchived)
         }
     }
 

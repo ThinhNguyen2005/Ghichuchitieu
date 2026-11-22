@@ -1,6 +1,8 @@
 package com.notepay.feature.stats.main.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -49,9 +51,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -59,8 +65,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.money.Money
 import com.notepay.feature.category.mapper.CategoryAvatar
@@ -89,21 +97,23 @@ internal fun CategoryBreakdownAccordionCard(
     onTransactionClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val reducedMotion = rememberNotePayReducedMotion()
     val categoryColor = Color(item.category.colorArgb)
     val containerColor by animateColorAsState(
         targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.surfaceContainerHigh
+            AppTheme.colors.surface
         } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
+            AppTheme.colors.surfaceSunken
         },
         label = "category-card-bg",
     )
 
     val categoryName = item.category.localizedName()
     val amountLabel = item.amount.formatOrMask(showAmounts)
+    val formattedPercent = formatSharePercent(item.percentage)
     val percentageLabel = stringResource(
         R.string.stats_category_percentage_cd,
-        String.format(Locale.US, "%.1f", item.percentage * 100f),
+        formatSharePercentValue(item.percentage),
     )
     // Mô tả cho screen reader lấy nguyên văn từ resource (dấu phân cách nằm trong chuỗi để
     // bản địa hoá đúng), không nối chuỗi thủ công bằng ", ".
@@ -136,9 +146,10 @@ internal fun CategoryBreakdownAccordionCard(
             color = if (isSelected) {
                 categoryColor
             } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                AppTheme.colors.hairline
             },
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header của Accordion (chính là Row danh mục)
@@ -147,7 +158,8 @@ internal fun CategoryBreakdownAccordionCard(
                     .fillMaxWidth()
                     .clickable(role = Role.Button, onClick = onToggle)
                     .padding(16.dp)
-                    .semantics {
+                    .clearAndSetSemantics {
+                        role = Role.Button
                         contentDescription = rowDescription
                         stateDescription = expandStateDescription
                     },
@@ -200,13 +212,9 @@ internal fun CategoryBreakdownAccordionCard(
                         )
 
                         Text(
-                            text = String.format(
-                                Locale.US,
-                                "%.1f%%",
-                                item.percentage * 100f,
-                            ),
+                            text = formattedPercent,
                             style = MaterialTheme.typography.labelSmall.tabularNums,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AppTheme.colors.textSecondary,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.widthIn(min = 48.dp),
                             textAlign = TextAlign.End,
@@ -222,7 +230,7 @@ internal fun CategoryBreakdownAccordionCard(
                         Icons.Rounded.ExpandMore
                     },
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = AppTheme.colors.textSecondary,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -230,13 +238,21 @@ internal fun CategoryBreakdownAccordionCard(
             // Nội dung mở rộng bên trong cùng Card
             AnimatedVisibility(
                 visible = isSelected,
-                enter = fadeIn(tween(180)) + expandVertically(tween(220)),
-                exit = fadeOut(tween(120)) + shrinkVertically(tween(180)),
+                enter = if (reducedMotion) {
+                    EnterTransition.None
+                } else {
+                    fadeIn(tween(180)) + expandVertically(tween(220))
+                },
+                exit = if (reducedMotion) {
+                    ExitTransition.None
+                } else {
+                    fadeOut(tween(120)) + shrinkVertically(tween(180))
+                },
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                        .background(AppTheme.colors.surfaceSunken.copy(alpha = 0.55f))
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -288,7 +304,7 @@ internal fun CategoryBreakdownAccordionCard(
                                     .heightIn(min = 48.dp),
                             ) {
                                 Text(
-                                    text = stringResource(R.string.stats_show_more_transactions, remaining),
+                                    text = pluralStringResource(R.plurals.stats_show_more_transactions, remaining, remaining),
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
@@ -338,12 +354,15 @@ internal fun BudgetProgressBar(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner20,
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
+        shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = AppTheme.colors.surface,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -378,6 +397,8 @@ internal fun BudgetProgressBar(
                         text = stringResource(R.string.wallet_field_budget),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
+                        color = AppTheme.colors.textPrimary,
+                        modifier = Modifier.semantics { heading() },
                     )
                     Text(
                         text = statusText,

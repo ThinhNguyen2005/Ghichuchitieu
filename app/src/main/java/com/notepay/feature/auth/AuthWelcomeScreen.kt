@@ -61,8 +61,8 @@ import com.notepay.R
 @Composable
 fun AuthWelcomeScreen(
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

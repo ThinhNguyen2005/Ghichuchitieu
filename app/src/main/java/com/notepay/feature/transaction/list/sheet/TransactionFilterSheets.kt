@@ -28,6 +28,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -202,6 +203,7 @@ internal fun FilterBottomSheet(
                         selectedType = null
                         selectedTransferOnly = false
                     },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.filter_type_all)) },
                 )
                 FilterChip(
@@ -210,6 +212,7 @@ internal fun FilterBottomSheet(
                         selectedType = TransactionType.EXPENSE
                         selectedTransferOnly = false
                     },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.filter_type_expense)) },
                 )
                 FilterChip(
@@ -218,6 +221,7 @@ internal fun FilterBottomSheet(
                         selectedType = TransactionType.INCOME
                         selectedTransferOnly = false
                     },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.filter_type_income)) },
                 )
                 FilterChip(
@@ -226,6 +230,7 @@ internal fun FilterBottomSheet(
                         selectedType = null
                         selectedTransferOnly = true
                     },
+                    modifier = Modifier.minimumInteractiveComponentSize(),
                     label = { Text(stringResource(R.string.filter_type_transfer)) },
                 )
             }
@@ -255,6 +260,7 @@ internal fun FilterBottomSheet(
                                 selectedCategories + category.id
                             }
                         },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
@@ -293,6 +299,7 @@ internal fun FilterBottomSheet(
                                 selectedCategories + category.id
                             }
                         },
+                        modifier = Modifier.minimumInteractiveComponentSize(),
                         leadingIcon = {
                             Box(
                                 modifier = Modifier

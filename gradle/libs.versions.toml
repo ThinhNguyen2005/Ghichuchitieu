@@ -42,6 +42,9 @@ credentials = "1.3.0"
 googleid = "1.1.1"
 googleServices = "4.4.2"
 detekt = "2.0.0-alpha.6"
+supabase = "3.2.2"
+ktor = "3.2.2"
+kotlinxSerializationJson = "1.9.0"
 
 [libraries]
 backdrop = { group = "io.github.kyant0", name = "backdrop-android", version.ref = "backdrop" }
@@ -121,11 +124,20 @@ androidx-credentials = { group = "androidx.credentials", name = "credentials", v
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
+# Supabase Kotlin (Shared Wallets) & Ktor OkHttp
+supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
+supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
+supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
+supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 # AGP 9.0+ đã tích hợp sẵn Kotlin (built-in Kotlin), KHÔNG apply org.jetbrains.kotlin.android ở app.
 # Chỉ cần plugin compose compiler bên dưới.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

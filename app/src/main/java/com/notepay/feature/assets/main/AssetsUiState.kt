@@ -1,14 +1,15 @@
 package com.notepay.feature.assets.main
 
 import androidx.compose.runtime.Immutable
-import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletPurpose
+import com.notepay.domain.money.Money
 import com.notepay.domain.usecase.debt.DebtSummary
 
 /**
  * Một phân đoạn của thanh phân bổ tài sản trên thẻ Ink.
  *
- * [percentage] nằm trong khoảng 0.0f - 1.0f và chỉ tính trên các ví có số dư dương.
+ * [percentage] nằm trong khoảng 0.0f - 1.0f và chỉ tính trên các ví có số dư dương (hoặc dư nợ dương).
  */
 @Immutable
 data class WalletAllocationItem(
@@ -17,6 +18,7 @@ data class WalletAllocationItem(
     val colorKey: String,
     val iconKey: String,
     val balance: Money,
+    val convertedBalanceVnd: Money = balance,
     val percentage: Float, // 0.0f - 1.0f
 )
 
@@ -24,26 +26,37 @@ data class WalletAllocationItem(
 data class WalletAssetItem(
     val wallet: Wallet,
     val balance: Money,
+    val convertedBalanceVnd: Money = balance,
     val monthlyIncome: Money,
     val monthlyExpense: Money,
     val transactionCount: Int,
+    val groupPercentage: Float = 0f,
 )
 
 @Immutable
 data class AssetsUiState(
     val totalNetWorth: Money = Money.ZERO,
+    val totalAssetsVnd: Money = Money.ZERO,
+    val totalLiabilitiesVnd: Money = Money.ZERO,
+    val assetCount: Int = 0,
+    val liabilityCount: Int = 0,
     val wallets: List<WalletAssetItem> = emptyList(),
+    val assetWallets: List<WalletAssetItem> = emptyList(),
+    val liabilityWallets: List<WalletAssetItem> = emptyList(),
+    val archivedWallets: List<WalletAssetItem> = emptyList(),
     val isLoading: Boolean = true,
     val hasError: Boolean = false,
+    val allocationMode: AllocationMode = AllocationMode.ASSET,
     val allocationItems: List<WalletAllocationItem> = emptyList(),
-    /**
-     * Biến động số dư trong cửa sổ so sánh, tính theo phần trăm.
-     *
-     * null nghĩa là **không có cơ sở tính** (số dư đầu kỳ bằng 0), khác hẳn 0f là
-     * "đã tính được và không thay đổi".
-     */
     val netWorthChangePercentage: Float? = null,
     val debtSummary: DebtSummary? = null,
+    val hasForeignCurrency: Boolean = false,
+    val ratesLastUpdated: String? = null,
+    val adjustBalanceWallet: WalletAssetItem? = null,
+    val selectedPurpose: WalletPurpose? = null,
+    val excludedWalletCount: Int = 0,
+    val isCloudConfigured: Boolean = false,
+    val isSharedActionSubmitting: Boolean = false,
 )
 
 /**
@@ -58,11 +71,5 @@ data class TransferFormState(
     val amountInput: String = "",
     val note: String = "",
     val isSubmitting: Boolean = false,
-    /**
-     * Lỗi từ tầng lưu trữ, hiển thị phía trên nút xác nhận.
-     *
-     * Lỗi nhập liệu không nằm ở đây: chúng được suy ra từ [validateTransfer] ngay trên UI để
-     * không bao giờ lệch với danh sách ví hiện tại.
-     */
     val submitError: TransferError? = null,
 )

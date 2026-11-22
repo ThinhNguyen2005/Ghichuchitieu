@@ -257,7 +257,7 @@ fun CreateDebtBottomSheet(
                         IconButton(onClick = { selectedDueDateMillis = null }) {
                             Icon(
                                 imageVector = Icons.Rounded.Clear,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.cd_clear_due_date),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

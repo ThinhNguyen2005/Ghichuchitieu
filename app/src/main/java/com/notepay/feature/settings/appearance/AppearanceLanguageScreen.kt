@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +60,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.IosDarkSurface
+import com.notepay.core.designsystem.theme.IosWhite
+import com.notepay.core.designsystem.theme.Sand
+import com.notepay.core.designsystem.theme.SandOnSand
 
 private data class ThemeColorOption(
     val id: String,
@@ -67,11 +72,18 @@ private data class ThemeColorOption(
     val onPreviewColor: Color,
 )
 
-private val themeColorOptions = listOf(
-    ThemeColorOption("sand", R.string.appearance_color_sand, Color(0xFFF2D3A8), Color(0xFF111111)),
-    ThemeColorOption("ios", R.string.appearance_color_ios, Color(0xFF1C1C1E), Color(0xFFFFFFFF)),
-    ThemeColorOption("dynamic", R.string.theme_dynamic_color, Color(0xFF6750A4), Color(0xFFFFFFFF)),
-)
+@Composable
+private fun rememberThemeColorOptions(): List<ThemeColorOption> {
+    val tertiary = MaterialTheme.colorScheme.tertiary
+    val onTertiary = MaterialTheme.colorScheme.onTertiary
+    return remember(tertiary, onTertiary) {
+        listOf(
+            ThemeColorOption("sand", R.string.appearance_color_sand, Sand, SandOnSand),
+            ThemeColorOption("ios", R.string.appearance_color_ios, IosDarkSurface, IosWhite),
+            ThemeColorOption("dynamic", R.string.theme_dynamic_color, tertiary, onTertiary),
+        )
+    }
+}
 
 private data class LanguageOption(
     val code: String,
@@ -89,10 +101,11 @@ private val languageOptions = listOf(
 @Composable
 fun AppearanceLanguageScreen(
     onBack: () -> Unit,
-    viewModel: AppearanceLanguageViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    viewModel: AppearanceLanguageViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val themeColorOptions = rememberThemeColorOptions()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -256,7 +269,7 @@ fun AppearanceLanguageScreen(
                 ) {
                     AppearanceSettingRow(
                         icon = Icons.Rounded.WaterDrop,
-                        iconTint = Color(0xFF007AFF),
+                        iconTint = MaterialTheme.colorScheme.primary,
                         title = stringResource(R.string.appearance_liquid_glass_title),
                         subtitle = stringResource(R.string.appearance_liquid_glass_desc),
                         trailing = {
@@ -282,7 +295,7 @@ fun AppearanceLanguageScreen(
                 ) {
                     AppearanceSettingRow(
                         icon = Icons.Rounded.Vibration,
-                        iconTint = Color(0xFFFF9500),
+                        iconTint = AppTheme.colors.warning,
                         title = stringResource(R.string.appearance_haptic_feedback_title),
                         subtitle = stringResource(R.string.appearance_haptic_feedback_desc),
                         trailing = {

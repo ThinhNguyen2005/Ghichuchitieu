@@ -2,6 +2,7 @@ package com.notepay.feature.onboarding
 
 import androidx.annotation.StringRes
 import com.notepay.R
+import com.notepay.domain.model.CurrencyConverter
 import com.notepay.domain.model.Wallet
 
 enum class OnboardingStep(val stepIndex: Int) {
@@ -26,7 +27,7 @@ enum class OnboardingStep(val stepIndex: Int) {
 
 data class ChoiceOption(
     val key: String,
-    @get:StringRes val labelRes: Int
+    @get:StringRes val labelRes: Int,
 )
 
 data class OnboardingUiState(
@@ -41,7 +42,7 @@ data class OnboardingUiState(
     val notificationDenied: Boolean = false,
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
 ) {
     val canContinue: Boolean
         get() = when (currentStep) {
@@ -51,20 +52,26 @@ data class OnboardingUiState(
         }
 
     companion object {
-        /** Mã tiền tệ hiển thị nguyên văn — không cần dịch. */
-        val CURRENCIES = listOf("VND", "USD", "EUR", "JPY")
+        val CURRENCIES: List<String> = CurrencyConverter.supportedCurrencies.map { it.code }
 
         val LANGUAGES = listOf(
             ChoiceOption("vi", R.string.appearance_lang_vi),
             ChoiceOption("en", R.string.appearance_lang_en),
-            ChoiceOption("system", R.string.appearance_lang_system)
+            ChoiceOption("system", R.string.appearance_lang_system),
         )
 
         val WALLET_ICONS = listOf(
             ChoiceOption(Wallet.ICON_CASH, R.string.icon_label_cash),
             ChoiceOption(Wallet.ICON_BANK, R.string.transfer_bank),
             ChoiceOption(Wallet.ICON_MOMO, R.string.icon_label_ewallet),
-            ChoiceOption(Wallet.ICON_CARD, R.string.icon_label_credit_card)
+            ChoiceOption(Wallet.ICON_CARD, R.string.icon_label_credit_card),
+        )
+
+        val WALLET_QUICK_SUGGESTIONS: List<Pair<Int, String>> = listOf(
+            R.string.icon_label_cash to Wallet.ICON_CASH,
+            R.string.transfer_bank to Wallet.ICON_BANK,
+            R.string.icon_label_ewallet to Wallet.ICON_MOMO,
+            R.string.icon_label_credit_card to Wallet.ICON_CARD,
         )
 
         /** Giờ nhắc gợi ý; người dùng chọn nhanh thay vì mở dial. */

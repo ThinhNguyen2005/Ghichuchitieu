@@ -8,6 +8,7 @@ import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.local.dao.WalletDao
 import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
+import com.notepay.data.local.dao.SyncOutboxDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,6 +38,9 @@ object DatabaseModule {
             NotePayDatabase.MIGRATION_4_5,
             NotePayDatabase.MIGRATION_5_6,
             NotePayDatabase.MIGRATION_6_7,
+            NotePayDatabase.MIGRATION_7_8,
+            NotePayDatabase.MIGRATION_8_9,
+            NotePayDatabase.MIGRATION_9_10,
         )
         .build()
 
@@ -54,4 +58,7 @@ object DatabaseModule {
 
     @Provides
     fun provideDebtDao(db: NotePayDatabase): com.notepay.data.local.dao.DebtDao = db.debtDao()
+
+    @Provides
+    fun provideSyncOutboxDao(db: NotePayDatabase): SyncOutboxDao = db.syncOutboxDao()
 }

@@ -146,4 +146,25 @@ class CategoryRepositoryTest {
         assertThat(found?.colorArgb).isEqualTo(0xFF654321L)
         assertThat(found?.iconId).isEqualTo("shopping")
     }
+
+    @Test
+    fun lazyLoad_readsPreexistingCustomCategoriesOnFirstAccess() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val prefs = context.getSharedPreferences("notepay_custom_categories", android.content.Context.MODE_PRIVATE)
+        prefs.edit()
+            .putStringSet("custom_category_ids", setOf("CUSTOM_PRE"))
+            .putString("custom_category_CUSTOM_PRE_name", "Đầu tư phụ")
+            .putLong("custom_category_CUSTOM_PRE_color", 0xFF009688L)
+            .putBoolean("custom_category_CUSTOM_PRE_is_income", true)
+            .putString("custom_category_CUSTOM_PRE_icon", "investment")
+            .commit()
+        Category.registerCustomCategories(emptyList())
+
+        val freshRepo = CategoryRepositoryImpl(context)
+
+        val observed = freshRepo.observeCategories().first()
+        val fetched = freshRepo.getCategories()
+        assertThat(observed.any { it.id == "CUSTOM_PRE" && it.displayName == "Đầu tư phụ" }).isTrue()
+        assertThat(fetched.any { it.id == "CUSTOM_PRE" && it.isIncome }).isTrue()
+    }
 }

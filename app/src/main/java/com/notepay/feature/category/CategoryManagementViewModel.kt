@@ -1,5 +1,6 @@
 package com.notepay.feature.category
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.domain.model.Category
@@ -12,9 +13,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@Immutable
 data class CategoryManagementUiState(
     val expenseCategories: List<Category> = emptyList(),
     val incomeCategories: List<Category> = emptyList(),
+    val isLoading: Boolean = true,
 )
 
 @HiltViewModel
@@ -27,6 +30,7 @@ class CategoryManagementViewModel @Inject constructor(
             CategoryManagementUiState(
                 expenseCategories = all.filter { !it.isIncome },
                 incomeCategories = all.filter { it.isIncome },
+                isLoading = false,
             )
         }
         .stateIn(

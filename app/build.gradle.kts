@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.detekt)
@@ -18,6 +19,26 @@ val signingProps = Properties().apply {
     val f = rootProject.file("app/signing.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
+// Supabase credentials optional: blank by default -> app runs safely in offline-only mode.
+val resolvedSupabaseUrl = (
+    localProps.getProperty("SUPABASE_URL")
+        ?: providers.gradleProperty("notepay.supabaseUrl").orNull
+        ?: providers.environmentVariable("SUPABASE_URL").orNull
+        ?: ""
+).trim().replace("\"", "\\\"")
+
+val resolvedSupabaseAnonKey = (
+    localProps.getProperty("SUPABASE_ANON_KEY")
+        ?: providers.gradleProperty("notepay.supabaseAnonKey").orNull
+        ?: providers.environmentVariable("SUPABASE_ANON_KEY").orNull
+        ?: ""
+).trim().replace("\"", "\\\"")
 
 // Web Client ID lấy từ gradle.properties (notepay.webClientId) hoặc env var (NOTEPAY_WEB_CLIENT_ID)
 val resolvedWebClientId = providers.gradleProperty("notepay.webClientId")
@@ -57,6 +78,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
         buildConfigField("String", "WEB_CLIENT_ID", "\"$resolvedWebClientId\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$resolvedSupabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$resolvedSupabaseAnonKey\"")
     }
 
     signingConfigs {
@@ -251,6 +274,14 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
+
+    // Supabase (Shared Wallets realtime & sync) + Ktor OkHttp
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 
     // Debug
     debugImplementation(platform(libs.androidx.compose.bom))

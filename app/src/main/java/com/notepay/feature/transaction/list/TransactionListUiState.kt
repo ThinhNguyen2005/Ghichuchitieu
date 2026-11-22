@@ -1,5 +1,6 @@
 package com.notepay.feature.transaction.list
 
+import androidx.compose.runtime.Immutable
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -10,6 +11,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+@Immutable
 data class TransactionDayGroup(
     val date: LocalDate,
     val headerText: String,
@@ -18,6 +20,7 @@ data class TransactionDayGroup(
     val transactions: List<Transaction>,
 )
 
+@Immutable
 data class TransactionListUiState(
     val transactions: List<Transaction> = emptyList(),
     val dayGroups: List<TransactionDayGroup> = emptyList(),
@@ -35,6 +38,8 @@ data class TransactionListUiState(
     val selectedWalletId: Long? = null,
     val wallets: List<Wallet> = emptyList(),
     val walletsMap: Map<Long, String> = emptyMap(),
+    val walletsById: Map<Long, Wallet> = emptyMap(),
+    val currentUserId: String? = null,
 
     // Date range filter
     val selectedDateRangePreset: DateRangePreset = DateRangePreset.ALL_TIME,

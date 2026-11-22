@@ -1,7 +1,7 @@
 package com.notepay.feature.subscription
 
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -31,7 +31,7 @@ fun NavGraphBuilder.subscriptionScreen(
         }
 
         val showCreateFlow = backStackEntry.savedStateHandle.getStateFlow("showCreate", false)
-        val showCreate by showCreateFlow.collectAsState()
+        val showCreate by showCreateFlow.collectAsStateWithLifecycle()
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             SubscriptionScreen(
                 navigationBarOffset = navigationBarOffset,

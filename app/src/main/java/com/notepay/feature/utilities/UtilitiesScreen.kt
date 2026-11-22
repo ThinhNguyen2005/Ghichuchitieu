@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +84,10 @@ import com.notepay.R
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberNotePayHaptic
@@ -138,10 +142,13 @@ fun UtilitiesScreen(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+        modifier = modifier.fillMaxSize(),
     ) {
+        AppAtmosphericBackground(
+            modifier = Modifier.matchParentSize(),
+            forceSoftBlurOnPhoto = true,
+        )
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -158,10 +165,11 @@ fun UtilitiesScreen(
                         Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
                         Text(
                             text = stringResource(R.string.nav_more),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(vertical = 4.dp),
+                            style = AppTheme.typography.displaySerif,
+                            color = AppTheme.colors.textPrimary,
+                            modifier = Modifier
+                                .padding(vertical = 4.dp)
+                                .semantics { heading() },
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         UserProfileHeaderCard(
@@ -186,14 +194,16 @@ fun UtilitiesScreen(
                         SectionHeader(title = stringResource(R.string.utilities_section_ledger))
                         Spacer(modifier = Modifier.height(8.dp))
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false),
                             shape = AppTheme.shapes.corner20,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
+                                containerColor = AppTheme.colors.surface,
                             ),
                             border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                0.5.dp,
+                                AppTheme.colors.hairline,
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         ) {
@@ -225,12 +235,13 @@ fun UtilitiesScreen(
                                     onClick = onNavigateToSubscription,
                                 )
                                 ItemDivider()
+                                val currencyCfg = MoneyFormatter.config
                                 UtilityRowItem(
                                     icon = Icons.Rounded.Paid,
                                     iconContainerColor = AppTheme.colors.clay.copy(alpha = 0.16f),
                                     iconTint = AppTheme.colors.clay,
                                     title = stringResource(R.string.utilities_currency_title),
-                                    subtitle = stringResource(R.string.utilities_currency_subtitle),
+                                    subtitle = "${currencyCfg.currencyCode} (${MoneyFormatter.symbolForCode(currencyCfg.currencyCode)})",
                                     onClick = onNavigateToCurrencySettings,
                                 )
                                 ItemDivider()
@@ -255,14 +266,16 @@ fun UtilitiesScreen(
                         SectionHeader(title = stringResource(R.string.utilities_section_app))
                         Spacer(modifier = Modifier.height(8.dp))
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false),
                             shape = AppTheme.shapes.corner20,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
+                                containerColor = AppTheme.colors.surface,
                             ),
                             border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                0.5.dp,
+                                AppTheme.colors.hairline,
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         ) {
@@ -334,6 +347,7 @@ private fun UserProfileHeaderCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false)
             .clip(AppTheme.shapes.corner24)
             .semantics(mergeDescendants = true) {
                 if (isLoading) {
@@ -350,12 +364,9 @@ private fun UserProfileHeaderCard(
             ),
         shape = AppTheme.shapes.corner24,
         colors = CardDefaults.cardColors(
-            containerColor = if (user != null) {
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
+            containerColor = AppTheme.colors.surface,
         ),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         AnimatedContent(
@@ -500,8 +511,10 @@ private fun SectionHeader(title: String) {
         text = title,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp),
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier
+            .padding(start = 4.dp)
+            .semantics { heading() },
     )
 }
 

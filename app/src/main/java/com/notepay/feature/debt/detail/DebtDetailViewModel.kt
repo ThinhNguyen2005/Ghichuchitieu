@@ -16,6 +16,7 @@ import com.notepay.feature.debt.debtPaymentTransactionNote
 import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,6 +88,8 @@ class DebtDetailViewModel @Inject constructor(
             try {
                 val banks = vietQrBankRepository.getBanks()
                 _banks.value = banks
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 // Ignore network error; fallback to cached/fallback banks
             }

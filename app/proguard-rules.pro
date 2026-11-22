@@ -42,3 +42,19 @@
 # Credential Manager & Google ID (Tránh R8 làm mất cấu trúc data khi minifyEnabled)
 -keep class androidx.credentials.** { *; }
 -keep class com.google.android.libraries.identity.googleid.** { *; }
+
+# kotlinx.serialization & Supabase DTOs
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.SerializationKt
+-keep,includedescriptorclasses class com.notepay.data.remote.supabase.dto.** { *; }
+-keep,includedescriptorclasses class com.notepay.data.sync.** { *; }
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+}
+-if @kotlinx.serialization.Serializable class ** {
+    static **$Companion Companion;
+}
+-keepclasseswithmembers class <1>$Companion {
+    kotlinx.serialization.KSerializer serializer(...);
+}

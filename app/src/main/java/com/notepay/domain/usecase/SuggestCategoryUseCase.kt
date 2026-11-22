@@ -37,24 +37,58 @@ class SuggestCategoryUseCase @Inject constructor(
     private data class Rule(val category: Category, val phrases: Set<String>)
 
     private val expenseRules = listOf(
-        Rule(Category.TRANSPORT, setOf("grab", "gojek", "xanh sm", "taxi", "be car", "xe buyt", "ve xe", "gui xe", "parking")),
+        Rule(
+            Category.TRANSPORT,
+            setOf(
+                "grab", "gojek", "xanh sm", "taxi", "be", "be car", "be bike", "di be", "dat be",
+                "xe buyt", "ve xe", "gui xe", "giu xe", "parking", "do xang", "rua xe", "cau duong",
+            ),
+        ),
         Rule(Category.GAS, setOf("xang", "petrolimex", "pvoil", "shell", "caltex")),
-        Rule(Category.FOOD, setOf("quan an", "nha hang", "com tam", "com ga", "pho", "bun bo", "banh mi", "tra sua", "grabfood", "shopeefood", "beamin")),
+        Rule(
+            Category.FOOD,
+            setOf(
+                "quan an", "nha hang", "com tam", "com ga", "pho", "bun bo", "bun cha", "hu tieu",
+                "banh mi", "tra sua", "uong tra sua", "grabfood", "shopeefood", "baemin", "beamin",
+                "an sang", "an trua", "an toi", "an vat", "lau", "nuong", "xoi", "chao",
+            ),
+        ),
         Rule(Category.COFFEE, setOf("ca phe", "cafe", "highlands", "starbucks", "phuc long", "the coffee house")),
-        Rule(Category.SHOPPING, setOf("shopee", "lazada", "tiki", "mua sam", "amazon")),
+        Rule(
+            Category.SHOPPING,
+            setOf(
+                "shopee", "lazada", "tiki", "mua sam", "amazon", "bach hoa xanh", "bhx",
+                "winmart", "vinmart", "co.opmart", "co opmart", "coopmart", "sieu thi",
+                "di cho", "circle k", "gs25", "ministop", "tiktok shop", "dien may xanh",
+            ),
+        ),
+        Rule(
+            Category.FAMILY,
+            setOf(
+                "gui me", "gui ba", "gui bo", "gui nha", "bieu bo", "bieu me", "bieu ba",
+                "bieu ong ba", "li xi", "cho me", "cho bo", "cho ba", "mung cuoi",
+                "gia dinh", "cho tang",
+            ),
+        ),
         Rule(Category.CLOTHES, setOf("quan ao", "thoi trang", "giay dep", "uniqlo", "zara", "hm")),
         Rule(Category.BEAUTY, setOf("my pham", "lam toc", "spa", "nail", "skincare")),
         Rule(Category.ELECTRICITY, setOf("tien dien", "evn", "dien luc")),
         Rule(Category.WATER, setOf("tien nuoc", "cap nuoc")),
-        Rule(Category.INTERNET, setOf("wifi", "internet", "cuoc mang", "viettel", "vinaphone", "mobifone")),
-        Rule(Category.HOME, setOf("tien nha", "tien thue", "chung cu", "noi that")),
+        Rule(Category.INTERNET, setOf("cuoc mang", "viettel", "vinaphone", "mobifone", "fpt telecom")),
+        Rule(
+            Category.HOME,
+            setOf(
+                "tien nha", "tien thue", "chung cu", "noi that", "tien tro", "phong tro",
+                "nha tro", "thue tro", "dien nuoc", "tien dien nuoc", "internet", "wifi", "cap quang",
+            ),
+        ),
         Rule(Category.BILL, setOf("hoa don", "phi dich vu", "phi quan ly", "rac")),
         Rule(Category.ENTERTAINMENT, setOf("netflix", "spotify", "cgv", "rap phim", "karaoke", "steam", "game")),
         Rule(Category.TRAVEL, setOf("may bay", "ve bay", "khach san", "booking", "agoda", "du lich")),
         Rule(Category.HEALTH, setOf("benh vien", "phong kham", "nha khoa", "thuoc", "xet nghiem", "bao hiem y te")),
         Rule(Category.EDUCATION, setOf("hoc phi", "khoa hoc", "sach", "trung tam", "gia su")),
         Rule(Category.PETS, setOf("thu cung", "cho meo", "thuc an cho", "thuc an meo", "thu y")),
-        Rule(Category.CHILDREN, setOf("con cai", "bim sua", "do choi tre em", "hoc phi con")),
+        Rule(Category.CHILDREN, setOf("con cai", "bim sua", "do choi tre em", "hoc phi con", "em be", "cho be", "sua cho be")),
         Rule(Category.INSURANCE, setOf("bao hiem", "bao hiem xe", "bao hiem nhan tho")),
         Rule(Category.TAX, setOf("thue", "phi truoc ba", "phat nguoi", "phi cau duong")),
         Rule(Category.SAVINGS, setOf("tiet kiem", "gui tiet kiem", "quy du phong")),
@@ -63,11 +97,16 @@ class SuggestCategoryUseCase @Inject constructor(
     )
 
     private val incomeRules = listOf(
-        Rule(Category.SALARY, setOf("tien luong", "luong thang", "salary", "payroll")),
+        Rule(Category.SALARY, setOf("luong", "nhan luong", "tien luong", "luong thang", "salary", "payroll")),
         Rule(Category.BONUS, setOf("thuong", "bonus", "phu cap", "hoa hong")),
         Rule(Category.GIFT, setOf("li xi", "qua tang", "cho tien", "gift")),
         Rule(Category.INVESTMENT, setOf("co tuc", "lai dau tu", "chung khoan", "ban co phieu", "lai tiet kiem")),
     )
+
+    /** Nạp trước kho dữ liệu học danh mục vào RAM (nên gọi trên background dispatcher). */
+    fun warmUp() {
+        learningStore.warmUp()
+    }
 
     /** Compatibility API for notification capture and existing callers. */
     fun suggest(note: String, isIncome: Boolean): Category =
@@ -83,8 +122,10 @@ class SuggestCategoryUseCase @Inject constructor(
         if (available.isEmpty()) return null
 
         exactNoteSuggestion(normalized, type, available)?.let { return it }
+        val learned = learnedSuggestion(normalized, type, available)
+        if (learned != null && learned.confidence >= 0.78f) return learned
         ruleSuggestion(normalized, available, isIncome)?.let { return it }
-        return learnedSuggestion(normalized, type, available)
+        return learned
     }
 
     /**
@@ -205,13 +246,15 @@ class SuggestCategoryUseCase @Inject constructor(
 
     private fun phraseScore(normalized: String, tokens: List<String>, phrase: String): Int {
         val normalizedPhrase = normalize(phrase)
-        if (' ' !in normalizedPhrase) return if (normalizedPhrase in tokens) 1 else 0
+        if (normalizedPhrase.all { it.isLetterOrDigit() }) {
+            return if (normalizedPhrase in tokens) 1 else 0
+        }
         val index = normalized.indexOf(normalizedPhrase)
         if (index < 0) return 0
         val beforeIsWord = index > 0 && normalized[index - 1].isLetterOrDigit()
         val end = index + normalizedPhrase.length
         val afterIsWord = end < normalized.length && normalized[end].isLetterOrDigit()
-        return if (!beforeIsWord && !afterIsWord) normalizedPhrase.split(' ').size else 0
+        return if (!beforeIsWord && !afterIsWord) normalizedPhrase.split(Regex("[^a-zA-Z0-9]+")).count { it.isNotEmpty() }.coerceAtLeast(1) else 0
     }
 
     private fun learningType(isIncome: Boolean) =

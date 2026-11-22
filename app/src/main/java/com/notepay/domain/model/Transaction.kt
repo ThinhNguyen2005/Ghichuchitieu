@@ -28,6 +28,13 @@ data class Transaction(
     val isInternalTransfer: Boolean = false,
     val createdAt: Instant = Clock.System.now(),
     val transferGroupId: String? = null,
+    val remoteId: String? = null,
+    val operationId: String? = null,
+    val syncStatus: SyncStatus = SyncStatus.LOCAL_ONLY,
+    val createdByUserId: String? = null,
+    val createdByName: String? = null,
+    val updatedAtEpochMs: Long = 0L,
+    val deletedAtEpochMs: Long? = null,
 ) {
     init {
         require(amount.amountInCents > 0L) { "Transaction amount must be positive" }

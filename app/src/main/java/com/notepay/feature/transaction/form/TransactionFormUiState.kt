@@ -5,11 +5,25 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.natural.NaturalParseSource
+import com.notepay.domain.natural.NaturalTransactionDraft
 import com.notepay.feature.transaction.form.calculator.CalculatorEngine
 import com.notepay.feature.transaction.form.calculator.CalculatorState
 import com.notepay.feature.transaction.form.validation.FieldError
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+@Immutable
+data class NaturalEntryUiState(
+    val rawInput: String = "",
+    val drafts: List<NaturalTransactionDraft> = emptyList(),
+    val needsAiFallback: Boolean = false,
+    val source: NaturalParseSource = NaturalParseSource.ON_DEVICE,
+    val isAiLoading: Boolean = false,
+    val isAiAvailable: Boolean = false,
+    val showAiFallbackNotice: Boolean = false,
+    val isSavingBatch: Boolean = false,
+)
 
 /**
  * Unified UI State cho TransactionFormScreen (Add + Edit).
@@ -59,12 +73,24 @@ data class TransactionFormUiState(
     val isWalletPickerOpen: Boolean = false,
     val isCategoryPickerOpen: Boolean = false,
     val isNoteSheetOpen: Boolean = false,
+    val naturalEntry: NaturalEntryUiState = NaturalEntryUiState(),
 ) {
     val canSave: Boolean
-        get() = amount != null && amount.amountInCents > 0 && walletId != null && errors.isEmpty() && !isSaving
+        get() = amount != null &&
+            amount.amountInCents > 0 &&
+            walletId != null &&
+            errors.isEmpty() &&
+            calcState.error == null &&
+            !isSaving
 
     /** Biểu thức hiển thị trên thanh số tiền (Add mode) */
     val displayExpression: String
         get() = CalculatorEngine.displayExpression(calcState)
+
+    val activePendingOperator: Char?
+        get() = CalculatorEngine.activePendingOperator(calcState)
+
+    val previewAmountMajorUnits: Long
+        get() = (amount?.toMajorUnitLong() ?: 0L).coerceAtLeast(0L)
 }
 

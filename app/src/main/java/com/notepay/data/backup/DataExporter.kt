@@ -11,6 +11,7 @@ import com.notepay.data.datastore.BudgetSettingsStore
 import com.notepay.data.repository.CategoryRepositoryImpl
 import com.notepay.domain.usecase.SuggestCategoryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import org.json.JSONArray
@@ -52,6 +53,8 @@ class DataExporter @Inject constructor(
 
         val settings = try {
             budgetSettingsStore.settings.first()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             com.notepay.data.datastore.BudgetSettings()
         }
@@ -106,6 +109,15 @@ class DataExporter @Inject constructor(
                 put("accountNumber", w.accountNumber ?: JSONObject.NULL)
                 put("accountName", w.accountName ?: JSONObject.NULL)
                 put("createdAt", w.createdAt)
+                put("walletType", w.walletType)
+                put("accountNature", w.accountNature)
+                put("currencyCode", w.currencyCode)
+                put("creditLimitCents", w.creditLimitCents ?: JSONObject.NULL)
+                put("isArchived", w.isArchived)
+                put("purpose", w.purpose)
+                put("targetAmountCents", w.targetAmountCents ?: JSONObject.NULL)
+                put("targetDateEpochDay", w.targetDateEpochDay ?: JSONObject.NULL)
+                put("includeInTotalBalance", w.includeInTotalBalance)
             })
         }
         data.put("wallets", walletsArr)

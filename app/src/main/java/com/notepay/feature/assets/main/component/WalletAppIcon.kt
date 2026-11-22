@@ -20,6 +20,8 @@ import coil3.compose.AsyncImage
 import com.notepay.domain.model.Wallet
 import com.notepay.core.designsystem.util.BankIconHelper
 import com.notepay.core.designsystem.util.WalletUiHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Hiển thị Icon ví tài chính. 
@@ -31,26 +33,34 @@ fun WalletAppIcon(
     wallet: Wallet,
     modifier: Modifier = Modifier,
     iconSize: Dp = 24.dp,
-    tint: Color? = null
+    tint: Color? = null,
+    contentDescription: String? = wallet.name,
 ) {
     val context = LocalContext.current
+    val initialLookup = remember(wallet.linkedPackageName, wallet.bankBin) {
+        BankIconHelper.lookupCachedWalletIcon(wallet.linkedPackageName, wallet.bankBin)
+    }
     var bankDrawable by remember(wallet.linkedPackageName, wallet.bankBin) {
-        mutableStateOf<Drawable?>(null)
+        mutableStateOf<Drawable?>((initialLookup as? BankIconHelper.CacheLookup.Hit)?.drawable)
     }
 
     LaunchedEffect(wallet.linkedPackageName, wallet.bankBin) {
-        if (!wallet.linkedPackageName.isNullOrBlank()) {
-            bankDrawable = BankIconHelper.getInstalledAppIcon(context, wallet.linkedPackageName)
-        }
-        if (bankDrawable == null && !wallet.bankBin.isNullOrBlank()) {
-            bankDrawable = BankIconHelper.getInstalledAppIconByBankBin(context, wallet.bankBin)
+        if (initialLookup is BankIconHelper.CacheLookup.Miss) {
+            val resolved = withContext(Dispatchers.IO) {
+                BankIconHelper.resolveWalletIcon(
+                    context = context,
+                    linkedPackageName = wallet.linkedPackageName,
+                    bankBin = wallet.bankBin,
+                )
+            }
+            bankDrawable = resolved
         }
     }
 
     if (bankDrawable != null) {
         AsyncImage(
             model = bankDrawable,
-            contentDescription = wallet.name,
+            contentDescription = contentDescription,
             modifier = modifier
                 .size(iconSize)
                 .clip(CircleShape)
@@ -61,7 +71,7 @@ fun WalletAppIcon(
         
         Icon(
             imageVector = iconVector,
-            contentDescription = wallet.name,
+            contentDescription = contentDescription,
             tint = tintColor,
             modifier = modifier.size(iconSize)
         )

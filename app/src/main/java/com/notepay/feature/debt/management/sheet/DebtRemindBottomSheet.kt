@@ -4,8 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -389,7 +389,7 @@ fun DebtRemindBottomSheet(
                     OutlinedButton(
                         onClick = {
                             val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("smsto:${debt.phoneNumber}")
+                                data = "smsto:${debt.phoneNumber}".toUri()
                                 putExtra("sms_body", reminderMessage)
                             }
                             try {

@@ -1,5 +1,6 @@
 package com.notepay.feature.billsplit.main.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.domain.model.Transaction
 import com.notepay.feature.category.mapper.CategoryAvatar
 import com.notepay.feature.billsplit.main.sheet.BillSplitSectionTitle
@@ -275,16 +277,21 @@ private fun SelectedTransactionCard(
 ) {
     val category = transaction.category
     val noteText = transaction.note.trim()
+    val cardShape = AppTheme.shapes.corner16
 
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner16,
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = false),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme
                 .primaryContainer
                 .copy(alpha = 0.35f),
         ),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier
@@ -359,12 +366,17 @@ private fun SelectedDebtorCard(
         entry.amountInput.isNotBlank() &&
                 vndInputToCents(entry.amountInput) == null
 
+    val cardShape = AppTheme.shapes.corner16
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner12,
+        modifier = Modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = false),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = AppTheme.colors.surface,
         ),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),

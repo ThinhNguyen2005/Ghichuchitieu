@@ -1,9 +1,10 @@
 package com.notepay.ui.util
 
 import com.google.common.truth.Truth.assertThat
-import com.notepay.domain.money.Money
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.domain.money.Money
 import org.junit.Test
+import java.math.BigDecimal
 
 class MoneyFormatterTest {
     @Test
@@ -33,6 +34,48 @@ class MoneyFormatterTest {
 
     @Test
     fun format_usesUnadornedDongSymbol() {
+        MoneyFormatter.resetToDefault()
         assertThat(MoneyFormatter.format(Money(500_000L))).isEqualTo("5.000 đ")
+    }
+
+    @Test
+    fun updateConfig_changesActiveFormatAndResetRestoresDefault() {
+        try {
+            MoneyFormatter.updateConfig(
+                currencyCode = "USD",
+                symbolPosition = "before",
+                thousandSeparator = "comma",
+            )
+            assertThat(MoneyFormatter.format(Money(1_250_000_00L))).isEqualTo("$1,250,000")
+            assertThat(MoneyFormatter.format(Money(-500_000_00L))).isEqualTo("-$500,000")
+        } finally {
+            MoneyFormatter.resetToDefault()
+        }
+        assertThat(MoneyFormatter.format(Money(1_250_000_00L))).isEqualTo("1.250.000 đ")
+    }
+
+    @Test
+    fun updateConfig_withExchangeRate_convertsVndToTargetCurrency() {
+        try {
+            MoneyFormatter.updateConfig(
+                currencyCode = "USD",
+                symbolPosition = "before",
+                thousandSeparator = "comma",
+                ratePerVnd = BigDecimal("0.00004"),
+            )
+            assertThat(MoneyFormatter.format(Money(1_250_000_00L))).isEqualTo("$50.00")
+            assertThat(MoneyFormatter.format(Money(-450_000_00L))).isEqualTo("-$18.00")
+            assertThat(MoneyFormatter.format(Money.ZERO)).isEqualTo("$0")
+
+            MoneyFormatter.updateConfig(
+                currencyCode = "JPY",
+                symbolPosition = "before",
+                thousandSeparator = "comma",
+                ratePerVnd = BigDecimal("0.0062"),
+            )
+            assertThat(MoneyFormatter.format(Money(1_000_000_00L))).isEqualTo("¥6,200")
+        } finally {
+            MoneyFormatter.resetToDefault()
+        }
     }
 }

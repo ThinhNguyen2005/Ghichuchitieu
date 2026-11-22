@@ -1,11 +1,15 @@
 package com.notepay.feature.transaction.component
 
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.rounded.EditNote
@@ -21,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,11 +111,10 @@ private fun formatSmartMagnitude(
 @Composable
 fun TransactionAmountDisplay(
     amountInput: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rawAmountForMagnitude: Long = amountInput.replace(".", "").toLongOrNull() ?: 0L,
+    hasError: Boolean = false,
 ) {
-    val rawNumber = remember(amountInput) {
-        amountInput.replace(".", "").toLongOrNull() ?: 0L
-    }
     val zeroWords = stringResource(R.string.number_words_zero)
     val currencySuffix = stringResource(R.string.number_words_currency_suffix)
     val millionLabel = stringResource(R.string.unit_million)
@@ -117,16 +122,16 @@ fun TransactionAmountDisplay(
     val trillionLabel = stringResource(R.string.unit_trillion)
     val approxFormat = stringResource(R.string.approx_symbol)
 
-    val amountInWords = remember(rawNumber, zeroWords, currencySuffix) {
-        if (rawNumber > 0L) {
+    val amountInWords = remember(rawAmountForMagnitude, zeroWords, currencySuffix) {
+        if (rawAmountForMagnitude > 0L) {
             runCatching {
-                VietnameseMoneyWordsFormatter.format(rawNumber, zeroWords) + " " + currencySuffix
+                VietnameseMoneyWordsFormatter.format(rawAmountForMagnitude, zeroWords) + " " + currencySuffix
             }.getOrDefault("")
         } else ""
     }
 
-    val smartMagnitude = remember(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat) {
-        formatSmartMagnitude(rawNumber, millionLabel, billionLabel, trillionLabel, approxFormat)
+    val smartMagnitude = remember(rawAmountForMagnitude, millionLabel, billionLabel, trillionLabel, approxFormat) {
+        formatSmartMagnitude(rawAmountForMagnitude, millionLabel, billionLabel, trillionLabel, approxFormat)
     }
 
     var showFullWords by remember { mutableStateOf(false) }
@@ -158,21 +163,31 @@ fun TransactionAmountDisplay(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = amountInput.ifBlank { "0" },
-                fontSize = amountFontSize,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip
-            )
+            Box(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = amountInput.ifBlank { "0" },
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
+                        fontSize = amountFontSize,
+                        fontWeight = FontWeight.Black,
+                        fontFeatureSettings = "tnum",
+                    ),
+                    color = if (hasError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                )
+            }
 
             Text(
                 text = stringResource(R.string.currency_vnd_symbol),
                 fontSize = currencyFontSize,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (hasError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 6.dp)
             )
         }
@@ -247,21 +262,27 @@ fun CategoryQuickSelectionRow(
                 text = stringResource(R.string.category_section_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.semantics { heading() }
             )
-            Text(
-                text = stringResource(R.string.action_see_all),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                ),
+            Box(
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
                     .clip(AppTheme.shapes.corner12)
                     .clickable(onClick = onSeeAllClick)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.action_see_all),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.colors.primary
+                    )
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Hàng 1
         CategoryRow(row1, selectedCategory, onCategoryChanged)
@@ -289,20 +310,21 @@ private fun CategoryRow(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .aspectRatio(1.1f)
+                    .defaultMinSize(minHeight = 56.dp)
+                    .aspectRatio(1.05f)
                     .clip(AppTheme.shapes.corner16)
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        if (isSelected) AppTheme.colors.sand.copy(alpha = 0.32f)
+                        else AppTheme.colors.surfaceSunken
                     )
                     .border(
-                        width = if (isSelected) 2.dp else 1.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        width = if (isSelected) 1.5.dp else 0.5.dp,
+                        color = if (isSelected) AppTheme.colors.primary
+                        else AppTheme.colors.hairline,
                         shape = AppTheme.shapes.corner16
                     )
                     .clickable { onCategoryChanged(category) }
-                    .padding(8.dp),
+                    .padding(6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -310,13 +332,13 @@ private fun CategoryRow(
                     verticalArrangement = Arrangement.Center
                 ) {
                     CategoryAvatar(category = category, size = 32.dp)
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = category.localizedName(),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) AppTheme.colors.primary else AppTheme.colors.textPrimary,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -341,15 +363,15 @@ fun TransactionInputField(
     modifier: Modifier = Modifier,
     placeholder: String = ""
 ) {
-    Card(
+    Surface(
+        onClick = onClick,
+        shape = AppTheme.shapes.corner20,
+        color = AppTheme.colors.surface,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         modifier = modifier
             .fillMaxWidth()
-            .clip(AppTheme.shapes.corner16)
-            .clickable(onClick = onClick),
-        shape = AppTheme.shapes.corner16,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        )
+            .defaultMinSize(minHeight = 56.dp)
+            .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false),
     ) {
         Row(
             modifier = Modifier
@@ -361,14 +383,14 @@ fun TransactionInputField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = AppTheme.colors.textSecondary,
                 modifier = Modifier.size(24.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppTheme.colors.textSecondary,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -376,8 +398,8 @@ fun TransactionInputField(
                     text = value.ifBlank { placeholder },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (value.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    else MaterialTheme.colorScheme.onSurface
+                    color = if (value.isBlank()) AppTheme.colors.textMuted
+                    else AppTheme.colors.textPrimary
                 )
             }
         }
@@ -455,8 +477,8 @@ fun RowScope.KeypadButton(
 @Composable
 fun NumericKeypad(
     onKeyPress: (KeypadKey) -> Unit,
+    modifier: Modifier = Modifier,
     onCollapse: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
@@ -535,13 +557,15 @@ fun NotePreviewChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
+        onClick = onClick,
+        shape = AppTheme.shapes.corner16,
+        color = AppTheme.colors.surface,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        tonalElevation = 0.dp,
         modifier = modifier
             .fillMaxWidth()
-            .clip(AppTheme.shapes.corner12)
-            .clickable(onClick = onClick),
-        shape = AppTheme.shapes.corner12,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-        tonalElevation = 0.dp,
+            .defaultMinSize(minHeight = 48.dp)
+            .iosCardShadow(shape = AppTheme.shapes.corner16, elevated = false),
     ) {
         Row(
             modifier = Modifier
@@ -553,13 +577,13 @@ fun NotePreviewChip(
             Icon(
                 imageVector = Icons.Rounded.EditNote,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = AppTheme.colors.primary,
                 modifier = Modifier.size(18.dp),
             )
             Text(
                 text = note,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = AppTheme.colors.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),

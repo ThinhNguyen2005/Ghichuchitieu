@@ -25,9 +25,9 @@ fun MainTabPager(
     navController: NavHostController,
     showFeedback: suspend (UiFeedback) -> Boolean,
     reducedMotion: Boolean,
+    modifier: Modifier = Modifier,
     userScrollEnabled: Boolean = true,
     contentStartInset: Dp = 0.dp,
-    modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
     // Chỉ số trang lấy từ danh sách tab gốc duy nhất, không hardcode 0/1/2/3.
@@ -68,6 +68,7 @@ fun MainTabPager(
                 onEditTransaction = { txId ->
                     navController.navigate(Route.EditTransaction(txId).path)
                 },
+                onFeedback = showFeedback,
             )
             1 -> StatsScreen(
                 onAddTransaction = { navController.navigate(Route.AddTransaction.path) },
@@ -82,12 +83,16 @@ fun MainTabPager(
                         walletId?.let { Route.EditWallet(it).path } ?: Route.Assets.path
                     ) { launchSingleTop = true }
                 },
+                onFeedback = showFeedback,
             )
             2 -> AssetsScreen(
                 onAddWallet = { navController.navigate(Route.AddWallet.path) },
                 onEditWallet = { walletId -> navController.navigate(Route.EditWallet(walletId).path) },
                 onWalletClick = { walletId ->
                     navController.navigate("${Route.TransactionList.path}?walletId=$walletId")
+                },
+                onOpenSharedMembers = { walletId ->
+                    navController.navigate(Route.SharedWalletMembers(walletId).path)
                 },
                 onFeedback = showFeedback,
                 onNavigateToDebtManagement = {

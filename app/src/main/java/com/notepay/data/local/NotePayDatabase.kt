@@ -7,12 +7,14 @@ import com.notepay.data.local.dao.WalletDao
 import com.notepay.data.local.dao.BillSplitDao
 import com.notepay.data.local.dao.SubscriptionDao
 import com.notepay.data.local.dao.DebtDao
+import com.notepay.data.local.dao.SyncOutboxDao
 import com.notepay.data.local.entity.TransactionEntity
 import com.notepay.data.local.entity.WalletEntity
 import com.notepay.data.local.entity.BillSplitEntity
 import com.notepay.data.local.entity.SubscriptionEntity
 import com.notepay.data.local.entity.DebtEntity
 import com.notepay.data.local.entity.DebtPaymentEntity
+import com.notepay.data.local.entity.SyncOutboxEntity
 
 @Database(
     entities = [
@@ -22,8 +24,9 @@ import com.notepay.data.local.entity.DebtPaymentEntity
         SubscriptionEntity::class,
         DebtEntity::class,
         DebtPaymentEntity::class,
+        SyncOutboxEntity::class,
     ],
-    version = 7,
+    version = 10,
     exportSchema = true,
 )
 abstract class NotePayDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class NotePayDatabase : RoomDatabase() {
     abstract fun billSplitDao(): BillSplitDao
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun debtDao(): DebtDao
+    abstract fun syncOutboxDao(): SyncOutboxDao
 
     companion object {
         const val DB_NAME = "notepay.db"
@@ -142,6 +146,66 @@ abstract class NotePayDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN transfer_group_id TEXT")
+            }
+        }
+        val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wallets ADD COLUMN wallet_type TEXT NOT NULL DEFAULT 'CASH'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN account_nature TEXT NOT NULL DEFAULT 'ASSET'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'VND'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN credit_limit_cents INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_wallets_is_archived ON wallets (is_archived)")
+            }
+        }
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wallets ADD COLUMN purpose TEXT NOT NULL DEFAULT 'PERSONAL'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN target_amount_cents INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN target_date_epoch_day INTEGER")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN include_in_total_balance INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+        val MIGRATION_9_10 = object : androidx.room.migration.Migration(9, 10) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wallets ADD COLUMN remote_id TEXT")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'LOCAL_ONLY'")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN shared_role TEXT")
+                db.execSQL("ALTER TABLE wallets ADD COLUMN updated_at_epoch_ms INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_wallets_remote_id` ON `wallets` (`remote_id`)")
+
+                db.execSQL("ALTER TABLE transactions ADD COLUMN remote_id TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN operation_id TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'LOCAL_ONLY'")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN created_by_user_id TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN created_by_name TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN updated_at_epoch_ms INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN deleted_at_epoch_ms INTEGER")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_remote_id` ON `transactions` (`remote_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_operation_id` ON `transactions` (`operation_id`)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `sync_outbox` (
+                        `operation_id` TEXT NOT NULL,
+                        `entity_type` TEXT NOT NULL,
+                        `entity_id` TEXT NOT NULL,
+                        `wallet_remote_id` TEXT NOT NULL,
+                        `action` TEXT NOT NULL,
+                        `payload_json` TEXT NOT NULL,
+                        `status` TEXT NOT NULL DEFAULT 'PENDING',
+                        `retry_count` INTEGER NOT NULL DEFAULT 0,
+                        `last_error` TEXT,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        `updated_at_epoch_ms` INTEGER NOT NULL,
+                        PRIMARY KEY(`operation_id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_sync_outbox_status_created_at_epoch_ms` ON `sync_outbox` (`status`, `created_at_epoch_ms`)",
+                )
             }
         }
     }

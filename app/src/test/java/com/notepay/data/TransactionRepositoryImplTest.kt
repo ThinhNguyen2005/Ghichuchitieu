@@ -153,6 +153,16 @@ class TransactionRepositoryImplTest {
             monthEndMillis: Long,
         ): Flow<List<WalletStatsProjection>> = flow.map { emptyList() }
         override suspend fun getById(id: Long): TransactionEntity? = flow.value.find { it.id == id }
+        override suspend fun getByRemoteId(remoteId: String): TransactionEntity? =
+            flow.value.find { it.remoteId == remoteId }
+        override suspend fun getByOperationId(operationId: String): TransactionEntity? =
+            flow.value.find { it.operationId == operationId }
+        override suspend fun markSoftDeleted(
+            id: Long,
+            deletedAtEpochMs: Long,
+            updatedAtEpochMs: Long,
+            syncStatus: String,
+        ) = Unit
         override suspend fun getByTransferGroupId(groupId: String): List<TransactionEntity> =
             flow.value.filter { it.transferGroupId == groupId }
         override suspend fun hasInternalTransfer(walletId: Long): Boolean =

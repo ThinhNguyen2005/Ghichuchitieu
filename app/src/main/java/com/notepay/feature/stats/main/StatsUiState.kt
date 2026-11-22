@@ -5,10 +5,12 @@ import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.analytics.AdvisorAvailability
+import com.notepay.domain.analytics.BudgetAdvisorResult
+import com.notepay.domain.analytics.LongTermTrendAnalysis
+import com.notepay.domain.analytics.PeriodBarBucketKind
 import com.notepay.domain.analytics.SpendingPrediction
 import com.notepay.domain.analytics.StatsAdviceType
-import com.notepay.domain.analytics.BudgetAdvisorResult
-import com.notepay.domain.analytics.AdvisorAvailability
 import com.notepay.domain.analytics.StatsPeriod
 
 sealed interface StatsUiText {
@@ -67,6 +69,17 @@ data class MonthlyTrendPoint(
     val income: Money,
 )
 
+/** A bucketed bar entry for the selected period bar chart beneath the donut chart. */
+@Immutable
+data class PeriodBarPoint(
+    val key: String,
+    val bucketKind: PeriodBarBucketKind,
+    val indexValue: Int,
+    val monthValue: Int? = null,
+    val amount: Money,
+    val isCurrentBucket: Boolean,
+)
+
 @Immutable
 data class DynamicDailyBudgetData(
     val dailyBudget: Money,
@@ -107,6 +120,8 @@ data class StatsUiState(
     val currentPeriod: StatsPeriod? = null,
     val breakdown: List<CategoryBreakdownItem> = emptyList(),
     val incomeBreakdown: List<CategoryBreakdownItem> = emptyList(),
+    val periodExpenseBars: List<PeriodBarPoint> = emptyList(),
+    val periodIncomeBars: List<PeriodBarPoint> = emptyList(),
     val recentMonths: List<MonthlyTrendPoint> = emptyList(),
     val trendWindow: TrendWindow = TrendWindow.SIX_MONTHS,
     val isLoading: Boolean = true,
@@ -131,4 +146,5 @@ data class StatsUiState(
     val aiAdvices: List<AiAdviceItem> = emptyList(),
     val detectedSubscriptions: List<DetectedSubscription> = emptyList(),
     val localAdvisor: LocalAdvisorUiState = LocalAdvisorUiState(),
+    val longTermTrend: LongTermTrendAnalysis? = null,
 )

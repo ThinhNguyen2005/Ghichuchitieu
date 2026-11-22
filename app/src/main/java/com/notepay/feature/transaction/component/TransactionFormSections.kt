@@ -1,22 +1,19 @@
 package com.notepay.feature.transaction.component
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,14 +33,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.domain.model.Category
@@ -64,51 +65,54 @@ fun TransactionTypeSelector(
 ) {
     val options = listOf(TransactionType.EXPENSE to expenseLabel, TransactionType.INCOME to incomeLabel)
     val selectedIndex = if (selectedType == TransactionType.EXPENSE) 0 else 1
+    val primaryColor = AppTheme.colors.primary
+    val indicatorFractionState = animateFloatAsState(
+        targetValue = if (selectedIndex == 0) 0f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "IndicatorOffset",
+    )
 
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .clip(AppTheme.shapes.circle)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(AppTheme.colors.surfaceSunken)
+            .border(0.5.dp, AppTheme.colors.hairline, AppTheme.shapes.circle)
             .padding(4.dp),
     ) {
-        val tabWidth = maxWidth / 2
-        val indicatorOffset by animateDpAsState(
-            targetValue = if (selectedIndex == 0) 0.dp else tabWidth,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-            label = "IndicatorOffset",
-        )
-
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
-                .width(tabWidth)
-                .fillMaxHeight()
-                .clip(AppTheme.shapes.circle)
-                .background(MaterialTheme.colorScheme.primary),
-        )
-
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    val slotWidth = size.width / 2f
+                    val corner = size.height / 2f
+                    drawRoundRect(
+                        color = primaryColor,
+                        topLeft = Offset(slotWidth * indicatorFractionState.value, 0f),
+                        size = Size(slotWidth, size.height),
+                        cornerRadius = CornerRadius(corner, corner),
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             options.forEachIndexed { index, option ->
                 val isSelected = selectedIndex == index
                 val textColor by animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    else AppTheme.colors.textSecondary,
                     label = "TextColor",
                 )
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
+                        .defaultMinSize(minHeight = 40.dp)
                         .clip(AppTheme.shapes.circle)
-                        .clickable(onClick = { onTypeChanged(option.first) }),
+                        .clickable(onClick = { onTypeChanged(option.first) })
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -116,6 +120,9 @@ fun TransactionTypeSelector(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }

@@ -7,64 +7,65 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
-import com.notepay.core.designsystem.component.bar.GradientTopAppBar
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.rememberNotePayReducedMotion
-import com.notepay.domain.analytics.StatsRange
-import com.notepay.domain.model.Category
-import com.notepay.domain.model.TransactionType
 import com.notepay.domain.money.Money
+import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.stats.main.component.AiInsightsCarousel
 import com.notepay.feature.stats.main.component.BudgetProgressBar
-import com.notepay.feature.stats.main.component.CategoryBreakdownAccordionCard
 import com.notepay.feature.stats.main.component.SpendingPredictionCard
 import com.notepay.feature.stats.main.component.StatsDashboard
 import com.notepay.feature.stats.main.component.StatsMetric
-import com.notepay.feature.stats.main.component.StatsViewType
 import com.notepay.feature.subscription.main.AddSubscriptionDialogState
 import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
+import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 
 /**
  * Chuẩn hóa số liệu thẳng hàng dọc (Tabular figures).
@@ -93,6 +94,7 @@ private enum class StatsContentState {
     CONTENT,
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
@@ -100,11 +102,13 @@ fun StatsScreen(
     onTransactionClick: (Long) -> Unit = {},
     onConfigureLocalModel: () -> Unit = {},
     onConfigureBudget: (Long?) -> Unit = {},
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var showAmounts by rememberSaveable { mutableStateOf(true) }
-    var viewType by rememberSaveable { mutableStateOf(StatsViewType.XU_HUONG) }
+    var isWalletPickerOpen by rememberSaveable { mutableStateOf(false) }
+    var isExportSheetVisible by rememberSaveable { mutableStateOf(false) }
     val reducedMotion = rememberNotePayReducedMotion()
 
     val contentState = when {
@@ -113,87 +117,61 @@ fun StatsScreen(
         else -> StatsContentState.CONTENT
     }
 
-    LaunchedEffect(state.currentPeriod?.range) {
-        if (state.currentPeriod?.range != StatsRange.MONTH) {
-            viewType = StatsViewType.PHAN_BO
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        GradientTopAppBar(
-            title = {
-                Text(
-                    text = stringResource(R.string.stats_screen_title),
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            },
-            actions = {
-                IconButton(onClick = { showAmounts = !showAmounts }) {
-                    Icon(
-                        imageVector = if (showAmounts) {
-                            Icons.Rounded.Visibility
-                        } else {
-                            Icons.Rounded.VisibilityOff
-                        },
-                        contentDescription = stringResource(
-                            if (showAmounts) R.string.stats_cd_hide_amounts else R.string.stats_cd_show_amounts
-                        ),
-                    )
-                }
-            },
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppAtmosphericBackground(
+            modifier = Modifier.matchParentSize(),
+            forceSoftBlurOnPhoto = true,
         )
 
-        AnimatedContent(
-            targetState = contentState,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(animationSpec = tween(180)) togetherWith
-                        fadeOut(animationSpec = tween(140))
-                }
-            },
-            label = "stats-content",
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        ) { target ->
-            when (target) {
-                StatsContentState.LOADING -> StatsLoadingState()
-                StatsContentState.EMPTY -> StatsEmptyState()
-                StatsContentState.CONTENT -> {
-                    StatsDashboard(
-                        state = state,
-                        showAmounts = showAmounts,
-                        viewType = viewType,
-                        onViewTypeChanged = { viewType = it },
-                        onPreviousMonth = viewModel::previousPeriod,
-                        onNextMonth = viewModel::nextPeriod,
-                        onSelectRange = viewModel::selectRange,
-                        onMonthSelected = { point ->
-                            viewModel.selectMonth(point.year, point.month)
-                        },
-                        onCategorySelected = viewModel::selectCategory,
-                        onTrendWindowSelected = viewModel::selectTrendWindow,
-                        supportingContent = { metric ->
-                            StatsSupportingContent(
-                                state = state,
-                                metric = metric,
-                                showAmounts = showAmounts,
-                                onConfigureBudget = { onConfigureBudget(state.selectedWallet?.id) },
-                                onCategorySelected = viewModel::selectCategory,
-                                onAdviceFeedback = viewModel::sendAdviceFeedback,
-                                onAddSubscription = viewModel::showAddSubscription,
-                                onGenerateLocalAdvice = viewModel::generateLocalAdvice,
-                                onSelectLocalModel = onConfigureLocalModel,
-                                onTransactionClick = onTransactionClick,
-                            )
-                        },
-                    )
+        Column(modifier = Modifier.fillMaxSize()) {
+            StatsEditorialHeader(
+                showAmounts = showAmounts,
+                onExportClick = { isExportSheetVisible = true },
+                onToggleAmounts = { showAmounts = !showAmounts },
+            )
+
+            AnimatedContent(
+                targetState = contentState,
+                transitionSpec = {
+                    if (reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        fadeIn(animationSpec = tween(180)) togetherWith
+                            fadeOut(animationSpec = tween(140))
+                    }
+                },
+                label = "stats-content",
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) { target ->
+                when (target) {
+                    StatsContentState.LOADING -> StatsLoadingState()
+                    StatsContentState.EMPTY -> StatsEmptyState()
+                    StatsContentState.CONTENT -> {
+                        StatsDashboard(
+                            state = state,
+                            showAmounts = showAmounts,
+                            onOpenWalletPicker = { isWalletPickerOpen = true },
+                            onPreviousMonth = viewModel::previousPeriod,
+                            onNextMonth = viewModel::nextPeriod,
+                            onSelectRange = viewModel::selectRange,
+                            onCategorySelected = viewModel::selectCategory,
+                            onTransactionClick = onTransactionClick,
+                            supportingContent = { metric ->
+                                StatsSupportingContent(
+                                    state = state,
+                                    metric = metric,
+                                    showAmounts = showAmounts,
+                                    onConfigureBudget = { onConfigureBudget(state.selectedWallet?.id) },
+                                    onAdviceFeedback = viewModel::sendAdviceFeedback,
+                                    onAddSubscription = viewModel::showAddSubscription,
+                                    onGenerateLocalAdvice = viewModel::generateLocalAdvice,
+                                    onSelectLocalModel = onConfigureLocalModel,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -220,6 +198,101 @@ fun StatsScreen(
             onConfirm = viewModel::saveSubscription,
             onDismiss = viewModel::dismissSubForm,
         )
+    }
+
+    if (isWalletPickerOpen) {
+        WalletPickerSheet(
+            wallets = state.wallets,
+            selectedWalletId = state.selectedWallet?.id,
+            onWalletSelected = viewModel::selectWallet,
+            onAllWalletsSelected = { viewModel.selectWallet(null) },
+            onDismiss = { isWalletPickerOpen = false },
+        )
+    }
+
+    if (isExportSheetVisible) {
+        ExportReportBottomSheet(
+            onDismiss = { isExportSheetVisible = false },
+            onFeedback = onFeedback,
+        )
+    }
+}
+
+@Composable
+private fun StatsEditorialHeader(
+    showAmounts: Boolean,
+    onExportClick: () -> Unit,
+    onToggleAmounts: () -> Unit,
+) {
+    val pillContainerColor = AppTheme.colors.surface.copy(
+        alpha = if (AppTheme.colors.isLight) 0.90f else 0.85f,
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.stats_screen_title),
+            style = AppTheme.typography.displaySerif,
+            color = AppTheme.colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+
+        Surface(
+            onClick = onExportClick,
+            shape = CircleShape,
+            color = pillContainerColor,
+            contentColor = AppTheme.colors.textPrimary,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(AppTheme.dimensions.minTouchTarget)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.FileDownload,
+                    contentDescription = stringResource(R.string.export_report_action_cd),
+                    tint = AppTheme.colors.textPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Surface(
+            onClick = onToggleAmounts,
+            shape = CircleShape,
+            color = pillContainerColor,
+            contentColor = AppTheme.colors.textPrimary,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(AppTheme.dimensions.minTouchTarget)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (showAmounts) {
+                        Icons.Rounded.Visibility
+                    } else {
+                        Icons.Rounded.VisibilityOff
+                    },
+                    contentDescription = stringResource(
+                        if (showAmounts) R.string.stats_cd_hide_amounts else R.string.stats_cd_show_amounts,
+                    ),
+                    tint = AppTheme.colors.textPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
     }
 }
 
@@ -288,35 +361,16 @@ private fun StatsSupportingContent(
     state: StatsUiState,
     metric: StatsMetric,
     showAmounts: Boolean,
-    onCategorySelected: (Category?) -> Unit,
     onConfigureBudget: () -> Unit,
     onAdviceFeedback: (String, Int) -> Unit,
     onAddSubscription: (DetectedSubscription) -> Unit,
     onGenerateLocalAdvice: () -> Unit,
     onSelectLocalModel: () -> Unit,
-    onTransactionClick: (Long) -> Unit,
 ) {
     val isExpense = metric == StatsMetric.CHI_TIEU
-    val breakdown = if (isExpense) state.breakdown else state.incomeBreakdown
-
-    // Kiểm tra xem selectedCategory có thực sự thuộc tab hiện tại hay không
-    val activeSelectedCategory = remember(breakdown, state.selectedCategory) {
-        state.selectedCategory?.takeIf { selected ->
-            breakdown.any { it.category == selected }
-        }
-    }
-
-    val selectedTransactions = remember(
-        state.transactions,
-        activeSelectedCategory,
-        isExpense,
-    ) {
-        if (activeSelectedCategory == null) return@remember emptyList()
-        val expectedType = if (isExpense) TransactionType.EXPENSE else TransactionType.INCOME
-        state.transactions.filter { tx ->
-            tx.type == expectedType && tx.category == activeSelectedCategory
-        }
-    }
+    val hasInsights = state.spendingForecast != null ||
+        state.aiAdvices.isNotEmpty() ||
+        state.detectedSubscriptions.isNotEmpty()
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -341,10 +395,6 @@ private fun StatsSupportingContent(
                 )
             }
 
-            val hasInsights = state.spendingForecast != null ||
-                    state.aiAdvices.isNotEmpty() ||
-                    state.detectedSubscriptions.isNotEmpty()
-
             if (hasInsights) {
                 AiInsightsCarousel(
                     state = state,
@@ -354,58 +404,6 @@ private fun StatsSupportingContent(
                     onGenerateLocalAdvice = onGenerateLocalAdvice,
                     onSelectLocalModel = onSelectLocalModel,
                 )
-            }
-        }
-
-        Text(
-            text = stringResource(
-                if (isExpense) {
-                    R.string.stats_expense_category_detail
-                } else {
-                    R.string.stats_income_category_detail
-                },
-            ),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-        )
-
-        if (breakdown.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(AppTheme.shapes.corner16)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(vertical = 24.dp, horizontal = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.stats_no_transactions_month),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                breakdown.forEach { item ->
-                    key(item.category.id) {
-                        val isSelected = item.category == activeSelectedCategory
-                        CategoryBreakdownAccordionCard(
-                            item = item,
-                            isSelected = isSelected,
-                            showAmounts = showAmounts,
-                            transactions = if (isSelected) selectedTransactions else emptyList(),
-                            onToggle = {
-                                onCategorySelected(if (isSelected) null else item.category)
-                            },
-                            onTransactionClick = onTransactionClick,
-                        )
-                    }
-                }
             }
         }
     }
@@ -424,11 +422,13 @@ internal fun SectionHeading(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AppTheme.colors.textSecondary,
         )
     }
 }

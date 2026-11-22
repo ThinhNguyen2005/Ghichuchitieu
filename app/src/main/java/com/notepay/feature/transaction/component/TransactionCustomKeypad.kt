@@ -1,5 +1,6 @@
 package com.notepay.feature.transaction.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,10 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 
 // ─── Key model ────────────────────────────────────────────────────────────────
@@ -59,29 +66,42 @@ fun TransactionCustomKeypad(
     onKey: (CalcKey) -> Unit,
     onBackspaceLong: () -> Unit,
     modifier: Modifier = Modifier,
+    activeOperator: Char? = null,
+    isAmountLocked: Boolean = false,
 ) {
-    Column(
+    Surface(
+        shape = AppTheme.shapes.corner24,
+        color = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.94f else 0.90f),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .iosCardShadow(shape = AppTheme.shapes.corner24, elevated = false),
     ) {
-        KEYPAD_ROWS_FINAL.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                row.forEach { key ->
-                    KeyCell(
-                        key = key,
-                        dateLabel = dateLabel,
-                        noteLabel = noteLabel,
-                        canSave = canSave,
-                        isSaving = isSaving,
-                        onKey = onKey,
-                        onBackspaceLong = onBackspaceLong,
-                        modifier = Modifier.weight(1f),
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            KEYPAD_ROWS_FINAL.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    row.forEach { key ->
+                        KeyCell(
+                            key = key,
+                            dateLabel = dateLabel,
+                            noteLabel = noteLabel,
+                            canSave = canSave,
+                            isSaving = isSaving,
+                            activeOperator = activeOperator,
+                            isAmountLocked = isAmountLocked,
+                            onKey = onKey,
+                            onBackspaceLong = onBackspaceLong,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -98,6 +118,8 @@ private fun KeyCell(
     noteLabel: String,
     canSave: Boolean,
     isSaving: Boolean,
+    activeOperator: Char?,
+    isAmountLocked: Boolean,
     onKey: (CalcKey) -> Unit,
     onBackspaceLong: () -> Unit,
     modifier: Modifier = Modifier,
@@ -106,40 +128,83 @@ private fun KeyCell(
     val isOperatorKey  = key is CalcKey.Operator || key is CalcKey.Equals
     val isActionKey    = key is CalcKey.Date || key is CalcKey.Note
     val isBackspaceKey = key is CalcKey.Backspace
+    val isAmountKey    = key is CalcKey.Digit || isOperatorKey || key is CalcKey.ThreeZeros || isBackspaceKey
+    val isEnabled      = !(isSaveKey && isSaving) && !(isAmountLocked && isAmountKey)
+    val isActiveOperator = key is CalcKey.Operator && key.symbol == activeOperator
 
     val containerColor = when {
-        isSaveKey      -> if (canSave) MaterialTheme.colorScheme.primary
-                          else MaterialTheme.colorScheme.surfaceVariant
-        isOperatorKey  -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-        isActionKey    -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
-        else           -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        isSaveKey        -> if (canSave) AppTheme.colors.primary
+                            else AppTheme.colors.surfaceSunken
+        isActiveOperator -> AppTheme.colors.sand.copy(alpha = 0.55f)
+        isOperatorKey    -> AppTheme.colors.sand.copy(alpha = 0.24f)
+        isActionKey      -> AppTheme.colors.surfaceSunken
+        else             -> AppTheme.colors.surfaceSunken
     }
 
-    val contentColor = when {
-        isSaveKey      -> if (canSave) MaterialTheme.colorScheme.onPrimary
-                          else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        isOperatorKey  -> MaterialTheme.colorScheme.secondary
-        isActionKey    -> MaterialTheme.colorScheme.tertiary
-        isBackspaceKey -> MaterialTheme.colorScheme.error
-        else           -> MaterialTheme.colorScheme.onSurface
+    val baseContentColor = when {
+        isSaveKey        -> if (canSave) MaterialTheme.colorScheme.onPrimary
+                            else AppTheme.colors.textMuted
+        isActiveOperator -> AppTheme.colors.primary
+        isOperatorKey    -> AppTheme.colors.primary
+        isActionKey      -> AppTheme.colors.primary
+        isBackspaceKey   -> AppTheme.colors.error
+        else             -> AppTheme.colors.textPrimary
+    }
+    val contentColor = if (!isEnabled && !isSaveKey) baseContentColor.copy(alpha = 0.38f) else baseContentColor
+
+    val clearAllLabel = stringResource(R.string.cd_calc_clear_all)
+    val keyContentDescription = when (key) {
+        is CalcKey.Digit -> key.value.toString()
+        CalcKey.ThreeZeros -> stringResource(R.string.cd_calc_three_zeros)
+        is CalcKey.Operator -> when (key.symbol) {
+            '+' -> stringResource(R.string.cd_calc_add)
+            '-' -> stringResource(R.string.cd_calc_subtract)
+            '*' -> stringResource(R.string.cd_calc_multiply)
+            '/' -> stringResource(R.string.cd_calc_divide)
+            else -> key.symbol.toString()
+        }
+        CalcKey.Equals -> stringResource(R.string.cd_calc_equals)
+        CalcKey.Backspace -> stringResource(R.string.content_description_backspace)
+        CalcKey.Date -> stringResource(R.string.cd_calc_date_format, dateLabel)
+        CalcKey.Note -> if (noteLabel.isBlank()) {
+            stringResource(R.string.cd_calc_note_empty)
+        } else {
+            stringResource(R.string.cd_calc_note_format, noteLabel)
+        }
+        CalcKey.Save -> stringResource(R.string.action_save)
     }
 
     val shape = AppTheme.shapes.corner12
 
     Box(
         modifier = modifier
-            .aspectRatio(1.35f)
+            .defaultMinSize(minHeight = 52.dp)
             .clip(shape)
             .background(containerColor)
             .border(
-                width = if (isSaveKey && canSave) 0.dp else 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                width = when {
+                    isActiveOperator -> 1.5.dp
+                    isSaveKey && canSave -> 0.dp
+                    else -> 0.5.dp
+                },
+                color = if (isActiveOperator) {
+                    AppTheme.colors.primary
+                } else {
+                    AppTheme.colors.hairline
+                },
                 shape = shape,
             )
+            .semantics {
+                role = Role.Button
+                contentDescription = keyContentDescription
+            }
             .combinedClickable(
+                enabled = isEnabled,
                 onClick = { onKey(key) },
-                onLongClick = { if (key is CalcKey.Backspace) onBackspaceLong() },
-            ),
+                onLongClickLabel = if (isBackspaceKey) clearAllLabel else null,
+                onLongClick = { if (isBackspaceKey) onBackspaceLong() },
+            )
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         when (key) {
@@ -182,14 +247,14 @@ private fun KeyCell(
                     text = "=",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (isEnabled) MaterialTheme.colorScheme.primary else contentColor,
                 )
             }
 
             CalcKey.Backspace -> {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.Backspace,
-                    contentDescription = stringResource(R.string.content_description_backspace),
+                    contentDescription = null,
                     tint = contentColor,
                     modifier = Modifier.size(22.dp),
                 )
@@ -206,10 +271,11 @@ private fun KeyCell(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = dateLabel,
-                        fontSize = 9.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = contentColor,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -225,10 +291,11 @@ private fun KeyCell(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = noteLabel.ifBlank { stringResource(R.string.transaction_field_note) },
-                        fontSize = 9.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = contentColor,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -247,6 +314,7 @@ private fun KeyCell(
                         fontWeight = FontWeight.Bold,
                         color = contentColor,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

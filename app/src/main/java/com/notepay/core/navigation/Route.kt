@@ -21,6 +21,13 @@ sealed interface Route {
             const val ARG_ID = "id"
         }
     }
+    data class SharedWalletMembers(val walletId: Long) : Route {
+        override val path = "shared-wallet-members/$walletId"
+        companion object {
+            const val ROUTE = "shared-wallet-members/{walletId}"
+            const val ARG_WALLET_ID = "walletId"
+        }
+    }
     data object Utilities : Route { override val path = "utilities" }
     data object DebtManagement : Route { override val path = "debt-management" }
     data class DebtDetail(val id: Long) : Route {

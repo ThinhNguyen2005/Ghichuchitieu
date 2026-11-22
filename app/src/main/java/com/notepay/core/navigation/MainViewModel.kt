@@ -3,17 +3,24 @@ package com.notepay.core.navigation
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.datastore.AppSettingsDataStore
-import com.notepay.domain.model.AuthUser
-import com.notepay.domain.repository.AuthRepository
-import com.notepay.core.platform.widget.WidgetConstants
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackgroundConfig
+import com.notepay.core.designsystem.formatter.MoneyFormatConfig
+import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.platform.LocaleHelper
+import com.notepay.core.platform.widget.WidgetConstants
+import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.data.remote.CurrencyRateRepository
+import com.notepay.domain.model.AuthUser
+import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,7 +38,10 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val appSettingsDataStore: AppSettingsDataStore,
     private val authRepository: AuthRepository,
+    private val currencyRateRepository: CurrencyRateRepository,
 ) : ViewModel() {
+
+    private val _ratesSnapshot = MutableStateFlow(currencyRateRepository.offlineFallbackSnapshot())
 
     data class InitialAppearance(
         val themeMode: String,
@@ -58,9 +68,15 @@ class MainViewModel @Inject constructor(
     private val _pendingRoute = MutableStateFlow<String?>(null)
     val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
 
+    private val authStateFlow = authRepository.observeAuthState().shareIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        replay = 1,
+    )
+
     val startDestination: StateFlow<String?> = combine(
         appSettingsDataStore.hasSeenWelcome,
-        authRepository.observeAuthState()
+        authStateFlow,
     ) { hasSeenWelcome, user ->
         if (!hasSeenWelcome && user == null) {
             Route.Welcome.path
@@ -73,10 +89,10 @@ class MainViewModel @Inject constructor(
         initialValue = null,
     )
 
-    val authUser: StateFlow<AuthUser?> = authRepository.observeAuthState().stateIn(
+    val authUser: StateFlow<AuthUser?> = authStateFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = authRepository.currentUser,
+        initialValue = null,
     )
 
     fun completeWelcome() {
@@ -96,6 +112,53 @@ class MainViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = true,
     )
+
+    val appBackgroundConfig: StateFlow<AppAtmosphericBackgroundConfig> = combine(
+        appSettingsDataStore.homeBackgroundPreset,
+        appSettingsDataStore.homeBackgroundImagePath,
+        appSettingsDataStore.homeBackgroundBlurEnabled,
+    ) { presetId, customPath, blurEnabled ->
+        AppAtmosphericBackgroundConfig(
+            presetId = presetId,
+            customImagePath = customPath,
+            blurEnabled = blurEnabled,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = AppAtmosphericBackgroundConfig(),
+    )
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            currencyRateRepository.readCachedSnapshot()?.let { cached ->
+                _ratesSnapshot.value = cached
+            }
+            _ratesSnapshot.value = currencyRateRepository.getVndRatesOrFallback()
+        }
+        viewModelScope.launch {
+            combine(
+                appSettingsDataStore.currencyCode,
+                appSettingsDataStore.currencySymbolPosition,
+                appSettingsDataStore.currencyThousandSeparator,
+                _ratesSnapshot,
+            ) { code, position, separator, snapshot ->
+                MoneyFormatConfig(
+                    currencyCode = code,
+                    symbolPosition = position,
+                    thousandSeparator = separator,
+                    ratePerVnd = CurrencyConverter.ratePerVnd(code, snapshot.rates),
+                )
+            }.collect { cfg ->
+                MoneyFormatter.updateConfig(
+                    currencyCode = cfg.currencyCode,
+                    symbolPosition = cfg.symbolPosition,
+                    thousandSeparator = cfg.thousandSeparator,
+                    ratePerVnd = cfg.ratePerVnd,
+                )
+            }
+        }
+    }
 
     fun handleIncomingIntent(intent: Intent?) {
         val navigateTo = intent?.getStringExtra(WidgetConstants.EXTRA_NAVIGATE_TO)
