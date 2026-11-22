@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Sync
@@ -72,8 +73,11 @@ import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.CurrencyConverter
+import com.notepay.domain.model.SharedWalletRole
 import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.money.Money
+import com.notepay.domain.shared.SharedWalletPermissionGuard
+import com.notepay.feature.assets.shared.RoleBadge
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -589,6 +593,7 @@ internal fun WalletAssetCard(
     onSetDefault: () -> Unit,
     onPayCard: (() -> Unit)? = null,
     onAdjustBalance: (() -> Unit)? = null,
+    onManageMembers: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val performHaptic = rememberNotePayHaptic()
@@ -708,7 +713,12 @@ internal fun WalletAssetCard(
                             )
                         }
 
-                        if (wallet.purpose != WalletPurpose.PERSONAL) {
+                        if (wallet.isShared) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            RoleBadge(role = wallet.sharedRole ?: SharedWalletRole.VIEWER)
+                        }
+
+                        if (wallet.purpose != WalletPurpose.PERSONAL && !wallet.isShared) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = AppTheme.shapes.corner12,
@@ -794,15 +804,17 @@ internal fun WalletAssetCard(
                     }
                 }
 
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(AppTheme.dimensions.minTouchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit,
-                        contentDescription = stringResource(R.string.action_edit_wallet),
-                        tint = AppTheme.colors.textSecondary,
-                    )
+                if (!wallet.isShared || SharedWalletPermissionGuard.canManageMembers(wallet)) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(AppTheme.dimensions.minTouchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = stringResource(R.string.action_edit_wallet),
+                            tint = AppTheme.colors.textSecondary,
+                        )
+                    }
                 }
             }
 
@@ -1021,18 +1033,39 @@ internal fun WalletAssetCard(
                 }
             }
 
-            // Hàng Action nhanh (Thanh toán thẻ / Cập nhật số dư / Đặt làm ví chính)
+            // Hàng Action nhanh (Thanh toán thẻ / Cập nhật số dư / Thành viên / Đặt làm ví chính)
             val canPayCard = wallet.type.isCreditCardOrLine && item.balance.amountInCents < 0L && onPayCard != null
             val canAdjustBalance = (wallet.type.isInvestment || wallet.type.name == "SAVINGS") && onAdjustBalance != null
+            val canShowMembers = wallet.isShared && onManageMembers != null
             val canSetDefault = !wallet.isActive && !wallet.isArchived
 
-            if (canPayCard || canAdjustBalance || canSetDefault) {
+            if (listOf(canPayCard, canAdjustBalance, canShowMembers, canSetDefault).any { it }) {
                 Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (canShowMembers) {
+                        OutlinedButton(
+                            onClick = { onManageMembers() },
+                            shape = AppTheme.shapes.capsule,
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Group,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.shared_wallet_members_action),
+                                style = AppTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
                     if (canPayCard) {
                         OutlinedButton(
                             onClick = { onPayCard() },

@@ -89,6 +89,9 @@ fun MainTabPager(
                 onWalletClick = { walletId ->
                     navController.navigate("${Route.TransactionList.path}?walletId=$walletId")
                 },
+                onOpenSharedMembers = { walletId ->
+                    navController.navigate(Route.SharedWalletMembers(walletId).path)
+                },
                 onFeedback = showFeedback,
                 onNavigateToDebtManagement = {
                     navController.navigate(Route.DebtManagement.path) {

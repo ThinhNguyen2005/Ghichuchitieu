@@ -42,6 +42,7 @@ data class HomeUiState(
     val dueRemindersCount: Int = 0,
     val streakDays: Int = 0,
     val isSmartInsightsDismissed: Boolean = false,
+    val currentUserId: String? = null,
 ) {
     val selectedWalletSummary: WalletSummary?
         get() = walletsSummary.find { it.wallet.id == selectedWalletId }

@@ -16,6 +16,7 @@ import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.TransferBetweenWalletsUseCase
@@ -50,7 +51,25 @@ class AssetsViewModel @Inject constructor(
     private val getDebtSummaryUseCase: GetDebtSummaryUseCase,
     private val transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
     private val currencyRateRepository: CurrencyRateRepository,
+    private val sharedWalletRepository: SharedWalletRepository?,
 ) : ViewModel() {
+
+    internal constructor(
+        context: Context,
+        walletRepository: WalletRepository,
+        transactionRepository: TransactionRepository,
+        getDebtSummaryUseCase: GetDebtSummaryUseCase,
+        transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
+        currencyRateRepository: CurrencyRateRepository,
+    ) : this(
+        context = context,
+        walletRepository = walletRepository,
+        transactionRepository = transactionRepository,
+        getDebtSummaryUseCase = getDebtSummaryUseCase,
+        transferBetweenWalletsUseCase = transferBetweenWalletsUseCase,
+        currencyRateRepository = currencyRateRepository,
+        sharedWalletRepository = null,
+    )
 
     private val _transferForm = MutableStateFlow(TransferFormState())
     private val retryVersion = MutableStateFlow(0)
@@ -58,6 +77,7 @@ class AssetsViewModel @Inject constructor(
     private val _adjustBalanceWallet = MutableStateFlow<WalletAssetItem?>(null)
     private val _ratesSnapshot = MutableStateFlow<CurrencyRateSnapshot?>(null)
     private val _selectedPurpose = MutableStateFlow<WalletPurpose?>(null)
+    private val _isSharedActionSubmitting = MutableStateFlow(false)
 
     val transferForm: StateFlow<TransferFormState> = _transferForm.asStateFlow()
 
@@ -66,16 +86,32 @@ class AssetsViewModel @Inject constructor(
             val snapshot = runCatching { currencyRateRepository.getVndRates() }.getOrNull()
             _ratesSnapshot.value = snapshot
         }
+        if (sharedWalletRepository?.isCloudConfigured == true) {
+            viewModelScope.launch {
+                runCatching { sharedWalletRepository.startRealtimeSync() }
+            }
+        }
     }
 
-    val state: StateFlow<AssetsUiState> = combine(observeAssets(), _selectedPurpose) { base, purpose ->
+    val state: StateFlow<AssetsUiState> = combine(
+        observeAssets(),
+        _selectedPurpose,
+        _isSharedActionSubmitting,
+    ) { base, purpose, sharedSubmitting ->
+        val cloudConfigured = sharedWalletRepository?.isCloudConfigured == true
         if (base.isLoading || base.hasError || purpose == null) {
-            base.copy(selectedPurpose = purpose)
+            base.copy(
+                selectedPurpose = purpose,
+                isCloudConfigured = cloudConfigured,
+                isSharedActionSubmitting = sharedSubmitting,
+            )
         } else {
             base.copy(
                 selectedPurpose = purpose,
                 assetWallets = base.assetWallets.filter { it.wallet.purpose == purpose },
                 liabilityWallets = base.liabilityWallets.filter { it.wallet.purpose == purpose },
+                isCloudConfigured = cloudConfigured,
+                isSharedActionSubmitting = sharedSubmitting,
             )
         }
     }.stateIn(
@@ -265,6 +301,81 @@ class AssetsViewModel @Inject constructor(
 
     fun onPurposeFilterChanged(purpose: WalletPurpose?) {
         _selectedPurpose.value = purpose
+    }
+
+    fun createSharedWallet(
+        name: String,
+        currencyCode: String,
+        monthlyBudgetMinor: Long?,
+        onCreated: (Long) -> Unit = {},
+    ) {
+        val repo = sharedWalletRepository ?: return
+        if (_isSharedActionSubmitting.value) return
+        _isSharedActionSubmitting.value = true
+        viewModelScope.launch {
+            try {
+                val result = repo.createSharedWallet(name, currencyCode, monthlyBudgetMinor)
+                result.fold(
+                    onSuccess = { wallet ->
+                        runCatching { repo.startRealtimeSync() }
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_create_success, wallet.name),
+                                type = FeedbackType.Success,
+                            ),
+                        )
+                        onCreated(wallet.id)
+                    },
+                    onFailure = { err ->
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_action_failed, err.message.orEmpty()),
+                                type = FeedbackType.Error,
+                            ),
+                        )
+                    },
+                )
+            } finally {
+                _isSharedActionSubmitting.value = false
+            }
+        }
+    }
+
+    fun joinSharedWallet(
+        inviteCode: String,
+        displayName: String,
+        onJoined: (Long) -> Unit = {},
+    ) {
+        val repo = sharedWalletRepository ?: return
+        if (_isSharedActionSubmitting.value) return
+        _isSharedActionSubmitting.value = true
+        viewModelScope.launch {
+            try {
+                val result = repo.joinWalletByCode(inviteCode, displayName)
+                result.fold(
+                    onSuccess = { wallet ->
+                        runCatching { repo.startRealtimeSync() }
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_join_success, wallet.name),
+                                type = FeedbackType.Success,
+                            ),
+                        )
+                        onJoined(wallet.id)
+                    },
+                    onFailure = { err ->
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(R.string.shared_wallet_action_failed, err.message.orEmpty()),
+                                type = FeedbackType.Error,
+                            ),
+                        )
+                    },
+                )
+            } finally {
+                _isSharedActionSubmitting.value = false
+            }
+        }
     }
 
     fun onAllocationModeChanged(mode: AllocationMode) {
