@@ -44,7 +44,7 @@ googleServices = "4.4.2"
 detekt = "2.0.0-alpha.6"
 supabase = "3.2.2"
 ktor = "3.2.2"
-kotlinxSerializationJson = "1.9.0"
+kotlinxSerializationJson = "1.13.0"
 
 [libraries]
 backdrop = { group = "io.github.kyant0", name = "backdrop-android", version.ref = "backdrop" }
