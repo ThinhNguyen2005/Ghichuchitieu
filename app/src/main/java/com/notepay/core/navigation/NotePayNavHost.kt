@@ -43,6 +43,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.notepay.feature.transaction.natural.NaturalEntryBottomSheet
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.navigation.compose.composable
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -103,6 +104,7 @@ fun NotePayNavHost(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
+    var showNaturalEntrySheet by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -116,6 +118,7 @@ fun NotePayNavHost(
     LaunchedEffect(isMainTab) {
         if (!isMainTab) {
             showQuickAddSheet = false
+            showNaturalEntrySheet = false
         }
     }
 
@@ -330,6 +333,9 @@ fun NotePayNavHost(
                                     launchSingleTop = true
                                 }
                             },
+                            onNavigateToNaturalTextEntry = {
+                                showNaturalEntrySheet = true
+                            },
                             onNavigateToAddDebt = {
                                 navController.navigate(Route.DebtManagement.withCreate()) {
                                     launchSingleTop = true
@@ -344,6 +350,15 @@ fun NotePayNavHost(
                                 navController.navigate(Route.Subscription.path) {
                                     launchSingleTop = true
                                 }
+                            },
+                        )
+                    }
+
+                    if (showNaturalEntrySheet) {
+                        NaturalEntryBottomSheet(
+                            onDismiss = { showNaturalEntrySheet = false },
+                            onFeedback = { feedback ->
+                                coroutineScope.launch { showFeedback(feedback) }
                             },
                         )
                     }

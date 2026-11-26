@@ -81,6 +81,39 @@ class SuggestCategoryUseCaseTest {
         assertThat(request.tokens).containsExactly("rare", "merchant")
     }
 
+    @Test
+    fun `suggest classifies everyday Vietnamese notes across expanded rules`() {
+        assertThat(useCase.suggest("ăn cơm", isIncome = false)).isEqualTo(Category.FOOD)
+        assertThat(useCase.suggest("trà đá", isIncome = false)).isEqualTo(Category.FOOD)
+        assertThat(useCase.suggest("bạc xỉu", isIncome = false)).isEqualTo(Category.COFFEE)
+        assertThat(useCase.suggest("tập gym", isIncome = false)).isEqualTo(Category.SPORTS)
+        assertThat(useCase.suggest("đánh cầu lông", isIncome = false)).isEqualTo(Category.SPORTS)
+        assertThat(useCase.suggest("sửa xe thay nhớt", isIncome = false)).isEqualTo(Category.REPAIR)
+        assertThat(useCase.suggest("mua áo khoác", isIncome = false)).isEqualTo(Category.CLOTHES)
+        assertThat(useCase.suggest("cắt tóc", isIncome = false)).isEqualTo(Category.BEAUTY)
+        assertThat(useCase.suggest("đóng mạng vnpt", isIncome = false)).isEqualTo(Category.INTERNET)
+        assertThat(useCase.suggest("mua đồ tạp hóa", isIncome = false)).isEqualTo(Category.SHOPPING)
+    }
+
+    @Test
+    fun `suggest matches built-in and registered custom category displayName`() {
+        assertThat(useCase.suggest("giải trí cuối tuần", isIncome = false)).isEqualTo(Category.ENTERTAINMENT)
+
+        val custom = Category(
+            id = "CUSTOM_MILK_TEA",
+            displayName = "Trà sữa đặc biệt",
+            colorArgb = 0xFF8D6E63L,
+            isIncome = false,
+            isCustom = true,
+        )
+        try {
+            Category.registerCustomCategories(listOf(custom))
+            assertThat(useCase.suggest("trà sữa đặc biệt", isIncome = false)).isEqualTo(custom)
+        } finally {
+            Category.registerCustomCategories(emptyList())
+        }
+    }
+
     private class InMemoryCategoryLearningStore : CategoryLearningStore {
         private val snapshots = mutableMapOf<CategoryLearningType, CategoryLearningSnapshot>()
         private val exactMatches = mutableMapOf<Pair<CategoryLearningType, String>, CategoryLearningMatch>()
