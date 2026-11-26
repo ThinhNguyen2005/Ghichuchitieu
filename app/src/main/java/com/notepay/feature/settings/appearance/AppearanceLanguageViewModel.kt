@@ -1,11 +1,14 @@
 package com.notepay.feature.settings.appearance
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.core.platform.LocaleHelper
 import com.notepay.core.platform.OsCompatHelper
+import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.data.local.HomeBackgroundStorage
+import com.notepay.feature.home.HomeBackgroundPreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +25,17 @@ data class AppearanceLanguageUiState(
     val isLiquidGlassSupported: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
     val appLanguage: String = "system",
+    val backgroundPreset: HomeBackgroundPreset = HomeBackgroundPreset.WARM_SILK,
+    val customBackgroundPath: String? = null,
+    val backgroundBlurEnabled: Boolean = false,
+    val isSmartTipsDismissed: Boolean = false,
+)
+
+private data class HomeCustomizationPrefs(
+    val backgroundPreset: HomeBackgroundPreset,
+    val customBackgroundPath: String?,
+    val backgroundBlurEnabled: Boolean,
+    val isSmartTipsDismissed: Boolean,
 )
 
 @HiltViewModel
@@ -30,7 +44,7 @@ class AppearanceLanguageViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    val uiState: StateFlow<AppearanceLanguageUiState> = combine(
+    private val basePrefsFlow = combine(
         appSettingsDataStore.themeMode,
         appSettingsDataStore.themeColor,
         appSettingsDataStore.liquidGlassEnabled,
@@ -44,6 +58,38 @@ class AppearanceLanguageViewModel @Inject constructor(
             isLiquidGlassSupported = OsCompatHelper.supportsLiquidGlass(),
             hapticFeedbackEnabled = hapticEnabled,
             appLanguage = LocaleHelper.normalizeLanguageCode(lang),
+        )
+    }
+
+    private val homePrefsFlow = combine(
+        appSettingsDataStore.homeBackgroundPreset,
+        appSettingsDataStore.homeBackgroundImagePath,
+        appSettingsDataStore.homeBackgroundBlurEnabled,
+        appSettingsDataStore.homeSmartTipsDismissed,
+    ) { presetId, imagePath, blurEnabled, smartTipsDismissed ->
+        val rawPreset = HomeBackgroundPreset.fromId(presetId)
+        val resolvedPreset = if (rawPreset == HomeBackgroundPreset.CUSTOM && imagePath.isNullOrBlank()) {
+            HomeBackgroundPreset.WARM_SILK
+        } else {
+            rawPreset
+        }
+        HomeCustomizationPrefs(
+            backgroundPreset = resolvedPreset,
+            customBackgroundPath = imagePath,
+            backgroundBlurEnabled = blurEnabled,
+            isSmartTipsDismissed = smartTipsDismissed,
+        )
+    }
+
+    val uiState: StateFlow<AppearanceLanguageUiState> = combine(
+        basePrefsFlow,
+        homePrefsFlow,
+    ) { base, home ->
+        base.copy(
+            backgroundPreset = home.backgroundPreset,
+            customBackgroundPath = home.customBackgroundPath,
+            backgroundBlurEnabled = home.backgroundBlurEnabled,
+            isSmartTipsDismissed = home.isSmartTipsDismissed,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -82,6 +128,51 @@ class AppearanceLanguageViewModel @Inject constructor(
             val normalized = LocaleHelper.normalizeLanguageCode(language)
             appSettingsDataStore.setAppLanguage(normalized)
             LocaleHelper.applyLocale(context, normalized)
+        }
+    }
+
+    fun selectBackgroundPreset(preset: HomeBackgroundPreset) {
+        viewModelScope.launch {
+            appSettingsDataStore.setHomeBackgroundPreset(preset.id)
+        }
+    }
+
+    fun setBackgroundBlurEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setHomeBackgroundBlurEnabled(enabled)
+        }
+    }
+
+    fun setSmartInsightsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsDataStore.setHomeSmartTipsDismissed(!enabled)
+        }
+    }
+
+    fun applyCustomBackground(
+        uri: Uri,
+        onResult: (Boolean) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val previousPath = uiState.value.customBackgroundPath
+            val saved = HomeBackgroundStorage.saveFromUri(context, uri)
+            saved.onSuccess { newPath ->
+                appSettingsDataStore.setHomeBackgroundCustomImage(newPath)
+                if (previousPath != null && previousPath != newPath) {
+                    HomeBackgroundStorage.deleteCustomBackground(previousPath)
+                }
+                onResult(true)
+            }.onFailure {
+                onResult(false)
+            }
+        }
+    }
+
+    fun clearCustomBackground() {
+        viewModelScope.launch {
+            val previousPath = uiState.value.customBackgroundPath
+            appSettingsDataStore.setHomeBackgroundCustomImage(null)
+            HomeBackgroundStorage.deleteCustomBackground(previousPath)
         }
     }
 }

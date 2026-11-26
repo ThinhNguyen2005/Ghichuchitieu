@@ -18,8 +18,8 @@ data class LiquidGlassCompatibility(
 object OsCompatHelper {
     fun supportsLiquidGlass(
         sdkInt: Int = Build.VERSION.SDK_INT,
-        manufacturer: String = Build.MANUFACTURER,
-        brand: String = Build.BRAND,
+        manufacturer: String = Build.MANUFACTURER.orEmpty(),
+        brand: String = Build.BRAND.orEmpty(),
     ): Boolean = liquidGlassCompatibility(
         sdkInt = sdkInt,
         release = Build.VERSION.RELEASE.orEmpty(),
@@ -32,8 +32,8 @@ object OsCompatHelper {
     fun liquidGlassCompatibility(
         sdkInt: Int = Build.VERSION.SDK_INT,
         release: String = Build.VERSION.RELEASE.orEmpty(),
-        manufacturer: String = Build.MANUFACTURER,
-        brand: String = Build.BRAND,
+        manufacturer: String = Build.MANUFACTURER.orEmpty(),
+        brand: String = Build.BRAND.orEmpty(),
         model: String = Build.MODEL.orEmpty(),
         isHardwareAccelerated: Boolean,
     ): LiquidGlassCompatibility {

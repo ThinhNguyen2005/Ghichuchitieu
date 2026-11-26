@@ -232,10 +232,269 @@ val IosDarkColorScheme: ColorScheme = darkColorScheme(
 )
 
 // ==========================================
+// Theme Palettes: Emerald, Ocean, Lavender
+// ==========================================
+val EmeraldInk = Color(0xFF0D5C43)
+val EmeraldOnInk = Color(0xFFFFFFFF)
+val EmeraldLightBg = Color(0xFFEFF6F2)
+val EmeraldLightSurface = Color(0xFFFFFFFF)
+val EmeraldLightField = Color(0xFFE6F2EC)
+val EmeraldLightBorder = Color(0xFFB3CCC0)
+val EmeraldLightBorderSoft = Color(0xFFC8DDD2)
+val EmeraldSecondary = Color(0xFF2F6B58)
+val EmeraldAccentLight = Color(0xFFA7F3D0)
+val EmeraldOnAccentLight = Color(0xFF063B2B)
+
+val EmeraldDarkBg = Color(0xFF0E1613)
+val EmeraldDarkSurface = Color(0xFF16221D)
+val EmeraldDarkLow = Color(0xFF121C18)
+val EmeraldDarkCard = Color(0xFF1E2E27)
+val EmeraldDarkInk = Color(0xFF144D39)
+val EmeraldDarkAccent = Color(0xFF5EEAD4)
+val EmeraldDarkOnAccent = Color(0xFF052E26)
+val EmeraldDarkText = Color(0xFFEAF4EF)
+val EmeraldDarkTextSecondary = Color(0xFFA2C0B3)
+val EmeraldDarkBorder = Color(0xFF2C4238)
+
+val OceanInk = Color(0xFF154A8A)
+val OceanOnInk = Color(0xFFFFFFFF)
+val OceanLightBg = Color(0xFFEDF3FA)
+val OceanLightSurface = Color(0xFFFFFFFF)
+val OceanLightField = Color(0xFFE4EEF9)
+val OceanLightBorder = Color(0xFFB4C8DE)
+val OceanLightBorderSoft = Color(0xFFC9D9EB)
+val OceanSecondary = Color(0xFF3B5F8A)
+val OceanAccentLight = Color(0xFFBBD9FF)
+val OceanOnAccentLight = Color(0xFF0C294D)
+
+val OceanDarkBg = Color(0xFF0D141E)
+val OceanDarkSurface = Color(0xFF151F2D)
+val OceanDarkLow = Color(0xFF111925)
+val OceanDarkCard = Color(0xFF1D2A3D)
+val OceanDarkInk = Color(0xFF1B3B66)
+val OceanDarkAccent = Color(0xFF7CB8FF)
+val OceanDarkOnAccent = Color(0xFF08203E)
+val OceanDarkText = Color(0xFFEAF2FC)
+val OceanDarkTextSecondary = Color(0xFFA3B8D4)
+val OceanDarkBorder = Color(0xFF2A3B54)
+
+val LavenderInk = Color(0xFF54338A)
+val LavenderOnInk = Color(0xFFFFFFFF)
+val LavenderLightBg = Color(0xFFF4F0FA)
+val LavenderLightSurface = Color(0xFFFFFFFF)
+val LavenderLightField = Color(0xFFECE5F7)
+val LavenderLightBorder = Color(0xFFC5B9DB)
+val LavenderLightBorderSoft = Color(0xFFD7CEE8)
+val LavenderSecondary = Color(0xFF6B5291)
+val LavenderAccentLight = Color(0xFFDEC8FF)
+val LavenderOnAccentLight = Color(0xFF2B1452)
+
+val LavenderDarkBg = Color(0xFF14101D)
+val LavenderDarkSurface = Color(0xFF1D1729)
+val LavenderDarkLow = Color(0xFF181322)
+val LavenderDarkCard = Color(0xFF271F37)
+val LavenderDarkInk = Color(0xFF3E266B)
+val LavenderDarkAccent = Color(0xFFC9A8FF)
+val LavenderDarkOnAccent = Color(0xFF220E42)
+val LavenderDarkText = Color(0xFFF2ECFC)
+val LavenderDarkTextSecondary = Color(0xFFBCB0D4)
+val LavenderDarkBorder = Color(0xFF382D4F)
+
+val EmeraldLightColorScheme: ColorScheme = lightColorScheme(
+    primary = EmeraldInk,
+    onPrimary = EmeraldOnInk,
+    primaryContainer = EmeraldAccentLight,
+    onPrimaryContainer = EmeraldOnAccentLight,
+    secondary = EmeraldSecondary,
+    onSecondary = EmeraldOnInk,
+    secondaryContainer = EmeraldLightField,
+    onSecondaryContainer = SandLightTextPrimary,
+    tertiary = EmeraldSecondary,
+    onTertiary = EmeraldOnInk,
+    background = EmeraldLightBg,
+    onBackground = SandLightTextPrimary,
+    surface = EmeraldLightSurface,
+    onSurface = SandLightTextPrimary,
+    surfaceVariant = EmeraldLightField,
+    onSurfaceVariant = SandLightTextSecondary,
+    surfaceContainerLowest = EmeraldLightSurface,
+    surfaceContainerLow = EmeraldLightField,
+    surfaceContainer = EmeraldLightField,
+    surfaceContainerHigh = EmeraldLightSurface,
+    surfaceContainerHighest = EmeraldLightBorderSoft,
+    outline = EmeraldLightBorder,
+    outlineVariant = EmeraldLightBorderSoft,
+    error = SandExpense,
+    onError = SandLightOnError,
+    errorContainer = SandLightErrorContainer,
+    onErrorContainer = SandExpense,
+)
+
+val EmeraldDarkColorScheme: ColorScheme = darkColorScheme(
+    primary = EmeraldDarkAccent,
+    onPrimary = EmeraldDarkOnAccent,
+    primaryContainer = EmeraldDarkInk,
+    onPrimaryContainer = EmeraldDarkText,
+    secondary = EmeraldDarkTextSecondary,
+    onSecondary = EmeraldDarkBg,
+    secondaryContainer = EmeraldDarkCard,
+    onSecondaryContainer = EmeraldDarkText,
+    tertiary = EmeraldDarkAccent,
+    onTertiary = EmeraldDarkOnAccent,
+    background = EmeraldDarkBg,
+    onBackground = EmeraldDarkText,
+    surface = EmeraldDarkSurface,
+    onSurface = EmeraldDarkText,
+    surfaceVariant = EmeraldDarkCard,
+    onSurfaceVariant = EmeraldDarkTextSecondary,
+    surfaceContainerLowest = EmeraldDarkLow,
+    surfaceContainerLow = EmeraldDarkSurface,
+    surfaceContainer = EmeraldDarkCard,
+    surfaceContainerHigh = EmeraldDarkBorder,
+    surfaceContainerHighest = EmeraldDarkBorder,
+    outline = EmeraldDarkBorder,
+    outlineVariant = EmeraldDarkBorder,
+    error = SandDarkExpense,
+    onError = SandDarkOnExpense,
+    errorContainer = SandDarkErrorContainer,
+    onErrorContainer = SandDarkOnErrorContainer,
+)
+
+val OceanLightColorScheme: ColorScheme = lightColorScheme(
+    primary = OceanInk,
+    onPrimary = OceanOnInk,
+    primaryContainer = OceanAccentLight,
+    onPrimaryContainer = OceanOnAccentLight,
+    secondary = OceanSecondary,
+    onSecondary = OceanOnInk,
+    secondaryContainer = OceanLightField,
+    onSecondaryContainer = SandLightTextPrimary,
+    tertiary = OceanSecondary,
+    onTertiary = OceanOnInk,
+    background = OceanLightBg,
+    onBackground = SandLightTextPrimary,
+    surface = OceanLightSurface,
+    onSurface = SandLightTextPrimary,
+    surfaceVariant = OceanLightField,
+    onSurfaceVariant = SandLightTextSecondary,
+    surfaceContainerLowest = OceanLightSurface,
+    surfaceContainerLow = OceanLightField,
+    surfaceContainer = OceanLightField,
+    surfaceContainerHigh = OceanLightSurface,
+    surfaceContainerHighest = OceanLightBorderSoft,
+    outline = OceanLightBorder,
+    outlineVariant = OceanLightBorderSoft,
+    error = SandExpense,
+    onError = SandLightOnError,
+    errorContainer = SandLightErrorContainer,
+    onErrorContainer = SandExpense,
+)
+
+val OceanDarkColorScheme: ColorScheme = darkColorScheme(
+    primary = OceanDarkAccent,
+    onPrimary = OceanDarkOnAccent,
+    primaryContainer = OceanDarkInk,
+    onPrimaryContainer = OceanDarkText,
+    secondary = OceanDarkTextSecondary,
+    onSecondary = OceanDarkBg,
+    secondaryContainer = OceanDarkCard,
+    onSecondaryContainer = OceanDarkText,
+    tertiary = OceanDarkAccent,
+    onTertiary = OceanDarkOnAccent,
+    background = OceanDarkBg,
+    onBackground = OceanDarkText,
+    surface = OceanDarkSurface,
+    onSurface = OceanDarkText,
+    surfaceVariant = OceanDarkCard,
+    onSurfaceVariant = OceanDarkTextSecondary,
+    surfaceContainerLowest = OceanDarkLow,
+    surfaceContainerLow = OceanDarkSurface,
+    surfaceContainer = OceanDarkCard,
+    surfaceContainerHigh = OceanDarkBorder,
+    surfaceContainerHighest = OceanDarkBorder,
+    outline = OceanDarkBorder,
+    outlineVariant = OceanDarkBorder,
+    error = SandDarkExpense,
+    onError = SandDarkOnExpense,
+    errorContainer = SandDarkErrorContainer,
+    onErrorContainer = SandDarkOnErrorContainer,
+)
+
+val LavenderLightColorScheme: ColorScheme = lightColorScheme(
+    primary = LavenderInk,
+    onPrimary = LavenderOnInk,
+    primaryContainer = LavenderAccentLight,
+    onPrimaryContainer = LavenderOnAccentLight,
+    secondary = LavenderSecondary,
+    onSecondary = LavenderOnInk,
+    secondaryContainer = LavenderLightField,
+    onSecondaryContainer = SandLightTextPrimary,
+    tertiary = LavenderSecondary,
+    onTertiary = LavenderOnInk,
+    background = LavenderLightBg,
+    onBackground = SandLightTextPrimary,
+    surface = LavenderLightSurface,
+    onSurface = SandLightTextPrimary,
+    surfaceVariant = LavenderLightField,
+    onSurfaceVariant = SandLightTextSecondary,
+    surfaceContainerLowest = LavenderLightSurface,
+    surfaceContainerLow = LavenderLightField,
+    surfaceContainer = LavenderLightField,
+    surfaceContainerHigh = LavenderLightSurface,
+    surfaceContainerHighest = LavenderLightBorderSoft,
+    outline = LavenderLightBorder,
+    outlineVariant = LavenderLightBorderSoft,
+    error = SandExpense,
+    onError = SandLightOnError,
+    errorContainer = SandLightErrorContainer,
+    onErrorContainer = SandExpense,
+)
+
+val LavenderDarkColorScheme: ColorScheme = darkColorScheme(
+    primary = LavenderDarkAccent,
+    onPrimary = LavenderDarkOnAccent,
+    primaryContainer = LavenderDarkInk,
+    onPrimaryContainer = LavenderDarkText,
+    secondary = LavenderDarkTextSecondary,
+    onSecondary = LavenderDarkBg,
+    secondaryContainer = LavenderDarkCard,
+    onSecondaryContainer = LavenderDarkText,
+    tertiary = LavenderDarkAccent,
+    onTertiary = LavenderDarkOnAccent,
+    background = LavenderDarkBg,
+    onBackground = LavenderDarkText,
+    surface = LavenderDarkSurface,
+    onSurface = LavenderDarkText,
+    surfaceVariant = LavenderDarkCard,
+    onSurfaceVariant = LavenderDarkTextSecondary,
+    surfaceContainerLowest = LavenderDarkLow,
+    surfaceContainerLow = LavenderDarkSurface,
+    surfaceContainer = LavenderDarkCard,
+    surfaceContainerHigh = LavenderDarkBorder,
+    surfaceContainerHighest = LavenderDarkBorder,
+    outline = LavenderDarkBorder,
+    outlineVariant = LavenderDarkBorder,
+    error = SandDarkExpense,
+    onError = SandDarkOnExpense,
+    errorContainer = SandDarkErrorContainer,
+    onErrorContainer = SandDarkOnErrorContainer,
+)
+
+// Streak tier flame tokens
+val StreakSparkFlame = Color(0xFFE07A22)
+val StreakBlazeFlame = Color(0xFFEA580C)
+val StreakInfernoFlame = Color(0xFFD97706)
+val StreakFlameCore = Color(0xFFFFD166)
+val StreakInfernoDarkFlame = Color(0xFFF59E0B)
+
+// ==========================================
 // Theme Resolvers (mặc định "sand")
 // ==========================================
 fun getLightColorScheme(themeColor: String = "sand", context: Context? = null): ColorScheme {
     return when (themeColor) {
+        "emerald" -> EmeraldLightColorScheme
+        "ocean" -> OceanLightColorScheme
+        "lavender" -> LavenderLightColorScheme
         "ios" -> IosLightColorScheme
         "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
             dynamicLightColorScheme(context)
@@ -249,6 +508,9 @@ fun getLightColorScheme(themeColor: String = "sand", context: Context? = null): 
 
 fun getDarkColorScheme(themeColor: String = "sand", context: Context? = null): ColorScheme {
     return when (themeColor) {
+        "emerald" -> EmeraldDarkColorScheme
+        "ocean" -> OceanDarkColorScheme
+        "lavender" -> LavenderDarkColorScheme
         "ios" -> IosDarkColorScheme
         "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context != null) {
             dynamicDarkColorScheme(context)

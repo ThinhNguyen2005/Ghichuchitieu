@@ -16,15 +16,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,12 +33,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,7 +63,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,6 +82,7 @@ import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
 import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
 import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
 import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
+import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.model.Category
@@ -106,7 +101,6 @@ enum class StatsMetric { CHI_TIEU, THU_NHAP }
 internal fun StatsDashboard(
     state: StatsUiState,
     showAmounts: Boolean,
-    onOpenWalletPicker: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectRange: (StatsRange) -> Unit,
@@ -143,10 +137,7 @@ internal fun StatsDashboard(
     val contentGutter = LocalContentGutter.current
     val windowLayout = LocalWindowLayout.current
     // Compact/Medium có thanh điều hướng nổi ở đáy nên phải chừa chỗ; chế độ rail thì không.
-    val bottomClearance = if (windowLayout.usesNavigationRail) 24.dp else maxOf(
-        120.dp,
-        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
-    )
+    val bottomClearance = rememberMainTabBottomClearance(windowLayout.usesNavigationRail)
 
     if (windowLayout == WindowLayout.Expanded) {
         // Expanded: bộ lọc + thẻ Ink + biểu đồ bên trái, ngân sách/insights bên phải.
@@ -170,7 +161,6 @@ internal fun StatsDashboard(
                     breakdown = breakdown,
                     activeSelectedCategory = activeSelectedCategory,
                     selectedTransactions = selectedTransactions,
-                    onOpenWalletPicker = onOpenWalletPicker,
                     onMetricChanged = handleMetricChanged,
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
@@ -208,7 +198,6 @@ internal fun StatsDashboard(
                 breakdown = breakdown,
                 activeSelectedCategory = activeSelectedCategory,
                 selectedTransactions = selectedTransactions,
-                onOpenWalletPicker = onOpenWalletPicker,
                 onMetricChanged = handleMetricChanged,
                 onPreviousMonth = onPreviousMonth,
                 onNextMonth = onNextMonth,
@@ -228,7 +217,6 @@ private fun LazyListScope.statsMainItems(
     breakdown: List<CategoryBreakdownItem>,
     activeSelectedCategory: Category?,
     selectedTransactions: List<Transaction>,
-    onOpenWalletPicker: () -> Unit,
     onMetricChanged: (StatsMetric) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -239,7 +227,6 @@ private fun LazyListScope.statsMainItems(
     item(key = "stats-period-controls") {
         StatsPeriodControlBar(
             state = state,
-            onOpenWalletPicker = onOpenWalletPicker,
             onPreviousMonth = onPreviousMonth,
             onNextMonth = onNextMonth,
             onSelectRange = onSelectRange,
@@ -286,11 +273,10 @@ private fun LazyListScope.statsMainItems(
     }
 }
 
-/** Thanh chọn ví + chọn kỳ trung tính theo `filter-chip` v4 và bộ lùi/tiến kỳ gọn gàng. */
+/** Thanh chọn kỳ trung tính theo `filter-chip` v4 và bộ lùi/tiến kỳ gọn gàng. */
 @Composable
 private fun StatsPeriodControlBar(
     state: StatsUiState,
-    onOpenWalletPicker: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectRange: (StatsRange) -> Unit,
@@ -303,7 +289,6 @@ private fun StatsPeriodControlBar(
     )
     val selectedRange = state.currentPeriod?.range
     val hasArrows = selectedRange != StatsRange.ALL && selectedRange != StatsRange.CUSTOM
-    val compactTopRow = LocalDensity.current.fontScale < 1.35f && hasArrows
     val periodLabel = if (state.isCurrentMonth) {
         stringResource(R.string.stats_current_month)
     } else {
@@ -314,45 +299,16 @@ private fun StatsPeriodControlBar(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (state.wallets.isNotEmpty() && compactTopRow) {
-            Row(
+        if (hasArrows) {
+            StatsPeriodNavigatorPill(
+                periodLabel = periodLabel,
+                isLatestPeriod = state.isLatestPeriod,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                onJumpToCurrent = { selectedRange?.let(onSelectRange) },
+                fillLabel = true,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatsWalletFilterChip(
-                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
-                    onOpenWalletPicker = onOpenWalletPicker,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                StatsPeriodNavigatorPill(
-                    periodLabel = periodLabel,
-                    isLatestPeriod = state.isLatestPeriod,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
-                    fillLabel = false,
-                )
-            }
-        } else {
-            if (state.wallets.isNotEmpty()) {
-                StatsWalletFilterChip(
-                    walletLabel = state.selectedWallet?.name ?: stringResource(R.string.home_all_wallets),
-                    onOpenWalletPicker = onOpenWalletPicker,
-                )
-            }
-            if (hasArrows) {
-                StatsPeriodNavigatorPill(
-                    periodLabel = periodLabel,
-                    isLatestPeriod = state.isLatestPeriod,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onJumpToCurrent = { selectedRange?.let(onSelectRange) },
-                    fillLabel = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            )
         }
 
         val rangeBarBg = AppTheme.colors.surface.copy(
@@ -409,61 +365,6 @@ private fun StatsPeriodControlBar(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StatsWalletFilterChip(
-    walletLabel: String,
-    onOpenWalletPicker: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val selectWalletLabel = stringResource(R.string.home_select_wallet)
-    val pillShape = AppTheme.shapes.capsule
-    val containerColor = AppTheme.colors.surface.copy(
-        alpha = if (AppTheme.colors.isLight) 0.92f else 0.86f,
-    )
-
-    Surface(
-        onClick = onOpenWalletPicker,
-        shape = pillShape,
-        color = containerColor,
-        contentColor = AppTheme.colors.textPrimary,
-        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
-        modifier = modifier
-            .heightIn(min = AppTheme.dimensions.minTouchTarget)
-            .iosCardShadow(shape = pillShape, elevated = false)
-            .semantics(mergeDescendants = true) {
-                onClick(label = selectWalletLabel, action = null)
-            },
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.AccountBalanceWallet,
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = walletLabel,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            Icon(
-                imageVector = Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(18.dp),
-            )
         }
     }
 }
