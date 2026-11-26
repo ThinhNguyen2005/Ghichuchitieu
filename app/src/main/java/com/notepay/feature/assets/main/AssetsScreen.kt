@@ -21,13 +21,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -101,6 +99,7 @@ import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.core.designsystem.util.WalletUiHelper
 import com.notepay.core.navigation.NotePayStaggeredEntrance
+import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.core.navigation.shakeOnError
 import com.notepay.domain.model.CurrencyConverter
@@ -137,10 +136,7 @@ fun AssetsScreen(
     val transferForm by viewModel.transferForm.collectAsStateWithLifecycle()
     val reducedMotion = rememberNotePayReducedMotion()
     val contentGutter = LocalContentGutter.current
-    val bottomClearance = if (LocalWindowLayout.current.usesNavigationRail) 24.dp else maxOf(
-        120.dp,
-        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
-    )
+    val bottomClearance = rememberMainTabBottomClearance(LocalWindowLayout.current.usesNavigationRail)
 
     var isArchivedExpanded by remember { mutableStateOf(false) }
     var isExportSheetVisible by remember { mutableStateOf(false) }
@@ -193,7 +189,12 @@ fun AssetsScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
-                            .padding(AppTheme.dimensions.spaceLarge),
+                            .padding(
+                                start = AppTheme.dimensions.spaceLarge,
+                                top = AppTheme.dimensions.spaceLarge,
+                                end = AppTheme.dimensions.spaceLarge,
+                                bottom = bottomClearance,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         EmptyStateWithAction(
@@ -212,7 +213,12 @@ fun AssetsScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
-                            .padding(AppTheme.dimensions.spaceLarge),
+                            .padding(
+                                start = AppTheme.dimensions.spaceLarge,
+                                top = AppTheme.dimensions.spaceLarge,
+                                end = AppTheme.dimensions.spaceLarge,
+                                bottom = bottomClearance,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         EmptyStateWithAction(

@@ -27,11 +27,13 @@
 
     <!-- Quick add bottom sheet -->
     <string name="quick_add_title">Create new</string>
-    <string name="quick_add_expense_title">Add expense</string>
+    <string name="quick_add_expense_title">Add expense / income</string>
     <string name="quick_add_expense_desc">Record daily shopping, food, transport…</string>
+    <string name="quick_add_debt_title">Add debt entry</string>
+    <string name="quick_add_debt_desc">Record money lent or borrowed to track</string>
     <string name="quick_add_bill_split_title">Split bill</string>
     <string name="quick_add_bill_split_desc">Share meals, group purchases with friends</string>
-    <string name="quick_add_subscription_title">Add subscription</string>
+    <string name="quick_add_subscription_title">Renewal reminders</string>
     <string name="quick_add_subscription_desc">Schedule rent, Netflix, insurance…</string>
 
     <!-- Home screen -->

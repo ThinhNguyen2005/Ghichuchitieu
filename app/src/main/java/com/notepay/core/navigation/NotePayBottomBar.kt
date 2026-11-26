@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -66,6 +69,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -114,6 +118,20 @@ internal fun isMainTabRoute(route: String?): Boolean {
     if (route == null) return false
     return bottomTabs.any { tab ->
         route == tab.route.path || route.startsWith("${tab.route.path}?")
+    }
+}
+
+/**
+ * Shared bottom clearance for all main-tab scroll containers so cards, shadows, and empty states
+ * always sit comfortably above the persistent floating bottom bar (plus system navigation bar insets).
+ */
+@Composable
+fun rememberMainTabBottomClearance(useNavigationRail: Boolean): Dp {
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    return if (useNavigationRail) {
+        24.dp + navBarBottom
+    } else {
+        120.dp + navBarBottom
     }
 }
 
@@ -184,7 +202,6 @@ fun BoxScope.NotePayBottomBar(
     onTabSelected: (Route) -> Unit,
     onToggleQuickAdd: () -> Unit,
     modifier: Modifier = Modifier,
-    navigationBarOffsetProvider: () -> Float = { 0f },
     selectedTabIndex: Int? = null,
 ) {
     val performHaptic = rememberNotePayHaptic()
@@ -213,9 +230,6 @@ fun BoxScope.NotePayBottomBar(
             .zIndex(2f)
             .alpha(if (showQuickAddSheet) 0.92f else 1f)
             .align(Alignment.BottomCenter)
-            .graphicsLayer {
-                translationY = navigationBarOffsetProvider()
-            }
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .navigationBarsPadding(),
         verticalAlignment = Alignment.CenterVertically,

@@ -87,6 +87,8 @@ fun DebtManagementScreen(
     onBack: () -> Unit,
     onDebtClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    initialShowCreate: Boolean = false,
+    onClearShowCreate: () -> Unit = {},
     viewModel: DebtViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,6 +97,13 @@ fun DebtManagementScreen(
 
     var showCreateSheet by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialShowCreate) {
+        if (initialShowCreate) {
+            showCreateSheet = true
+            onClearShowCreate()
+        }
+    }
 
     // Tablet/foldable: danh sách bên trái, chi tiết bên phải. Lựa chọn phải sống sót qua
     // xoay máy và resize cửa sổ nên dùng rememberSaveable thay vì remember.
