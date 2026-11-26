@@ -116,7 +116,7 @@ object NotificationHelper {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_BUDGET_ALERTS)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
@@ -158,7 +158,7 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_WEEKLY_DIGEST)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
