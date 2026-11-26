@@ -30,7 +30,6 @@ backdrop = "2.0.0"
 coil = "3.2.0"
 mlkitGenaiPrompt = "1.0.0-beta4"
 mlkitTextRecognition = "19.0.1"
-generativeAi = "0.9.0"
 firebaseCrashlyticsBuildtools = "3.0.8"
 material3 = "1.4.0"
 # Material 3 Adaptive: WindowSizeClass + Posture cho layout tablet/foldable.
@@ -86,7 +85,6 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashScreen" }
 mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mlkit-text-recognition = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition", version.ref = "mlkitTextRecognition" }
-google-ai-client = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeAi" }
 
 # Coroutines & DateTime
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

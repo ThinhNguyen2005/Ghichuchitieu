@@ -1,8 +1,6 @@
 package com.notepay.ai
 
 import android.content.Context
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.generationConfig
 import com.notepay.R
 import com.notepay.data.datastore.AiSettingsDataStore
 import com.notepay.di.IoDispatcher
@@ -27,14 +25,32 @@ data class SmartReceiptExtractionResult(
 )
 
 @Singleton
-class CloudGeminiAdvisor @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+class CloudGeminiAdvisor internal constructor(
+    private val context: Context,
     private val aiSettings: AiSettingsDataStore,
     private val geminiNanoAdvisor: GeminiNanoBudgetAdvisor,
-    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
+    private val restClient: GeminiRestClient,
 ) {
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        aiSettings: AiSettingsDataStore,
+        geminiNanoAdvisor: GeminiNanoBudgetAdvisor,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ) : this(
+        context = context,
+        aiSettings = aiSettings,
+        geminiNanoAdvisor = geminiNanoAdvisor,
+        ioDispatcher = ioDispatcher,
+        restClient = GeminiRestClient(),
+    )
+
     companion object {
         private const val TIMEOUT_MILLIS = 15_000L
+        private const val TEST_MAX_OUTPUT_TOKENS = 256
+        private const val ADVISOR_MAX_OUTPUT_TOKENS = 512
+        private const val RECEIPT_MAX_OUTPUT_TOKENS = 300
     }
 
     internal var isOfflineFlavor: Boolean = false
@@ -52,6 +68,14 @@ class CloudGeminiAdvisor @Inject constructor(
     }
 
     private fun sanitizeAiErrorMessage(e: Exception?): String {
+        if (e is GeminiApiException) {
+            if (e.isInvalidApiKey()) {
+                return "Google Gemini API Key không hợp lệ. Vui lòng kiểm tra lại mã API key."
+            }
+            if (e.httpStatus == 404 || e.apiStatus == "NOT_FOUND") {
+                return "Mô hình AI cũ không còn khả dụng trên Google Cloud. Hệ thống đã tự động chuyển sang ${AiSettingsDataStore.DEFAULT_MODEL}. Vui lòng thử lại."
+            }
+        }
         val raw = e?.message.orEmpty()
         return when {
             raw.contains("GrpcError") || raw.contains("404") || raw.contains("no longer available") ->
@@ -73,17 +97,15 @@ class CloudGeminiAdvisor @Inject constructor(
 
         for (modelName in modelsToTry) {
             try {
-                val model = GenerativeModel(
-                    modelName = modelName,
-                    apiKey = cleanKey,
-                    generationConfig = generationConfig {
-                        temperature = 0.2f
-                        maxOutputTokens = 50
-                    },
-                )
                 val text = withTimeout(TIMEOUT_MILLIS.milliseconds) {
-                    val response = model.generateContent("Chào bạn, hãy trả lời đúng 2 từ: Sẵn sàng.")
-                    response.text.orEmpty().trim()
+                    restClient.generateContent(
+                        modelName = modelName,
+                        apiKey = cleanKey,
+                        prompt = "Chào bạn, hãy trả lời đúng 2 từ: Sẵn sàng.",
+                        temperature = 0.2,
+                        maxOutputTokens = TEST_MAX_OUTPUT_TOKENS,
+                        timeoutMillis = TIMEOUT_MILLIS.toInt(),
+                    )
                 }
                 if (text.isNotBlank()) {
                     if (modelName != modelsToTry.first()) {
@@ -95,6 +117,9 @@ class CloudGeminiAdvisor @Inject constructor(
                 throw cancelled
             } catch (e: Exception) {
                 lastException = e
+                if (e is GeminiApiException && e.isInvalidApiKey()) {
+                    break
+                }
             }
         }
 
@@ -116,17 +141,15 @@ class CloudGeminiAdvisor @Inject constructor(
         for (modelName in modelsToTry) {
             try {
                 return@withContext withTimeout(TIMEOUT_MILLIS.milliseconds) {
-                    val model = GenerativeModel(
+                    val prompt = geminiNanoAdvisor.buildPrompt(input)
+                    val rawText = restClient.generateContent(
                         modelName = modelName,
                         apiKey = apiKey,
-                        generationConfig = generationConfig {
-                            temperature = 0.2f
-                            maxOutputTokens = 220
-                        },
+                        prompt = prompt,
+                        temperature = 0.2,
+                        maxOutputTokens = ADVISOR_MAX_OUTPUT_TOKENS,
+                        timeoutMillis = TIMEOUT_MILLIS.toInt(),
                     )
-                    val prompt = geminiNanoAdvisor.buildPrompt(input)
-                    val response = model.generateContent(prompt)
-                    val rawText = response.text.orEmpty().trim()
 
                     val parsed = AdvisorResponseParser.parse(rawText)
                         ?: AdvisorResponseParser.parseLenient(
@@ -150,6 +173,9 @@ class CloudGeminiAdvisor @Inject constructor(
                 throw cancelled
             } catch (e: Exception) {
                 lastException = e
+                if (e is GeminiApiException && e.isInvalidApiKey()) {
+                    break
+                }
             }
         }
         throw IllegalStateException(sanitizeAiErrorMessage(lastException), lastException)
@@ -165,15 +191,6 @@ class CloudGeminiAdvisor @Inject constructor(
         for (modelName in modelsToTry) {
             try {
                 val result = withTimeout(TIMEOUT_MILLIS.milliseconds) {
-                    val model = GenerativeModel(
-                        modelName = modelName,
-                        apiKey = apiKey,
-                        generationConfig = generationConfig {
-                            temperature = 0.1f
-                            maxOutputTokens = 200
-                            responseMimeType = "application/json"
-                        },
-                    )
                     val prompt = """
                         Bạn là hệ thống trích xuất biên lai / hóa đơn chuyển khoản ngân hàng Việt Nam.
                         Từ văn bản OCR dưới đây, hãy trích xuất:
@@ -185,8 +202,15 @@ class CloudGeminiAdvisor @Inject constructor(
                         $ocrText
                     """.trimIndent()
 
-                    val response = model.generateContent(prompt)
-                    val raw = response.text.orEmpty().trim()
+                    val raw = restClient.generateContent(
+                        modelName = modelName,
+                        apiKey = apiKey,
+                        prompt = prompt,
+                        temperature = 0.1,
+                        maxOutputTokens = RECEIPT_MAX_OUTPUT_TOKENS,
+                        responseMimeType = "application/json",
+                        timeoutMillis = TIMEOUT_MILLIS.toInt(),
+                    )
                     if (raw.isBlank()) return@withTimeout null
 
                     val json = JSONObject(raw)
@@ -210,7 +234,10 @@ class CloudGeminiAdvisor @Inject constructor(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is GeminiApiException && e.isInvalidApiKey()) {
+                    return@withContext null
+                }
                 // Continue to next candidate model
             }
         }
