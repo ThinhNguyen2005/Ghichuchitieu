@@ -1,8 +1,5 @@
 package com.notepay.ai
 
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.Schema
-import com.google.ai.client.generativeai.type.generationConfig
 import com.notepay.data.datastore.AiSettingsDataStore
 import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Category
@@ -33,28 +30,29 @@ fun interface NaturalAiJsonGenerator {
         modelName: String,
         apiKey: String,
         prompt: String,
-        schema: Schema<*>,
+        schema: JSONObject,
     ): String?
 }
 
-private class GeminiNaturalAiJsonGenerator : NaturalAiJsonGenerator {
+private class GeminiNaturalAiJsonGenerator(
+    private val restClient: GeminiRestClient = GeminiRestClient(),
+) : NaturalAiJsonGenerator {
     override suspend fun generateStructuredJson(
         modelName: String,
         apiKey: String,
         prompt: String,
-        schema: Schema<*>,
+        schema: JSONObject,
     ): String? {
-        val model = GenerativeModel(
+        return restClient.generateContent(
             modelName = modelName,
             apiKey = apiKey,
-            generationConfig = generationConfig {
-                temperature = 0.1f
-                maxOutputTokens = 512
-                responseMimeType = "application/json"
-                responseSchema = schema
-            },
-        )
-        return model.generateContent(prompt).text
+            prompt = prompt,
+            temperature = 0.1,
+            maxOutputTokens = 512,
+            responseMimeType = "application/json",
+            responseSchema = schema,
+            timeoutMillis = 8_000,
+        ).takeIf { it.isNotBlank() }
     }
 }
 
@@ -221,22 +219,67 @@ class AiNaturalTransactionParser internal constructor(
     private companion object {
         const val AI_TIMEOUT_MILLIS = 8_000L
 
-        val RESPONSE_SCHEMA: Schema<*> = Schema.obj(
-            "natural_parse_response",
-            "Parsed Vietnamese natural language transactions",
-            Schema.arr(
-                "transactions",
-                "Extracted list of financial transactions",
-                Schema.obj(
-                    "transaction",
-                    "Single extracted transaction",
-                    Schema.long("amountVnd", "Positive integer amount in VND"),
-                    Schema.enum("type", "Transaction type", listOf("EXPENSE", "INCOME")),
-                    Schema.str("categoryId", "Matching NotePay category id"),
-                    Schema.str("note", "Short clean Vietnamese note"),
-                    Schema.str("dateIso", "Date in YYYY-MM-DD format"),
+        val RESPONSE_SCHEMA: JSONObject = JSONObject().apply {
+            put("type", "OBJECT")
+            put("description", "Parsed Vietnamese natural language transactions")
+            put(
+                "properties",
+                JSONObject().put(
+                    "transactions",
+                    JSONObject().apply {
+                        put("type", "ARRAY")
+                        put("description", "Extracted list of financial transactions")
+                        put(
+                            "items",
+                            JSONObject().apply {
+                                put("type", "OBJECT")
+                                put("description", "Single extracted transaction")
+                                put(
+                                    "properties",
+                                    JSONObject().apply {
+                                        put(
+                                            "amountVnd",
+                                            JSONObject()
+                                                .put("type", "INTEGER")
+                                                .put("description", "Positive integer amount in VND"),
+                                        )
+                                        put(
+                                            "type",
+                                            JSONObject()
+                                                .put("type", "STRING")
+                                                .put("description", "Transaction type")
+                                                .put("enum", JSONArray(listOf("EXPENSE", "INCOME"))),
+                                        )
+                                        put(
+                                            "categoryId",
+                                            JSONObject()
+                                                .put("type", "STRING")
+                                                .put("description", "Matching NotePay category id"),
+                                        )
+                                        put(
+                                            "note",
+                                            JSONObject()
+                                                .put("type", "STRING")
+                                                .put("description", "Short clean Vietnamese note"),
+                                        )
+                                        put(
+                                            "dateIso",
+                                            JSONObject()
+                                                .put("type", "STRING")
+                                                .put("description", "Date in YYYY-MM-DD format"),
+                                        )
+                                    },
+                                )
+                                put(
+                                    "required",
+                                    JSONArray(listOf("amountVnd", "type", "categoryId", "note", "dateIso")),
+                                )
+                            },
+                        )
+                    },
                 ),
-            ),
-        )
+            )
+            put("required", JSONArray(listOf("transactions")))
+        }
     }
 }
