@@ -82,6 +82,9 @@ object VietnameseAmountParser {
         val normRange: IntRange,
     )
 
+    private val MULTI_UNIT_MILLION_THOUSAND_REGEX = Regex(
+        """\b(\d+)\s*(?:trieu|tr|cu|chai)\s+(\d{1,3})\s*(?:ngan|nghin|k)\b""",
+    )
     private val COMPOUND_MILLION_REGEX = Regex("""\b(\d+)\s*(trieu|tr|cu|chai)(\d{1,2})\b""")
     private val COMPOUND_THOUSAND_REGEX = Regex("""\b(\d+)\s*(ngan|nghin|k)(\d{1,2})\b""")
     private val HALF_EXPRESSION_REGEX = Regex("""\bnua\s+(ty|ti|trieu|tr|cu|chai|xi|lit|tram\s*(?:ngan|nghin|k))\b""")
@@ -157,6 +160,13 @@ object VietnameseAmountParser {
     }
 
     private fun collectCompoundMatches(norm: String, out: MutableList<CandidateMatch>) {
+        MULTI_UNIT_MILLION_THOUSAND_REGEX.findAll(norm).forEach { match ->
+            val whole = match.groupValues[1].toLongOrNull() ?: return@forEach
+            val thousands = match.groupValues[2].toLongOrNull() ?: return@forEach
+            if (thousands !in 1L..999L) return@forEach
+            val total = safeAdd(safeMul(whole, 1_000_000L), safeMul(thousands, 1_000L))
+            if (isValidMajorAmount(total)) out.add(CandidateMatch(total, match.range))
+        }
         COMPOUND_MILLION_REGEX.findAll(norm).forEach { match ->
             val whole = match.groupValues[1].toLongOrNull() ?: return@forEach
             val fracDigits = match.groupValues[3]

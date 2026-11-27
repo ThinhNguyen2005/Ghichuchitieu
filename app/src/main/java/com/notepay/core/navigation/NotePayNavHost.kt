@@ -4,7 +4,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,25 +27,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.notepay.feature.transaction.natural.NaturalEntryBottomSheet
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.navigation.compose.composable
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -56,6 +53,7 @@ import com.notepay.R
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.NotePayAdaptive
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
+import com.notepay.core.designsystem.component.action.CreateNewBottomSheet
 import com.notepay.core.designsystem.component.button.FloatingAddButton
 import com.notepay.core.designsystem.component.effect.LocalNotePayBackdrop
 import com.notepay.feature.billsplit.billSplitGraph
@@ -104,9 +102,9 @@ fun NotePayNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val isMainTab = isMainTabRoute(currentRoute)
     val snackbarHostState = remember { SnackbarHostState() }
-    val barHeightPx = with(LocalDensity.current) { 104.dp.toPx() }
-    val navigationBarOffsetState = remember { mutableFloatStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
+    var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
+    var showNaturalEntrySheet by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -117,42 +115,10 @@ fun NotePayNavHost(
         }
     }
 
-    LaunchedEffect(currentRoute, pagerState.currentPage) {
-        navigationBarOffsetState.floatValue = 0f
-    }
-
-    val nestedScrollConnection = remember(barHeightPx, isMainTab) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (isMainTab) {
-                    val delta = available.y
-                    navigationBarOffsetState.floatValue =
-                        (navigationBarOffsetState.floatValue - delta).coerceIn(0f, barHeightPx)
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (isMainTab) {
-                    val currentOffset = navigationBarOffsetState.floatValue
-                    val targetOffset = if (currentOffset > barHeightPx / 2f) barHeightPx else 0f
-                    if (reducedMotion) {
-                        navigationBarOffsetState.floatValue = targetOffset
-                    } else {
-                        coroutineScope.launch {
-                            Animatable(currentOffset).animateTo(
-                                targetValue = targetOffset,
-                                animationSpec = tween(
-                                    durationMillis = NotePayMotion.navigationBarSettleDurationMillis
-                                )
-                            ) {
-                                navigationBarOffsetState.floatValue = this.value
-                            }
-                        }
-                    }
-                }
-                return super.onPostFling(consumed, available)
-            }
+    LaunchedEffect(isMainTab) {
+        if (!isMainTab) {
+            showQuickAddSheet = false
+            showNaturalEntrySheet = false
         }
     }
 
@@ -190,12 +156,12 @@ fun NotePayNavHost(
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.padding(bottom = if (useNavigationRail) 16.dp else 104.dp)
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = if (useNavigationRail) 16.dp else 104.dp)
             )
         },
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollConnection)
+        modifier = Modifier.fillMaxSize()
     ) { padding ->
         CompositionLocalProvider(
             LocalNotePayBackdrop provides backdrop,
@@ -337,13 +303,9 @@ fun NotePayNavHost(
                         )
                         // Rail không có chỗ cho FAB nên nút Thêm nhanh về góc dưới - phải.
                         FloatingAddButton(
-                            expanded = false,
+                            expanded = showQuickAddSheet,
                             contentDescription = stringResource(R.string.quick_add_open_menu),
-                            onClick = {
-                                navController.navigate(Route.AddTransaction.path) {
-                                    launchSingleTop = true
-                                }
-                            },
+                            onClick = { showQuickAddSheet = !showQuickAddSheet },
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .zIndex(2f)
@@ -354,16 +316,49 @@ fun NotePayNavHost(
                         NotePayBottomBar(
                             currentRoute = currentRoute,
                             selectedTabIndex = pagerState.targetPage,
-                            navigationBarOffsetProvider = { navigationBarOffsetState.floatValue },
-                            showQuickAddSheet = false,
+                            showQuickAddSheet = showQuickAddSheet,
                             useNavigationGlass = useNavigationGlass,
                             reducedMotion = reducedMotion,
                             backdrop = backdrop,
                             onTabSelected = navigateToRootTab,
-                            onToggleQuickAdd = {
+                            onToggleQuickAdd = { showQuickAddSheet = !showQuickAddSheet },
+                        )
+                    }
+
+                    if (showQuickAddSheet) {
+                        CreateNewBottomSheet(
+                            onDismissRequest = { showQuickAddSheet = false },
+                            onNavigateToAddTransaction = {
                                 navController.navigate(Route.AddTransaction.path) {
                                     launchSingleTop = true
                                 }
+                            },
+                            onNavigateToNaturalTextEntry = {
+                                showNaturalEntrySheet = true
+                            },
+                            onNavigateToAddDebt = {
+                                navController.navigate(Route.DebtManagement.withCreate()) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToBillSplit = {
+                                navController.navigate(Route.BillSplit.path) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToSubscription = {
+                                navController.navigate(Route.Subscription.path) {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
+
+                    if (showNaturalEntrySheet) {
+                        NaturalEntryBottomSheet(
+                            onDismiss = { showNaturalEntrySheet = false },
+                            onFeedback = { feedback ->
+                                coroutineScope.launch { showFeedback(feedback) }
                             },
                         )
                     }

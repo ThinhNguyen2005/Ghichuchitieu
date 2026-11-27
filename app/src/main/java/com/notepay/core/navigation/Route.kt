@@ -7,11 +7,19 @@ sealed interface Route {
 
     data object Welcome : Route { override val path = "welcome" }
     data object Home : Route { override val path = "home" }
-    data object AddTransaction : Route { override val path = "add-transaction" }
+    data object AddTransaction : Route {
+        override val path = "add-transaction"
+    }
     data object TransactionList : Route { override val path = "list" }
     data object Stats : Route { override val path = "stats" }
-    data object BillSplit : Route { override val path = "bill-split" }
-    data object Subscription : Route { override val path = "subscription" }
+    data object BillSplit : Route {
+        override val path = "bill-split"
+        fun withCreate(): String = "bill-split?showCreate=true"
+    }
+    data object Subscription : Route {
+        override val path = "subscription"
+        fun withCreate(): String = "subscription?showCreate=true"
+    }
     data object Assets : Route { override val path = "assets" }
     data object AddWallet : Route { override val path = "add-wallet" }
     data class EditWallet(val id: Long) : Route {
@@ -29,7 +37,12 @@ sealed interface Route {
         }
     }
     data object Utilities : Route { override val path = "utilities" }
-    data object DebtManagement : Route { override val path = "debt-management" }
+    data object DebtManagement : Route {
+        override val path = "debt-management"
+        const val ROUTE = "debt-management?showCreate={showCreate}"
+        const val ARG_SHOW_CREATE = "showCreate"
+        fun withCreate(): String = "debt-management?showCreate=true"
+    }
     data class DebtDetail(val id: Long) : Route {
         override val path = "debt-detail/$id"
         companion object {

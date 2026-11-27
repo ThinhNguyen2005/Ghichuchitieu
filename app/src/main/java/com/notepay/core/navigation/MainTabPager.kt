@@ -62,6 +62,21 @@ fun MainTabPager(
                     }
                 },
                 onAddWallet = { navController.navigate(Route.AddWallet.path) },
+                onOpenBillSplit = {
+                    navController.navigate(Route.BillSplit.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenDebtManagement = {
+                    navController.navigate(Route.DebtManagement.path) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenSubscription = {
+                    navController.navigate(Route.Subscription.path) {
+                        launchSingleTop = true
+                    }
+                },
                 onTransactionClick = { txId ->
                     navController.navigate(Route.TransactionDetail(txId).path)
                 },

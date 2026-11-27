@@ -3,6 +3,7 @@ package com.notepay.core.designsystem.component.action
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,8 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -33,9 +34,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.isAppDarkTheme
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 @Composable
 fun CreateNewActionCard(
@@ -45,66 +49,82 @@ fun CreateNewActionCard(
     title: String,
     description: String,
     accentColor: Color,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val transitionState = remember { MutableTransitionState(visible) }
+    val reducedMotion = rememberNotePayReducedMotion()
+    val transitionState = remember { MutableTransitionState(if (reducedMotion) visible else false) }
     transitionState.targetState = visible
     val transition = rememberTransition(transitionState = transitionState, label = "createAction$index")
     val alpha by transition.animateFloat(
         transitionSpec = {
-            tween(durationMillis = if (targetState) 150 else 100, delayMillis = if (targetState) 35 + index * 35 else 0)
+            if (reducedMotion) snap()
+            else tween(durationMillis = if (targetState) 150 else 100, delayMillis = if (targetState) 30 + index * 30 else 0)
         },
         label = "actionAlpha",
     ) { if (it) 1f else 0f }
     val translationY by transition.animateFloat(
         transitionSpec = {
-            tween(durationMillis = if (targetState) 170 else 100, delayMillis = if (targetState) 35 + index * 35 else 0)
+            if (reducedMotion) snap()
+            else tween(durationMillis = if (targetState) 170 else 100, delayMillis = if (targetState) 30 + index * 30 else 0)
         },
         label = "actionTranslation",
     ) { if (it) 0f else 14f }
     val shape = AppTheme.shapes.corner20
     val actionTranslationPx = with(LocalDensity.current) { 14.dp.toPx() }
+    val iconContainerAlpha = if (isAppDarkTheme()) 0.24f else 0.14f
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp)
+            .defaultMinSize(minHeight = 64.dp)
+            .graphicsLayer {
+                this.alpha = alpha
+                this.translationY = translationY / 14f * actionTranslationPx
+            }
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .background(AppTheme.colors.surfaceSunken)
             .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.64f),
+                width = 0.5.dp,
+                color = AppTheme.colors.hairline,
                 shape = shape,
             )
             .semantics(mergeDescendants = true) { role = Role.Button }
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-            .then(
-                Modifier.graphicsLayer {
-                    this.alpha = alpha
-                    this.translationY = translationY / 14f * actionTranslationPx
-                },
-            ),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(accentColor.copy(alpha = if (isAppDarkTheme()) 0.26f else 0.14f), AppTheme.shapes.corner16),
+                .background(accentColor.copy(alpha = iconContainerAlpha), AppTheme.shapes.corner16),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = null, tint = accentColor)
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         Icon(
             imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = AppTheme.colors.textSecondary,
         )
     }
 }

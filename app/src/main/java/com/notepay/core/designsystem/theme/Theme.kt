@@ -52,7 +52,9 @@ fun NotePayTheme(
         }
     }
 
-    val baseAppColors = if (darkTheme) DarkAppColors else LightAppColors
+    val baseAppColors = remember(darkTheme, themeColor, materialColorScheme) {
+        resolveAppColors(themeColor, darkTheme, materialColorScheme)
+    }
     val animationSpec: FiniteAnimationSpec<androidx.compose.ui.graphics.Color> =
         if (reduceMotion) snap() else tween(durationMillis = 250)
     val animatedBackground by animateColorAsState(
@@ -65,33 +67,56 @@ fun NotePayTheme(
         animationSpec = animationSpec,
         label = "theme-surface",
     )
+    val animatedSurfaceSunken by animateColorAsState(
+        baseAppColors.surfaceSunken,
+        animationSpec = animationSpec,
+        label = "theme-surface-sunken",
+    )
     val animatedSurfaceContainer by animateColorAsState(
         materialColorScheme.surfaceContainer,
         animationSpec = animationSpec,
         label = "theme-surface-container",
+    )
+    val animatedPrimary by animateColorAsState(
+        baseAppColors.primary,
+        animationSpec = animationSpec,
+        label = "theme-primary",
     )
     val animatedInk by animateColorAsState(
         baseAppColors.ink,
         animationSpec = animationSpec,
         label = "theme-ink",
     )
+    val animatedOnInk by animateColorAsState(
+        baseAppColors.onInk,
+        animationSpec = animationSpec,
+        label = "theme-on-ink",
+    )
     val animatedSand by animateColorAsState(
         baseAppColors.sand,
         animationSpec = animationSpec,
         label = "theme-sand",
     )
+    val animatedOnSand by animateColorAsState(
+        baseAppColors.onSand,
+        animationSpec = animationSpec,
+        label = "theme-on-sand",
+    )
     val animatedColorScheme = materialColorScheme.copy(
+        primary = animatedPrimary,
         background = animatedBackground,
         surface = animatedSurface,
         surfaceContainer = animatedSurfaceContainer,
     )
     val appColors = baseAppColors.copy(
-        primary = materialColorScheme.primary,
-        secondary = materialColorScheme.secondary,
+        primary = animatedPrimary,
         background = animatedBackground,
         surface = animatedSurface,
+        surfaceSunken = animatedSurfaceSunken,
         ink = animatedInk,
+        onInk = animatedOnInk,
         sand = animatedSand,
+        onSand = animatedOnSand,
     )
 
     val appTypography = DefaultAppTypography

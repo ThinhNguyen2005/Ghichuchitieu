@@ -49,12 +49,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.adaptive.LocalWindowLayout
+import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
 import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.money.Money
 import com.notepay.feature.assets.export.ExportReportBottomSheet
@@ -65,7 +68,6 @@ import com.notepay.feature.stats.main.component.StatsDashboard
 import com.notepay.feature.stats.main.component.StatsMetric
 import com.notepay.feature.subscription.main.AddSubscriptionDialogState
 import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
-import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 
 /**
  * Chuẩn hóa số liệu thẳng hàng dọc (Tabular figures).
@@ -107,7 +109,6 @@ fun StatsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
     var showAmounts by rememberSaveable { mutableStateOf(true) }
-    var isWalletPickerOpen by rememberSaveable { mutableStateOf(false) }
     var isExportSheetVisible by rememberSaveable { mutableStateOf(false) }
     val reducedMotion = rememberNotePayReducedMotion()
 
@@ -125,6 +126,7 @@ fun StatsScreen(
 
         Column(modifier = Modifier.fillMaxSize()) {
             StatsEditorialHeader(
+                primaryWalletName = state.selectedWallet?.name,
                 showAmounts = showAmounts,
                 onExportClick = { isExportSheetVisible = true },
                 onToggleAmounts = { showAmounts = !showAmounts },
@@ -152,7 +154,6 @@ fun StatsScreen(
                         StatsDashboard(
                             state = state,
                             showAmounts = showAmounts,
-                            onOpenWalletPicker = { isWalletPickerOpen = true },
                             onPreviousMonth = viewModel::previousPeriod,
                             onNextMonth = viewModel::nextPeriod,
                             onSelectRange = viewModel::selectRange,
@@ -200,16 +201,6 @@ fun StatsScreen(
         )
     }
 
-    if (isWalletPickerOpen) {
-        WalletPickerSheet(
-            wallets = state.wallets,
-            selectedWalletId = state.selectedWallet?.id,
-            onWalletSelected = viewModel::selectWallet,
-            onAllWalletsSelected = { viewModel.selectWallet(null) },
-            onDismiss = { isWalletPickerOpen = false },
-        )
-    }
-
     if (isExportSheetVisible) {
         ExportReportBottomSheet(
             onDismiss = { isExportSheetVisible = false },
@@ -220,6 +211,7 @@ fun StatsScreen(
 
 @Composable
 private fun StatsEditorialHeader(
+    primaryWalletName: String?,
     showAmounts: Boolean,
     onExportClick: () -> Unit,
     onToggleAmounts: () -> Unit,
@@ -235,16 +227,25 @@ private fun StatsEditorialHeader(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(R.string.stats_screen_title),
-            style = AppTheme.typography.displaySerif,
-            color = AppTheme.colors.textPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() },
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.stats_screen_title),
+                style = AppTheme.typography.displaySerif,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
+            if (!primaryWalletName.isNullOrBlank()) {
+                Text(
+                    text = primaryWalletName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
 
         Surface(
             onClick = onExportClick,
@@ -340,10 +341,11 @@ private fun StatsLoadingState() {
 
 @Composable
 private fun StatsEmptyState() {
+    val bottomClearance = rememberMainTabBottomClearance(LocalWindowLayout.current.usesNavigationRail)
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 24.dp),
+            .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = bottomClearance),
         contentAlignment = Alignment.Center,
     ) {
         EmptyStateWithAction(

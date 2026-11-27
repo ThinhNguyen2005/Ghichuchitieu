@@ -17,12 +17,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -90,6 +88,7 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.NotePayStaggeredEntrance
+import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.AuthUser
@@ -119,10 +118,7 @@ fun UtilitiesScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Tablet: lề bù để danh sách một cột không vượt quá 840dp. Bằng 0dp trên điện thoại.
     val contentGutter = LocalContentGutter.current
-    val bottomClearance = if (LocalWindowLayout.current.usesNavigationRail) 24.dp else maxOf(
-        120.dp,
-        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
-    )
+    val bottomClearance = rememberMainTabBottomClearance(LocalWindowLayout.current.usesNavigationRail)
 
     LaunchedEffect(authViewModel, onFeedback) {
         authViewModel.feedback.collect { feedback -> onFeedback(feedback) }

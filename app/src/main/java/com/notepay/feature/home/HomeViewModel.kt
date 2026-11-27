@@ -1,13 +1,11 @@
 package com.notepay.feature.home
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.LegacyAiModelCleaner
 import com.notepay.data.datastore.AppSettingsDataStore
-import com.notepay.data.local.HomeBackgroundStorage
 import com.notepay.domain.analytics.HomeSmartTipGenerator
 import com.notepay.domain.analytics.SmartTipInput
 import com.notepay.domain.analytics.SmartTipItem
@@ -27,6 +25,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -75,17 +74,10 @@ class HomeViewModel @Inject constructor(
     private val _selectedMonth = MutableStateFlow(
         currentLocalDateTime().let { it.year to it.month.number }
     )
-    private val _selectedWalletFilterId = MutableStateFlow<Long?>(null)
 
     fun dismissSmartInsights() {
         viewModelScope.launch {
             appSettingsDataStore.setHomeSmartTipsDismissed(true)
-        }
-    }
-
-    fun setSmartInsightsEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setHomeSmartTipsDismissed(!enabled)
         }
     }
 
@@ -101,49 +93,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun selectBackgroundPreset(preset: HomeBackgroundPreset) {
-        viewModelScope.launch {
-            appSettingsDataStore.setHomeBackgroundPreset(preset.id)
-        }
-    }
-
-    fun setBackgroundBlurEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsDataStore.setHomeBackgroundBlurEnabled(enabled)
-        }
-    }
-
-    fun applyCustomBackground(
-        uri: Uri,
-        onResult: (Boolean) -> Unit,
-    ) {
-        viewModelScope.launch {
-            val previousPath = state.value.customBackgroundPath
-            val saved = HomeBackgroundStorage.saveFromUri(context, uri)
-            saved.onSuccess { newPath ->
-                appSettingsDataStore.setHomeBackgroundCustomImage(newPath)
-                if (previousPath != null && previousPath != newPath) {
-                    HomeBackgroundStorage.deleteCustomBackground(previousPath)
-                }
-                onResult(true)
-            }.onFailure {
-                onResult(false)
-            }
-        }
-    }
-
-    fun clearCustomBackground() {
-        viewModelScope.launch {
-            val previousPath = state.value.customBackgroundPath
-            appSettingsDataStore.setHomeBackgroundCustomImage(null)
-            HomeBackgroundStorage.deleteCustomBackground(previousPath)
-        }
-    }
-
     private data class HomeFilterState(
         val monthPair: Pair<Int, Int>,
-        val activeWallet: Wallet?,
-        val selectedFilterId: Long?,
+        val primaryWalletId: Long?,
     )
 
     private data class HomePrefsState(
@@ -190,11 +142,12 @@ class HomeViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val homeDataFlow = combine(
         _selectedMonth,
+        walletRepo.observeAll(),
         walletRepo.observeActive(),
-        _selectedWalletFilterId,
-    ) { monthPair, activeWallet, selectedFilterId ->
-        HomeFilterState(monthPair, activeWallet, selectedFilterId)
-    }.flatMapLatest { filter ->
+    ) { monthPair, wallets, activeWallet ->
+        val primaryWallet = activeWallet ?: wallets.firstOrNull()
+        HomeFilterState(monthPair, primaryWallet?.id)
+    }.distinctUntilChanged().flatMapLatest { filter ->
         val (year, month) = filter.monthPair
         val zone = TimeZone.currentSystemDefault()
         val firstDate = LocalDate(year, month, 1)
@@ -223,13 +176,13 @@ class HomeViewModel @Inject constructor(
         }
 
         combine(
-            getMonthlySummary(year, month, filter.selectedFilterId),
+            getMonthlySummary(year, month, filter.primaryWalletId),
             walletsSummaryFlow,
             subscriptionRepository.observeAll(),
             transactionRepo.observeAllCreatedDates(),
         ) { summary, walletsSummary, subscriptions, createdDates ->
             buildHomeDataSnapshot(
-                filter = filter,
+                primaryWalletId = filter.primaryWalletId,
                 summary = summary,
                 walletsSummary = walletsSummary,
                 subscriptions = subscriptions,
@@ -266,7 +219,7 @@ class HomeViewModel @Inject constructor(
     )
 
     private fun buildHomeDataSnapshot(
-        filter: HomeFilterState,
+        primaryWalletId: Long?,
         summary: GetMonthlySummaryUseCase.Summary,
         walletsSummary: List<WalletSummary>,
         subscriptions: List<com.notepay.domain.model.Subscription>,
@@ -274,7 +227,10 @@ class HomeViewModel @Inject constructor(
     ): HomeDataSnapshot {
         val today = currentLocalDateTime()
         val wallets = walletsSummary.map { it.wallet }
-        val validFilterId = filter.selectedFilterId?.takeIf { id -> wallets.any { it.id == id } }
+        val primaryWallet = primaryWalletId?.let { id -> wallets.find { it.id == id } }
+            ?: wallets.find { it.isActive }
+            ?: wallets.firstOrNull()
+        val validPrimaryId = primaryWallet?.id
 
         val now = Clock.System.now()
         val dueCount = subscriptions.count { sub ->
@@ -286,14 +242,13 @@ class HomeViewModel @Inject constructor(
             today = today.date,
         )
 
-        val targetWallet = validFilterId?.let { id -> wallets.find { it.id == id } }
         val projection = computeBudgetProjection(
-            budgetLimit = targetWallet?.budgetLimit,
+            budgetLimit = primaryWallet?.budgetLimit,
             totalExpense = summary.totalExpense,
             today = today,
         )
 
-        val activeSummary = walletsSummary.find { it.wallet.id == (validFilterId ?: filter.activeWallet?.id) }
+        val activeSummary = validPrimaryId?.let { id -> walletsSummary.find { it.wallet.id == id } }
         val epochDay = today.date.toEpochDays()
         val tipPool = HomeSmartTipGenerator.generatePool(
             SmartTipInput(
@@ -312,8 +267,8 @@ class HomeViewModel @Inject constructor(
         )
 
         val baseState = HomeUiState(
-            selectedWalletId = validFilterId,
-            activeWallet = filter.activeWallet,
+            selectedWalletId = validPrimaryId,
+            activeWallet = primaryWallet,
             wallets = wallets,
             walletsSummary = walletsSummary,
             currentBalance = activeSummary?.balance ?: Money.ZERO,
@@ -383,12 +338,6 @@ class HomeViewModel @Inject constructor(
             spentPercentage = spentPercentage,
             spentThisWallet = totalExpense,
         )
-    }
-
-    fun selectWallet(walletId: Long?) {
-        // Chỉ lọc giao dịch trên trang Home. Việc đặt ví mặc định (active wallet)
-        // thuộc về màn Assets để tránh side-effect ghi DB khi người dùng chỉ xem.
-        _selectedWalletFilterId.value = walletId
     }
 
     val hapticFeedbackEnabled = appSettingsDataStore.hapticFeedbackEnabled.stateIn(
