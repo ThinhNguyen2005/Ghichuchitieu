@@ -27,13 +27,16 @@ class AiSettingsDataStore @Inject constructor(
         val KEY_CLOUD_MODEL_NAME = stringPreferencesKey("cloud_model_name")
         val KEY_SMART_RECEIPT_AI_ENABLED = booleanPreferencesKey("smart_receipt_ai_enabled")
 
-        const val DEFAULT_MODEL = "gemini-3.8-flash"
+        const val DEFAULT_MODEL = "gemini-2.5-flash"
 
         val AVAILABLE_MODELS = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite-preview",
+            "gemini-3.1-flash-lite",
             "gemini-3.8-flash",
             "gemini-3.6-flash",
-            "gemini-3.1-flash-lite",
-            "gemini-3-flash-preview",
         )
     }
 

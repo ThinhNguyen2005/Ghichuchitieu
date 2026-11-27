@@ -91,13 +91,13 @@ fun CreateNewBottomSheet(
             CreateNewActionCard(
                 visible = true,
                 index = 1,
-                icon = Icons.Rounded.Mic,
-                title = stringResource(R.string.quick_add_text_entry_title),
-                description = stringResource(R.string.quick_add_text_entry_desc),
-                accentColor = MaterialTheme.colorScheme.primary,
+                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                title = stringResource(R.string.quick_add_debt_title),
+                description = stringResource(R.string.quick_add_debt_desc),
+                accentColor = AppTheme.colors.warning,
                 onClick = {
                     onDismissRequest()
-                    onNavigateToNaturalTextEntry()
+                    onNavigateToAddDebt()
                 },
             )
 

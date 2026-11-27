@@ -265,8 +265,6 @@ dependencies {
 
     // Gemini Nano qua Android AICore: inference local, không gửi dữ liệu tài chính lên cloud.
     implementation(libs.mlkit.genai.prompt)
-    // Cloud AI fallback using official Google Generative AI Client (~300KB)
-    implementation(libs.google.ai.client)
     // OCR Latin bundled in the APK: runs fully offline for Vietnamese bank screenshots.
     implementation(libs.mlkit.text.recognition)
 
