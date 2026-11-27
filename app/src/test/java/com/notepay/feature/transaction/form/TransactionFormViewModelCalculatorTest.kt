@@ -6,7 +6,6 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
 import com.notepay.R
-import com.notepay.ai.HybridNaturalTransactionParser
 import com.notepay.ai.LocalTransactionImageScanner
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.navigation.Route
@@ -57,9 +56,6 @@ class TransactionFormViewModelCalculatorTest {
             every { suggestDetailed(any(), any()) } returns null
         }
         val imageScanner = mockk<LocalTransactionImageScanner>(relaxed = true)
-        val hybridNaturalParser = mockk<HybridNaturalTransactionParser>(relaxed = true) {
-            every { isAiConfiguredFlow } returns flowOf(false)
-        }
         val context = mockk<Context>(relaxed = true) {
             every { getString(R.string.error_division_by_zero) } returns "Cannot divide by zero"
             every { getString(R.string.transaction_validation_amount) } returns "Enter amount > 0"
@@ -70,11 +66,11 @@ class TransactionFormViewModelCalculatorTest {
         if (existingTransaction != null && transactionId != null) {
             coEvery { transactionRepository.getById(transactionId) } returns existingTransaction
         }
-        val savedStateHandle = if (transactionId != null) {
-            SavedStateHandle(mapOf(Route.EditTransaction.ARG_ID to transactionId))
-        } else {
-            SavedStateHandle()
-        }
+        val savedStateHandle = SavedStateHandle(
+            buildMap {
+                if (transactionId != null) put(Route.EditTransaction.ARG_ID, transactionId)
+            },
+        )
         return TransactionFormViewModel(
             savedStateHandle = savedStateHandle,
             addTransactionUseCase = addTransactionUseCase,
@@ -83,7 +79,6 @@ class TransactionFormViewModelCalculatorTest {
             categoryRepository = categoryRepo,
             suggestCategoryUseCase = suggestCategoryUseCase,
             imageScanner = imageScanner,
-            hybridNaturalParser = hybridNaturalParser,
             context = context,
             ioDispatcher = mainDispatcherRule.testDispatcher,
         )

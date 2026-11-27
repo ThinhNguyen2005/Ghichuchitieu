@@ -240,6 +240,34 @@ class VietnameseNaturalInputParserTest {
         assertThat(res2.category).isEqualTo(Category.FAMILY)
     }
 
+    @Test
+    fun `parse classifies everyday an com and cat toc without AI fallback`() {
+        val result = parser.parse("ăn cơm 45k rồi cắt tóc 80k")
+        assertThat(result.needsAiFallback).isFalse()
+        assertThat(result.drafts).hasSize(2)
+        assertThat(result.drafts[0].category).isEqualTo(Category.FOOD)
+        assertThat(result.drafts[0].amountVnd).isEqualTo(45_000L)
+        assertThat(result.drafts[1].category).isEqualTo(Category.BEAUTY)
+        assertThat(result.drafts[1].amountVnd).isEqualTo(80_000L)
+    }
+
+    @Test
+    fun `parse handles multi-unit million and thousand amount as one draft`() {
+        val result = parser.parse("mua tủ lạnh 2 triệu 500 nghìn")
+        assertThat(result.drafts).hasSize(1)
+        val draft = result.drafts.single()
+        assertThat(draft.amountVnd).isEqualTo(2_500_000L)
+        assertThat(draft.category).isEqualTo(Category.HOME)
+    }
+
+    @Test
+    fun `parse sets needsAiFallback true when note falls back to OTHER`() {
+        val result = parser.parse("abc xyz 50k")
+        assertThat(result.drafts).hasSize(1)
+        assertThat(result.drafts.single().category).isEqualTo(Category.OTHER)
+        assertThat(result.needsAiFallback).isTrue()
+    }
+
     private class FakeCategoryLearningStore : CategoryLearningStore {
         private val exactMatches = mutableMapOf<Pair<CategoryLearningType, String>, CategoryLearningMatch>()
 

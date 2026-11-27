@@ -157,4 +157,10 @@ class VietnameseAmountParserTest {
         val neg = CurrencyParserEngine.parseInputText("-50k") as MoneyParseResult.Success
         assertThat(neg.money).isEqualTo(Money.fromMajorUnit(-50_000L))
     }
+
+    @Test
+    fun `parseSingle parses multi-unit digit million and thousand phrases`() {
+        assertThat(VietnameseAmountParser.parseSingle("2 triệu 500 nghìn")).isEqualTo(2_500_000L)
+        assertThat(VietnameseAmountParser.parseSingle("1 triệu 250k")).isEqualTo(1_250_000L)
+    }
 }
