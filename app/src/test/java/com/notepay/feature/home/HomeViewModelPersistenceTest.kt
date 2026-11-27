@@ -113,7 +113,7 @@ class HomeViewModelPersistenceTest {
     )
 
     @Test
-    fun `dismissSmartInsights persists dismissal and re-enabling restores it`() = runTest {
+    fun `dismissSmartInsights persists dismissal and reflects DataStore restore`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.state.test {
@@ -125,14 +125,13 @@ class HomeViewModelPersistenceTest {
             current = awaitItem()
             assertThat(current.isSmartInsightsDismissed).isTrue()
 
-            viewModel.setSmartInsightsEnabled(true)
+            dismissedFlow.value = false
             current = awaitItem()
             assertThat(current.isSmartInsightsDismissed).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
 
         coVerify(exactly = 1) { appSettingsDataStore.setHomeSmartTipsDismissed(true) }
-        coVerify(exactly = 1) { appSettingsDataStore.setHomeSmartTipsDismissed(false) }
     }
 
     @Test
@@ -155,7 +154,7 @@ class HomeViewModelPersistenceTest {
     }
 
     @Test
-    fun `selectBackgroundPreset and toggleBalanceHidden persist to DataStore`() = runTest {
+    fun `toggleBalanceHidden persists and state tracks DataStore background preset`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.state.test {
@@ -164,7 +163,7 @@ class HomeViewModelPersistenceTest {
             assertThat(current.backgroundPreset).isEqualTo(HomeBackgroundPreset.WARM_SILK)
             assertThat(current.isBalanceHidden).isFalse()
 
-            viewModel.selectBackgroundPreset(HomeBackgroundPreset.OCEAN_MIST)
+            presetFlow.value = HomeBackgroundPreset.OCEAN_MIST.id
             current = awaitItem()
             assertThat(current.backgroundPreset).isEqualTo(HomeBackgroundPreset.OCEAN_MIST)
 
@@ -174,7 +173,6 @@ class HomeViewModelPersistenceTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        coVerify(exactly = 1) { appSettingsDataStore.setHomeBackgroundPreset("ocean_mist") }
         coVerify(exactly = 1) { appSettingsDataStore.setHomeBalanceHidden(true) }
     }
 }

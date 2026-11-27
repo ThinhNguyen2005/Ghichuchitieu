@@ -73,15 +73,6 @@ data class HomeUiState(
     val selectedWalletSummary: WalletSummary?
         get() = walletsSummary.find { it.wallet.id == selectedWalletId }
 
-    val totalBalance: Money
-        get() = Money(walletsSummary.sumOf { it.balance.amountInCents })
-
-    val totalMonthlyIncome: Money
-        get() = Money(walletsSummary.sumOf { it.monthlyIncome.amountInCents })
-
-    val totalMonthlyExpense: Money
-        get() = Money(walletsSummary.sumOf { it.monthlyExpense.amountInCents })
-
     val isBudgetExceeded: Boolean
         get() {
             val limit = selectedWalletSummary?.wallet?.budgetLimit ?: return false

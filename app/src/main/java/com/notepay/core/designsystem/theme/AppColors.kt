@@ -1,5 +1,6 @@
 package com.notepay.core.designsystem.theme
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -110,6 +111,197 @@ val DarkAppColors = AppColors(
 )
 
 val LocalAppColors = staticCompositionLocalOf { LightAppColors }
+
+fun resolveAppColors(
+    themeColor: String,
+    darkTheme: Boolean,
+    materialColorScheme: ColorScheme,
+): AppColors = when (themeColor) {
+    "emerald" -> emeraldAppColors(darkTheme)
+    "ocean" -> oceanAppColors(darkTheme)
+    "lavender" -> lavenderAppColors(darkTheme)
+    "ios" -> iosAppColors(darkTheme)
+    "dynamic" -> dynamicAppColors(darkTheme, materialColorScheme)
+    else -> if (darkTheme) DarkAppColors else LightAppColors
+}
+
+private fun emeraldAppColors(darkTheme: Boolean): AppColors = if (darkTheme) {
+    DarkAppColors.copy(
+        background = EmeraldDarkBg,
+        surface = EmeraldDarkSurface,
+        surfaceSunken = EmeraldDarkLow,
+        surfaceRaised = EmeraldDarkCard,
+        secondary = EmeraldDarkTextSecondary,
+        primary = EmeraldDarkAccent,
+        textPrimary = EmeraldDarkText,
+        textSecondary = EmeraldDarkTextSecondary,
+        border = EmeraldDarkBorder,
+        ink = EmeraldDarkInk,
+        inkRaised = EmeraldDarkCard,
+        inkBorder = EmeraldDarkBorder,
+        onInk = EmeraldDarkText,
+        sand = EmeraldDarkAccent,
+        onSand = EmeraldDarkOnAccent,
+        chartSeries = listOf(EmeraldDarkAccent, EmeraldSecondary, SandSky, SandDarkClay),
+    )
+} else {
+    LightAppColors.copy(
+        background = EmeraldLightBg,
+        surface = EmeraldLightSurface,
+        surfaceSunken = EmeraldLightField,
+        surfaceRaised = EmeraldLightSurface,
+        secondary = EmeraldSecondary,
+        primary = EmeraldInk,
+        border = EmeraldLightBorder,
+        ink = EmeraldInk,
+        inkRaised = EmeraldDarkInk,
+        onInk = EmeraldOnInk,
+        sand = EmeraldAccentLight,
+        onSand = EmeraldOnAccentLight,
+        chartSeries = listOf(EmeraldInk, EmeraldAccentLight, EmeraldSecondary, SandSky),
+    )
+}
+
+private fun oceanAppColors(darkTheme: Boolean): AppColors = if (darkTheme) {
+    DarkAppColors.copy(
+        background = OceanDarkBg,
+        surface = OceanDarkSurface,
+        surfaceSunken = OceanDarkLow,
+        surfaceRaised = OceanDarkCard,
+        secondary = OceanDarkTextSecondary,
+        primary = OceanDarkAccent,
+        textPrimary = OceanDarkText,
+        textSecondary = OceanDarkTextSecondary,
+        border = OceanDarkBorder,
+        ink = OceanDarkInk,
+        inkRaised = OceanDarkCard,
+        inkBorder = OceanDarkBorder,
+        onInk = OceanDarkText,
+        sand = OceanDarkAccent,
+        onSand = OceanDarkOnAccent,
+        chartSeries = listOf(OceanDarkAccent, OceanSecondary, SandSky, EmeraldDarkAccent),
+    )
+} else {
+    LightAppColors.copy(
+        background = OceanLightBg,
+        surface = OceanLightSurface,
+        surfaceSunken = OceanLightField,
+        surfaceRaised = OceanLightSurface,
+        secondary = OceanSecondary,
+        primary = OceanInk,
+        border = OceanLightBorder,
+        ink = OceanInk,
+        inkRaised = OceanDarkInk,
+        onInk = OceanOnInk,
+        sand = OceanAccentLight,
+        onSand = OceanOnAccentLight,
+        chartSeries = listOf(OceanInk, OceanAccentLight, OceanSecondary, EmeraldSecondary),
+    )
+}
+
+private fun lavenderAppColors(darkTheme: Boolean): AppColors = if (darkTheme) {
+    DarkAppColors.copy(
+        background = LavenderDarkBg,
+        surface = LavenderDarkSurface,
+        surfaceSunken = LavenderDarkLow,
+        surfaceRaised = LavenderDarkCard,
+        secondary = LavenderDarkTextSecondary,
+        primary = LavenderDarkAccent,
+        textPrimary = LavenderDarkText,
+        textSecondary = LavenderDarkTextSecondary,
+        border = LavenderDarkBorder,
+        ink = LavenderDarkInk,
+        inkRaised = LavenderDarkCard,
+        inkBorder = LavenderDarkBorder,
+        onInk = LavenderDarkText,
+        sand = LavenderDarkAccent,
+        onSand = LavenderDarkOnAccent,
+        chartSeries = listOf(LavenderDarkAccent, LavenderSecondary, OceanDarkAccent, SandDarkClay),
+    )
+} else {
+    LightAppColors.copy(
+        background = LavenderLightBg,
+        surface = LavenderLightSurface,
+        surfaceSunken = LavenderLightField,
+        surfaceRaised = LavenderLightSurface,
+        secondary = LavenderSecondary,
+        primary = LavenderInk,
+        border = LavenderLightBorder,
+        ink = LavenderInk,
+        inkRaised = LavenderDarkInk,
+        onInk = LavenderOnInk,
+        sand = LavenderAccentLight,
+        onSand = LavenderOnAccentLight,
+        chartSeries = listOf(LavenderInk, LavenderAccentLight, LavenderSecondary, SandSky),
+    )
+}
+
+private fun iosAppColors(darkTheme: Boolean): AppColors = if (darkTheme) {
+    DarkAppColors.copy(
+        background = IosDarkBackground,
+        surface = IosDarkSurface,
+        surfaceSunken = IosDarkBackground,
+        surfaceRaised = IosDarkSurfaceContainer,
+        secondary = IosDarkTextSecondary,
+        primary = IosWhite,
+        textPrimary = IosWhite,
+        textSecondary = IosDarkTextSecondary,
+        textMuted = IosDarkTextMuted,
+        border = IosDarkBorder,
+        ink = IosDarkSurfaceContainer,
+        inkRaised = IosDarkBorder,
+        inkBorder = IosDarkBorder,
+        onInk = IosWhite,
+        sand = IosWhite,
+        onSand = IosBlack,
+        chartSeries = listOf(IosWhite, IosDarkTextSecondary, IosSuccessDark, IosDarkTextMuted),
+    )
+} else {
+    LightAppColors.copy(
+        background = IosLightBackground,
+        surface = IosLightSurface,
+        surfaceSunken = IosLightSurfaceContainer,
+        surfaceRaised = IosLightSurface,
+        secondary = IosLightTextSecondary,
+        primary = IosBlack,
+        textPrimary = IosBlack,
+        textSecondary = IosLightTextSecondary,
+        textMuted = IosLightTextMuted,
+        border = IosLightBorder,
+        ink = IosBlack,
+        inkRaised = IosDarkSurfaceContainer,
+        onInk = IosWhite,
+        sand = IosLightSurfaceContainer,
+        onSand = IosBlack,
+        chartSeries = listOf(IosBlack, IosLightTextSecondary, IosSuccessLight, IosLightTextMuted),
+    )
+}
+
+private fun dynamicAppColors(
+    darkTheme: Boolean,
+    materialColorScheme: ColorScheme,
+): AppColors {
+    val base = if (darkTheme) DarkAppColors else LightAppColors
+    return base.copy(
+        background = materialColorScheme.background,
+        surface = materialColorScheme.surface,
+        surfaceSunken = materialColorScheme.surfaceContainerLow,
+        surfaceRaised = materialColorScheme.surfaceContainerHigh,
+        primary = materialColorScheme.primary,
+        secondary = materialColorScheme.secondary,
+        border = materialColorScheme.outlineVariant,
+        ink = materialColorScheme.primary,
+        onInk = materialColorScheme.onPrimary,
+        sand = materialColorScheme.primaryContainer,
+        onSand = materialColorScheme.onPrimaryContainer,
+        chartSeries = listOf(
+            materialColorScheme.primary,
+            materialColorScheme.secondary,
+            materialColorScheme.tertiary,
+            materialColorScheme.primaryContainer,
+        ),
+    )
+}
 
 object AppTheme {
     val colors: AppColors

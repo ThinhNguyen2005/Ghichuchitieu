@@ -127,9 +127,9 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun `walletFilter_autoSelectsAllWallets_whenSingleCurrency_andSwitchesOnSelectWallet`() = runTest {
+    fun `walletFilter_alwaysTracksPrimaryActiveWallet_inSingleCurrency`() = runTest {
         val now = Clock.System.now()
-        val wallet1 = TestData.wallet(id = 1L, name = "Tiền mặt")
+        val wallet1 = TestData.wallet(id = 1L, name = "Tiền mặt").copy(isActive = true)
         val wallet2 = TestData.wallet(id = 2L, name = "Ngân hàng").copy(isActive = false)
         val tx1 = TestData.transaction(
             id = 1L,
@@ -159,22 +159,8 @@ class StatsViewModelTest {
                 current = awaitItem()
             }
 
-            assertThat(current.selectedWallet).isNull()
-            assertThat(current.totalExpense).isEqualTo(Money(130_000_00L))
-
-            vm.selectWallet(2L)
-            var walletTwoState = awaitItem()
-            while (walletTwoState.selectedWallet?.id != 2L) {
-                walletTwoState = awaitItem()
-            }
-            assertThat(walletTwoState.totalExpense).isEqualTo(Money(40_000_00L))
-
-            vm.selectWallet(null)
-            var allWalletsState = awaitItem()
-            while (allWalletsState.selectedWallet != null) {
-                allWalletsState = awaitItem()
-            }
-            assertThat(allWalletsState.totalExpense).isEqualTo(Money(130_000_00L))
+            assertThat(current.selectedWallet?.id).isEqualTo(1L)
+            assertThat(current.totalExpense).isEqualTo(Money(90_000_00L))
 
             cancelAndIgnoreRemainingEvents()
         }

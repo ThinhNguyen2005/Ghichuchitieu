@@ -94,14 +94,6 @@ class StatsViewModel @Inject constructor(
     private val _selectedCategory = MutableStateFlow<Category?>(null)
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
-    private sealed interface WalletFilterSelection {
-        data object Auto : WalletFilterSelection
-        data object AllWallets : WalletFilterSelection
-        data class Specific(val walletId: Long) : WalletFilterSelection
-    }
-
-    private val _walletSelection = MutableStateFlow<WalletFilterSelection>(WalletFilterSelection.Auto)
-
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
@@ -109,16 +101,14 @@ class StatsViewModel @Inject constructor(
 
     private data class FilterState(
         val period: StatsPeriod,
-        val walletSelection: WalletFilterSelection,
         val trendWindow: TrendWindow,
     )
 
     private val filterState = combine(
         _currentPeriod,
-        _walletSelection,
         _trendWindow,
-    ) { period, walletSelection, window ->
-        FilterState(period, walletSelection, window)
+    ) { period, window ->
+        FilterState(period, window)
     }.distinctUntilChanged()
 
     /**
@@ -163,12 +153,7 @@ class StatsViewModel @Inject constructor(
     ) { allTransactions, wallets, subscriptions, feedbacks, filters ->
         val period = filters.period
         val activeWallet = wallets.find { it.isActive } ?: wallets.firstOrNull()
-        val hasMultipleCurrencies = wallets.map { it.currencyCode.uppercase() }.distinct().size > 1
-        val resolvedWalletId: Long? = when (val selection = filters.walletSelection) {
-            WalletFilterSelection.Auto -> if (hasMultipleCurrencies) activeWallet?.id else null
-            WalletFilterSelection.AllWallets -> null
-            is WalletFilterSelection.Specific -> selection.walletId.takeIf { id -> wallets.any { it.id == id } }
-        }
+        val resolvedWalletId: Long? = activeWallet?.id
 
         // 1. Số liệu gốc: lọc theo kỳ + ví, so sánh kỳ trước, hạn mức, chi tiêu hôm nay.
         val snapshot = StatsSnapshotCalculator.snapshot(
@@ -495,15 +480,6 @@ class StatsViewModel @Inject constructor(
 
     fun selectCategory(category: Category?) {
         _selectedCategory.value = category
-    }
-
-    fun selectWallet(walletId: Long?) {
-        _walletSelection.value = if (walletId == null) {
-            WalletFilterSelection.AllWallets
-        } else {
-            WalletFilterSelection.Specific(walletId)
-        }
-        _selectedCategory.value = null
     }
 
     fun previousPeriod() {

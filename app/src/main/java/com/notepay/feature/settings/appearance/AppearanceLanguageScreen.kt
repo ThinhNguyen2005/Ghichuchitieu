@@ -1,5 +1,6 @@
 package com.notepay.feature.settings.appearance
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,9 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,12 +45,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,27 +71,43 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.theme.IosDarkSurface
+import com.notepay.core.designsystem.theme.EmeraldAccentLight
+import com.notepay.core.designsystem.theme.EmeraldInk
+import com.notepay.core.designsystem.theme.IosBlack
+import com.notepay.core.designsystem.theme.IosLightSurfaceContainer
 import com.notepay.core.designsystem.theme.IosWhite
+import com.notepay.core.designsystem.theme.LavenderAccentLight
+import com.notepay.core.designsystem.theme.LavenderInk
+import com.notepay.core.designsystem.theme.OceanAccentLight
+import com.notepay.core.designsystem.theme.OceanInk
 import com.notepay.core.designsystem.theme.Sand
+import com.notepay.core.designsystem.theme.SandInk
 import com.notepay.core.designsystem.theme.SandOnSand
+import com.notepay.feature.home.HomeBackgroundPreset
+import com.notepay.feature.home.component.HomeCustomizationSheet
+import kotlinx.coroutines.launch
 
 private data class ThemeColorOption(
     val id: String,
     val nameRes: Int,
-    val previewColor: Color,
+    val primaryPreview: Color,
+    val accentPreview: Color,
     val onPreviewColor: Color,
 )
 
 @Composable
 private fun rememberThemeColorOptions(): List<ThemeColorOption> {
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val onTertiary = MaterialTheme.colorScheme.onTertiary
-    return remember(tertiary, onTertiary) {
+    val dynamicPrimary = MaterialTheme.colorScheme.primary
+    val dynamicContainer = MaterialTheme.colorScheme.primaryContainer
+    val dynamicOnPrimary = MaterialTheme.colorScheme.onPrimary
+    return remember(dynamicPrimary, dynamicContainer, dynamicOnPrimary) {
         listOf(
-            ThemeColorOption("sand", R.string.appearance_color_sand, Sand, SandOnSand),
-            ThemeColorOption("ios", R.string.appearance_color_ios, IosDarkSurface, IosWhite),
-            ThemeColorOption("dynamic", R.string.theme_dynamic_color, tertiary, onTertiary),
+            ThemeColorOption("sand", R.string.appearance_color_sand, SandInk, Sand, SandOnSand),
+            ThemeColorOption("emerald", R.string.appearance_color_emerald, EmeraldInk, EmeraldAccentLight, IosWhite),
+            ThemeColorOption("ocean", R.string.appearance_color_ocean, OceanInk, OceanAccentLight, IosWhite),
+            ThemeColorOption("lavender", R.string.appearance_color_lavender, LavenderInk, LavenderAccentLight, IosWhite),
+            ThemeColorOption("ios", R.string.appearance_color_ios, IosBlack, IosLightSurfaceContainer, IosWhite),
+            ThemeColorOption("dynamic", R.string.theme_dynamic_color, dynamicPrimary, dynamicContainer, dynamicOnPrimary),
         )
     }
 }
@@ -106,7 +133,14 @@ fun AppearanceLanguageScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val themeColorOptions = rememberThemeColorOptions()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var isHomeCustomizationOpen by rememberSaveable { mutableStateOf(false) }
+    val savedPhotoMessage = stringResource(R.string.home_bg_photo_saved)
+    val errorPhotoMessage = stringResource(R.string.home_bg_photo_error)
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -197,63 +231,144 @@ fun AppearanceLanguageScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppTheme.shapes.corner20,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 ) {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(themeColorOptions) { option ->
-                            val isSelected = uiState.themeColor == option.id
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier
-                                    .clickable { viewModel.setThemeColor(option.id) }
-                                    .padding(4.dp),
-                            ) {
-                                Box(
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            items(themeColorOptions, key = { it.id }) { option ->
+                                val isSelected = uiState.themeColor == option.id
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(option.previewColor)
-                                        // Viền mảnh luôn hiện: swatch sáng như màu cát sẽ biến mất trên thẻ trắng.
-                                        .border(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                            CircleShape,
-                                        )
-                                        .then(
-                                            if (isSelected) {
-                                                Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                                            } else Modifier,
-                                        ),
-                                    contentAlignment = Alignment.Center,
+                                        .defaultMinSize(minWidth = 56.dp, minHeight = 48.dp)
+                                        .clip(AppTheme.shapes.corner12)
+                                        .clickable { viewModel.setThemeColor(option.id) }
+                                        .padding(4.dp),
                                 ) {
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            tint = option.onPreviewColor,
-                                            modifier = Modifier.size(18.dp),
-                                        )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                width = if (isSelected) 2.5.dp else 1.dp,
+                                                color = if (isSelected) {
+                                                    AppTheme.colors.primary
+                                                } else {
+                                                    AppTheme.colors.hairline
+                                                },
+                                                shape = CircleShape,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(modifier = Modifier.fillMaxSize()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .fillMaxHeight()
+                                                    .background(option.primaryPreview),
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .fillMaxHeight()
+                                                    .background(option.accentPreview),
+                                            )
+                                        }
+                                        if (isSelected) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(22.dp)
+                                                    .clip(CircleShape)
+                                                    .background(option.primaryPreview),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Check,
+                                                    contentDescription = null,
+                                                    tint = option.onPreviewColor,
+                                                    modifier = Modifier.size(14.dp),
+                                                )
+                                            }
+                                        }
                                     }
+                                    Text(
+                                        text = stringResource(option.nameRes),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) {
+                                            AppTheme.colors.primary
+                                        } else {
+                                            AppTheme.colors.textSecondary
+                                        },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
-                                Text(
-                                    text = stringResource(option.nameRes),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
                             }
                         }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 0.5.dp,
+                            color = AppTheme.colors.hairline,
+                        )
+                        ThemeLivePreviewCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        )
                     }
+                }
+            }
+
+            // Section 2.5: Tùy chỉnh Trang chủ
+            item {
+                SectionHeader(title = stringResource(R.string.home_customize_title))
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppTheme.shapes.corner20,
+                    colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                ) {
+                    AppearanceSettingRow(
+                        icon = Icons.Rounded.Wallpaper,
+                        iconTint = AppTheme.colors.primary,
+                        title = stringResource(R.string.home_customize_title),
+                        subtitle = stringResource(R.string.appearance_home_customize_desc),
+                        modifier = Modifier.clickable { isHomeCustomizationOpen = true },
+                        trailing = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Surface(
+                                    shape = AppTheme.shapes.capsule,
+                                    color = AppTheme.colors.sand,
+                                    contentColor = AppTheme.colors.onSand,
+                                ) {
+                                    Text(
+                                        text = stringResource(homePresetLabelRes(uiState.backgroundPreset)),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.ChevronRight,
+                                    contentDescription = null,
+                                    tint = AppTheme.colors.textSecondary,
+                                )
+                            }
+                        },
+                    )
                 }
             }
 
@@ -366,6 +481,93 @@ fun AppearanceLanguageScreen(
             }
         }
     }
+
+    if (isHomeCustomizationOpen) {
+        HomeCustomizationSheet(
+            activePreset = uiState.backgroundPreset,
+            customBackgroundPath = uiState.customBackgroundPath,
+            backgroundBlurEnabled = uiState.backgroundBlurEnabled,
+            isSmartTipsDismissed = uiState.isSmartTipsDismissed,
+            onSelectPreset = viewModel::selectBackgroundPreset,
+            onPickCustomPhoto = { uri ->
+                viewModel.applyCustomBackground(uri) { success ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (success) savedPhotoMessage else errorPhotoMessage,
+                        )
+                    }
+                }
+            },
+            onClearCustomPhoto = viewModel::clearCustomBackground,
+            onToggleBlur = viewModel::setBackgroundBlurEnabled,
+            onToggleSmartTips = viewModel::setSmartInsightsEnabled,
+            onDismiss = { isHomeCustomizationOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun ThemeLivePreviewCard(
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppTheme.shapes.corner16,
+        color = AppTheme.colors.surfaceSunken,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.appearance_theme_preview_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = AppTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                shape = AppTheme.shapes.capsule,
+                color = AppTheme.colors.sand,
+                contentColor = AppTheme.colors.onSand,
+            ) {
+                Text(
+                    text = stringResource(R.string.appearance_theme_preview_chip),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+            Surface(
+                shape = AppTheme.shapes.capsule,
+                color = AppTheme.colors.ink,
+                contentColor = AppTheme.colors.onInk,
+            ) {
+                Text(
+                    text = stringResource(R.string.appearance_theme_preview_cta),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun homePresetLabelRes(preset: HomeBackgroundPreset): Int = when (preset) {
+    HomeBackgroundPreset.WARM_SILK, HomeBackgroundPreset.CUSTOM -> R.string.home_bg_preset_warm_silk
+    HomeBackgroundPreset.OCEAN_MIST -> R.string.home_bg_preset_ocean_mist
+    HomeBackgroundPreset.SAGE_MORNING -> R.string.home_bg_preset_sage_morning
+    HomeBackgroundPreset.SUNSET_BLOOM -> R.string.home_bg_preset_sunset_bloom
+    HomeBackgroundPreset.AURORA_LAVENDER -> R.string.home_bg_preset_aurora_lavender
+    HomeBackgroundPreset.MINIMAL_CANVAS -> R.string.home_bg_preset_minimal_canvas
 }
 
 @Composable
