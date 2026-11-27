@@ -34,7 +34,6 @@ internal object NotePayMotion {
     const val contentDurationMillis = 200
     const val contentFadeOutDurationMillis = 200
     const val contentFadeDelayMillis = 0
-    const val navigationBarSettleDurationMillis = 200
     val contentTranslation: Dp = 12.dp
 }
 

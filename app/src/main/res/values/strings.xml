@@ -26,11 +26,13 @@
 
     <!-- Quick add bottom sheet -->
     <string name="quick_add_title">Tạo mới</string>
-    <string name="quick_add_expense_title">Thêm chi tiêu</string>
+    <string name="quick_add_expense_title">Thêm chi tiêu / thu nhập</string>
     <string name="quick_add_expense_desc">Ghi nhận giao dịch mua sắm, ăn uống hàng ngày</string>
+    <string name="quick_add_debt_title">Thêm sổ ghi nợ</string>
+    <string name="quick_add_debt_desc">Ghi nhận khoản cho vay hoặc đi vay cần theo dõi</string>
     <string name="quick_add_bill_split_title">Chia hóa đơn</string>
     <string name="quick_add_bill_split_desc">Chia tiền ăn chung, mua sắm nhóm với bạn bè</string>
-    <string name="quick_add_subscription_title">Thêm hóa đơn định kỳ</string>
+    <string name="quick_add_subscription_title">Nhắc nhở gia hạn</string>
     <string name="quick_add_subscription_desc">Đặt lịch đóng tiền nhà, Netflix, bảo hiểm…</string>
 
     <!-- Home screen -->

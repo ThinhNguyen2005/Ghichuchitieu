@@ -251,7 +251,7 @@ fun CategoryGridPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 360.dp),
-            contentPadding = PaddingValues(vertical = 4.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
