@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.rounded.CallSplit
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Autorenew
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import com.notepay.core.designsystem.theme.AppTheme
 fun CreateNewBottomSheet(
     onDismissRequest: () -> Unit,
     onNavigateToAddTransaction: () -> Unit,
+    onNavigateToNaturalTextEntry: () -> Unit,
     onNavigateToAddDebt: () -> Unit,
     onNavigateToBillSplit: () -> Unit,
     onNavigateToSubscription: () -> Unit,
@@ -102,6 +104,19 @@ fun CreateNewBottomSheet(
             CreateNewActionCard(
                 visible = true,
                 index = 2,
+                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                title = stringResource(R.string.quick_add_debt_title),
+                description = stringResource(R.string.quick_add_debt_desc),
+                accentColor = AppTheme.colors.warning,
+                onClick = {
+                    onDismissRequest()
+                    onNavigateToAddDebt()
+                },
+            )
+
+            CreateNewActionCard(
+                visible = true,
+                index = 3,
                 icon = Icons.AutoMirrored.Rounded.CallSplit,
                 title = stringResource(R.string.bill_split_title),
                 description = stringResource(R.string.quick_add_bill_split_desc),
@@ -114,7 +129,7 @@ fun CreateNewBottomSheet(
 
             CreateNewActionCard(
                 visible = true,
-                index = 3,
+                index = 4,
                 icon = Icons.Rounded.Autorenew,
                 title = stringResource(R.string.quick_add_subscription_title),
                 description = stringResource(R.string.quick_add_subscription_desc),

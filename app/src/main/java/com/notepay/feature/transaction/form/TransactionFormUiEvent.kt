@@ -3,7 +3,6 @@ package com.notepay.feature.transaction.form
 import android.net.Uri
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
-import com.notepay.domain.natural.NaturalTransactionDraft
 import com.notepay.feature.transaction.component.CalcKey
 import kotlin.time.Instant
 
@@ -39,13 +38,6 @@ sealed interface TransactionFormUiEvent {
     data class SetWalletPickerVisible(val visible: Boolean) : TransactionFormUiEvent
     data class SetCategoryPickerVisible(val visible: Boolean) : TransactionFormUiEvent
     data class SetNoteSheetVisible(val visible: Boolean) : TransactionFormUiEvent
-
-    // ── Natural language quick entry ──────────────────────────────────────────
-    data class NaturalInputChanged(val input: String) : TransactionFormUiEvent
-    data object AnalyzeNaturalInputWithAi : TransactionFormUiEvent
-    data class UpdateNaturalDraft(val draft: NaturalTransactionDraft) : TransactionFormUiEvent
-    data class RemoveNaturalDraft(val draftId: String) : TransactionFormUiEvent
-    data object SaveNaturalDrafts : TransactionFormUiEvent
 
     // ── Actions ───────────────────────────────────────────────────────────────
     data object Save : TransactionFormUiEvent

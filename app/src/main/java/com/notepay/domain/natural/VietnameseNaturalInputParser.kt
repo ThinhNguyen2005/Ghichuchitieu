@@ -251,7 +251,7 @@ class VietnameseNaturalInputParser @Inject constructor(
         val baseConfidence = when {
             cleanNote.isBlank() -> 0.50f
             suggestion != null -> suggestion.confidence.coerceIn(0.75f, 0.96f)
-            else -> 0.72f
+            else -> 0.50f
         }
         val confidence = (baseConfidence - ambiguityPenalty).coerceIn(0.10f, 0.99f)
 
@@ -311,6 +311,7 @@ class VietnameseNaturalInputParser @Inject constructor(
             "nhan luong", "luong thang", "duoc thuong", "thuong thang", "nhan thuong",
             "duoc li xi", "nhan qua", "hoan tien", "khach tra", "ban hang thu",
             "thu nhap", "nhan tien", "co tuc", "lai tiet kiem",
+            "ban hang", "tien cong", "freelance", "ung luong", "duoc tang", "duoc cho",
         )
     }
 }

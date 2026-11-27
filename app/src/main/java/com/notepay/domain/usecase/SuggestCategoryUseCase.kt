@@ -42,65 +42,175 @@ class SuggestCategoryUseCase @Inject constructor(
             setOf(
                 "grab", "gojek", "xanh sm", "taxi", "be", "be car", "be bike", "di be", "dat be",
                 "xe buyt", "ve xe", "gui xe", "giu xe", "parking", "do xang", "rua xe", "cau duong",
+                "di chuyen", "xe om", "xe khach", "ve tau", "tau hoa", "tau dien", "metro",
+                "thue xe", "cuoc xe", "tien xe", "ve gui xe", "ve thang", "grab bike", "grab car",
             ),
         ),
-        Rule(Category.GAS, setOf("xang", "petrolimex", "pvoil", "shell", "caltex")),
+        Rule(Category.GAS, setOf("xang", "xang xe", "tien xang", "do dau", "xang dau", "petrolimex", "pvoil", "shell", "caltex")),
         Rule(
             Category.FOOD,
             setOf(
-                "quan an", "nha hang", "com tam", "com ga", "pho", "bun bo", "bun cha", "hu tieu",
-                "banh mi", "tra sua", "uong tra sua", "grabfood", "shopeefood", "baemin", "beamin",
-                "an sang", "an trua", "an toi", "an vat", "lau", "nuong", "xoi", "chao",
+                "quan an", "nha hang", "com tam", "com ga", "com suon", "com van phong", "com binh dan",
+                "com rang", "com chien", "an com", "pho", "pho bo", "pho ga", "bun bo", "bun cha",
+                "bun dau", "bun rieu", "bun thit nuong", "hu tieu", "banh mi", "mi quang", "mi tom",
+                "mi cay", "banh canh", "banh cuon", "banh xeo", "banh bao", "banh ngot", "tra sua",
+                "uong tra sua", "tra da", "tra dao", "tra chanh", "grabfood", "shopeefood", "baemin",
+                "beamin", "an sang", "an trua", "an toi", "an vat", "an chieu", "an khuya",
+                "buoi sang", "buoi trua", "buoi toi", "do an", "thuc an", "an uong", "lau", "nuong",
+                "xoi", "chao", "nhau", "quan nhau", "bia", "nuoc ngot", "nuoc mia", "nuoc ep",
+                "sinh to", "kem", "che", "pizza", "ga ran", "kfc", "lotteria", "jollibee",
+                "hai san", "sushi", "buffet", "dimsum",
             ),
         ),
-        Rule(Category.COFFEE, setOf("ca phe", "cafe", "highlands", "starbucks", "phuc long", "the coffee house")),
+        Rule(
+            Category.COFFEE,
+            setOf(
+                "ca phe", "cafe", "caphe", "cf", "bac xiu", "den da", "sua da", "latte",
+                "americano", "espresso", "cappuccino", "matcha", "tra vai", "uong nuoc",
+                "highlands", "highland", "starbucks", "phuc long", "the coffee house",
+                "katinat", "phe la", "cong ca phe", "trung nguyen",
+            ),
+        ),
         Rule(
             Category.SHOPPING,
             setOf(
-                "shopee", "lazada", "tiki", "mua sam", "amazon", "bach hoa xanh", "bhx",
-                "winmart", "vinmart", "co.opmart", "co opmart", "coopmart", "sieu thi",
-                "di cho", "circle k", "gs25", "ministop", "tiktok shop", "dien may xanh",
+                "shopee", "lazada", "tiki", "mua sam", "mua hang", "mua do", "amazon",
+                "bach hoa xanh", "bhx", "winmart", "vinmart", "co.opmart", "co opmart", "coopmart",
+                "sieu thi", "di cho", "tap hoa", "tiem tap hoa", "cua hang tien loi", "circle k",
+                "gs25", "ministop", "7 eleven", "tiktok shop", "dien may xanh", "aeon",
+                "lotte mart", "emart", "big c", "mega market", "con cung", "do gia dung",
+                "vat dung", "do dung", "phu kien", "order", "dat hang", "mua online",
+                "phi ship", "tien ship", "giao hang",
             ),
         ),
         Rule(
             Category.FAMILY,
             setOf(
                 "gui me", "gui ba", "gui bo", "gui nha", "bieu bo", "bieu me", "bieu ba",
-                "bieu ong ba", "li xi", "cho me", "cho bo", "cho ba", "mung cuoi",
+                "bieu ong ba", "li xi", "cho me", "cho bo", "cho ba", "tien cho me", "tien cho bo",
+                "mung cuoi", "dam cuoi", "dam gio", "mung tho", "ve que", "tham nha",
                 "gia dinh", "cho tang",
             ),
         ),
-        Rule(Category.CLOTHES, setOf("quan ao", "thoi trang", "giay dep", "uniqlo", "zara", "hm")),
-        Rule(Category.BEAUTY, setOf("my pham", "lam toc", "spa", "nail", "skincare")),
-        Rule(Category.ELECTRICITY, setOf("tien dien", "evn", "dien luc")),
-        Rule(Category.WATER, setOf("tien nuoc", "cap nuoc")),
-        Rule(Category.INTERNET, setOf("cuoc mang", "viettel", "vinaphone", "mobifone", "fpt telecom")),
+        Rule(
+            Category.CLOTHES,
+            setOf(
+                "quan ao", "thoi trang", "giay dep", "mua ao", "mua quan", "ao khoac", "ao thun",
+                "so mi", "quan jean", "quan tay", "vay", "dam", "giay", "dep", "sandal",
+                "mua giay", "mua dep", "tui xach", "balo", "uniqlo", "zara", "hm", "coolmate",
+                "yody", "owen", "routine", "canifa",
+            ),
+        ),
+        Rule(
+            Category.BEAUTY,
+            setOf(
+                "my pham", "lam toc", "cat toc", "uon toc", "nhuom toc", "goi dau", "spa", "nail",
+                "lam mong", "skincare", "cham soc da", "duong da", "trang diem", "lam dep",
+                "son moi", "kem chong nang", "sua rua mat", "nuoc hoa", "triet long",
+                "hasaki", "guardian", "watsons",
+            ),
+        ),
+        Rule(Category.ELECTRICITY, setOf("tien dien", "hoa don dien", "dong tien dien", "so dien", "evn", "dien luc")),
+        Rule(Category.WATER, setOf("tien nuoc", "hoa don nuoc", "dong tien nuoc", "cap nuoc", "nuoc sinh hoat", "binh nuoc")),
+        Rule(
+            Category.INTERNET,
+            setOf(
+                "cuoc mang", "tien mang", "dong mang", "tien wifi", "nap 4g", "goi 4g", "cuoc 4g",
+                "data 4g", "cuoc dien thoai", "viettel", "vinaphone", "mobifone", "vnpt", "fpt telecom",
+            ),
+        ),
         Rule(
             Category.HOME,
             setOf(
-                "tien nha", "tien thue", "chung cu", "noi that", "tien tro", "phong tro",
-                "nha tro", "thue tro", "dien nuoc", "tien dien nuoc", "internet", "wifi", "cap quang",
+                "tien nha", "tien thue", "thue nha", "chung cu", "phi chung cu", "noi that",
+                "tien tro", "tien phong", "phong tro", "nha tro", "thue tro", "dien nuoc",
+                "tien dien nuoc", "internet", "wifi", "cap quang", "tien gas", "doi gas", "binh gas",
+                "ve sinh", "tien rac", "tu lanh", "may giat", "dieu hoa", "may lanh", "gia dung",
             ),
         ),
-        Rule(Category.BILL, setOf("hoa don", "phi dich vu", "phi quan ly", "rac")),
-        Rule(Category.ENTERTAINMENT, setOf("netflix", "spotify", "cgv", "rap phim", "karaoke", "steam", "game")),
-        Rule(Category.TRAVEL, setOf("may bay", "ve bay", "khach san", "booking", "agoda", "du lich")),
-        Rule(Category.HEALTH, setOf("benh vien", "phong kham", "nha khoa", "thuoc", "xet nghiem", "bao hiem y te")),
-        Rule(Category.EDUCATION, setOf("hoc phi", "khoa hoc", "sach", "trung tam", "gia su")),
-        Rule(Category.PETS, setOf("thu cung", "cho meo", "thuc an cho", "thuc an meo", "thu y")),
-        Rule(Category.CHILDREN, setOf("con cai", "bim sua", "do choi tre em", "hoc phi con", "em be", "cho be", "sua cho be")),
-        Rule(Category.INSURANCE, setOf("bao hiem", "bao hiem xe", "bao hiem nhan tho")),
-        Rule(Category.TAX, setOf("thue", "phi truoc ba", "phat nguoi", "phi cau duong")),
-        Rule(Category.SAVINGS, setOf("tiet kiem", "gui tiet kiem", "quy du phong")),
-        Rule(Category.DEBT_LOAN, setOf("tra no", "vay", "tra gop", "lai vay")),
-        Rule(Category.CHARITY, setOf("tu thien", "quyen gop", "ung ho")),
+        Rule(
+            Category.BILL,
+            setOf("hoa don", "dong hoa don", "thanh toan hoa don", "phi dich vu", "phi quan ly", "tien cap", "truyen hinh", "rac"),
+        ),
+        Rule(
+            Category.ENTERTAINMENT,
+            setOf(
+                "netflix", "spotify", "youtube premium", "icloud", "chatgpt", "cgv", "rap phim",
+                "xem phim", "ve xem phim", "karaoke", "billiards", "bi a", "bowling", "concert",
+                "steam", "game", "choi game", "nap game", "mua game", "giai tri",
+            ),
+        ),
+        Rule(
+            Category.TRAVEL,
+            setOf(
+                "may bay", "ve bay", "ve may bay", "khach san", "phong khach san", "homestay",
+                "resort", "booking", "agoda", "traveloka", "du lich", "di choi", "phuot", "tour",
+            ),
+        ),
+        Rule(
+            Category.HEALTH,
+            setOf(
+                "benh vien", "phong kham", "nha khoa", "thuoc", "mua thuoc", "tiem thuoc",
+                "nha thuoc", "long chau", "pharmacity", "an khang", "kham benh", "kham suc khoe",
+                "bac si", "xet nghiem", "vitamin", "bao hiem y te", "nho rang", "lay cao rang",
+            ),
+        ),
+        Rule(
+            Category.EDUCATION,
+            setOf(
+                "hoc phi", "tien hoc", "hoc them", "khoa hoc", "sach", "mua sach", "nha sach",
+                "fahasa", "sach vo", "van phong pham", "trung tam", "gia su", "hoc tieng anh",
+                "ielts", "toeic",
+            ),
+        ),
+        Rule(
+            Category.PETS,
+            setOf("thu cung", "cho meo", "thuc an cho", "thuc an meo", "hat cho meo", "pate", "cat cho", "tam cho", "thu y"),
+        ),
+        Rule(
+            Category.SPORTS,
+            setOf(
+                "the thao", "gym", "tap gym", "phong gym", "yoga", "pilates", "cau long",
+                "da bong", "san bong", "boi loi", "ve boi", "chay bo", "pickleball", "tennis",
+                "the hinh", "thue san",
+            ),
+        ),
+        Rule(
+            Category.REPAIR,
+            setOf(
+                "sua chua", "sua xe", "thay nhot", "thay dau", "va xe", "bao duong",
+                "sua dien thoai", "ep kinh", "thay pin", "sua may tinh", "sua laptop",
+                "sua may lanh", "ve sinh may lanh", "sua ong nuoc", "thay bong den",
+            ),
+        ),
+        Rule(
+            Category.CHILDREN,
+            setOf("con cai", "bim sua", "ta bim", "sua bot", "do choi tre em", "hoc phi con", "em be", "cho be", "sua cho be", "nha tre", "mau giao"),
+        ),
+        Rule(Category.INSURANCE, setOf("bao hiem", "dong bao hiem", "bao hiem xe", "bao hiem nhan tho", "bhyt", "bhxh")),
+        Rule(Category.TAX, setOf("thue", "dong thue", "thue thu nhap", "thue tncn", "phi truoc ba", "phat nguoi", "dong phat", "phi cau duong")),
+        Rule(Category.SAVINGS, setOf("tiet kiem", "gui tiet kiem", "quy du phong", "bo heo", "tich luy")),
+        Rule(Category.DEBT_LOAN, setOf("tra no", "vay", "cho vay", "muon tien", "tra gop", "lai vay", "tra the tin dung")),
+        Rule(Category.CHARITY, setOf("tu thien", "quyen gop", "ung ho", "cong duc", "phong sinh")),
     )
 
     private val incomeRules = listOf(
-        Rule(Category.SALARY, setOf("luong", "nhan luong", "tien luong", "luong thang", "salary", "payroll")),
-        Rule(Category.BONUS, setOf("thuong", "bonus", "phu cap", "hoa hong")),
-        Rule(Category.GIFT, setOf("li xi", "qua tang", "cho tien", "gift")),
-        Rule(Category.INVESTMENT, setOf("co tuc", "lai dau tu", "chung khoan", "ban co phieu", "lai tiet kiem")),
+        Rule(
+            Category.SALARY,
+            setOf(
+                "luong", "nhan luong", "tien luong", "luong thang", "luong ve",
+                "tien cong", "nhan tien cong", "ung luong", "freelance", "salary", "payroll",
+            ),
+        ),
+        Rule(Category.BONUS, setOf("thuong", "tien thuong", "thuong tet", "thuong doanh so", "bonus", "phu cap", "hoa hong", "kpi")),
+        Rule(Category.GIFT, setOf("li xi", "duoc li xi", "qua tang", "cho tien", "duoc tang", "duoc cho", "nhan qua", "tien mung", "gift")),
+        Rule(
+            Category.INVESTMENT,
+            setOf(
+                "co tuc", "lai dau tu", "chung khoan", "ban co phieu", "lai tiet kiem", "tien lai",
+                "ban hang", "doanh thu", "loi nhuan", "hoan tien", "cashback", "khach tra",
+            ),
+        ),
     )
 
     /** Nạp trước kho dữ liệu học danh mục vào RAM (nên gọi trên background dispatcher). */
@@ -124,7 +234,10 @@ class SuggestCategoryUseCase @Inject constructor(
         exactNoteSuggestion(normalized, type, available)?.let { return it }
         val learned = learnedSuggestion(normalized, type, available)
         if (learned != null && learned.confidence >= 0.78f) return learned
+        val tokens = tokenize(normalized)
+        displayNameSuggestion(normalized, tokens, available.filter { it.isCustom })?.let { return it }
         ruleSuggestion(normalized, available, isIncome)?.let { return it }
+        displayNameSuggestion(normalized, tokens, available.filterNot { it.isCustom })?.let { return it }
         return learned
     }
 
@@ -192,6 +305,38 @@ class SuggestCategoryUseCase @Inject constructor(
             category = match.first.category,
             confidence = (0.80f + match.second.coerceAtMost(4) * 0.04f).coerceAtMost(0.96f),
             reason = CategorySuggestionReason.Phrase(matchedPhrase),
+        )
+    }
+
+    private fun displayNameSuggestion(
+        normalized: String,
+        tokens: List<String>,
+        candidates: List<Category>,
+    ): CategorySuggestion? {
+        if (candidates.isEmpty()) return null
+        val best = candidates
+            .asSequence()
+            .filter { it.id != Category.OTHER.id && it.id != Category.INCOME_OTHER.id }
+            .mapNotNull { category ->
+                val variants = buildList {
+                    val full = normalize(category.displayName)
+                    if (full.length >= 3) add(full)
+                    category.displayName
+                        .split('/')
+                        .map(::normalize)
+                        .filter { it.length >= 3 }
+                        .forEach(::add)
+                }.distinct()
+                val score = variants.maxOfOrNull { phraseScore(normalized, tokens, it) } ?: 0
+                category.takeIf { score > 0 }?.let { it to score }
+            }
+            .maxByOrNull { it.second }
+            ?: return null
+
+        return CategorySuggestion(
+            category = best.first,
+            confidence = if (best.first.isCustom) 0.90f else 0.82f,
+            reason = CategorySuggestionReason.Phrase(best.first.displayName),
         )
     }
 

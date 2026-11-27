@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -56,7 +55,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -80,15 +78,16 @@ import com.notepay.R
 import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
+import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
-import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
 import com.notepay.core.navigation.NotePayStaggeredEntrance
+import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.analytics.SmartTipItem
@@ -97,21 +96,19 @@ import com.notepay.domain.money.Money
 import com.notepay.feature.auth.main.AuthViewModel
 import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
 import com.notepay.feature.home.component.HomeBackgroundLayer
-import com.notepay.feature.home.component.HomeCustomizationSheet
 import com.notepay.feature.home.component.HomeDaySection
 import com.notepay.feature.home.component.HomeHeroBlock
+import com.notepay.feature.home.component.HomeQuickActionsRow
 import com.notepay.feature.home.component.ScreenHorizontalPadding
 import com.notepay.feature.home.component.SmartInsightsCard
+import com.notepay.feature.home.component.StreakStatusSheet
 import com.notepay.feature.home.component.rememberHomeDayGroups
-import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
-import kotlinx.coroutines.launch
-
-private val ListBottomClearance = 120.dp
 
 private enum class HomeContentState { LOADING, EMPTY_WALLETS, CONTENT }
 
 private object HomeListKeys {
     const val HERO_ASSETS = "home_item_hero_assets"
+    const val QUICK_ACTIONS = "home_item_quick_actions"
     const val INSIGHT = "home_item_insight"
     const val RECENT_HEADER = "home_item_recent_header"
     const val RECENT_EMPTY = "home_item_recent_empty"
@@ -124,9 +121,12 @@ private const val HomeDayKeyPrefix = "home_day_"
 fun HomeScreen(
     onSeeAll: () -> Unit,
     onAddWallet: () -> Unit,
+    onOpenBillSplit: () -> Unit = {},
+    onOpenDebtManagement: () -> Unit = {},
+    onOpenSubscription: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = onTransactionClick,
-    onFeedback: suspend (UiFeedback) -> Boolean = { false },
+    @Suppress("UNUSED_PARAMETER") onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
@@ -135,20 +135,16 @@ fun HomeScreen(
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
     var pendingDeleteTransaction by remember { mutableStateOf<Transaction?>(null) }
-    var isWalletPickerOpen by remember { mutableStateOf(false) }
-    var isCustomizationOpen by rememberSaveable { mutableStateOf(false) }
+    var showStreakSheet by rememberSaveable { mutableStateOf(false) }
     var showAccountDetails by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val reducedMotion = rememberNotePayReducedMotion()
     val listState = rememberLazyListState()
     val contentGutter = LocalContentGutter.current
-    val listBottomClearance = maxOf(
-        ListBottomClearance,
-        104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
-    )
-    val isTwoPane = LocalWindowLayout.current == WindowLayout.Expanded
+    val windowLayout = LocalWindowLayout.current
+    val listBottomClearance = rememberMainTabBottomClearance(windowLayout.usesNavigationRail)
+    val isTwoPane = windowLayout == WindowLayout.Expanded
 
     val recentLabel = stringResource(R.string.home_recent_transactions)
     val seeAllLabel = stringResource(R.string.action_see_all)
@@ -156,28 +152,18 @@ fun HomeScreen(
     val emptyWalletTitle = stringResource(R.string.home_empty_wallet_title)
     val emptyWalletDesc = stringResource(R.string.home_empty_wallet_desc)
     val createWalletLabel = stringResource(R.string.home_create_wallet)
-    val savedPhotoMessage = stringResource(R.string.home_bg_photo_saved)
-    val errorPhotoMessage = stringResource(R.string.home_bg_photo_error)
 
     val walletNames = remember(state.wallets) { state.wallets.associate { it.id to it.name } }
     val walletsById = remember(state.wallets) { state.wallets.associateBy { it.id } }
     val effectiveUserId = state.currentUserId ?: authUiState.user?.uid
     val dayGroups = rememberHomeDayGroups(state.recentTransactions)
 
-    val isAllWallets = state.selectedWalletId == null
     val selectedWallet = state.selectedWalletSummary
-    val displayBalance = selectedWallet?.balance ?: state.totalBalance
-    val displayIncome = selectedWallet?.monthlyIncome ?: state.totalMonthlyIncome
-    val displayExpense = selectedWallet?.monthlyExpense ?: state.totalMonthlyExpense
-    val balanceLabel = if (isAllWallets) {
-        stringResource(R.string.home_total_balance_all)
-    } else {
-        stringResource(
-            R.string.home_wallet_balance_format,
-            selectedWallet?.wallet?.name.orEmpty(),
-        )
-    }
-    val walletChipLabel = selectedWallet?.wallet?.name ?: stringResource(R.string.home_all_wallets)
+    val primaryWalletName = selectedWallet?.wallet?.name ?: state.activeWallet?.name.orEmpty()
+    val displayBalance = selectedWallet?.balance ?: state.currentBalance
+    val displayIncome = selectedWallet?.monthlyIncome ?: state.monthlyIncome
+    val displayExpense = selectedWallet?.monthlyExpense ?: state.monthlyExpense
+    val balanceLabel = stringResource(R.string.home_wallet_balance_format, primaryWalletName)
     val contentState = when {
         state.isLoading -> HomeContentState.LOADING
         state.wallets.isEmpty() -> HomeContentState.EMPTY_WALLETS
@@ -221,7 +207,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
-                            .padding(ScreenHorizontalPadding),
+                            .padding(
+                                start = ScreenHorizontalPadding,
+                                top = ScreenHorizontalPadding,
+                                end = ScreenHorizontalPadding,
+                                bottom = listBottomClearance,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         EmptyStateWithAction(
@@ -252,31 +243,40 @@ fun HomeScreen(
                                 NotePayStaggeredEntrance(index = 0) {
                                     HomeHeroBlock(
                                         streakDays = state.streakDays,
-                                        walletLabel = walletChipLabel,
                                         balanceLabel = balanceLabel,
                                         balance = displayBalance,
                                         income = displayIncome,
                                         expense = displayExpense,
                                         isBalanceHidden = state.isBalanceHidden,
                                         onToggleBalanceHidden = viewModel::toggleBalanceHidden,
-                                        onOpenWalletPicker = { isWalletPickerOpen = true },
-                                        onOpenCustomization = { isCustomizationOpen = true },
+                                        onStreakClick = { showStreakSheet = true },
                                         topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                                         onAvatarClick = openAccountSheet,
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
                                 NotePayStaggeredEntrance(index = 1) {
+                                    HomeQuickActionsRow(
+                                        onOpenBillSplit = onOpenBillSplit,
+                                        onOpenDebtManagement = onOpenDebtManagement,
+                                        onOpenSubscription = onOpenSubscription,
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 4.dp),
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                NotePayStaggeredEntrance(index = 2) {
                                     HomeInsightCard(
                                         budgetProjection = state.budgetProjection,
                                         budgetLimit = selectedWallet?.wallet?.budgetLimit,
-                                        walletName = selectedWallet?.wallet?.name.orEmpty(),
+                                        walletName = primaryWalletName,
                                         activeTip = state.activeSmartTip,
                                         tipPosition = state.activeSmartTipIndex + 1,
                                         totalTips = state.smartTips.size,
-                                        isAllWallets = isAllWallets,
+                                        isAllWallets = false,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
                                         reducedMotion = reducedMotion,
@@ -354,15 +354,13 @@ fun HomeScreen(
                                 NotePayStaggeredEntrance(index = 0) {
                                     HomeHeroBlock(
                                         streakDays = state.streakDays,
-                                        walletLabel = walletChipLabel,
                                         balanceLabel = balanceLabel,
                                         balance = displayBalance,
                                         income = displayIncome,
                                         expense = displayExpense,
                                         isBalanceHidden = state.isBalanceHidden,
                                         onToggleBalanceHidden = viewModel::toggleBalanceHidden,
-                                        onOpenWalletPicker = { isWalletPickerOpen = true },
-                                        onOpenCustomization = { isCustomizationOpen = true },
+                                        onStreakClick = { showStreakSheet = true },
                                         topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                                         modifier = Modifier.padding(top = 12.dp),
                                         onAvatarClick = openAccountSheet,
@@ -370,16 +368,27 @@ fun HomeScreen(
                                 }
                             }
 
-                            item(key = HomeListKeys.INSIGHT) {
+                            item(key = HomeListKeys.QUICK_ACTIONS) {
                                 NotePayStaggeredEntrance(index = 1) {
+                                    HomeQuickActionsRow(
+                                        onOpenBillSplit = onOpenBillSplit,
+                                        onOpenDebtManagement = onOpenDebtManagement,
+                                        onOpenSubscription = onOpenSubscription,
+                                        modifier = Modifier.padding(horizontal = ScreenHorizontalPadding, vertical = 4.dp),
+                                    )
+                                }
+                            }
+
+                            item(key = HomeListKeys.INSIGHT) {
+                                NotePayStaggeredEntrance(index = 2) {
                                     HomeInsightCard(
                                         budgetProjection = state.budgetProjection,
                                         budgetLimit = selectedWallet?.wallet?.budgetLimit,
-                                        walletName = selectedWallet?.wallet?.name.orEmpty(),
+                                        walletName = primaryWalletName,
                                         activeTip = state.activeSmartTip,
                                         tipPosition = state.activeSmartTipIndex + 1,
                                         totalTips = state.smartTips.size,
-                                        isAllWallets = isAllWallets,
+                                        isAllWallets = false,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
                                         reducedMotion = reducedMotion,
@@ -439,39 +448,10 @@ fun HomeScreen(
         }
     }
 
-    if (isWalletPickerOpen) {
-        WalletPickerSheet(
-            wallets = state.wallets,
-            selectedWalletId = state.selectedWalletId,
-            onWalletSelected = viewModel::selectWallet,
-            onAllWalletsSelected = { viewModel.selectWallet(null) },
-            onDismiss = { isWalletPickerOpen = false },
-        )
-    }
-
-    if (isCustomizationOpen) {
-        HomeCustomizationSheet(
-            activePreset = state.backgroundPreset,
-            customBackgroundPath = state.customBackgroundPath,
-            backgroundBlurEnabled = state.backgroundBlurEnabled,
-            isSmartTipsDismissed = state.isSmartInsightsDismissed,
-            onSelectPreset = viewModel::selectBackgroundPreset,
-            onPickCustomPhoto = { uri ->
-                viewModel.applyCustomBackground(uri) { success ->
-                    coroutineScope.launch {
-                        onFeedback(
-                            UiFeedback(
-                                message = if (success) savedPhotoMessage else errorPhotoMessage,
-                                type = if (success) FeedbackType.Success else FeedbackType.Error,
-                            )
-                        )
-                    }
-                }
-            },
-            onClearCustomPhoto = viewModel::clearCustomBackground,
-            onToggleBlur = viewModel::setBackgroundBlurEnabled,
-            onToggleSmartTips = viewModel::setSmartInsightsEnabled,
-            onDismiss = { isCustomizationOpen = false },
+    if (showStreakSheet && state.streakDays > 0) {
+        StreakStatusSheet(
+            streakDays = state.streakDays,
+            onDismiss = { showStreakSheet = false },
         )
     }
 

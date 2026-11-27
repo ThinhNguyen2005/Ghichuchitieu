@@ -28,6 +28,8 @@
     <string name="quick_add_title">Tạo mới</string>
     <string name="quick_add_expense_title">Thêm chi tiêu / thu nhập</string>
     <string name="quick_add_expense_desc">Ghi nhận giao dịch mua sắm, ăn uống hàng ngày</string>
+    <string name="quick_add_text_entry_title">Nhập bằng giọng nói / văn bản</string>
+    <string name="quick_add_text_entry_desc">Nói hoặc gõ câu tự nhiên để tách nhiều giao dịch</string>
     <string name="quick_add_debt_title">Thêm sổ ghi nợ</string>
     <string name="quick_add_debt_desc">Ghi nhận khoản cho vay hoặc đi vay cần theo dõi</string>
     <string name="quick_add_bill_split_title">Chia hóa đơn</string>
@@ -36,16 +38,17 @@
     <string name="quick_add_subscription_desc">Đặt lịch đóng tiền nhà, Netflix, bảo hiểm…</string>
 
     <!-- Home screen -->
+    <string name="home_quick_bill_split">Chia tiền</string>
+    <string name="home_quick_debt_book">Sổ nợ</string>
+    <string name="home_quick_renewal">Gia hạn</string>
     <string name="home_empty_wallet_title">Chưa có ví nào</string>
     <string name="home_empty_wallet_desc">Tạo ví để bắt đầu ghi chép giao dịch và quản lý chi tiêu.</string>
     <string name="home_create_wallet">Tạo ví</string>
     <string name="home_recent_transactions">Giao dịch gần đây</string>
     <string name="home_empty_transactions">Chưa có giao dịch nào.</string>
     <string name="home_add_new_wallet">Thêm ví mới</string>
-    <string name="home_total_balance_all">Tổng số dư tất cả ví</string>
     <string name="home_wallet_balance_format">Số dư %1$s</string>
     <string name="home_all_wallets">Tất cả ví</string>
-    <string name="home_select_wallet">Chọn ví</string>
     <string name="home_day_today">HÔM NAY</string>
     <string name="home_day_yesterday">HÔM QUA</string>
     <!-- %1$d = ngày, %2$s = tên tháng viết tắt (bản tiếng Anh), %3$d = số tháng (bản tiếng Việt) -->
@@ -845,7 +848,14 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <!-- Appearance & Language screen -->
     <string name="appearance_section_theme">Chế độ giao diện</string>
     <string name="appearance_color_sand">Cát &amp; Mực</string>
+    <string name="appearance_color_emerald">Ngọc lục bảo</string>
+    <string name="appearance_color_ocean">Đại dương</string>
+    <string name="appearance_color_lavender">Oải hương</string>
     <string name="appearance_color_ios">Đơn sắc iOS</string>
+    <string name="appearance_theme_preview_label">Xem trước</string>
+    <string name="appearance_theme_preview_chip">Đang chọn</string>
+    <string name="appearance_theme_preview_cta">Nút chính</string>
+    <string name="appearance_home_customize_desc">Đổi ảnh nền, bộ màu khí quyển và gợi ý thông minh</string>
     <string name="appearance_section_glass">Hiệu ứng thị giác</string>
     <string name="appearance_liquid_glass_title">Kính mờ Liquid Glass</string>
     <string name="appearance_liquid_glass_desc">Làm mờ nền vật lý trên thanh điều hướng</string>
@@ -1323,8 +1333,17 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="about_replay_onboarding_action">Xem lại màn hình giới thiệu</string>
 
     <!-- Nhập chi tiêu nhanh bằng ngôn ngữ tự nhiên (Phase 1) -->
-    <string name="natural_entry_title">Nhập nhanh bằng câu tự nhiên</string>
-    <string name="natural_entry_placeholder">VD: Hôm nay ăn trưa 45k rồi uống trà sữa 55k</string>
+    <string name="natural_entry_title">Nhập bằng giọng nói / văn bản</string>
+    <string name="natural_entry_placeholder">Nói hoặc gõ: Hôm nay ăn trưa 45k rồi trà sữa 55k</string>
+    <string name="natural_entry_voice_start_cd">Nhập bằng giọng nói</string>
+    <string name="natural_entry_voice_stop_cd">Dừng ghi âm giọng nói</string>
+    <string name="natural_entry_voice_listening">Đang nghe… hãy nói câu chi tiêu của bạn</string>
+    <string name="natural_entry_voice_prompt">Nói khoản thu chi của bạn</string>
+    <string name="natural_entry_voice_permission_denied">Cần cấp quyền micro để nhập bằng giọng nói</string>
+    <string name="natural_entry_voice_unavailable">Thiết bị chưa hỗ trợ nhận diện giọng nói</string>
+    <string name="natural_entry_voice_no_match">Chưa nghe rõ, bạn hãy thử nói lại hoặc gõ trực tiếp</string>
+    <string name="natural_entry_voice_network_error">Lỗi kết nối nhận diện giọng nói, vui lòng thử lại</string>
+    <string name="natural_entry_voice_error">Không thể nhận diện giọng nói, vui lòng thử lại</string>
     <string name="natural_entry_preview_header">Khoản đã tách (%1$d)</string>
     <string name="natural_entry_source_device">Phân tích tức thì</string>
     <string name="natural_entry_source_ai">Đã phân tích bằng AI</string>
@@ -1334,7 +1353,6 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <plurals name="natural_entry_save_all">
         <item quantity="other">Lưu tất cả (%1$d khoản)</item>
     </plurals>
-    <string name="natural_entry_apply_note">Chỉ dùng làm ghi chú</string>
     <string name="natural_entry_edit_cd">Chỉnh sửa khoản</string>
     <string name="natural_entry_delete_cd">Xóa khoản</string>
     <string name="natural_entry_amount_label">Số tiền (VND)</string>
@@ -1480,8 +1498,17 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="wallet_adjust_error_invalid">Vui lòng nhập số tiền hợp lệ</string>
 
     <!-- Trang chủ iOS, Tùy chỉnh ảnh nền & Mẹo tài chính đa dạng -->
-    <string name="home_customize_action">Tùy chỉnh Trang chủ</string>
     <string name="home_customize_title">Tùy chỉnh Trang chủ</string>
+    <string name="home_streak_cd">Chuỗi ghi chép liên tiếp</string>
+    <string name="home_streak_sheet_title">Chuỗi ghi chép hằng ngày</string>
+    <string name="home_streak_tier_spark">Khởi động đều đặn</string>
+    <string name="home_streak_tier_blaze">Đà tăng tốc</string>
+    <string name="home_streak_tier_inferno">Ngọn lửa bền bỉ</string>
+    <string name="home_streak_desc_spark">Bạn đã giữ thói quen ghi chi tiêu liên tiếp. Tiếp tục ghi hôm nay để giữ ngọn lửa nhé!</string>
+    <string name="home_streak_desc_blaze">Chuỗi ngày đang bứt phá rất tốt! Đừng để đứt mạch chi tiêu hôm nay.</string>
+    <string name="home_streak_desc_inferno">Tuyệt vời! Bạn đang duy trì kỷ luật tài chính cực kỳ ổn định mỗi ngày.</string>
+    <string name="home_streak_next_milestone">Còn %1$d ngày tới mốc %2$d ngày</string>
+    <string name="home_streak_max_milestone">Bạn đang ở mốc rực cháy cao nhất!</string>
     <string name="home_bg_section_title">Ảnh nền Trang chủ</string>
     <string name="home_bg_pick_photo">Chọn ảnh từ thư viện</string>
     <string name="home_bg_change_photo">Đổi ảnh nền</string>
