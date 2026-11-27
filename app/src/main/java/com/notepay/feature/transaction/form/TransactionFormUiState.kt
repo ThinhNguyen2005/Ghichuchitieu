@@ -12,6 +12,17 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
+ * Các bước trong luồng thêm giao dịch mới:
+ * - [SELECT_CATEGORY]: chọn loại Thu/Chi và danh mục trước.
+ * - [DETAILS]: nhập số tiền, ghi chú, ví và ngày.
+ */
+@Immutable
+enum class TransactionFormStep {
+    SELECT_CATEGORY,
+    DETAILS,
+}
+
+/**
  * Unified UI State cho TransactionFormScreen (Add + Edit).
  *
  * - isEditMode = false → chế độ thêm mới
@@ -24,7 +35,9 @@ import kotlin.time.Instant
 data class TransactionFormUiState(
     // ── Mode ─────────────────────────────────────────────────────────────────
     val isEditMode: Boolean = false,
+    val step: TransactionFormStep = TransactionFormStep.SELECT_CATEGORY,
     val isLoading: Boolean = false,
+    val hasLoadedCategories: Boolean = false,
     val isAutoCapture: Boolean = false,
 
     // ── Form fields ───────────────────────────────────────────────────────────
@@ -61,7 +74,8 @@ data class TransactionFormUiState(
     val isNoteSheetOpen: Boolean = false,
 ) {
     val canSave: Boolean
-        get() = amount != null &&
+        get() = (isEditMode || (step == TransactionFormStep.DETAILS && isCategoryExplicitlySelected)) &&
+            amount != null &&
             amount.amountInCents > 0 &&
             walletId != null &&
             errors.isEmpty() &&

@@ -6,13 +6,16 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -20,8 +23,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -32,6 +37,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -39,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -52,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,12 +68,18 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -73,11 +87,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.rememberNotePayHaptic
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.Category
 import com.notepay.feature.category.mapper.categoryIcon
 import com.notepay.feature.category.mapper.customCategoryIconOptions
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.util.localizedName
 
 // ─── Nhóm danh mục (UI-only, không thuộc domain) ─────────────────────────────
 
@@ -107,7 +123,7 @@ private fun Category.uiGroup(): CategoryGroup = when (id) {
     "SHOPPING", "CLOTHES", "BEAUTY", "ENTERTAINMENT", "SPORTS", "TRAVEL" -> CategoryGroup.LIFESTYLE
     "HEALTH", "FAMILY", "CHILDREN", "PETS", "EDUCATION" -> CategoryGroup.FAMILY_HEALTH
     "SAVINGS", "DEBT_LOAN", "CHARITY", "INSURANCE", "TAX", "INVESTMENT" -> CategoryGroup.FINANCE
-    else -> CategoryGroup.ALL // custom / income categories hiện ở Tất cả
+    else -> CategoryGroup.ALL
 }
 
 /** Màu accent lấy từ group nếu là category mặc định, hoặc colorArgb nếu là custom. */
@@ -115,12 +131,15 @@ private fun Category.uiGroup(): CategoryGroup = when (id) {
 private fun Category.accentColor(): Color =
     if (isCustom) Color(colorArgb) else uiGroup().accentColor()
 
+private fun preferredContentOnAccent(accent: Color): Color =
+    if (accent.luminance() > 0.52f) Color(0xFF1B1B1F) else Color.White
+
 // ─── CategoryGridPicker chính ─────────────────────────────────────────────────
 
 /**
- * Lưới chọn danh mục 4 cột (icon trên – tên dưới).
- * Tối ưu render cấp 3: drawBehind + graphicsLayer để vẽ viền / scale trên GPU.
- * Deferred state reading: mỗi item nhận lambda isSelectedProvider để bỏ qua recomposition toàn lưới.
+ * Lưới chọn danh mục đáp ứng độ rộng và font scale (icon trên – tên dưới).
+ * Hỗ trợ hai chế độ: giới hạn chiều cao trong ModalBottomSheet ([fillAvailableHeight] = false)
+ * hoặc chiếm phần còn lại của màn hình trong bước chọn danh mục ([fillAvailableHeight] = true).
  */
 @Composable
 fun CategoryGridPicker(
@@ -130,149 +149,89 @@ fun CategoryGridPicker(
     onCategoryChanged: (Category) -> Unit,
     modifier: Modifier = Modifier,
     onCreateCategory: ((displayName: String, colorArgb: Long, iconId: String, isIncome: Boolean) -> Unit)? = null,
+    fillAvailableHeight: Boolean = false,
+    isLoading: Boolean = false,
+    showHeader: Boolean = true,
 ) {
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val fontScale = LocalConfiguration.current.fontScale
     val allVisible = remember(categories, isIncome) { categories.filter { it.isIncome == isIncome } }
 
-    var query by remember(isIncome) { mutableStateOf("") }
-    var selectedGroup by remember { mutableStateOf(CategoryGroup.ALL) }
-    var showAddDialog by remember { mutableStateOf(false) }
+    var query by rememberSaveable(isIncome) { mutableStateOf("") }
+    var selectedGroupName by rememberSaveable(isIncome) { mutableStateOf(CategoryGroup.ALL.name) }
+    val selectedGroup = CategoryGroup.entries.firstOrNull { it.name == selectedGroupName } ?: CategoryGroup.ALL
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    val gridState = rememberLazyGridState()
 
-    // Tìm kiếm + lọc nhóm — derivedStateOf không gây recompose thừa khi state khác thay đổi
-    val context = LocalContext.current
     val filtered by remember(query, selectedGroup, allVisible) {
         derivedStateOf {
             allVisible.filter { cat ->
                 val matchGroup = selectedGroup == CategoryGroup.ALL || cat.uiGroup() == selectedGroup
-                val matchQuery = query.isBlank() || cat.localizedName(context).contains(query.trim(), ignoreCase = true)
+                val matchQuery = query.isBlank() ||
+                    cat.localizedName(context).contains(query.trim(), ignoreCase = true)
                 matchGroup && matchQuery
             }
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.category_section_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = pluralStringResource(R.plurals.category_choices_format, filtered.size, filtered.size),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val columnCount = when {
+            fontScale >= 1.7f -> 2
+            maxWidth < 340.dp || fontScale >= 1.3f -> 3
+            else -> 4
         }
-
-        // Ô tìm kiếm
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text(stringResource(R.string.category_search_placeholder), fontSize = 14.sp) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
-            },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { query = "" }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Clear,
-                            contentDescription = stringResource(R.string.content_description_clear_text),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            shape = AppTheme.shapes.corner12,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-            ),
-        )
-
-        // Filter Chips nhóm danh mục (cuộn ngang)
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            modifier = if (fillAvailableHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(CategoryGroup.entries, key = { it.name }) { group ->
-                val isChipSelected = selectedGroup == group
-                val groupColor = group.accentColor()
-                FilterChip(
-                    selected = isChipSelected,
-                    onClick = {
-                        selectedGroup = group
-                        focusManager.clearFocus()
+            if (showHeader) {
+                CategoryGridHeader(count = filtered.size)
+            }
+
+            CategoryGridSearchField(
+                query = query,
+                onQueryChange = { query = it },
+                onSearchDone = { focusManager.clearFocus() },
+            )
+
+            CategoryGroupFilterRow(
+                selectedGroup = selectedGroup,
+                onSelectGroup = {
+                    selectedGroupName = it.name
+                    focusManager.clearFocus()
+                },
+            )
+
+            val gridContainerModifier = if (fillAvailableHeight) {
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            } else {
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+            }
+
+            Box(modifier = gridContainerModifier) {
+                CategoryGridBody(
+                    allVisibleCount = allVisible.size,
+                    filtered = filtered,
+                    selectedCategory = selectedCategory,
+                    isLoading = isLoading,
+                    columnCount = columnCount,
+                    gridState = gridState,
+                    onCategoryChanged = onCategoryChanged,
+                    onClearFilters = {
+                        query = ""
+                        selectedGroupName = CategoryGroup.ALL.name
                     },
-                    modifier = Modifier.minimumInteractiveComponentSize(),
-                    label = { Text(stringResource(group.labelRes), fontSize = 12.sp) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = groupColor.copy(alpha = 0.18f),
-                        selectedLabelColor = groupColor,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = isChipSelected,
-                        borderColor = Color.Transparent,
-                        selectedBorderColor = groupColor.copy(alpha = 0.5f),
-                        borderWidth = 1.dp,
-                        selectedBorderWidth = 1.dp,
-                    ),
+                    onOpenCreateDialog = if (onCreateCategory != null) {
+                        { showAddDialog = true }
+                    } else {
+                        null
+                    },
                 )
-            }
-        }
-
-        // Lưới 4 cột — icon trên, tên dưới
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 360.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            items(
-                items = filtered,
-                key = { it.id },
-                contentType = { "category" },
-            ) { category ->
-                CategoryGridCell(
-                    category = category,
-                    // Deferred reading: chỉ đọc state khi vẽ → 26 items khác bỏ qua recomposition
-                    isSelectedProvider = { category.id == selectedCategory?.id },
-                    onClick = { onCategoryChanged(category) },
-                )
-            }
-
-            // Nút "+ Thêm" ở cuối nếu có callback
-            if (onCreateCategory != null) {
-                item(key = "__add__", contentType = "add") {
-                    AddCategoryCell(onClick = { showAddDialog = true })
-                }
             }
         }
     }
@@ -288,6 +247,241 @@ fun CategoryGridPicker(
     }
 }
 
+@Composable
+private fun CategoryGridHeader(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.category_section_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            text = pluralStringResource(R.plurals.category_choices_format, count, count),
+            style = MaterialTheme.typography.labelMedium,
+            color = AppTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun CategoryGridSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearchDone: () -> Unit,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = {
+            Text(
+                text = stringResource(R.string.category_search_placeholder),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.content_description_clear_text),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        },
+        singleLine = true,
+        shape = AppTheme.shapes.corner12,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearchDone() }),
+        modifier = Modifier.fillMaxWidth(),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+        ),
+    )
+}
+
+@Composable
+private fun CategoryGroupFilterRow(
+    selectedGroup: CategoryGroup,
+    onSelectGroup: (CategoryGroup) -> Unit,
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(CategoryGroup.entries, key = { it.name }) { group ->
+            val isChipSelected = selectedGroup == group
+            val groupColor = group.accentColor()
+            FilterChip(
+                selected = isChipSelected,
+                onClick = { onSelectGroup(group) },
+                modifier = Modifier.minimumInteractiveComponentSize(),
+                label = {
+                    Text(
+                        text = stringResource(group.labelRes),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                shape = CircleShape,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = groupColor.copy(alpha = 0.18f),
+                    selectedLabelColor = groupColor,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isChipSelected,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = groupColor.copy(alpha = 0.5f),
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 1.dp,
+                ),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CategoryGridBody(
+    allVisibleCount: Int,
+    filtered: List<Category>,
+    selectedCategory: Category?,
+    isLoading: Boolean,
+    columnCount: Int,
+    gridState: LazyGridState,
+    onCategoryChanged: (Category) -> Unit,
+    onClearFilters: () -> Unit,
+    onOpenCreateDialog: (() -> Unit)?,
+) {
+    when {
+        isLoading && allVisibleCount == 0 -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                Text(
+                    text = stringResource(R.string.category_loading_state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
+        }
+
+        allVisibleCount == 0 -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.category_empty_state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+                if (onOpenCreateDialog != null) {
+                    Button(
+                        onClick = onOpenCreateDialog,
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    ) {
+                        Text(stringResource(R.string.category_dialog_title))
+                    }
+                }
+            }
+        }
+
+        filtered.isEmpty() -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.category_search_empty_state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onClearFilters,
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    ) {
+                        Text(stringResource(R.string.category_clear_filters))
+                    }
+                    if (onOpenCreateDialog != null) {
+                        TextButton(
+                            onClick = onOpenCreateDialog,
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.category_dialog_title))
+                        }
+                    }
+                }
+            }
+        }
+
+        else -> {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnCount),
+                state = gridState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(
+                    items = filtered,
+                    key = { it.id },
+                    contentType = { "category" },
+                ) { category ->
+                    CategoryGridCell(
+                        category = category,
+                        isSelectedProvider = { category.id == selectedCategory?.id },
+                        onClick = { onCategoryChanged(category) },
+                    )
+                }
+
+                if (onOpenCreateDialog != null) {
+                    item(key = "__add__", contentType = "add") {
+                        AddCategoryCell(onClick = onOpenCreateDialog)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ─── Ô danh mục đơn lẻ (Icon trên – Tên dưới) ───────────────────────────────
 
 @Composable
@@ -297,16 +491,20 @@ private fun CategoryGridCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val reducedMotion = rememberNotePayReducedMotion()
+    val performHaptic = rememberNotePayHaptic()
     val isSelected = isSelectedProvider()
     val accent = category.accentColor()
+    val labelText = category.localizedName()
 
-    // Scale spring chạy trên RenderNode (GPU), không layout lại
+    // Scale spring chạy trên RenderNode (GPU), tôn trọng Cài đặt giảm chuyển động
     val scale = remember { Animatable(1f) }
-    LaunchedEffect(isSelected) {
-        if (isSelected) {
+    LaunchedEffect(isSelected, reducedMotion) {
+        if (reducedMotion) {
+            scale.snapTo(1f)
+        } else if (isSelected) {
             scale.animateTo(
-                targetValue = 1.08f,
+                targetValue = 1.04f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMediumLow,
@@ -317,32 +515,39 @@ private fun CategoryGridCell(
         }
     }
 
+    val bubbleFill = if (isSelected) accent else accent.copy(alpha = 0.14f)
+    val iconTint = if (isSelected) preferredContentOnAccent(accent) else accent
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .minimumInteractiveComponentSize()
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clip(AppTheme.shapes.corner16)
             .graphicsLayer {
-                // Toàn bộ hiệu ứng co giãn đẩy thẳng vào RenderNode
                 scaleX = scale.value
                 scaleY = scale.value
             }
+            .semantics(mergeDescendants = true) {
+                selected = isSelected
+                contentDescription = labelText
+            }
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                role = Role.Button,
+                onClickLabel = labelText,
             ) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                performHaptic(HapticFeedbackType.TextHandleMove)
                 onClick()
-            },
+            }
+            .padding(vertical = 4.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        // Icon tròn + viền phát sáng khi được chọn (vẽ ở Draw Phase – không recompose)
         Box(
             modifier = Modifier
                 .size(52.dp)
                 .drawWithCache {
                     val selectionStroke = Stroke(width = 2.dp.toPx())
-                    val radiusOffsetPx = 2.5.dp.toPx()
+                    val radiusOffsetPx = 3.dp.toPx()
                     onDrawBehind {
                         if (isSelected) {
                             drawCircle(
@@ -354,7 +559,7 @@ private fun CategoryGridCell(
                     }
                 }
                 .background(
-                    color = if (isSelected) accent.copy(alpha = 0.26f) else accent.copy(alpha = 0.11f),
+                    color = bubbleFill,
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -362,40 +567,41 @@ private fun CategoryGridCell(
             Icon(
                 imageVector = categoryIcon(category),
                 contentDescription = null,
-                tint = if (isSelected) Color.White else accent,
+                tint = iconTint,
                 modifier = Modifier.size(24.dp),
             )
 
-            // Badge check góc dưới phải
             if (isSelected) {
+                val badgeBg = MaterialTheme.colorScheme.surface
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(16.dp)
+                        .size(18.dp)
+                        .background(badgeBg, CircleShape)
+                        .padding(1.5.dp)
                         .background(accent, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Check,
                         contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(10.dp),
+                        tint = preferredContentOnAccent(accent),
+                        modifier = Modifier.size(11.dp),
                     )
                 }
             }
         }
 
-        // Tên danh mục — 1 dòng, căn giữa, không bao giờ bị cắt "..." do 4 cột rộng hơn
         Text(
-            text = category.localizedName(),
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = 11.sp,
+            text = labelText,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             ),
-            color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) AppTheme.colors.textPrimary else AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -409,17 +615,23 @@ private fun AddCategoryCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val labelText = stringResource(R.string.category_add_more)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .minimumInteractiveComponentSize()
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clip(AppTheme.shapes.corner16)
+            .semantics(mergeDescendants = true) {
+                contentDescription = labelText
+            }
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                role = Role.Button,
+                onClickLabel = labelText,
                 onClick = onClick,
-            ),
+            )
+            .padding(vertical = 4.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
             modifier = Modifier
@@ -444,11 +656,14 @@ private fun AddCategoryCell(
         }
 
         Text(
-            text = stringResource(R.string.category_add_more),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            text = labelText,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+            ),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )

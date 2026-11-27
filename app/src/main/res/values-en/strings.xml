@@ -69,19 +69,26 @@
     <string name="budget_safe">💚 Spending is on track. Projected end-of-month total: %1$s (under limit).</string>
 
     <!-- Add / Edit transaction screen -->
-    <string name="add_transaction_title">Add transaction</string>
+    <string name="add_transaction_step_category_title">Choose category</string>
+    <string name="add_transaction_step_details_title">Transaction details</string>
     <string name="edit_transaction_title">Edit transaction</string>
+    <string name="action_change_category">Change category</string>
+    <string name="transaction_step_details_announced">Transaction details for %1$s</string>
     <string name="transaction_type_expense">Expense</string>
     <string name="transaction_type_income">Income</string>
     <string name="transaction_field_wallet">Wallet</string>
     <string name="transaction_field_note">Note</string>
     <string name="transaction_field_note_placeholder">Add transaction details…</string>
     <string name="transaction_no_wallet_selected">No wallet selected</string>
+    <string name="transaction_no_writable_wallet">No writable wallet available</string>
+    <string name="transaction_no_writable_wallet_desc">Create a wallet or use one with permission to add transactions.</string>
     <string name="transaction_no_other_wallet">No other wallet, please create one in the wallet management section.</string>
+    <string name="transaction_validation_category">Please choose a category before saving.</string>
     <string name="transaction_validation_amount">Enter an amount greater than zero.</string>
     <string name="transaction_validation_wallet">Select a payment wallet.</string>
     <string name="transaction_validation_amount_wallet">Enter an amount and select a payment wallet.</string>
     <string name="transaction_validation_form">Complete the required information before saving.</string>
+    <string name="transaction_note_too_long">Note exceeds maximum length.</string>
     <string name="transaction_suggestion_label">💡 Suggested:</string>
     <string name="transaction_suggestion_applied_label">Selected automatically:</string>
 
@@ -441,6 +448,11 @@
     <string name="category_group_family_health">Family &amp; Health</string>
     <string name="category_group_finance">Finance &amp; Investment</string>
     <string name="category_add_more">Add…</string>
+    <string name="category_loading_state">Loading categories…</string>
+    <string name="category_empty_state">No categories available for this type.</string>
+    <string name="category_search_empty_state">No matching categories found.</string>
+    <string name="category_clear_filters">Clear filters</string>
+    <string name="feedback_category_create_failed">Could not create category, please try again.</string>
     <string name="category_dialog_title">Create new category</string>
     <string name="category_name_label">Category name</string>
     <string name="category_color_title">Choose a color</string>

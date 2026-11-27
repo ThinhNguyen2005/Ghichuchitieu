@@ -73,10 +73,13 @@ class TransactionFormViewModel @Inject constructor(
 
     // Lưu transaction gốc khi edit để tránh mất các field không hiển thị trên form
     private var originalTransaction: Transaction? = null
+    private var selectionGeneration: Long = 0L
+    private var pendingCreatedCategoryId: String? = null
 
     private val _state = MutableStateFlow(
         TransactionFormUiState(
             isEditMode = isEditMode,
+            step = if (isEditMode) TransactionFormStep.DETAILS else TransactionFormStep.SELECT_CATEGORY,
             isLoading = isEditMode,
         ),
     )
@@ -99,6 +102,7 @@ class TransactionFormViewModel @Inject constructor(
             TransactionFormUiEvent.BackspaceLong           -> clearCalc()
             is TransactionFormUiEvent.TypeChanged          -> updateType(event.type)
             is TransactionFormUiEvent.CategorySelected     -> updateCategory(event.category)
+            TransactionFormUiEvent.OpenCategorySelection   -> openCategorySelection()
             is TransactionFormUiEvent.NoteChanged          -> updateNote(event.note)
             is TransactionFormUiEvent.DateChanged          -> updateDate(event.instant)
             is TransactionFormUiEvent.WalletChanged        -> updateWallet(event.walletId)
@@ -142,7 +146,32 @@ class TransactionFormViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             suggestCategoryUseCase.warmUp()
             categoryRepository.observeCategories().collect { list ->
-                _state.update { it.copy(availableCategories = list) }
+                if (pendingCreatedCategoryId != null && list.any { it.id == pendingCreatedCategoryId }) {
+                    pendingCreatedCategoryId = null
+                }
+                _state.update { current ->
+                    val confirmedRemoved = !isEditMode &&
+                        current.isCategoryExplicitlySelected &&
+                        current.category.id != pendingCreatedCategoryId &&
+                        list.none {
+                            it.id == current.category.id &&
+                                it.isIncome == (current.type == TransactionType.INCOME)
+                        }
+                    if (confirmedRemoved) {
+                        current.copy(
+                            availableCategories = list,
+                            hasLoadedCategories = true,
+                            step = TransactionFormStep.SELECT_CATEGORY,
+                            isCategoryExplicitlySelected = false,
+                            category = defaultCategoryFor(current.type),
+                        )
+                    } else {
+                        current.copy(
+                            availableCategories = list,
+                            hasLoadedCategories = true,
+                        )
+                    }
+                }
             }
         }
     }
@@ -168,13 +197,16 @@ class TransactionFormViewModel @Inject constructor(
 
             _state.update {
                 it.copy(
+                    step = TransactionFormStep.DETAILS,
                     isLoading = false,
+                    hasLoadedCategories = initialCategories.isNotEmpty() || it.hasLoadedCategories,
                     isAutoCapture = tx.isAutoCapture,
                     amountInput = amountLong.toString(),
                     amount = tx.amount,
                     calcState = calcState,
                     type = tx.type,
                     category = tx.category,
+                    isCategoryExplicitlySelected = true,
                     note = tx.note,
                     occurredAt = tx.occurredAt,
                     walletId = tx.walletId,
@@ -237,11 +269,18 @@ class TransactionFormViewModel @Inject constructor(
     // ── Form field handlers ───────────────────────────────────────────────────
 
     private fun updateType(type: TransactionType) {
-        val suggestion = suggestCategoryUseCase.suggestDetailed(_state.value.note, type == TransactionType.INCOME)
+        val current = _state.value
+        if (!isEditMode && current.type == type) return
+        selectionGeneration++
+        if (!isEditMode) {
+            pendingCreatedCategoryId = null
+        }
+        val suggestion = suggestCategoryUseCase.suggestDetailed(current.note, type == TransactionType.INCOME)
         _state.update {
             it.copy(
                 type = type,
-                category = suggestion?.category ?: if (type == TransactionType.INCOME) Category.DEFAULT_INCOME else Category.DEFAULT_EXPENSE,
+                step = if (isEditMode) TransactionFormStep.DETAILS else TransactionFormStep.SELECT_CATEGORY,
+                category = suggestion?.category ?: defaultCategoryFor(type),
                 isCategoryExplicitlySelected = false,
                 suggestedCategory = suggestion?.category,
                 suggestionReason = suggestion?.reason?.let { r -> CategorySuggestionUiMapper.toText(context, r) },
@@ -250,7 +289,39 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     private fun updateCategory(category: Category) {
+        val current = _state.value
+        if (!isEditMode) {
+            if (current.step != TransactionFormStep.SELECT_CATEGORY) return
+            if (!isCategoryValidForType(category, current.type, current.availableCategories, current.hasLoadedCategories)) {
+                return
+            }
+            selectionGeneration++
+            if (pendingCreatedCategoryId != category.id) {
+                pendingCreatedCategoryId = null
+            }
+            _state.update {
+                it.copy(
+                    category = category,
+                    isCategoryExplicitlySelected = true,
+                    step = TransactionFormStep.DETAILS,
+                )
+            }
+            return
+        }
         _state.update { it.copy(category = category, isCategoryExplicitlySelected = true) }
+    }
+
+    private fun openCategorySelection() {
+        if (isEditMode) return
+        selectionGeneration++
+        _state.update {
+            it.copy(
+                step = TransactionFormStep.SELECT_CATEGORY,
+                isDatePickerOpen = false,
+                isWalletPickerOpen = false,
+                isNoteSheetOpen = false,
+            )
+        }
     }
 
     private fun updateNote(note: String) {
@@ -328,6 +399,7 @@ class TransactionFormViewModel @Inject constructor(
             _feedback.tryEmit(UiFeedback(context.getString(R.string.feedback_category_exists), type = FeedbackType.Error))
             return
         }
+        val requestGeneration = ++selectionGeneration
         viewModelScope.launch(ioDispatcher) {
             val newCategory = Category(
                 id = "CUSTOM_${UUID.randomUUID()}",
@@ -337,8 +409,39 @@ class TransactionFormViewModel @Inject constructor(
                 isCustom = true,
                 iconId = iconId,
             )
-            categoryRepository.addCustomCategory(newCategory)
-            _state.update { it.copy(category = newCategory, isCategoryExplicitlySelected = true) }
+            pendingCreatedCategoryId = newCategory.id
+            try {
+                categoryRepository.addCustomCategory(newCategory)
+                var applied = false
+                _state.update { current ->
+                    val canApply = isEditMode || (
+                        selectionGeneration == requestGeneration &&
+                            current.step == TransactionFormStep.SELECT_CATEGORY &&
+                            (current.type == TransactionType.INCOME) == isIncome
+                        )
+                    if (canApply) {
+                        applied = true
+                        current.copy(
+                            category = newCategory,
+                            isCategoryExplicitlySelected = true,
+                            step = TransactionFormStep.DETAILS,
+                        )
+                    } else {
+                        current
+                    }
+                }
+                if (!applied && pendingCreatedCategoryId == newCategory.id) {
+                    pendingCreatedCategoryId = null
+                }
+            } catch (e: CancellationException) {
+                if (pendingCreatedCategoryId == newCategory.id) pendingCreatedCategoryId = null
+                throw e
+            } catch (_: Exception) {
+                if (pendingCreatedCategoryId == newCategory.id) pendingCreatedCategoryId = null
+                _feedback.emit(
+                    UiFeedback(context.getString(R.string.feedback_category_create_failed), type = FeedbackType.Error),
+                )
+            }
         }
     }
 
@@ -347,6 +450,12 @@ class TransactionFormViewModel @Inject constructor(
     private fun save() {
         val current = _state.value
         if (current.isSaving) return
+        if (!isEditMode && !hasValidCategoryForSave(current)) {
+            _feedback.tryEmit(
+                UiFeedback(context.getString(R.string.transaction_validation_category), type = FeedbackType.Error),
+            )
+            return
+        }
         if (!(current.isEditMode && current.isAutoCapture)) {
             val evaluated = CalculatorEngine.equals(current.calcState)
             commitCalcState(evaluated)
@@ -363,6 +472,12 @@ class TransactionFormViewModel @Inject constructor(
     private fun saveNew() {
         val current = _state.value
         if (current.isSaving) return
+        if (!hasValidCategoryForSave(current)) {
+            _feedback.tryEmit(
+                UiFeedback(context.getString(R.string.transaction_validation_category), type = FeedbackType.Error),
+            )
+            return
+        }
         val errors = TransactionFormValidator.validate(current.amount, current.walletId, current.note)
         if (errors.isNotEmpty()) {
             _state.update { it.copy(errors = errors) }
@@ -471,5 +586,25 @@ class TransactionFormViewModel @Inject constructor(
             }
         }
     }
+
+    private fun defaultCategoryFor(type: TransactionType): Category =
+        if (type == TransactionType.INCOME) Category.DEFAULT_INCOME else Category.DEFAULT_EXPENSE
+
+    private fun isCategoryValidForType(
+        category: Category,
+        type: TransactionType,
+        availableCategories: List<Category>,
+        hasLoadedCategories: Boolean,
+    ): Boolean =
+        category.isIncome == (type == TransactionType.INCOME) &&
+            (!hasLoadedCategories || availableCategories.any {
+                it.id == category.id && it.isIncome == (type == TransactionType.INCOME)
+            })
+
+    private fun hasValidCategoryForSave(state: TransactionFormUiState): Boolean =
+        state.step == TransactionFormStep.DETAILS &&
+            state.isCategoryExplicitlySelected &&
+            (state.category.id == pendingCreatedCategoryId ||
+                isCategoryValidForType(state.category, state.type, state.availableCategories, state.hasLoadedCategories))
 }
 
