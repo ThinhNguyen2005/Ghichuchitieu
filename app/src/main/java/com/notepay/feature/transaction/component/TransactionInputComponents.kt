@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -361,16 +362,26 @@ fun TransactionInputField(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = ""
+    placeholder: String = "",
+    supportingText: String? = null,
+    isError: Boolean = false,
 ) {
     Surface(
         onClick = onClick,
         shape = AppTheme.shapes.corner20,
         color = AppTheme.colors.surface,
-        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        border = BorderStroke(
+            width = if (isError) 1.dp else 0.5.dp,
+            color = if (isError) AppTheme.colors.error else AppTheme.colors.hairline,
+        ),
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 56.dp)
+            .semantics {
+                if (isError && !supportingText.isNullOrBlank()) {
+                    error(supportingText)
+                }
+            }
             .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false),
     ) {
         Row(
@@ -383,14 +394,14 @@ fun TransactionInputField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
+                tint = if (isError) AppTheme.colors.error else AppTheme.colors.textSecondary,
                 modifier = Modifier.size(24.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    color = AppTheme.colors.textSecondary,
+                    color = if (isError) AppTheme.colors.error else AppTheme.colors.textSecondary,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -398,9 +409,20 @@ fun TransactionInputField(
                     text = value.ifBlank { placeholder },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (value.isBlank()) AppTheme.colors.textMuted
-                    else AppTheme.colors.textPrimary
+                    color = when {
+                        isError -> AppTheme.colors.error
+                        value.isBlank() -> AppTheme.colors.textMuted
+                        else -> AppTheme.colors.textPrimary
+                    }
                 )
+                if (!supportingText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = supportingText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isError) AppTheme.colors.error else AppTheme.colors.textSecondary,
+                    )
+                }
             }
         }
     }

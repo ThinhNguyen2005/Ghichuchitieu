@@ -212,7 +212,7 @@ suspend fun Animatable<Float, AnimationVector1D>.triggerErrorShake(
 - [x] **Trang chủ (`Home`)** — [HomeScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/home/HomeScreen.kt), `HomeHeroSection`, `HeroBalanceCard`, `SmartInsightsCard`, `HomeTransactionFeed`, `HomeCustomizationSheet`
 - [x] **Báo cáo (`Stats`)** — [StatsScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/stats/main/StatsScreen.kt), `StatsDashboard`, `StatsCategoryBreakdownSection`, `LongTermTrendSection`, `StatsAdvisorSection`
 - [x] **Tài sản (`Assets`)** — [AssetsScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/assets/main/AssetsScreen.kt), `AssetsCards`, `DebtSummaryCard`
-- [x] **Thêm / Sửa giao dịch (`AddTransaction` / `EditTransaction`)** — [TransactionFormScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/transaction/form/TransactionFormScreen.kt), `TransactionInputComponents`, `TransactionFormSections`, `TransactionCustomKeypad`
+- [x] **Thêm / Sửa giao dịch (`AddTransaction` / `EditTransaction`)** — [TransactionFormScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/transaction/form/TransactionFormScreen.kt), `CategoryGridPicker`, `TransactionInputComponents`, `TransactionFormSections`, `TransactionCustomKeypad` (luồng Add 2 bước; kiểm chứng code/unit test/Lint/Detekt trên `5739aae`, chưa chạy test thiết bị thật)
 - [x] **Thêm / Tiện ích (`Utilities`)** — [UtilitiesScreen.kt](file:///d:/APP/Ghichuchitieu/app/src/main/java/com/notepay/feature/utilities/UtilitiesScreen.kt)
 
 #### Tier 2 — Luồng Nghiệp Vụ Tài Chính (Triển khai tiếp theo theo từng đợt)

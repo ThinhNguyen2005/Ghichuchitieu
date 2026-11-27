@@ -7,6 +7,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -87,6 +92,7 @@ fun TransactionTypeSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .selectableGroup()
                 .drawBehind {
                     val slotWidth = size.width / 2f
                     val corner = size.height / 2f
@@ -111,7 +117,11 @@ fun TransactionTypeSelector(
                         .weight(1f)
                         .defaultMinSize(minHeight = 40.dp)
                         .clip(AppTheme.shapes.circle)
-                        .clickable(onClick = { onTypeChanged(option.first) })
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onTypeChanged(option.first) },
+                        )
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -190,6 +200,8 @@ fun TransactionWalletField(
     value: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    isError: Boolean = false,
 ) {
     TransactionInputField(
         label = label,
@@ -197,6 +209,8 @@ fun TransactionWalletField(
         icon = Icons.Rounded.AccountBalanceWallet,
         onClick = onClick,
         modifier = modifier,
+        supportingText = supportingText,
+        isError = isError,
     )
 }
 
@@ -207,20 +221,34 @@ fun TransactionNoteField(
     label: String,
     placeholder: String,
     modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    errorText: String? = null,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = { input ->
             if (input.length <= Transaction.MAX_NOTE_LENGTH) onValueChange(input)
         },
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                if (isError && !errorText.isNullOrBlank()) {
+                    error(errorText)
+                }
+            },
         label = { Text(label) },
         placeholder = { Text(placeholder) },
+        isError = isError,
+        supportingText = if (!errorText.isNullOrBlank() && isError) {
+            { Text(errorText) }
+        } else {
+            null
+        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Rounded.EditNote,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isError) AppTheme.colors.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         shape = AppTheme.shapes.corner16,
@@ -230,6 +258,7 @@ fun TransactionNoteField(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = Color.Transparent,
             disabledBorderColor = Color.Transparent,
+            errorBorderColor = AppTheme.colors.error,
         ),
         maxLines = 3,
     )

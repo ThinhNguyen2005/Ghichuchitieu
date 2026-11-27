@@ -97,6 +97,7 @@ class TransactionFormViewModelCalculatorTest {
         coEvery { addUseCase(capture(txSlot)) } returns Result.success(10L)
 
         val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
         enterNumber(vm, "100")
         vm.onEvent(TransactionFormUiEvent.CalcKeyPressed(CalcKey.Operator('+')))
         enterNumber(vm, "50")
@@ -117,6 +118,7 @@ class TransactionFormViewModelCalculatorTest {
         coEvery { addUseCase(capture(txSlot)) } returns Result.success(11L)
 
         val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
         enterNumber(vm, "100")
         vm.onEvent(TransactionFormUiEvent.CalcKeyPressed(CalcKey.Operator('+')))
 
@@ -133,6 +135,7 @@ class TransactionFormViewModelCalculatorTest {
     fun `non-positive evaluated expressions 100 - 100 and 50 - 100 block save and emit error`() = runTest {
         val addUseCase = mockk<AddTransactionUseCase>(relaxed = true)
         val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
 
         vm.feedback.test {
             enterNumber(vm, "100")
@@ -164,6 +167,7 @@ class TransactionFormViewModelCalculatorTest {
     fun `division by zero blocks save and emits division by zero error`() = runTest {
         val addUseCase = mockk<AddTransactionUseCase>(relaxed = true)
         val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
 
         vm.feedback.test {
             enterNumber(vm, "100")
@@ -187,6 +191,7 @@ class TransactionFormViewModelCalculatorTest {
         coEvery { addUseCase(any()) } coAnswers { gate.await() }
 
         val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
         enterNumber(vm, "25000")
 
         vm.onEvent(TransactionFormUiEvent.Save)

@@ -68,19 +68,26 @@
     <string name="budget_safe">Chi tiêu trong tầm kiểm soát.\n Dự kiến cuối tháng: %1$s .</string>
 
     <!-- Add / Edit transaction screen -->
-    <string name="add_transaction_title">Thêm giao dịch</string>
+    <string name="add_transaction_step_category_title">Chọn danh mục</string>
+    <string name="add_transaction_step_details_title">Nhập chi tiết</string>
     <string name="edit_transaction_title">Sửa giao dịch</string>
+    <string name="action_change_category">Đổi danh mục</string>
+    <string name="transaction_step_details_announced">Nhập chi tiết cho danh mục %1$s</string>
     <string name="transaction_type_expense">Chi tiêu</string>
     <string name="transaction_type_income">Thu nhập</string>
     <string name="transaction_field_wallet">Ví thanh toán</string>
     <string name="transaction_field_note">Ghi chú</string>
     <string name="transaction_field_note_placeholder">Thêm chi tiết giao dịch…</string>
     <string name="transaction_no_wallet_selected">Chưa chọn ví</string>
+    <string name="transaction_no_writable_wallet">Chưa có ví có quyền ghi</string>
+    <string name="transaction_no_writable_wallet_desc">Tạo ví mới hoặc chọn ví mà bạn có quyền thêm giao dịch.</string>
     <string name="transaction_no_other_wallet">Không có ví nào khác, hãy tạo thêm ví mới trong phần quản lý tài khoản/ví</string>
+    <string name="transaction_validation_category">Vui lòng chọn danh mục trước khi lưu.</string>
     <string name="transaction_validation_amount">Hãy nhập số tiền lớn hơn 0.</string>
     <string name="transaction_validation_wallet">Hãy chọn ví thanh toán.</string>
     <string name="transaction_validation_amount_wallet">Hãy nhập số tiền và chọn ví thanh toán.</string>
     <string name="transaction_validation_form">Hãy điền đầy đủ thông tin bắt buộc trước khi lưu.</string>
+    <string name="transaction_note_too_long">Ghi chú vượt quá độ dài tối đa.</string>
     <string name="transaction_suggestion_label">💡 Gợi ý:</string>
     <string name="transaction_suggestion_applied_label">Đã tự động chọn:</string>
 
@@ -418,6 +425,11 @@
     <string name="category_group_family_health">Gia đình &amp; Sức khỏe</string>
     <string name="category_group_finance">Tài chính &amp; Đầu tư</string>
     <string name="category_add_more">Thêm…</string>
+    <string name="category_loading_state">Đang tải danh mục…</string>
+    <string name="category_empty_state">Chưa có danh mục nào cho loại này.</string>
+    <string name="category_search_empty_state">Không tìm thấy danh mục phù hợp.</string>
+    <string name="category_clear_filters">Xóa bộ lọc</string>
+    <string name="feedback_category_create_failed">Không thể tạo danh mục mới, vui lòng thử lại.</string>
     <string name="category_dialog_title">Tạo danh mục mới</string>
     <string name="category_name_label">Tên danh mục</string>
     <string name="category_color_title">Chọn màu sắc</string>

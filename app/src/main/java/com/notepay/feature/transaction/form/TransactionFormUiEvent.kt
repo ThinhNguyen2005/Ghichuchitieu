@@ -18,6 +18,7 @@ sealed interface TransactionFormUiEvent {
     // ── Form fields ───────────────────────────────────────────────────────────
     data class TypeChanged(val type: TransactionType) : TransactionFormUiEvent
     data class CategorySelected(val category: Category) : TransactionFormUiEvent
+    data object OpenCategorySelection : TransactionFormUiEvent
     data class NoteChanged(val note: String) : TransactionFormUiEvent
     data class DateChanged(val instant: Instant) : TransactionFormUiEvent
     data class WalletChanged(val walletId: Long) : TransactionFormUiEvent
