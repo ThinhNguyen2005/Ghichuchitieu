@@ -105,7 +105,7 @@ fun AboutScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_artwork),
+                painter = painterResource(id = R.drawable.ic_app_icon_preview),
                 contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier
                     .size(96.dp)

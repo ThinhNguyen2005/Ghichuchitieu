@@ -226,7 +226,7 @@ private fun OnboardingHeader(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_artwork),
+                            painter = painterResource(id = R.drawable.ic_brand_mark),
                             contentDescription = null,
                             modifier = Modifier.size(22.dp),
                         )
