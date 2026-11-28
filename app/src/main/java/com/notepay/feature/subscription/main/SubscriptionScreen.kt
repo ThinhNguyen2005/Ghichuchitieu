@@ -68,7 +68,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.model.Subscription
+import kotlinx.coroutines.launch
 import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
 import com.notepay.core.designsystem.component.dialog.DayDetailDialog
@@ -76,6 +78,7 @@ import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.core.designsystem.component.calendar.MonthlyCalendarView
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.navigation.NotePayAnimatedContent
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -102,10 +105,16 @@ fun SubscriptionScreen(
     initialShowCreate: Boolean = false,
     onClearShowCreate: () -> Unit = {},
     onBack: () -> Unit = {},
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: SubscriptionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val dialogState by viewModel.dialogState.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
     // 0 = Lịch (default), 1 = Nhắc nhở
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     var showAddSheet by remember { mutableStateOf(false) }
@@ -250,28 +259,34 @@ fun SubscriptionScreen(
             ) {
                 // TabRow has been removed!
 
-                when (selectedTab) {
-                    0 -> CalendarTab(
-                        year = calendarYear,
-                        month = calendarMonth,
-                        subscriptions = state.allSubscriptions,
-                        highlightDates = upcomingDates,
-                        selectedDate = selectedDay,
-                        onPreviousMonth = {
-                            if (calendarMonth == 1) { calendarMonth = 12; calendarYear -= 1 } else calendarMonth -= 1
-                        },
-                        onNextMonth = {
-                            if (calendarMonth == 12) { calendarMonth = 1; calendarYear += 1 } else calendarMonth += 1
-                        },
-                        onDayClick = { date -> selectedDay = date },
-                        bottomPadding = bottomPadding,
-                    )
-                    1 -> ReminderListTab(
-                        subscriptions = state.allSubscriptions,
-                        query = searchQuery,
-                        onDelete = { viewModel.deleteSubscription(it.id) },
-                        bottomPadding = bottomPadding,
-                    )
+                NotePayAnimatedContent(
+                    targetState = selectedTab,
+                    modifier = Modifier.fillMaxSize(),
+                    label = "subscription-tab",
+                ) { tab ->
+                    when (tab) {
+                        0 -> CalendarTab(
+                            year = calendarYear,
+                            month = calendarMonth,
+                            subscriptions = state.allSubscriptions,
+                            highlightDates = upcomingDates,
+                            selectedDate = selectedDay,
+                            onPreviousMonth = {
+                                if (calendarMonth == 1) { calendarMonth = 12; calendarYear -= 1 } else calendarMonth -= 1
+                            },
+                            onNextMonth = {
+                                if (calendarMonth == 12) { calendarMonth = 1; calendarYear += 1 } else calendarMonth += 1
+                            },
+                            onDayClick = { date -> selectedDay = date },
+                            bottomPadding = bottomPadding,
+                        )
+                        1 -> ReminderListTab(
+                            subscriptions = state.allSubscriptions,
+                            query = searchQuery,
+                            onDelete = { viewModel.deleteSubscription(it.id) },
+                            bottomPadding = bottomPadding,
+                        )
+                    }
                 }
             }
         }
@@ -556,55 +571,61 @@ private fun ReminderListTab(
         }
         Spacer(modifier = Modifier.height(4.dp))
 
-        if (filtered.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    query.isNotBlank() -> EmptyStateWithAction(
-                        icon = Icons.Outlined.Search,
-                        title = stringResource(R.string.subscription_no_match_title),
-                        description = stringResource(R.string.subscription_no_match_description, query),
-                    )
-                    filter == ReminderFilter.ALL -> EmptyStateWithAction(
-                        icon = Icons.Outlined.Notifications,
-                        title = stringResource(R.string.subscription_empty_title),
-                        description = stringResource(R.string.subscription_empty_description),
-                    )
-                    filter == ReminderFilter.OVERDUE -> EmptyStateWithAction(
-                        icon = Icons.Outlined.SentimentSatisfied,
-                        title = stringResource(R.string.subscription_no_overdue_title),
-                        description = stringResource(R.string.subscription_no_overdue_description),
-                    )
-                    filter == ReminderFilter.UPCOMING -> EmptyStateWithAction(
-                        icon = Icons.Outlined.CalendarMonth,
-                        title = stringResource(R.string.subscription_no_upcoming_title),
-                        description = stringResource(R.string.subscription_no_upcoming_description),
-                    )
-                    filter == ReminderFilter.COMPLETED -> EmptyStateWithAction(
-                        icon = Icons.Outlined.CheckCircle,
-                        title = stringResource(R.string.subscription_no_completed_title),
-                        description = stringResource(R.string.subscription_no_completed_description),
-                    )
+        NotePayAnimatedContent(
+            targetState = filtered.isEmpty() to filter,
+            modifier = Modifier.fillMaxSize(),
+            label = "subscription-reminder-list",
+        ) { (isEmptyList, activeFilter) ->
+            if (isEmptyList) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when {
+                        query.isNotBlank() -> EmptyStateWithAction(
+                            icon = Icons.Outlined.Search,
+                            title = stringResource(R.string.subscription_no_match_title),
+                            description = stringResource(R.string.subscription_no_match_description, query),
+                        )
+                        activeFilter == ReminderFilter.ALL -> EmptyStateWithAction(
+                            icon = Icons.Outlined.Notifications,
+                            title = stringResource(R.string.subscription_empty_title),
+                            description = stringResource(R.string.subscription_empty_description),
+                        )
+                        activeFilter == ReminderFilter.OVERDUE -> EmptyStateWithAction(
+                            icon = Icons.Outlined.SentimentSatisfied,
+                            title = stringResource(R.string.subscription_no_overdue_title),
+                            description = stringResource(R.string.subscription_no_overdue_description),
+                        )
+                        activeFilter == ReminderFilter.UPCOMING -> EmptyStateWithAction(
+                            icon = Icons.Outlined.CalendarMonth,
+                            title = stringResource(R.string.subscription_no_upcoming_title),
+                            description = stringResource(R.string.subscription_no_upcoming_description),
+                        )
+                        activeFilter == ReminderFilter.COMPLETED -> EmptyStateWithAction(
+                            icon = Icons.Outlined.CheckCircle,
+                            title = stringResource(R.string.subscription_no_completed_title),
+                            description = stringResource(R.string.subscription_no_completed_description),
+                        )
+                    }
                 }
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = 4.dp,
-                    end = 16.dp,
-                    bottom = bottomPadding
-                ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(filtered, key = { it.id }) { sub ->
-                    SubscriptionCard(
-                        subscription = sub,
-                        onDelete = { pendingDelete = sub },
-                    )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 4.dp,
+                        end = 16.dp,
+                        bottom = bottomPadding
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(filtered, key = { it.id }) { sub ->
+                        SubscriptionCard(
+                            subscription = sub,
+                            onDelete = { pendingDelete = sub },
+                        )
+                    }
                 }
             }
         }

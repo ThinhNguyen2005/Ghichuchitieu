@@ -9,11 +9,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.feature.subscription.main.SubscriptionScreen
 
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.PredictiveBackDestination
 
 fun NavGraphBuilder.subscriptionScreen(
     navController: NavController,
     navigationBarOffset: Float = 0f,
+    showFeedback: suspend (UiFeedback) -> Boolean = { false },
 ) {
     composable(
         route = "subscription?showCreate={showCreate}",
@@ -39,7 +41,8 @@ fun NavGraphBuilder.subscriptionScreen(
                 onBack = { navController.popBackStack() },
                 onClearShowCreate = {
                     backStackEntry.savedStateHandle["showCreate"] = false
-                }
+                },
+                onFeedback = showFeedback,
             )
         }
     }

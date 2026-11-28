@@ -1,6 +1,5 @@
 package com.notepay.feature.subscription.main.sheet
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +39,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,10 +67,12 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.core.designsystem.component.button.LiquidButton
 import com.notepay.core.designsystem.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.shakeOnError
 import com.notepay.domain.model.Category
@@ -303,7 +303,7 @@ fun AddSubscriptionBottomSheet(
                     singleLine = true,
                     isError = isNameError,
                     supportingText = {
-                        AnimatedVisibility(visible = isNameError) {
+                        NotePayAnimatedVisibility(visible = isNameError) {
                             Text(
                                 text = stringResource(R.string.subscription_error_empty_name),
                                 style = MaterialTheme.typography.labelMedium,
@@ -329,7 +329,7 @@ fun AddSubscriptionBottomSheet(
                     suffix = { Text(stringResource(R.string.currency_vnd_symbol)) },
                     isError = isAmountError,
                     supportingText = {
-                        AnimatedVisibility(visible = isAmountError) {
+                        NotePayAnimatedVisibility(visible = isAmountError) {
                             Text(
                                 text = stringResource(R.string.feedback_transfer_invalid_amount),
                                 style = MaterialTheme.typography.labelMedium,
@@ -595,7 +595,7 @@ private fun CategoryPickerSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    NotePayModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
