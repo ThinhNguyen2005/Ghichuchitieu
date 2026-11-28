@@ -44,7 +44,8 @@ Resources: `app/src/main/res/`. Room schema exports: `app/schemas/` (keep them u
 - `./gradlew.bat :app:connectedDebugAndroidTest` instrumentation tests
 - `./gradlew.bat :app:assembleFullRelease :app:assemblePlayRelease :app:bundlePlayRelease` signed release APKs & Play bundle (needs local `app/signing.properties`)
 
-Add `--no-daemon` for clean CI-like diagnosis. Never commit APKs, keystores, `local.properties`, or `build/` output.
+Add `--no-daemon --max-workers=1 "-Dkotlin.compiler.execution.strategy=in-process" "-Dorg.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -Dfile.encoding=UTF-8"` on Windows to avoid `KotlinCompileDaemon` locking `classes.jar`. Never commit APKs, keystores, `local.properties`, or `build/` output.
+- **Real-device testing:** `fullDebug` installs as `com.notepay.full.debug` (test APK `com.notepay.full.debug.test`). Keep screen awake during ADB/instrumentation runs (`svc power stayon usb`), save `screencap` files outside the repo, and restore `font_scale`, `animator_duration_scale`, night mode, and `stayon false` afterward. On Xiaomi/HyperOS devices, `createComposeRule()` requires *"Display pop-up windows while running in the background"* (`MIUIOP(10021)`) enabled for `com.notepay.full.debug`; never bypass OS permissions via `appops`.
 
 ## Architecture: Right Layer
 
@@ -63,6 +64,7 @@ Before writing Kotlin, Compose, ViewModel, Room or Coroutine code, read `.agents
 - **State & null-safety:** no `!!`; `private val _uiState = MutableStateFlow(...)` exposed as `asStateFlow()`; ViewModels prefer `StateFlow`; composables are stateless (state + callbacks).
 - **Naming:** `*Screen`, `*ViewModel`, `*UiState`, use cases as verbs (`SuggestCategoryUseCase`). Four-space indent, immutable-first. No formatter/linter: match nearby code.
 - **Dependencies:** only via `gradle/libs.versions.toml`, never inline versions.
+- **Compose Lint & Detekt:** resolve strings in Compose callbacks via `LocalResources.current.getString(...)` (avoid `LocalContext.current.getString(...)`, which fails `LocalContextGetResourceValueCall`); construct `ContentTransform(..., sizeTransform = SizeTransform(...))` in helpers outside `AnimatedContentTransitionScope`; keep functions, `NavGraphBuilder` extensions, and `@Test` methods under Detekt's 120-line `LongMethod` limit (target `<= 80` lines for Compose UI tests).
 
 ## UI & Design System
 
@@ -73,7 +75,9 @@ Look (the easy-to-break parts of the v5 spec):
 - Content cards, grouped cards, and floating header/filter pills use `AppTheme.colors.surface` + `0.5.dp` `hairline` border + `Modifier.iosCardShadow(shape, elevated = false)` placed BEFORE `clip`/`background`/`Surface`.
 - `ink` (`primary`) is reserved for Primary CTA buttons and the floating bottom navigation pill. `sand` (`#F2D3A8`) is a highlight only (selected pills, active tabs, goal progress), never a large background.
 - Numbers use Inter with tabular figures (`tnum`). Fraunces (`displaySerif`) only for screen/section titles and short accents, never amounts or paragraphs.
-- Corner radii 28/24/20/16/12 and capsule/circle, no asymmetric corners. Sheets use `ModalBottomSheet` (`sheetTop`) with a 45% scrim.
+- Corner radii 28/24/20/16/12 and capsule/circle, no asymmetric corners. Sheets use `NotePayModalBottomSheet` (or `BottomSheetGlass` for 20dp-padded sheets; `sheetTop`, `surface`, 45% scrim, isolated `emptyBackdrop()`), never raw `ModalBottomSheet`.
+- **Shared motion & predictive back:** Reuse `NotePayMotion.kt` helpers (`notePayForwardEnterTransition`/`ExitTransition`, `NotePayAnimatedContent`, `NotePayAnimatedVisibility`, `Modifier.notePayPressScale`, `Modifier.notePayStaggeredEntrance`, `rememberNotePayReducedMotion()`) instead of duplicating transition specs per screen. Use `Modifier.notePayStaggeredEntrance` (`graphicsLayer`) inside sheets and lists so frame-0 height does not jump. Preserve predictive-back contracts (`PredictiveBackCorners.kt`, `NotePayNavHost` `popEnterTransition`/`popExitTransition`, `PredictiveBackDestination`, `BackHandler`).
+- **Unified status feedback:** Emit status feedback via `UiFeedback` (`FeedbackSnackbarHost` / `LatestFeedbackDispatcher`) and `NotePayStatusBanner`; never call `Toast.makeText`. Host validation errors inside the open sheet window and dismiss (`hide()` -> `!isVisible`) before forwarding `Success` to the root host; align confirmation dialog copy when Undo is available.
 
 Hard rules:
 1. Colors, shapes, shadows and type come from `AppTheme.colors`, `AppTheme.shapes`, `IosShadowModifier`, `Color.kt` tokens, and `AppTheme.typography`. No hard-coded hex in composables.
@@ -95,6 +99,7 @@ For `strings.xml` cleanup, use the script instead of editing by hand; ensure `-e
 - Check: `python .agents/scripts/string_dedup.py app/src/main/res/values/strings.xml --check`
 - Fix duplicate keys: `... --fix`
 - Merge same-value keys (dry-run first): `... --merge-values --source-dir app/src/main`
+- Verify 100% key parity between `values/strings.xml` and `values-en/strings.xml` before finishing any UI/feedback change.
 
 ## Testing
 

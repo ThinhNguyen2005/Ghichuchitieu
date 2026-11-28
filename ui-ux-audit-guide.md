@@ -235,6 +235,19 @@ suspend fun Animatable<Float, AnimationVector1D>.triggerErrorShake(
 
 ---
 
+### Phản hồi thao tác và chuyển động
+
+| Điểm kiểm tra | Hành vi trong mã |
+| --- | --- |
+| Điều hướng cấp app | `NotePayNavHost` dùng chuyển tiếp nhẹ và bỏ hiệu ứng khi bật giảm chuyển động. Menu **+** chờ sheet đóng rồi mới mở đích đã chọn. |
+| Trang chủ, Báo cáo, Tài sản, Tiện ích và các màn nghiệp vụ có `onFeedback` | Kết quả thao tác qua host cấp app. Thông báo có hành động dùng hàng đợi Material để người dùng còn thời gian bấm **Xem** hoặc **Hoàn tác**. |
+| Thêm và sửa giao dịch, thêm và sửa ví | Kết quả lưu hiện ở màn gọi sau khi màn đó tiếp tục hoạt động. **Xem** từ giao dịch dùng đúng ID đã lưu. Lỗi giữ người dùng ở form. |
+| Chi tiết giao dịch ví chung | Trạng thái chờ đồng bộ và lỗi đồng bộ nằm cạnh giao dịch, gồm cả pane chi tiết trên màn rộng. **Thử đồng bộ lại** dùng cùng ID. |
+| Nhập giọng nói/văn bản, chia hóa đơn, đăng nhập, sao lưu và giao diện | Phản hồi dùng cùng mẫu icon, chữ và hành động với host cấp app. Tác vụ đang mở sheet hiển thị lỗi trong sheet. |
+| Tiến trình, nội dung trống và lỗi kiểm tra dữ liệu | Hiển thị tại nút, nội dung hoặc trường liên quan. Dùng thanh thông báo cho kết quả của thao tác người dùng vừa thực hiện. |
+
+Nghiệm thu trên thiết bị gồm bấm nhanh hai lần, Back, bàn phím đang mở, **Hoàn tác** khi có thông báo kế tiếp, ví chung mất mạng và thử đồng bộ lại, TalkBack, cỡ chữ 200%, sáng/tối và animator scale 0.
+
 ## Actionable Prompt Mẫu (Dùng để gọi kiểm tra / áp dụng v5.0 cho bất kỳ màn hình nào)
 
 ```text
