@@ -19,13 +19,11 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
@@ -51,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.R
 import com.notepay.domain.model.AuthUser
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.navigation.rememberNotePayHaptic
 
@@ -94,13 +93,10 @@ fun AccountDetailsBottomSheet(
         )
     }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        shape = AppTheme.shapes.sheetTop,
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier

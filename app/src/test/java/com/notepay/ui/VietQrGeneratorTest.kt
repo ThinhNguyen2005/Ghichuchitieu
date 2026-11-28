@@ -1,13 +1,20 @@
 package com.notepay.ui
 
+import android.content.Intent
+import androidx.core.net.toUri
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import com.notepay.core.designsystem.util.VietQrCardData
+import com.notepay.core.designsystem.util.VietQrCardRenderer
 import com.notepay.core.designsystem.util.VietQrGenerator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -100,10 +107,42 @@ class VietQrGeneratorTest {
     @Test
     fun `generateLocalQrBitmap creates valid non-empty bitmap offline`() {
         val payload = VietQrGenerator.generateEmvCoPayload(bankBinTpbank, accountNumber, testAmountCents, testMemo)
-        val bitmap = VietQrGenerator.generateLocalQrBitmap(payload, 200, 200)
+        val bitmap = VietQrGenerator.generateLocalQrBitmap(payload, 200, 200, ErrorCorrectionLevel.H)
         assertNotNull(bitmap)
         assertEquals(200, bitmap.width)
         assertEquals(200, bitmap.height)
+    }
+
+    @Test
+    fun `renderCardBitmap renders branded VietQR card offline and buildShareImageIntent targets image_png`() {
+        val context = RuntimeEnvironment.getApplication()
+        val payload = VietQrGenerator.generateEmvCoPayload(bankBinTpbank, accountNumber, testAmountCents, testMemo)
+        val data = VietQrCardData(
+            emvPayload = payload,
+            bankShortName = "TPBank",
+            bankFullName = "Ngân hàng TMCP Tiên Phong",
+            bankLogoUrl = "file:///android_asset/vietqr/logos/TPB.png",
+            accountName = "NGUYEN HOANG GIA THINH",
+            accountNumber = accountNumber,
+            amountFormatted = "20.000 ₫",
+            memo = testMemo,
+        )
+
+        val cardBitmap = VietQrCardRenderer.renderCardBitmap(context = context, data = data, cardWidthPx = 720)
+        assertEquals(720, cardBitmap.width)
+        assertTrue(cardBitmap.height > 720)
+        cardBitmap.recycle()
+
+        val testUri = "content://com.notepay.fileprovider/shared_images/test_qr.png".toUri()
+        val chooserIntent = VietQrCardRenderer.buildShareImageIntent(testUri, "Chia sẻ ảnh QR")
+        assertEquals(Intent.ACTION_CHOOSER, chooserIntent.action)
+        @Suppress("DEPRECATION")
+        val targetIntent = chooserIntent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+        assertNotNull(targetIntent)
+        assertEquals(Intent.ACTION_SEND, targetIntent?.action)
+        assertEquals("image/png", targetIntent?.type)
+        assertNull(targetIntent?.getStringExtra(Intent.EXTRA_TEXT))
+        assertTrue((targetIntent?.flags ?: 0) and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
     }
 
     private fun buildMemoCode(transactionId: Long, debtorName: String): String {

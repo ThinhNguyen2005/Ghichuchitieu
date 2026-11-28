@@ -28,6 +28,8 @@
     <string name="quick_add_title">Tạo mới</string>
     <string name="quick_add_expense_title">Thêm chi tiêu / thu nhập</string>
     <string name="quick_add_expense_desc">Ghi nhận giao dịch mua sắm, ăn uống hàng ngày</string>
+    <string name="quick_add_scan_receipt_title">Quét ảnh hóa đơn</string>
+    <string name="quick_add_scan_receipt_desc">Đọc tự động số tiền và nội dung từ ảnh hóa đơn, chuyển khoản</string>
     <string name="quick_add_text_entry_title">Nhập bằng giọng nói / văn bản</string>
     <string name="quick_add_text_entry_desc">Nói hoặc gõ câu tự nhiên để tách nhiều giao dịch</string>
     <string name="quick_add_debt_title">Thêm sổ ghi nợ</string>
@@ -77,7 +79,8 @@
     <string name="transaction_type_income">Thu nhập</string>
     <string name="transaction_field_wallet">Ví thanh toán</string>
     <string name="transaction_field_note">Ghi chú</string>
-    <string name="transaction_field_note_placeholder">Thêm chi tiết giao dịch…</string>
+    <string name="transaction_field_note_placeholder">Mô tả giao dịch của bạn</string>
+    <string name="action_add_transaction">Thêm giao dịch</string>
     <string name="transaction_no_wallet_selected">Chưa chọn ví</string>
     <string name="transaction_no_writable_wallet">Chưa có ví có quyền ghi</string>
     <string name="transaction_no_writable_wallet_desc">Tạo ví mới hoặc chọn ví mà bạn có quyền thêm giao dịch.</string>
@@ -301,7 +304,6 @@
     <string name="theme_dynamic_color">Màu hệ thống</string>
 
     <!-- Scan & BillSplit -->
-    <string name="scan_image_button">Quét ảnh giao dịch hoặc VietQR</string>
     <string name="billsplit_cd_back">Quay lại quản lý chia tiền</string>
     <string name="billsplit_tab_paid">Đã thanh toán</string>
     <string name="billsplit_cd_history">Xem các khoản đã thanh toán</string>
@@ -335,6 +337,12 @@
     <!-- Runtime feedback and presentation strings -->
     <string name="feedback_category_exists">Danh mục này đã tồn tại</string>
     <string name="feedback_transaction_saved">Đã lưu giao dịch</string>
+    <string name="feedback_transaction_created">Đã tạo giao dịch</string>
+    <string name="feedback_transaction_pending_sync">Đã lưu trên thiết bị · Chờ đồng bộ</string>
+    <string name="transaction_sync_failed">Đã lưu trên thiết bị · Đồng bộ thất bại</string>
+    <string name="transaction_sync_retrying">Đang gửi lại yêu cầu đồng bộ…</string>
+    <string name="action_retry_transaction_sync">Thử đồng bộ lại</string>
+    <string name="action_view_transaction">Xem</string>
     <string name="feedback_transaction_save_failed">Không thể lưu giao dịch</string>
     <string name="feedback_transaction_updated">Đã cập nhật giao dịch</string>
     <string name="feedback_transaction_update_failed">Không thể cập nhật giao dịch</string>
@@ -1587,4 +1595,92 @@ Bạn có muốn thêm vào danh sách hóa đơn định kỳ để NotePay t�
     <string name="cd_hide_api_key">Ẩn API key</string>
     <string name="cd_show_api_key">Hiện API key</string>
     <string name="cd_clear_due_date">Xóa ngày hẹn trả</string>
+    <string name="action_retry">Thử lại</string>
+    <string name="action_view_debt">Xem</string>
+    <string name="debt_create_failed">Không thể tạo khoản nợ. Vui lòng thử lại.</string>
+    <string name="debt_payment_failed">Không thể ghi nhận trả nợ. Vui lòng thử lại.</string>
+    <string name="debt_delete_failed">Không thể xóa khoản nợ. Vui lòng thử lại.</string>
+    <string name="debt_payment_delete_success">Đã xóa lần trả nợ</string>
+    <string name="debt_payment_delete_failed">Không thể xóa lần trả nợ. Vui lòng thử lại.</string>
+    <string name="debt_marked_settled_success">Đã đánh dấu khoản nợ đã tất toán</string>
+    <string name="debt_marked_unsettled_success">Đã mở lại khoản nợ</string>
+    <string name="debt_mark_settled_failed">Không thể cập nhật trạng thái tất toán</string>
+    <string name="debt_share_unavailable">Không tìm thấy ứng dụng chia sẻ</string>
+    <string name="feedback_category_created">Đã tạo danh mục mới</string>
+    <string name="feedback_category_updated">Đã cập nhật danh mục</string>
+    <string name="feedback_category_deleted">Đã xóa danh mục</string>
+    <string name="feedback_category_restored">Đã khôi phục danh mục</string>
+    <string name="feedback_category_save_failed">Không thể lưu danh mục. Vui lòng thử lại.</string>
+    <string name="feedback_category_delete_failed">Không thể xóa danh mục. Vui lòng thử lại.</string>
+    <string name="feedback_category_restore_failed">Không thể khôi phục danh mục</string>
+    <string name="feedback_subscription_saved">Đã lưu nhắc nhở định kỳ</string>
+    <string name="feedback_subscription_save_failed">Không thể lưu nhắc nhở định kỳ</string>
+    <string name="feedback_subscription_deleted">Đã xóa nhắc nhở định kỳ</string>
+    <string name="feedback_subscription_delete_failed">Không thể xóa nhắc nhở định kỳ</string>
+    <string name="feedback_subscription_restored">Đã khôi phục nhắc nhở định kỳ</string>
+    <string name="feedback_subscription_restore_failed">Không thể khôi phục nhắc nhở định kỳ</string>
+    <string name="feedback_advisor_failed">Không thể tạo phân tích lúc này. Vui lòng thử lại.</string>
+    <string name="feedback_transaction_sync_retried_success">Đã đồng bộ giao dịch thành công</string>
+    <string name="feedback_transaction_sync_retry_failed">Đồng bộ giao dịch thất bại. Kiểm tra kết nối và thử lại.</string>
+    <string name="natural_entry_ai_fallback_warning">Cloud AI tạm thời không khả dụng; đang dùng bộ phân tích trên máy.</string>
+    <string name="feedback_currency_rate_refreshed">Đã cập nhật tỷ giá mới nhất</string>
+    <string name="feedback_currency_rate_offline_retry">Không thể cập nhật tỷ giá do mất kết nối</string>
+    <string name="feedback_currency_updated">Đã chuyển đơn vị tiền tệ sang %1$s</string>
+    <string name="feedback_ai_api_key_saved">Đã lưu API Key</string>
+    <string name="feedback_ai_api_key_cleared">Đã xóa API Key</string>
+    <string name="feedback_ai_model_updated">Đã chọn mô hình %1$s</string>
+    <string name="feedback_reminder_time_updated">Đã đặt nhắc nhở hàng ngày lúc %1$s</string>
+
+    <!-- Assets Redesign, Quick Add Transfer, Shared Wallet Hub & Extended Status Feedback -->
+    <string name="quick_add_transfer_title">Chuyển tiền giữa ví</string>
+    <string name="quick_add_transfer_desc">Chuyển số dư nhanh giữa các ví của bạn</string>
+    <string name="assets_quick_create_wallet_title">Tạo tài khoản mới</string>
+    <string name="assets_quick_create_wallet_desc">Tiền mặt, ngân hàng, thẻ…</string>
+    <string name="assets_quick_shared_wallet_title">Ví chung</string>
+    <string name="assets_quick_shared_wallet_desc">Tạo ví chung hoặc nhập mã mời</string>
+    <string name="shared_wallet_hub_title">Ví chung</string>
+    <string name="shared_wallet_hub_tab_create">Tạo ví chung</string>
+    <string name="shared_wallet_hub_tab_join">Nhập mã mời</string>
+    <string name="cd_wallet_actions_more">Tùy chọn ví %1$s</string>
+    <string name="assets_outbox_pending_banner">Đang chờ đồng bộ %1$d giao dịch</string>
+    <string name="assets_outbox_syncing_banner">Đang đồng bộ %1$d giao dịch…</string>
+    <string name="assets_type_currency_format">%1$s · %2$s</string>
+    <string name="budget_followup_warning_format">Ví \"%1$s\" đã dùng %2$d%% hạn mức tháng</string>
+    <string name="budget_followup_exceeded_format">Ví \"%1$s\" đã vượt hạn mức tháng (%2$d%%)</string>
+    <string name="ocr_ai_quota_or_key_error">API Key không hợp lệ hoặc đã hết hạn mức AI</string>
+    <string name="natural_entry_ai_quota_warning">AI gặp lỗi khóa/hạn mức (%1$s); đang dùng bộ phân tích trên máy.</string>
+    <string name="action_open_ai_settings">Cài đặt AI</string>
+    <string name="export_pending_banner">Đang tạo tệp báo cáo…</string>
+    <string name="export_success_with_share">Đã xuất báo cáo</string>
+    <string name="backup_pending_export_banner">Đang tạo bản sao lưu…</string>
+    <string name="backup_pending_import_banner">Đang khôi phục dữ liệu…</string>
+    <string name="backup_share_action">Chia sẻ</string>
+    <string name="dialog_delete_transaction_undoable_format">Xóa \"%1$s\"? Bạn có thể hoàn tác ngay sau khi xóa.</string>
+    <string name="feedback_outbox_sync_noop">Tất cả ví chung đã được đồng bộ</string>
+
+    <!-- Transaction Details Polish, Branded VietQR Card & BillSplit Redesign -->
+    <string name="transaction_quick_note_breakfast">Ăn sáng</string>
+    <string name="transaction_quick_note_lunch">Ăn trưa</string>
+    <string name="transaction_quick_note_coffee">Cà phê</string>
+    <string name="transaction_quick_note_fuel">Đổ xăng</string>
+    <string name="transaction_quick_note_groceries">Đi chợ</string>
+    <string name="transaction_quick_note_salary">Lương tháng</string>
+    <string name="transaction_quick_note_bonus">Thưởng</string>
+    <string name="transaction_quick_note_refund">Hoàn tiền</string>
+    <string name="cd_scan_receipt_inline">Quét ảnh hóa đơn</string>
+    <string name="billsplit_create_cta">Tạo phiếu chia tiền</string>
+    <string name="billsplit_share_qr_image">Chia sẻ ảnh QR</string>
+    <string name="billsplit_vietqr_ready_format">VietQR sẵn sàng · %1$s</string>
+    <string name="billsplit_vietqr_not_ready">Chưa gắn tài khoản VietQR</string>
+    <string name="billsplit_setup_vietqr_short">Gắn VietQR</string>
+    <string name="billsplit_search_tx_placeholder">Tìm giao dịch theo ghi chú hoặc danh mục…</string>
+    <string name="billsplit_split_include_me">Chia đều (gồm tôi)</string>
+    <string name="billsplit_split_group_only">Chia hết cho nhóm</string>
+    <string name="billsplit_share_qr_failed">Không thể tạo ảnh VietQR. Vui lòng thử lại.</string>
+    <string name="billsplit_step_indicator_format">Bước %1$d/2</string>
+    <string name="billsplit_add_expense_shortcut">Ghi giao dịch chi tiêu</string>
+    <string name="vietqr_card_account_holder">Tên chủ TK: %1$s</string>
+    <string name="vietqr_card_account_number">Số TK: %1$s</string>
+    <string name="vietqr_card_amount_label">Số tiền: %1$s</string>
+    <string name="vietqr_card_memo_label">Nội dung: %1$s</string>
 </resources>

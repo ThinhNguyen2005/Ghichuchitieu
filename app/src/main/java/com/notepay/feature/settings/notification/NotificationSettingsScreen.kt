@@ -38,29 +38,37 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.feature.autocapture.autoCaptureSettingsItem
 import com.notepay.core.designsystem.theme.AppTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: NotificationSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
     
     val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsStateWithLifecycle()
     val budgetAlertsEnabled by viewModel.budgetAlertsEnabled.collectAsStateWithLifecycle()
@@ -174,7 +182,21 @@ fun NotificationSettingsScreen(
                                 onClick = {
                                     TimePickerDialog(
                                         context,
-                                        { _, hour, minute -> viewModel.updateReminderTime(hour, minute) },
+                                        { _, hour, minute ->
+                                            viewModel.updateReminderTime(hour, minute)
+                                            val formatted = "%02d:%02d".format(hour, minute)
+                                            scope.launch {
+                                                onFeedback(
+                                                    UiFeedback(
+                                                        message = resources.getString(
+                                                            R.string.feedback_reminder_time_updated,
+                                                            formatted,
+                                                        ),
+                                                        type = FeedbackType.Success,
+                                                    ),
+                                                )
+                                            }
+                                        },
                                         reminderHour,
                                         reminderMinute,
                                         true,

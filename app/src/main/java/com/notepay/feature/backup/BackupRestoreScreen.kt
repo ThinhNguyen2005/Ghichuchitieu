@@ -2,6 +2,7 @@ package com.notepay.feature.backup
 
 import com.notepay.core.designsystem.theme.AppTheme
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,7 +49,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarHost
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.showFeedback
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -71,6 +75,8 @@ fun BackupRestoreScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val shareBackupLabel = stringResource(R.string.backup_share_action)
+    val shareTitle = stringResource(R.string.export_share_chooser_title)
     var showConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -91,15 +97,36 @@ fun BackupRestoreScreen(
         }
     }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(viewModel, shareBackupLabel, shareTitle) {
         viewModel.feedback.collect { feedback: UiFeedback ->
-            snackbarHostState.showSnackbar(feedback.message)
+            val resolved = if (feedback.actionLabel == shareBackupLabel && feedback.onAction == null) {
+                val exportedUri = viewModel.state.value.lastExportedUri
+                if (exportedUri != null) {
+                    feedback.copy(
+                        onAction = {
+                            runCatching {
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/json"
+                                    putExtra(Intent.EXTRA_STREAM, exportedUri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, shareTitle))
+                            }
+                        },
+                    )
+                } else {
+                    feedback
+                }
+            } else {
+                feedback
+            }
+            snackbarHostState.showFeedback(resolved)
         }
     }
 
     LaunchedEffect(authViewModel) {
         authViewModel.feedback.collect { feedback: UiFeedback ->
-            snackbarHostState.showSnackbar(feedback.message)
+            snackbarHostState.showFeedback(feedback)
         }
     }
 
@@ -136,7 +163,7 @@ fun BackupRestoreScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { FeedbackSnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -146,6 +173,16 @@ fun BackupRestoreScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            NotePayStatusBanner(
+                visible = state.isExporting,
+                message = stringResource(R.string.backup_pending_export_banner),
+                type = FeedbackType.Pending,
+            )
+            NotePayStatusBanner(
+                visible = state.isImporting,
+                message = stringResource(R.string.backup_pending_import_banner),
+                type = FeedbackType.Pending,
+            )
 
             // Section: Sao lưu
             BackupCard(

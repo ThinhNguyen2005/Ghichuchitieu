@@ -22,6 +22,7 @@ data class SmartReceiptExtractionResult(
     val amountInCents: Long? = null,
     val merchant: String? = null,
     val note: String? = null,
+    val isAiAuthOrQuotaError: Boolean = false,
 )
 
 @Singleton
@@ -187,6 +188,7 @@ class CloudGeminiAdvisor internal constructor(
             return@withContext null
         }
         val modelsToTry = getModelsToTry()
+        var sawQuotaOrAuthError = false
 
         for (modelName in modelsToTry) {
             try {
@@ -235,12 +237,19 @@ class CloudGeminiAdvisor internal constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (e: Exception) {
-                if (e is GeminiApiException && e.isInvalidApiKey()) {
-                    return@withContext null
+                if (e is GeminiApiException && e.isQuotaOrAuthError()) {
+                    sawQuotaOrAuthError = true
+                    if (e.isInvalidApiKey()) {
+                        return@withContext SmartReceiptExtractionResult(isAiAuthOrQuotaError = true)
+                    }
                 }
                 // Continue to next candidate model
             }
         }
-        null
+        if (sawQuotaOrAuthError) {
+            SmartReceiptExtractionResult(isAiAuthOrQuotaError = true)
+        } else {
+            null
+        }
     }
 }

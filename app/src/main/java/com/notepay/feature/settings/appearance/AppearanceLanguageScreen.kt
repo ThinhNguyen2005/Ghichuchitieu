@@ -45,8 +45,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarHost
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.showFeedback
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -140,7 +143,7 @@ fun AppearanceLanguageScreen(
     val errorPhotoMessage = stringResource(R.string.home_bg_photo_error)
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { FeedbackSnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -492,8 +495,11 @@ fun AppearanceLanguageScreen(
             onPickCustomPhoto = { uri ->
                 viewModel.applyCustomBackground(uri) { success ->
                     coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            if (success) savedPhotoMessage else errorPhotoMessage,
+                        snackbarHostState.showFeedback(
+                            UiFeedback(
+                                message = if (success) savedPhotoMessage else errorPhotoMessage,
+                                type = if (success) FeedbackType.Success else FeedbackType.Error,
+                            ),
                         )
                     }
                 }

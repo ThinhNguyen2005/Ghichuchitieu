@@ -34,6 +34,7 @@ data class LocalImageScanResult(
     val note: String? = null,
     val message: String,
     val source: Source? = null,
+    val isAiKeyOrQuotaError: Boolean = false,
 ) {
     enum class Source { VIET_QR, OCR, CLOUD_AI }
 }
@@ -112,6 +113,11 @@ class LocalTransactionImageScanner @Inject constructor(
                                 amountInput = fallbackAmount.toString(),
                                 message = context.getString(R.string.image_scan_ocr_success),
                                 source = LocalImageScanResult.Source.OCR,
+                            )
+                        } else if (aiExtraction?.isAiAuthOrQuotaError == true) {
+                            LocalImageScanResult(
+                                message = context.getString(R.string.ocr_ai_quota_or_key_error),
+                                isAiKeyOrQuotaError = true,
                             )
                         } else {
                             LocalImageScanResult(message = context.getString(R.string.image_scan_amount_not_found))

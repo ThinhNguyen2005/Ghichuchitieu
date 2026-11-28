@@ -1,13 +1,11 @@
 package com.notepay.feature.onboarding.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +35,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.isAppDarkTheme
+import com.notepay.core.navigation.notePayPressScale
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.feature.onboarding.OnboardingStep
 
@@ -239,15 +237,7 @@ fun OnboardingPrimaryButton(
     isLoading: Boolean = false,
     trailingIcon: ImageVector? = null,
 ) {
-    val reducedMotion = rememberNotePayReducedMotion()
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled && !reducedMotion) 0.98f else 1f,
-        animationSpec = tween(durationMillis = 100, easing = FastOutSlowInEasing),
-        label = "OnboardingButtonPressScale",
-    )
 
     Surface(
         onClick = onClick,
@@ -259,10 +249,7 @@ fun OnboardingPrimaryButton(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
+            .notePayPressScale(interactionSource, enabled = enabled && !isLoading, pressedScale = 0.98f),
     ) {
         Row(
             modifier = Modifier

@@ -4,15 +4,8 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.core.platform.notification.NotificationHelper
 import com.notepay.feature.onboarding.OnboardingUiState
@@ -101,7 +96,7 @@ fun Step3ReminderScreen(
             subtitle = stringResource(R.string.onboarding_reminder_subtitle),
         )
 
-        Step3InkReminderPreview(uiState = uiState, reducedMotion = reducedMotion)
+        Step3InkReminderPreview(uiState = uiState)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -196,7 +191,7 @@ fun Step3ReminderScreen(
                     }
                 }
 
-                AnimatedVisibility(visible = uiState.reminderEnabled) {
+                NotePayAnimatedVisibility(visible = uiState.reminderEnabled) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             text = stringResource(R.string.onboarding_reminder_time_label),
@@ -274,7 +269,6 @@ fun Step3ReminderScreen(
 @Composable
 private fun Step3InkReminderPreview(
     uiState: OnboardingUiState,
-    reducedMotion: Boolean,
 ) {
     val timeLabel = if (uiState.reminderEnabled) {
         String.format(Locale.US, "%02d:%02d", uiState.reminderHour, uiState.reminderMinute)
@@ -337,15 +331,8 @@ private fun Step3InkReminderPreview(
                             fontWeight = FontWeight.Bold,
                             color = AppTheme.colors.onInkMuted,
                         )
-                        AnimatedContent(
+                        NotePayAnimatedContent(
                             targetState = timeLabel,
-                            transitionSpec = {
-                                if (reducedMotion) {
-                                    EnterTransition.None togetherWith ExitTransition.None
-                                } else {
-                                    fadeIn(tween(160)) togetherWith fadeOut(tween(110))
-                                }
-                            },
                             label = "ReminderTimeBadge",
                         ) { targetTime ->
                             Text(

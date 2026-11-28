@@ -1,13 +1,7 @@
 package com.notepay.feature.onboarding.steps
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +44,7 @@ import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.NotePayTheme
 import com.notepay.core.designsystem.util.WalletUiHelper
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
@@ -81,7 +76,7 @@ fun Step2WalletScreen(
             subtitle = stringResource(R.string.onboarding_wallet_subtitle),
         )
 
-        Step2InkWalletPreview(uiState = uiState, reducedMotion = reducedMotion)
+        Step2InkWalletPreview(uiState = uiState)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -284,7 +279,6 @@ fun Step2WalletScreen(
 @Composable
 private fun Step2InkWalletPreview(
     uiState: OnboardingUiState,
-    reducedMotion: Boolean,
 ) {
     val selectedOption = OnboardingUiState.WALLET_ICONS.find { it.key == uiState.walletIconKey }
         ?: OnboardingUiState.WALLET_ICONS.first()
@@ -307,15 +301,8 @@ private fun Step2InkWalletPreview(
                 modifier = Modifier.size(48.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    AnimatedContent(
+                    NotePayAnimatedContent(
                         targetState = uiState.walletIconKey,
-                        transitionSpec = {
-                            if (reducedMotion) {
-                                EnterTransition.None togetherWith ExitTransition.None
-                            } else {
-                                fadeIn(tween(180)) togetherWith fadeOut(tween(120))
-                            }
-                        },
                         label = "Step2WalletIcon",
                     ) { iconKey ->
                         Icon(

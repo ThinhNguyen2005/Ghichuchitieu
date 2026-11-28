@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.data.backup.DataExporter
 import com.notepay.data.backup.DataImporter
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackDuration
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,12 +66,15 @@ class BackupRestoreViewModel @Inject constructor(
                     it.copy(
                         isExporting = false,
                         lastBackupDate = loadLastBackupDate(),
+                        lastExportedUri = uri,
                     )
                 }
                 _feedback.emit(
                     UiFeedback(
-                        context.getString(R.string.backup_export_success),
+                        message = context.getString(R.string.backup_export_success),
                         type = FeedbackType.Success,
+                        actionLabel = context.getString(R.string.backup_share_action),
+                        duration = FeedbackDuration.Long,
                     ),
                 )
             } catch (e: CancellationException) {
