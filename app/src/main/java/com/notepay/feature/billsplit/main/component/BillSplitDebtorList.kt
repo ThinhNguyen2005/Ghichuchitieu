@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -79,7 +78,8 @@ internal fun LazyListScope.billSplitDebtorListItems(
     newDebtorName: String,
     onNewDebtorNameChange: (String) -> Unit,
     onAddDebtor: (String) -> Unit,
-    onSplitEvenly: () -> Unit,
+    onSplitEvenlyIncludePayer: () -> Unit,
+    onSplitEvenlyGroupOnly: () -> Unit,
     onAmountChange: (index: Int, input: String) -> Unit,
     onRemoveDebtor: (index: Int) -> Unit,
     onBackToStep1: () -> Unit,
@@ -125,7 +125,8 @@ internal fun LazyListScope.billSplitDebtorListItems(
         debtorsCount = debtors.size,
         onNewDebtorNameChange = onNewDebtorNameChange,
         onAddDebtor = onAddDebtor,
-        onSplitEvenly = onSplitEvenly,
+        onSplitEvenlyIncludePayer = onSplitEvenlyIncludePayer,
+        onSplitEvenlyGroupOnly = onSplitEvenlyGroupOnly,
     )
 
     itemsIndexed(
@@ -149,7 +150,8 @@ private fun LazyListScope.addParticipantControlsItems(
     debtorsCount: Int,
     onNewDebtorNameChange: (String) -> Unit,
     onAddDebtor: (String) -> Unit,
-    onSplitEvenly: () -> Unit,
+    onSplitEvenlyIncludePayer: () -> Unit,
+    onSplitEvenlyGroupOnly: () -> Unit,
 ) {
     item {
         OutlinedTextField(
@@ -233,38 +235,96 @@ private fun LazyListScope.addParticipantControlsItems(
     }
 
     item {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.billsplit_participants),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
+        ParticipantControlsHeader(
+            debtorsCount = debtorsCount,
+            onSplitEvenlyIncludePayer = onSplitEvenlyIncludePayer,
+            onSplitEvenlyGroupOnly = onSplitEvenlyGroupOnly,
+        )
+    }
+}
 
-                Text(
-                    text = if (debtorsCount == 0) {
-                        stringResource(R.string.billsplit_no_debtor_yet)
-                    } else {
-                        pluralStringResource(
-                            R.plurals.billsplit_debtor_added_count,
-                            debtorsCount,
-                            debtorsCount,
-                        )
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+@Composable
+private fun ParticipantControlsHeader(
+    debtorsCount: Int,
+    onSplitEvenlyIncludePayer: () -> Unit,
+    onSplitEvenlyGroupOnly: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column {
+            Text(
+                text = stringResource(R.string.billsplit_participants),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.colors.textPrimary,
+            )
 
-            FilledTonalButton(
-                onClick = onSplitEvenly,
-                enabled = debtorsCount > 0,
-                modifier = Modifier.heightIn(min = 48.dp),
+            Text(
+                text = if (debtorsCount == 0) {
+                    stringResource(R.string.billsplit_no_debtor_yet)
+                } else {
+                    pluralStringResource(
+                        R.plurals.billsplit_debtor_added_count,
+                        debtorsCount,
+                        debtorsCount,
+                    )
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+            )
+        }
+
+        if (debtorsCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(stringResource(R.string.billsplit_split_evenly))
+                Surface(
+                    onClick = onSplitEvenlyIncludePayer,
+                    shape = AppTheme.shapes.capsule,
+                    color = AppTheme.colors.sand,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.billsplit_split_include_me),
+                            style = AppTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AppTheme.colors.onSand,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = onSplitEvenlyGroupOnly,
+                    shape = AppTheme.shapes.capsule,
+                    color = AppTheme.colors.surface,
+                    border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .iosCardShadow(shape = AppTheme.shapes.capsule, elevated = false),
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.billsplit_split_group_only),
+                            style = AppTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppTheme.colors.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

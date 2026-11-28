@@ -2,6 +2,9 @@ package com.notepay.feature.billsplit.main.sheet
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -71,6 +74,9 @@ import com.notepay.domain.model.Wallet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietQrGenerator
 import com.notepay.core.common.util.StringUtils
+import com.notepay.core.navigation.NotePayEmphasizedAccelerate
+import com.notepay.core.navigation.NotePayEmphasizedDecelerate
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 private enum class VietQrStep { SelectBank, EnterAccount }
 
@@ -88,6 +94,7 @@ fun VietQrConfigFullScreenDialog(
     var accountNumber by remember(wallet.accountNumber) { mutableStateOf(wallet.accountNumber.orEmpty()) }
     var accountName by remember(wallet.accountName) { mutableStateOf(wallet.accountName.orEmpty()) }
     val view = LocalView.current
+    val reducedMotion = rememberNotePayReducedMotion()
     val playHaptic = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -106,10 +113,22 @@ fun VietQrConfigFullScreenDialog(
                 AnimatedContent(
                     targetState = step,
                     transitionSpec = {
-                        if (targetState == VietQrStep.EnterAccount) {
-                            (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                        if (reducedMotion) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else if (targetState == VietQrStep.EnterAccount) {
+                            (slideInHorizontally(tween(260, easing = NotePayEmphasizedDecelerate)) { it / 3 } +
+                                fadeIn(tween(220, easing = NotePayEmphasizedDecelerate)))
+                                .togetherWith(
+                                    slideOutHorizontally(tween(200, easing = NotePayEmphasizedAccelerate)) { -it / 4 } +
+                                        fadeOut(tween(150, easing = NotePayEmphasizedAccelerate)),
+                                )
                         } else {
-                            (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+                            (slideInHorizontally(tween(260, easing = NotePayEmphasizedDecelerate)) { -it / 3 } +
+                                fadeIn(tween(220, easing = NotePayEmphasizedDecelerate)))
+                                .togetherWith(
+                                    slideOutHorizontally(tween(200, easing = NotePayEmphasizedAccelerate)) { it / 4 } +
+                                        fadeOut(tween(150, easing = NotePayEmphasizedAccelerate)),
+                                )
                         }
                     },
                     label = "vietqr-fullscreen-flow",

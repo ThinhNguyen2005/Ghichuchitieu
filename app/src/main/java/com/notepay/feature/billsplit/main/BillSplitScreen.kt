@@ -1,7 +1,7 @@
 package com.notepay.feature.billsplit.main
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,16 +10,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -28,32 +33,38 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -61,33 +72,52 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
+import com.notepay.core.designsystem.component.effect.iosCardShadow
+import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.formatter.PresentationDateFormatter
+import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkRim
+import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
+import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
+import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
+import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
+import com.notepay.core.designsystem.util.VietQrCardData
+import com.notepay.core.designsystem.util.VietQrCardRenderer
+import com.notepay.core.designsystem.util.VietQrGenerator
+import com.notepay.core.navigation.NotePayAnimatedContent
+import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.domain.money.Money
 import com.notepay.feature.billsplit.main.sheet.BillSplitCreateSheet
 import com.notepay.feature.billsplit.main.sheet.VietQrConfigFullScreenDialog
-import com.notepay.core.designsystem.feedback.UiFeedback
-import com.notepay.core.designsystem.formatter.PresentationDateFormatter
-import com.notepay.core.designsystem.theme.AppTheme
-import com.notepay.core.designsystem.formatter.MoneyFormatter
-import com.notepay.core.designsystem.util.VietQrGenerator
+import kotlinx.coroutines.launch
 
-/** Khoảng trống cho FAB để item cuối của danh sách không bị nút che. */
-private val FabClearance = 96.dp
+/** Clearance below list items so the extended FAB never obscures the last card. */
+private val FabClearance = 104.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BillSplitScreen(
     onDebtorClick: (String) -> Unit,
     onFeedback: suspend (UiFeedback) -> Boolean,
+    onBack: () -> Unit = {},
+    onAddExpense: () -> Unit = {},
     initialShowCreate: Boolean = false,
     onClearShowCreate: () -> Unit = {},
     viewModel: BillSplitViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(viewModel, onFeedback) {
         viewModel.feedback.collect { feedback ->
-            onFeedback(feedback)
+            launch { onFeedback(feedback) }
         }
     }
 
@@ -112,217 +142,202 @@ fun BillSplitScreen(
     }
 
     val title = stringResource(R.string.bill_split_title)
+    val historyTitle = stringResource(R.string.billsplit_tab_paid)
     val emptyAll = stringResource(R.string.bill_split_empty)
     val emptyUnpaid = stringResource(R.string.bill_split_empty_unpaid)
     val emptyPaid = stringResource(R.string.bill_split_empty_paid)
+    val createCta = stringResource(R.string.billsplit_create_cta)
     val confirmDeleteTitle = stringResource(R.string.confirm_delete_bill_title)
     val confirmDeleteMessageFormat = stringResource(R.string.dialog_delete_confirm_format)
     val linkedBankLabel = stringResource(R.string.bank_linked)
+    val sharePaymentRequestTitle = stringResource(R.string.billsplit_share_qr_image)
+    val shareQrFailedMsg = stringResource(R.string.billsplit_share_qr_failed)
+    val qrMissingMsg = stringResource(R.string.bill_split_vietqr_missing)
+    val setupQrShortLabel = stringResource(R.string.billsplit_setup_vietqr_short)
 
-    /*
-     * Người nhận tiền của mã QR chính là ví đang dùng. Trước đây không có chỗ nào nói ra
-     * điều đó, nên đổi ví là âm thầm đổi người nhận tiền trong tin nhắn chia sẻ.
-     */
-    val receiveAccountLabel = state.activeWallet?.let { wallet ->
-        val bankShortName = state.banks.find { it.bin == wallet.bankBin }?.shortName
-        val maskedAccount = wallet.accountNumber
-            ?.takeLast(4)
-            ?.let { last4 -> "\u2022\u2022$last4" }
-
-        listOfNotNull(bankShortName, maskedAccount)
-            .joinToString(" ")
-            .ifBlank { wallet.name }
+    val activeWallet = state.activeWallet
+    val activeBank = remember(activeWallet?.bankBin, state.banks) {
+        state.banks.find { it.bin == activeWallet?.bankBin }
+    }
+    val hasActiveQr = activeWallet?.bankBin != null && !activeWallet.accountNumber.isNullOrBlank()
+    val receiveAccountLabel = remember(activeWallet, activeBank) {
+        activeWallet?.takeIf { !it.bankBin.isNullOrBlank() && !it.accountNumber.isNullOrBlank() }?.let { wallet ->
+            val bankShort = activeBank?.shortName ?: wallet.bankBin
+            val last4 = wallet.accountNumber?.takeLast(4)?.let { "\u2022\u2022$it" }
+            listOfNotNull(bankShort, last4).joinToString(" ").ifBlank { wallet.name }
+        }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientTopAppBar(
-                title = {
-                    Text(if (showPaidHistory) stringResource(R.string.billsplit_tab_paid) else title)
-                },
-                navigationIcon = {
-                    if (showPaidHistory) {
-                        IconButton(
-                            onClick = { showPaidHistory = false },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = stringResource(R.string.billsplit_cd_back),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    // Nút cấu hình VietQR đã chuyển xuống dòng "Nhận về" trong thẻ
-                    // tổng quan: logo ở đây trông như nhãn trang trí chứ không phải nút.
-                    if (!showPaidHistory) {
-                        IconButton(
-                            onClick = { showPaidHistory = true },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.History,
-                                contentDescription = stringResource(R.string.billsplit_cd_history),
-                            )
-                        }
-                    }
-                },
-            )
-        },
-        floatingActionButton = {
-            if (!showPaidHistory) {
-                FloatingActionButton(
-                    onClick = { showCreateDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = stringResource(R.string.bill_split_create_btn)
-                    )
-                }
-            }
-        },
-    ) { padding ->
-        val layoutDirection = LocalLayoutDirection.current
-        val bottomPadding = padding.calculateBottomPadding() + FabClearance
-        val horizontalPadding = Modifier.padding(
-            start = padding.calculateStartPadding(layoutDirection),
-            top = padding.calculateTopPadding(),
-            end = padding.calculateEndPadding(layoutDirection),
+    val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomPadding = navBottom + FabClearance
+    val unpaidGroups = remember(state.unpaidSplits) {
+        state.unpaidSplits.groupBy { it.split.debtorName }.entries.toList()
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppAtmosphericBackground(
+            modifier = Modifier.matchParentSize(),
+            forceSoftBlurOnPhoto = true,
         )
 
-        if (showPaidHistory) {
-            PaidHistoryContent(
-                paidSplits = state.paidSplits,
-                emptyTitle = emptyPaid,
-                bottomPadding = bottomPadding,
-                onDebtorClick = onDebtorClick,
-                onDelete = { pendingDeleteBill = it },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(horizontalPadding),
+        Column(modifier = Modifier.fillMaxSize()) {
+            BillSplitHeader(
+                title = if (showPaidHistory) historyTitle else title,
+                showPaidHistory = showPaidHistory,
+                onBackClick = {
+                    if (showPaidHistory) showPaidHistory = false else onBack()
+                },
+                onToggleHistory = { showPaidHistory = !showPaidHistory },
             )
-        } else {
-            val unpaidGroups = remember(state.unpaidSplits) {
-                state.unpaidSplits.groupBy { it.split.debtorName }.entries.toList()
-            }
-            val emptyTitle = if (state.paidSplits.isEmpty()) emptyAll else emptyUnpaid
 
-            LazyColumn(
+            NotePayAnimatedContent(
+                targetState = showPaidHistory,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .then(horizontalPadding),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = 12.dp,
-                    end = 16.dp,
-                    bottom = bottomPadding,
-                ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    BillSplitOverview(
-                        totalAmountCents = state.unpaidSplits.sumOf {
-                            it.split.amount.amountInCents
-                        },
-                        debtorCount = state.unpaidSplits
-                            .map { it.split.debtorName }
-                            .distinct()
-                            .size,
-                        splitCount = state.unpaidSplits.size,
-                        receiveAccountLabel = receiveAccountLabel,
-                        onChangeReceiveAccount = state.activeWallet
-                            ?.let { wallet -> { qrConfigWalletId = wallet.id } },
+                    .fillMaxWidth()
+                    .weight(1f),
+                label = "billsplit-mode",
+            ) { showingHistory ->
+                if (showingHistory) {
+                    PaidHistoryContent(
+                        paidSplits = state.paidSplits,
+                        emptyTitle = emptyPaid,
+                        bottomPadding = bottomPadding,
+                        onDebtorClick = onDebtorClick,
+                        onDelete = { pendingDeleteBill = it },
+                        modifier = Modifier.fillMaxSize(),
                     )
-                }
-
-                if (unpaidGroups.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 240.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            _root_ide_package_.com.notepay.core.designsystem.component.feedback.EmptyStateWithAction(
-                                title = emptyTitle,
-                                icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
                 } else {
-                    items(unpaidGroups, key = { it.key }) { (debtorName, splits) ->
-                        val totalAmountCents = splits.sumOf { it.split.amount.amountInCents }
-                        val amountStr = MoneyFormatter.format(Money(totalAmountCents))
-                        val qrWallet = state.activeWallet
-                        val qrBankBin = qrWallet?.bankBin
-                        val qrAccountNumber = qrWallet?.accountNumber
-                        val qrMemoCode = "NP " + debtorName
-                            .filter { it.isLetterOrDigit() || it.isWhitespace() }
-                            .trim()
-                            .uppercase()
-                        // Kiểm tra null trực tiếp thay vì `!!`: ví có thể bị xoá cấu hình QR
-                        // bất kỳ lúc nào, khi đó chỉ là không tạo được mã.
-                        val qrUrl = if (qrBankBin != null && qrAccountNumber != null) {
-                            VietQrGenerator.generateImageUrl(
-                                bankBin = qrBankBin,
-                                accountNumber = qrAccountNumber,
-                                amountCents = totalAmountCents,
-                                memo = qrMemoCode,
-                                accountName = qrWallet?.accountName,
-                            )
-                        } else {
-                            null
-                        }
-                        val shareWithQrMessage = if (qrUrl != null) {
-                            stringResource(
-                                R.string.billsplit_share_with_qr_format,
-                                debtorName,
-                                amountStr,
-                                state.banks.find { it.bin == qrBankBin }?.shortName
-                                    ?: linkedBankLabel,
-                                qrAccountNumber.orEmpty(),
-                                qrWallet?.accountName.orEmpty(),
-                                qrMemoCode,
-                                qrUrl,
-                            )
-                        } else {
-                            null
-                        }
-                        val shareWithoutQrMessage = stringResource(
-                            R.string.billsplit_share_without_qr_format,
-                            debtorName,
-                            amountStr,
-                        )
-                        val sharePaymentRequestTitle = stringResource(R.string.billsplit_share_payment_request)
-                        val shareQuickTitle = stringResource(R.string.billsplit_share_quick)
-                        DebtorGroupRow(
-                            debtorName = debtorName,
-                            totalAmountCents = totalAmountCents,
-                            splitCount = splits.size,
-                            onClick = { onDebtorClick(debtorName) },
-                            onShare = {
-                                val shareMessage = shareWithQrMessage ?: shareWithoutQrMessage
-                                val chooserTitle = if (shareWithQrMessage != null) {
-                                    sharePaymentRequestTitle
-                                } else {
-                                    shareQuickTitle
-                                }
-                                val intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, shareMessage)
-                                    type = "text/plain"
-                                }
-                                context.startActivity(Intent.createChooser(intent, chooserTitle))
+                    val emptyTitle = if (state.paidSplits.isEmpty()) emptyAll else emptyUnpaid
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            top = 8.dp,
+                            end = 16.dp,
+                            bottom = bottomPadding,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        item {
+                            NotePayStaggeredEntrance(index = 0) {
+                                BillSplitOverview(
+                                    totalAmountCents = state.unpaidSplits.sumOf { it.split.amount.amountInCents },
+                                    debtorCount = unpaidGroups.size,
+                                    splitCount = state.unpaidSplits.size,
+                                    hasQrConfigured = hasActiveQr,
+                                    receiveAccountLabel = receiveAccountLabel,
+                                    onChangeReceiveAccount = (activeWallet ?: state.wallets.firstOrNull())
+                                        ?.let { wallet -> { qrConfigWalletId = wallet.id } },
+                                )
                             }
-                        )
+                        }
+
+                        if (unpaidGroups.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 24.dp, bottom = 16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    EmptyStateWithAction(
+                                        title = emptyTitle,
+                                        icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+                                        actionLabel = createCta,
+                                        onClick = { showCreateDialog = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        } else {
+                            items(unpaidGroups, key = { it.key }) { (debtorName, splits) ->
+                                val totalAmountCents = splits.sumOf { it.split.amount.amountInCents }
+                                val amountStr = MoneyFormatter.format(Money(totalAmountCents))
+                                val qrBankBin = activeWallet?.bankBin
+                                val qrAccountNumber = activeWallet?.accountNumber
+                                val qrMemoCode = "NP " + debtorName
+                                    .filter { it.isLetterOrDigit() || it.isWhitespace() }
+                                    .trim()
+                                    .uppercase()
+
+                                DebtorGroupRow(
+                                    debtorName = debtorName,
+                                    totalAmountCents = totalAmountCents,
+                                    splitCount = splits.size,
+                                    hasQrConfigured = !qrBankBin.isNullOrBlank() && !qrAccountNumber.isNullOrBlank(),
+                                    onClick = { onDebtorClick(debtorName) },
+                                    onShare = {
+                                        if (!qrBankBin.isNullOrBlank() && !qrAccountNumber.isNullOrBlank()) {
+                                            val emv = VietQrGenerator.generateEmvCoPayload(
+                                                bankBin = qrBankBin,
+                                                accountNumber = qrAccountNumber,
+                                                amountCents = totalAmountCents,
+                                                memo = qrMemoCode,
+                                                accountName = activeWallet.accountName,
+                                            )
+                                            val cardData = VietQrCardData(
+                                                emvPayload = emv,
+                                                bankShortName = activeBank?.shortName ?: linkedBankLabel,
+                                                bankFullName = activeBank?.name ?: linkedBankLabel,
+                                                bankLogoUrl = activeBank?.logoUrl,
+                                                accountName = activeWallet.accountName.orEmpty(),
+                                                accountNumber = qrAccountNumber,
+                                                amountFormatted = amountStr,
+                                                memo = qrMemoCode,
+                                            )
+                                            coroutineScope.launch {
+                                                VietQrCardRenderer.shareVietQrCardImage(
+                                                    context = context,
+                                                    data = cardData,
+                                                    chooserTitle = sharePaymentRequestTitle,
+                                                    filePrefix = "billsplit_$debtorName",
+                                                ).onFailure {
+                                                    onFeedback(UiFeedback(shareQrFailedMsg, type = FeedbackType.Error))
+                                                }
+                                            }
+                                        } else {
+                                            val targetWalletId = activeWallet?.id ?: state.wallets.firstOrNull()?.id
+                                            coroutineScope.launch {
+                                                onFeedback(
+                                                    UiFeedback(
+                                                        message = qrMissingMsg,
+                                                        type = FeedbackType.Warning,
+                                                        actionLabel = setupQrShortLabel,
+                                                        onAction = { targetWalletId?.let { qrConfigWalletId = it } },
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        if (!showPaidHistory && unpaidGroups.isNotEmpty()) {
+            ExtendedFloatingActionButton(
+                onClick = { showCreateDialog = true },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = {
+                    Text(
+                        text = createCta,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                shape = AppTheme.shapes.capsule,
+                containerColor = AppTheme.colors.ink,
+                contentColor = AppTheme.colors.onInk,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+            )
         }
     }
 
@@ -332,13 +347,7 @@ fun BillSplitScreen(
             banks = state.banks,
             onDismiss = { qrConfigWalletId = null },
             onSave = { bin, accountNumber, accountName ->
-                viewModel.updateWalletForQr(
-                    wallet.id,
-                    bin,
-                    accountNumber,
-                    accountName,
-                )
-                // Không Toast: ViewModel đã phát feedback_vietqr_saved qua UiFeedback.
+                viewModel.updateWalletForQr(wallet.id, bin, accountNumber, accountName)
                 qrConfigWalletId = null
             },
         )
@@ -347,7 +356,7 @@ fun BillSplitScreen(
     if (showCreateDialog) {
         val allDebtorNames = remember(state.unpaidSplits, state.paidSplits) {
             (state.unpaidSplits.map { it.split.debtorName } +
-                    state.paidSplits.map { it.split.debtorName })
+                state.paidSplits.map { it.split.debtorName })
                 .distinct()
                 .filter { it.isNotBlank() }
                 .sorted()
@@ -355,6 +364,10 @@ fun BillSplitScreen(
         BillSplitCreateSheet(
             recentTransactions = state.recentTransactions,
             allDebtorNames = allDebtorNames,
+            onAddExpense = {
+                showCreateDialog = false
+                onAddExpense()
+            },
             onConfirm = { parentTransactionId, entries ->
                 viewModel.createBillSplits(parentTransactionId, entries)
                 showCreateDialog = false
@@ -364,7 +377,7 @@ fun BillSplitScreen(
     }
 
     pendingDeleteBill?.let { item ->
-        _root_ide_package_.com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog(
+        ConfirmDeleteDialog(
             title = confirmDeleteTitle,
             itemName = "${item.split.debtorName} • ${MoneyFormatter.format(item.split.amount)}",
             message = confirmDeleteMessageFormat.format(item.split.debtorName),
@@ -374,6 +387,73 @@ fun BillSplitScreen(
             },
             onDismiss = { pendingDeleteBill = null },
         )
+    }
+}
+
+@Composable
+private fun BillSplitHeader(
+    title: String,
+    showPaidHistory: Boolean,
+    onBackClick: () -> Unit,
+    onToggleHistory: () -> Unit,
+) {
+    val pillColor = AppTheme.colors.surface.copy(alpha = if (AppTheme.colors.isLight) 0.92f else 0.88f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Surface(
+            onClick = onBackClick,
+            shape = CircleShape,
+            color = pillColor,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(48.dp)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.billsplit_cd_back),
+                    tint = AppTheme.colors.textPrimary,
+                )
+            }
+        }
+
+        Text(
+            text = title,
+            style = AppTheme.typography.displaySerif,
+            color = AppTheme.colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+
+        if (!showPaidHistory) {
+            Surface(
+                onClick = onToggleHistory,
+                shape = CircleShape,
+                color = pillColor,
+                border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                modifier = Modifier
+                    .size(48.dp)
+                    .iosCardShadow(shape = CircleShape, elevated = false),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = stringResource(R.string.billsplit_cd_history),
+                        tint = AppTheme.colors.textPrimary,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -388,10 +468,12 @@ private fun PaidHistoryContent(
 ) {
     if (paidSplits.isEmpty()) {
         Box(
-            modifier = modifier.padding(bottom = bottomPadding),
+            modifier = modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = bottomPadding),
             contentAlignment = Alignment.Center,
         ) {
-            _root_ide_package_.com.notepay.core.designsystem.component.feedback.EmptyStateWithAction(
+            EmptyStateWithAction(
                 title = emptyTitle,
                 icon = Icons.Rounded.CheckCircle,
                 modifier = Modifier.fillMaxWidth(),
@@ -404,7 +486,7 @@ private fun PaidHistoryContent(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 16.dp,
-            top = 16.dp,
+            top = 8.dp,
             end = 16.dp,
             bottom = bottomPadding,
         ),
@@ -418,7 +500,7 @@ private fun PaidHistoryContent(
                     paidSplits.size,
                 ),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = AppTheme.colors.textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
@@ -438,96 +520,140 @@ private fun BillSplitOverview(
     totalAmountCents: Long,
     debtorCount: Int,
     splitCount: Int,
+    hasQrConfigured: Boolean,
     receiveAccountLabel: String?,
     onChangeReceiveAccount: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppTheme.shapes.corner20,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    val isLight = AppTheme.colors.isLight
+    val cardShape = AppTheme.shapes.corner28
+    val heroGradient = remember(isLight) {
+        val top = if (isLight) HomeHeroCardLightTop else HomeHeroCardDarkTop
+        val bottom = if (isLight) HomeHeroCardLightBottom else HomeHeroCardDarkBottom
+        Brush.verticalGradient(listOf(top, bottom))
+    }
+    val rimColor = if (isLight) HomeHeroCardLightRim else HomeHeroCardDarkRim
+    val stackTiles = LocalDensity.current.fontScale >= 1.45f
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .iosCardShadow(shape = cardShape, elevated = true),
+        shape = cardShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, rimColor),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(heroGradient)
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = AppTheme.shapes.circle,
-                    ),
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.CallReceived,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(AppTheme.colors.primary.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.CallReceived,
+                        contentDescription = null,
+                        tint = AppTheme.colors.primary,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.billsplit_total_to_receive),
+                        style = AppTheme.typography.labelLarge,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                    Text(
+                        text = MoneyFormatter.format(Money(totalAmountCents)),
+                        style = AppTheme.typography.amountHero.copy(fontFeatureSettings = "tnum"),
+                        color = AppTheme.colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.billsplit_total_to_receive),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = MoneyFormatter.format(Money(totalAmountCents)),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.billsplit_reconcile_summary_format,
-                        pluralStringResource(
-                            R.plurals.billsplit_debtor_count,
-                            debtorCount,
-                            debtorCount,
-                        ),
-                        pluralStringResource(
-                            R.plurals.billsplit_split_to_reconcile_count,
-                            splitCount,
-                            splitCount,
-                        ),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
+            val peopleText = pluralStringResource(R.plurals.billsplit_debtor_count, debtorCount, debtorCount)
+            val splitsText = pluralStringResource(R.plurals.billsplit_split_to_reconcile_count, splitCount, splitCount)
+            if (stackTiles) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HeroStatChip(text = peopleText, modifier = Modifier.fillMaxWidth())
+                    HeroStatChip(text = splitsText, modifier = Modifier.fillMaxWidth())
+                }
+            } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    HeroStatChip(text = peopleText, modifier = Modifier.weight(1f))
+                    HeroStatChip(text = splitsText, modifier = Modifier.weight(1f))
+                }
+            }
+
+            Surface(
+                shape = AppTheme.shapes.corner16,
+                color = AppTheme.colors.surfaceSunken,
+                border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.QrCode2,
+                        contentDescription = null,
+                        tint = if (hasQrConfigured) AppTheme.colors.success else AppTheme.colors.warning,
+                        modifier = Modifier.size(18.dp),
+                    )
                     Text(
-                        text = if (receiveAccountLabel != null) {
-                            stringResource(R.string.billsplit_receive_to_format, receiveAccountLabel)
+                        text = if (hasQrConfigured && receiveAccountLabel != null) {
+                            stringResource(R.string.billsplit_vietqr_ready_format, receiveAccountLabel)
                         } else {
-                            stringResource(R.string.billsplit_receive_unlinked)
+                            stringResource(R.string.billsplit_vietqr_not_ready)
                         },
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.textPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
-
                     if (onChangeReceiveAccount != null) {
-                        TextButton(
+                        Surface(
                             onClick = onChangeReceiveAccount,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            shape = AppTheme.shapes.capsule,
+                            color = if (hasQrConfigured) AppTheme.colors.surface else AppTheme.colors.sand,
+                            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                            modifier = Modifier.defaultMinSize(minHeight = 40.dp),
                         ) {
-                            Text(
-                                text = stringResource(R.string.billsplit_change_receive_account),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Box(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        if (hasQrConfigured) R.string.billsplit_change_receive_account
+                                        else R.string.billsplit_setup_vietqr_short,
+                                    ),
+                                    style = AppTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (hasQrConfigured) AppTheme.colors.textPrimary else AppTheme.colors.onSand,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 }
@@ -537,10 +663,33 @@ private fun BillSplitOverview(
 }
 
 @Composable
+private fun HeroStatChip(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppTheme.shapes.corner12,
+        color = AppTheme.colors.surfaceSunken,
+    ) {
+        Text(
+            text = text,
+            style = AppTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
 private fun DebtorGroupRow(
     debtorName: String,
     totalAmountCents: Long,
     splitCount: Int,
+    hasQrConfigured: Boolean,
     onClick: () -> Unit,
     onShare: () -> Unit,
 ) {
@@ -551,56 +700,55 @@ private fun DebtorGroupRow(
         splitCount,
     )
     val initial = debtorName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    val shape = AppTheme.shapes.corner20
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Card(
+        Surface(
+            onClick = onClick,
             modifier = Modifier
                 .weight(1f)
-                .clickable(onClick = onClick),
-            shape = AppTheme.shapes.corner16,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+                .iosCardShadow(shape = shape, elevated = false),
+            shape = shape,
+            color = AppTheme.colors.surface,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = AppTheme.shapes.circle,
-                        ),
+                        .clip(CircleShape)
+                        .background(AppTheme.colors.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = initial,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = AppTheme.colors.primary,
                     )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = debtorName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
+                        style = AppTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppTheme.colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = totalCountText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
                     )
                 }
 
@@ -610,34 +758,39 @@ private fun DebtorGroupRow(
                 ) {
                     Text(
                         text = amount,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = AppTheme.colors.primary,
                     )
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = AppTheme.colors.textMuted,
                         modifier = Modifier.size(20.dp),
                     )
                 }
             }
         }
 
-        Box(
+        Surface(
+            onClick = onShare,
+            shape = AppTheme.shapes.corner16,
+            color = if (hasQrConfigured) AppTheme.colors.ink else AppTheme.colors.surface,
+            border = if (hasQrConfigured) null else BorderStroke(0.5.dp, AppTheme.colors.hairline),
             modifier = Modifier
                 .size(52.dp)
-                .clip(AppTheme.shapes.corner16)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f))
-                .clickable(onClick = onShare),
-            contentAlignment = Alignment.Center,
+                .iosCardShadow(shape = AppTheme.shapes.corner16, elevated = false),
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Share,
-                contentDescription = stringResource(R.string.billsplit_share_quick),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (hasQrConfigured) Icons.Rounded.Share else Icons.Rounded.QrCode2,
+                    contentDescription = stringResource(
+                        if (hasQrConfigured) R.string.billsplit_share_qr_image else R.string.billsplit_setup_vietqr_short,
+                    ),
+                    tint = if (hasQrConfigured) AppTheme.colors.onInk else AppTheme.colors.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }
@@ -650,16 +803,16 @@ private fun PaidBillSplitRow(
 ) {
     val split = itemState.split
     val note = itemState.parentTransaction?.note ?: stringResource(R.string.billsplit_default_note)
-    val paidColor = MaterialTheme.colorScheme.tertiary
+    val shape = AppTheme.shapes.corner16
 
-    Card(
+    Surface(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        shape = AppTheme.shapes.corner16,
+            .iosCardShadow(shape = shape, elevated = false),
+        color = AppTheme.colors.surface,
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        shape = shape,
     ) {
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
@@ -669,25 +822,24 @@ private fun PaidBillSplitRow(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = AppTheme.shapes.circle,
-                    ),
+                    .clip(CircleShape)
+                    .background(AppTheme.colors.success.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(24.dp),
+                    tint = AppTheme.colors.success,
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.billsplit_paid_by_format, split.debtorName),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = AppTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
+                    color = AppTheme.colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -698,8 +850,8 @@ private fun PaidBillSplitRow(
                         note,
                         PresentationDateFormatter.formatDayMonth(split.paidAt),
                     ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -708,9 +860,9 @@ private fun PaidBillSplitRow(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = MoneyFormatter.format(split.amount),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AppTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
                     fontWeight = FontWeight.Bold,
-                    color = paidColor,
+                    color = AppTheme.colors.success,
                     maxLines = 1,
                 )
                 IconButton(
@@ -720,7 +872,7 @@ private fun PaidBillSplitRow(
                     Icon(
                         imageVector = Icons.Rounded.Delete,
                         contentDescription = stringResource(R.string.billsplit_delete_paid_format, split.debtorName),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = AppTheme.colors.error,
                         modifier = Modifier.size(20.dp),
                     )
                 }

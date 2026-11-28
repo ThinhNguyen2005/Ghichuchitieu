@@ -1,12 +1,18 @@
 package com.notepay.feature.billsplit.main.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -82,11 +88,16 @@ internal fun BillSplitSummaryFooter(
         MaterialTheme.colorScheme.onSurface
     }
 
-    _root_ide_package_.com.notepay.core.designsystem.component.bar.GradientBottomActionBar(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
+        color = AppTheme.colors.surface.copy(alpha = 0.96f),
+        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (step == BillSplitStep.MANAGE_DEBTORS) {
@@ -96,13 +107,13 @@ internal fun BillSplitSummaryFooter(
                         .fillMaxWidth()
                         .height(6.dp),
                     color = statusAccent,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    trackColor = AppTheme.colors.surfaceSunken,
                     strokeCap = StrokeCap.Round,
                 )
 
                 Text(
                     text = moneyStatus,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
                     fontWeight = FontWeight.SemiBold,
                     color = statusTextColor,
                     maxLines = 1,
@@ -112,7 +123,7 @@ internal fun BillSplitSummaryFooter(
                 Text(
                     text = stringResource(R.string.billsplit_select_transaction_hint),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AppTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -163,12 +174,19 @@ private fun SheetPrimaryButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    _root_ide_package_.com.notepay.core.designsystem.component.button.LiquidButton(
+    Button(
         onClick = onClick,
         enabled = enabled,
+        shape = AppTheme.shapes.capsule,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AppTheme.colors.ink,
+            contentColor = AppTheme.colors.onInk,
+            disabledContainerColor = AppTheme.colors.surfaceSunken,
+            disabledContentColor = AppTheme.colors.textMuted,
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp),
+            .heightIn(min = 52.dp),
     ) {
         Text(
             text = label,
