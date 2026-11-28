@@ -4,13 +4,18 @@ import android.content.Context
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
+import com.notepay.R
 import com.notepay.ai.LegacyAiModelCleaner
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.data.datastore.AppSettingsDataStore
+import com.notepay.domain.TestData
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import io.mockk.coEvery
@@ -34,6 +39,7 @@ class HomeViewModelPersistenceTest {
     private val walletRepo: WalletRepository = mockk(relaxed = true)
     private val transactionRepo: TransactionRepository = mockk(relaxed = true)
     private val deleteTransactionUseCase: DeleteTransactionUseCase = mockk(relaxed = true)
+    private val addTransactionUseCase: AddTransactionUseCase = mockk(relaxed = true)
     private val getMonthlySummary: GetMonthlySummaryUseCase = mockk(relaxed = true)
     private val appSettingsDataStore: AppSettingsDataStore = mockk(relaxed = true)
     private val subscriptionRepository: SubscriptionRepository = mockk(relaxed = true)
@@ -110,7 +116,63 @@ class HomeViewModelPersistenceTest {
         subscriptionRepository = subscriptionRepository,
         legacyModelCleaner = legacyModelCleaner,
         context = context,
+        addTransactionUseCase = addTransactionUseCase,
     )
+
+    @Test
+    fun `deleteTransaction emits success with Undo and restores on Undo action`() = runTest {
+        val tx = TestData.transaction(id = 42L, walletId = 1L, note = "Ca phe")
+        coEvery { transactionRepo.getById(42L) } returns tx
+        coEvery { deleteTransactionUseCase(42L) } returns Result.success(Unit)
+        coEvery { addTransactionUseCase(any()) } returns Result.success(43L)
+        every { context.getString(R.string.transaction_deleted) } returns "Deleted"
+        every { context.getString(R.string.feedback_undo) } returns "Undo"
+        every { context.getString(R.string.feedback_transaction_restored) } returns "Restored"
+
+        val viewModel = createViewModel()
+
+        viewModel.feedback.test {
+            viewModel.deleteTransaction(42L)
+            val fb = awaitItem()
+            assertThat(fb.type).isEqualTo(FeedbackType.Success)
+            assertThat(fb.duration).isEqualTo(FeedbackDuration.Long)
+            assertThat(fb.actionLabel).isEqualTo("Undo")
+
+            fb.onAction?.invoke()
+            val restored = awaitItem()
+            assertThat(restored.type).isEqualTo(FeedbackType.Success)
+            assertThat(restored.message).isEqualTo("Restored")
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) { addTransactionUseCase(match { it.id == 0L && it.note == "Ca phe" }) }
+    }
+
+    @Test
+    fun `deleteTransaction emits error with Retry on failure`() = runTest {
+        coEvery { transactionRepo.getById(42L) } returns null
+        coEvery { deleteTransactionUseCase(42L) } returnsMany listOf(
+            Result.failure(IllegalStateException("db error")),
+            Result.success(Unit),
+        )
+        every { context.getString(R.string.feedback_transaction_delete_failed) } returns "Delete failed"
+        every { context.getString(R.string.action_retry) } returns "Retry"
+        every { context.getString(R.string.transaction_deleted) } returns "Deleted"
+
+        val viewModel = createViewModel()
+
+        viewModel.feedback.test {
+            viewModel.deleteTransaction(42L)
+            val err = awaitItem()
+            assertThat(err.type).isEqualTo(FeedbackType.Error)
+            assertThat(err.actionLabel).isEqualTo("Retry")
+
+            err.onAction?.invoke()
+            val retried = awaitItem()
+            assertThat(retried.type).isEqualTo(FeedbackType.Success)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 
     @Test
     fun `dismissSmartInsights persists dismissal and reflects DataStore restore`() = runTest {

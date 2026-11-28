@@ -1,15 +1,5 @@
 package com.notepay.feature.home
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,6 +77,8 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.NotePayAnimatedContent
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayHaptic
@@ -103,6 +96,7 @@ import com.notepay.feature.home.component.ScreenHorizontalPadding
 import com.notepay.feature.home.component.SmartInsightsCard
 import com.notepay.feature.home.component.StreakStatusSheet
 import com.notepay.feature.home.component.rememberHomeDayGroups
+import kotlinx.coroutines.launch
 
 private enum class HomeContentState { LOADING, EMPTY_WALLETS, CONTENT }
 
@@ -126,11 +120,16 @@ fun HomeScreen(
     onOpenSubscription: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onEditTransaction: (Long) -> Unit = onTransactionClick,
-    @Suppress("UNUSED_PARAMETER") onFeedback: suspend (UiFeedback) -> Boolean = { false },
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
     val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
     var isBudgetProjectionDismissed by rememberSaveable(state.selectedWalletId) { mutableStateOf(false) }
@@ -183,15 +182,8 @@ fun HomeScreen(
             modifier = Modifier.matchParentSize(),
         )
 
-        AnimatedContent(
+        NotePayAnimatedContent(
             targetState = contentState,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(160))
-                }
-            },
             label = "homeContentState",
             modifier = Modifier.fillMaxSize(),
         ) { targetState ->
@@ -279,7 +271,6 @@ fun HomeScreen(
                                         isAllWallets = false,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
-                                        reducedMotion = reducedMotion,
                                         onDismissBudget = { isBudgetProjectionDismissed = true },
                                         onNextTip = viewModel::nextSmartTip,
                                         onDismissInsights = viewModel::dismissSmartInsights,
@@ -391,7 +382,6 @@ fun HomeScreen(
                                         isAllWallets = false,
                                         isBudgetCardDismissed = isBudgetProjectionDismissed,
                                         isInsightsDismissed = state.isSmartInsightsDismissed,
-                                        reducedMotion = reducedMotion,
                                         onDismissBudget = { isBudgetProjectionDismissed = true },
                                         onNextTip = viewModel::nextSmartTip,
                                         onDismissInsights = viewModel::dismissSmartInsights,
@@ -414,7 +404,7 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 32.dp, horizontal = ScreenHorizontalPadding),
+                                            .padding(top = 24.dp, bottom = 32.dp, start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         EmptyStateWithAction(title = emptyTx)
@@ -474,6 +464,7 @@ fun HomeScreen(
         ConfirmDeleteDialog(
             title = stringResource(R.string.confirm_delete_transaction_title),
             itemName = itemName,
+            message = stringResource(R.string.dialog_delete_transaction_undoable_format, itemName),
             onConfirm = {
                 viewModel.deleteTransaction(tx.id)
                 pendingDeleteTransaction = null
@@ -531,7 +522,6 @@ private fun HomeInsightCard(
     isAllWallets: Boolean,
     isBudgetCardDismissed: Boolean,
     isInsightsDismissed: Boolean,
-    reducedMotion: Boolean,
     onDismissBudget: () -> Unit,
     onNextTip: () -> Unit,
     onDismissInsights: () -> Unit,
@@ -549,24 +539,12 @@ private fun HomeInsightCard(
         activeTip != null &&
         (budgetStatus == null || budgetStatus == BudgetStatus.Safe)
 
-    val enterTransition = if (reducedMotion) {
-        EnterTransition.None
-    } else {
-        fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(220))
-    }
-    val exitTransition = if (reducedMotion) {
-        ExitTransition.None
-    } else {
-        fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(200))
-    }
-
-    AnimatedVisibility(
+    NotePayAnimatedVisibility(
         visible = showBudgetProjection,
-        enter = enterTransition,
-        exit = exitTransition,
+        label = "home-budget-projection",
     ) {
-        val projection = budgetProjection ?: return@AnimatedVisibility
-        val limit = budgetLimit ?: return@AnimatedVisibility
+        val projection = budgetProjection ?: return@NotePayAnimatedVisibility
+        val limit = budgetLimit ?: return@NotePayAnimatedVisibility
         BudgetProjectionCard(
             projection = projection,
             budgetLimit = limit,
@@ -576,12 +554,11 @@ private fun HomeInsightCard(
         )
     }
 
-    AnimatedVisibility(
+    NotePayAnimatedVisibility(
         visible = showSmartInsights,
-        enter = enterTransition,
-        exit = exitTransition,
+        label = "home-smart-insights",
     ) {
-        val tip = activeTip ?: return@AnimatedVisibility
+        val tip = activeTip ?: return@NotePayAnimatedVisibility
         SmartInsightsCard(
             tip = tip,
             tipPosition = tipPosition,

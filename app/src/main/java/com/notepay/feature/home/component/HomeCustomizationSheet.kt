@@ -31,7 +31,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +38,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,7 +48,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -62,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.feature.home.HomeBackgroundPreset
 import java.io.File
@@ -102,16 +100,9 @@ internal fun HomeCustomizationSheet(
     }
     val hasCustomPhoto = activePreset == HomeBackgroundPreset.CUSTOM && customFile != null
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = AppTheme.shapes.sheetTop,
-        containerColor = AppTheme.colors.surface,
-        contentColor = AppTheme.colors.textPrimary,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = AppTheme.colors.hairline)
-        },
     ) {
         Column(
             modifier = Modifier

@@ -1,12 +1,5 @@
 package com.notepay.feature.home.component
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -56,8 +49,8 @@ import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
 import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
 import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
 import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.rememberNotePayHaptic
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.money.Money
 
 /**
@@ -76,7 +69,6 @@ internal fun HeroBalanceCard(
 ) {
     val colors = AppTheme.colors
     val isLight = colors.isLight
-    val reducedMotion = rememberNotePayReducedMotion()
     val performHaptic = rememberNotePayHaptic()
     val isLargeFont = LocalDensity.current.fontScale >= 1.45f
     val cardShape = AppTheme.shapes.corner28
@@ -144,15 +136,8 @@ internal fun HeroBalanceCard(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            AnimatedContent(
+            NotePayAnimatedContent(
                 targetState = if (isBalanceHidden) null else balance,
-                transitionSpec = {
-                    if (reducedMotion) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(tween(200)) togetherWith fadeOut(tween(150))
-                    }
-                },
                 label = "BalanceAnimation",
                 modifier = Modifier.padding(end = 8.dp),
             ) { visibleBalance ->
