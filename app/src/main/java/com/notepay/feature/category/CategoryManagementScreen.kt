@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -63,11 +64,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.model.Category
 import com.notepay.feature.category.mapper.categoryIcon
 import com.notepay.feature.category.mapper.customCategoryIconOptions
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.NotePayAnimatedContent
+import kotlinx.coroutines.launch
 
 private val categoryPaletteColors = listOf(
     0xFFE57373L, 0xFFF06292L, 0xFFBA68C8L, 0xFF9575CDL,
@@ -80,9 +84,15 @@ private val categoryPaletteColors = listOf(
 fun CategoryManagementScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: CategoryManagementViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     // Dialog states
@@ -163,24 +173,29 @@ fun CategoryManagementScreen(
                 )
             }
 
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 16.dp,
-                        bottom = 96.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
+            NotePayAnimatedContent(
+                targetState = uiState.isLoading to selectedTabIndex,
+                modifier = Modifier.fillMaxSize(),
+                label = "category-management-content",
+            ) { (isLoading, _) ->
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 16.dp,
+                            bottom = 120.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
                     // Section: Danh mục tùy biến của bạn
                     item {
                         SectionHeader(title = stringResource(R.string.category_section_custom))
@@ -255,6 +270,7 @@ fun CategoryManagementScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
