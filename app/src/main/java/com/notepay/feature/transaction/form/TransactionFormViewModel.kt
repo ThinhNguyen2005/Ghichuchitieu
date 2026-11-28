@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.LocalTransactionImageScanner
+import com.notepay.core.designsystem.feedback.FeedbackDuration
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.navigation.Route
@@ -14,6 +15,7 @@ import com.notepay.di.IoDispatcher
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
+import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
@@ -22,6 +24,7 @@ import com.notepay.domain.shared.SharedWalletPermissionDeniedException
 import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.SuggestCategoryUseCase
+import com.notepay.feature.assets.main.assetsPeriodAt
 import com.notepay.feature.transaction.component.CalcKey
 import com.notepay.feature.transaction.form.calculator.AmountParser
 import com.notepay.feature.transaction.form.calculator.CalculatorEngine
@@ -87,6 +90,8 @@ class TransactionFormViewModel @Inject constructor(
 
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
+    private val _savedTransaction = MutableStateFlow<TransactionFormSaveResult?>(null)
+    val savedTransaction = _savedTransaction.asStateFlow()
 
     init {
         loadWallets()
@@ -99,6 +104,7 @@ class TransactionFormViewModel @Inject constructor(
     fun onEvent(event: TransactionFormUiEvent) {
         when (event) {
             is TransactionFormUiEvent.CalcKeyPressed       -> handleCalcKey(event.key)
+            is TransactionFormUiEvent.QuickAmountSelected  -> applyQuickAmount(event.amountVnd)
             TransactionFormUiEvent.BackspaceLong           -> clearCalc()
             is TransactionFormUiEvent.TypeChanged          -> updateType(event.type)
             is TransactionFormUiEvent.CategorySelected     -> updateCategory(event.category)
@@ -133,9 +139,13 @@ class TransactionFormViewModel @Inject constructor(
             }
             val activeWallet = walletRepository.observeActive().first()
                 ?.takeIf { isEditMode || SharedWalletPermissionGuard.canAddTransaction(it) }
+            val hasReadOnlyOnly = !isEditMode &&
+                writableWallets.isEmpty() &&
+                allWallets.any { !SharedWalletPermissionGuard.canAddTransaction(it) }
             _state.update {
                 it.copy(
                     availableWallets = writableWallets,
+                    hasReadOnlyWalletsOnly = hasReadOnlyOnly,
                     walletId = it.walletId ?: activeWallet?.id ?: writableWallets.firstOrNull()?.id,
                 )
             }
@@ -251,6 +261,13 @@ class TransactionFormViewModel @Inject constructor(
         commitCalcState(CalculatorEngine.clear())
     }
 
+    private fun applyQuickAmount(amountVnd: Long) {
+        if (amountVnd <= 0L) return
+        val currentState = _state.value
+        if (currentState.isEditMode && currentState.isAutoCapture) return
+        commitCalcState(CalculatorState(currentOperand = amountVnd.toString()))
+    }
+
     private fun commitCalcState(calc: CalculatorState) {
         val majorUnits = CalculatorEngine.previewMajorUnits(calc)
         val amountInCents = if (majorUnits != null && majorUnits > 0L) majorUnits * 100L else 0L
@@ -312,7 +329,7 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     private fun openCategorySelection() {
-        if (isEditMode) return
+        if (isEditMode || _state.value.isSaving) return
         selectionGeneration++
         _state.update {
             it.copy(
@@ -356,8 +373,13 @@ class TransactionFormViewModel @Inject constructor(
 
     private fun scanImage(uri: Uri) {
         if (_state.value.isImageScanning) return
+        val startedFromCategoryStep = !isEditMode && _state.value.step == TransactionFormStep.SELECT_CATEGORY
         _state.update {
-            it.copy(isImageScanning = true, imageScanMessage = context.getString(R.string.image_scan_reading_device))
+            it.copy(
+                isImageScanning = true,
+                imageScanMessage = context.getString(R.string.image_scan_reading_device),
+                step = if (startedFromCategoryStep) TransactionFormStep.DETAILS else it.step,
+            )
         }
         viewModelScope.launch(ioDispatcher) {
             try {
@@ -371,11 +393,13 @@ class TransactionFormViewModel @Inject constructor(
                     val resolvedSuggestion = if (!current.isCategoryExplicitlySelected && resolvedNote.isNotBlank()) {
                         suggestCategoryUseCase.suggestDetailed(resolvedNote, current.type == TransactionType.INCOME)
                     } else null
+                    val shouldAutoConfirmCategory = startedFromCategoryStep && !current.isCategoryExplicitlySelected
                     current.copy(
                         amountInput = parsed?.input ?: current.amountInput,
                         amount = parsed?.amount ?: current.amount,
                         note = resolvedNote,
                         category = resolvedSuggestion?.category ?: current.category,
+                        isCategoryExplicitlySelected = current.isCategoryExplicitlySelected || shouldAutoConfirmCategory,
                         suggestedCategory = resolvedSuggestion?.category ?: current.suggestedCategory,
                         errors = updatedErrors,
                         isImageScanning = false,
@@ -383,9 +407,27 @@ class TransactionFormViewModel @Inject constructor(
                         calcState = newCalcState,
                     )
                 }
+                val scanFeedback = when {
+                    parsed?.amount != null -> UiFeedback(message = result.message, type = FeedbackType.Success)
+                    result.isAiKeyOrQuotaError -> UiFeedback(
+                        message = result.message,
+                        type = FeedbackType.Error,
+                        actionLabel = context.getString(R.string.action_open_ai_settings),
+                        duration = FeedbackDuration.Long,
+                    )
+                    else -> UiFeedback(message = result.message, type = FeedbackType.Warning)
+                }
+                _feedback.emit(scanFeedback)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _state.update { it.copy(isImageScanning = false, imageScanMessage = context.getString(R.string.image_scan_read_error)) }
+                val readError = context.getString(R.string.image_scan_read_error)
+                _state.update {
+                    it.copy(
+                        isImageScanning = false,
+                        imageScanMessage = readError,
+                    )
+                }
+                _feedback.emit(UiFeedback(message = readError, type = FeedbackType.Error))
             }
         }
     }
@@ -449,7 +491,7 @@ class TransactionFormViewModel @Inject constructor(
 
     private fun save() {
         val current = _state.value
-        if (current.isSaving) return
+        if (current.isSaving || _savedTransaction.value != null) return
         if (!isEditMode && !hasValidCategoryForSave(current)) {
             _feedback.tryEmit(
                 UiFeedback(context.getString(R.string.transaction_validation_category), type = FeedbackType.Error),
@@ -505,21 +547,37 @@ class TransactionFormViewModel @Inject constructor(
                 walletId = walletId,
             )
             val result = addTransactionUseCase(transaction)
-            _state.update { it.copy(isSaving = false) }
-            if (result.isSuccess) {
-                suggestCategoryUseCase.learn(
-                    note = current.note.trim(),
-                    categoryId = current.category.id,
-                    isIncome = current.type == TransactionType.INCOME,
+            val savedId = result.getOrNull()
+            val targetWallet = current.availableWallets.firstOrNull { it.id == walletId }
+            if (savedId != null) {
+                publishSaved(
+                    savedId,
+                    transaction,
+                    targetWallet = targetWallet,
+                    isShared = targetWallet?.isShared == true,
+                    successMessage = R.string.feedback_transaction_created,
                 )
-                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_saved), type = FeedbackType.Success))
             } else {
-                val errMsgRes = if (result.exceptionOrNull() is SharedWalletPermissionDeniedException) {
+                _state.update { it.copy(isSaving = false) }
+                val isPermissionError = result.exceptionOrNull() is SharedWalletPermissionDeniedException
+                val errMsgRes = if (isPermissionError) {
                     R.string.shared_wallet_viewer_cannot_write
                 } else {
                     R.string.feedback_transaction_save_failed
                 }
-                _feedback.emit(UiFeedback(context.getString(errMsgRes), type = FeedbackType.Error))
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(errMsgRes),
+                        actionLabel = if (!isPermissionError) context.getString(R.string.action_retry) else null,
+                        type = FeedbackType.Error,
+                        duration = if (!isPermissionError) FeedbackDuration.Long else FeedbackDuration.Short,
+                        onAction = if (!isPermissionError) {
+                            { onEvent(TransactionFormUiEvent.Save) }
+                        } else {
+                            null
+                        },
+                    ),
+                )
             }
         }
     }
@@ -562,18 +620,19 @@ class TransactionFormViewModel @Inject constructor(
                     occurredAt = newOccurredAt,
                 )
                 val targetWallet = current.availableWallets.firstOrNull { it.id == tx.walletId }
-                if (targetWallet?.isShared == true) {
+                val isShared = targetWallet?.isShared == true
+                if (isShared) {
                     addTransactionUseCase(updated).getOrThrow()
                 } else {
                     transactionRepository.upsert(updated)
                 }
-                suggestCategoryUseCase.learn(
-                    note = updated.note.trim(),
-                    categoryId = updated.category.id,
-                    isIncome = updated.type == TransactionType.INCOME,
+                publishSaved(
+                    tx.id,
+                    updated,
+                    targetWallet = targetWallet,
+                    isShared = isShared,
+                    successMessage = R.string.feedback_transaction_updated,
                 )
-                _state.update { it.copy(isSaving = false) }
-                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_updated), type = FeedbackType.Success))
             } catch (e: CancellationException) {
                 _state.update { it.copy(isSaving = false) }
                 throw e
@@ -582,9 +641,73 @@ class TransactionFormViewModel @Inject constructor(
                 _feedback.emit(UiFeedback(context.getString(R.string.shared_wallet_viewer_cannot_write), type = FeedbackType.Error))
             } catch (e: Exception) {
                 _state.update { it.copy(isSaving = false) }
-                _feedback.emit(UiFeedback(context.getString(R.string.feedback_transaction_update_failed), type = FeedbackType.Error))
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_transaction_update_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { onEvent(TransactionFormUiEvent.Save) },
+                    ),
+                )
             }
         }
+    }
+
+    private suspend fun publishSaved(
+        transactionId: Long,
+        transaction: Transaction,
+        targetWallet: Wallet?,
+        isShared: Boolean,
+        successMessage: Int,
+    ) {
+        runCatching {
+            suggestCategoryUseCase.learn(
+                note = transaction.note,
+                categoryId = transaction.category.id,
+                isIncome = transaction.type == TransactionType.INCOME,
+            )
+        }
+        val followUpWarning = computeBudgetFollowUpWarning(transaction, targetWallet)
+        _savedTransaction.value = TransactionFormSaveResult(
+            transactionId = transactionId,
+            feedback = UiFeedback(
+                message = context.getString(if (isShared) R.string.feedback_transaction_pending_sync else successMessage),
+                type = if (isShared) FeedbackType.Pending else FeedbackType.Success,
+            ),
+            followUpWarning = followUpWarning,
+        )
+    }
+
+    private suspend fun computeBudgetFollowUpWarning(
+        transaction: Transaction,
+        wallet: Wallet?,
+    ): UiFeedback? {
+        if (transaction.type != TransactionType.EXPENSE) return null
+        val budgetCents = wallet?.budgetLimit?.amountInCents?.takeIf { it > 0L } ?: return null
+        return runCatching {
+            val period = assetsPeriodAt(kotlin.time.Clock.System.now(), TimeZone.currentSystemDefault())
+            val stats = transactionRepository
+                .observeWalletStats(period.monthStartMillis, period.monthEndMillis)
+                .first()
+                .firstOrNull { it.walletId == wallet.id }
+                ?: return null
+            val spentCents = stats.currentMonthExpense.amountInCents
+            val pct = ((spentCents * 100L) / budgetCents).toInt()
+            when {
+                pct >= 100 -> UiFeedback(
+                    message = context.getString(R.string.budget_followup_exceeded_format, wallet.name, pct),
+                    type = FeedbackType.Warning,
+                    duration = FeedbackDuration.Long,
+                )
+                pct >= 80 -> UiFeedback(
+                    message = context.getString(R.string.budget_followup_warning_format, wallet.name, pct),
+                    type = FeedbackType.Warning,
+                    duration = FeedbackDuration.Long,
+                )
+                else -> null
+            }
+        }.getOrNull()
     }
 
     private fun defaultCategoryFor(type: TransactionType): Category =

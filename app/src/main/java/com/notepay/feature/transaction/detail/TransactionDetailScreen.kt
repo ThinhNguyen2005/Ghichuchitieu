@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.domain.model.SyncStatus
+import kotlinx.coroutines.launch
 import com.notepay.domain.model.TransactionType
 import com.notepay.feature.category.mapper.CategoryAvatar
 import com.notepay.core.designsystem.component.bar.GradientTopAppBar
@@ -69,9 +75,15 @@ fun TransactionDetailScreen(
     onEdit: (Long) -> Unit,
     onCreateBillSplit: (Long) -> Unit,
     onCreateSubscription: (name: String, amountCents: Long) -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -90,6 +102,7 @@ fun TransactionDetailScreen(
             onEdit = onEdit,
             onCreateBillSplit = onCreateBillSplit,
             onCreateSubscription = onCreateSubscription,
+            onRetrySync = viewModel::retrySync,
             contentPadding = padding,
         )
     }
@@ -105,6 +118,7 @@ fun TransactionDetailContent(
     onEdit: (Long) -> Unit,
     onCreateBillSplit: (Long) -> Unit,
     onCreateSubscription: (name: String, amountCents: Long) -> Unit,
+    onRetrySync: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -132,6 +146,9 @@ fun TransactionDetailContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     TransactionHeader(transaction = tx)
+                    if (tx.syncStatus == SyncStatus.PENDING || tx.syncStatus == SyncStatus.FAILED) {
+                        TransactionSyncStatus(state, tx.syncStatus, onRetrySync)
+                    }
                     
                     MetaCard(transaction = tx, walletName = state.walletName)
 
@@ -187,6 +204,32 @@ fun TransactionDetailContent(
             }
         }
     }
+}
+
+@Composable
+private fun TransactionSyncStatus(
+    state: TransactionDetailUiState,
+    syncStatus: SyncStatus,
+    onRetrySync: () -> Unit,
+) {
+    val failed = syncStatus == SyncStatus.FAILED
+    val isRetrying = state.isRetryingSync
+    val showFailed = !isRetrying && (failed || state.syncRetryFailed)
+    val label = when {
+        isRetrying -> R.string.transaction_sync_retrying
+        showFailed -> R.string.transaction_sync_failed
+        else -> R.string.feedback_transaction_pending_sync
+    }
+    NotePayStatusBanner(
+        message = stringResource(label),
+        type = if (showFailed) FeedbackType.Error else FeedbackType.Pending,
+        actionLabel = if (failed && state.canEdit && !isRetrying) {
+            stringResource(R.string.action_retry_transaction_sync)
+        } else {
+            null
+        },
+        onAction = onRetrySync,
+    )
 }
 
 @Composable

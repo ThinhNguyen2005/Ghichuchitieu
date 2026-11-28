@@ -17,6 +17,7 @@ import com.notepay.domain.model.SharedWalletRole
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.CategoryRepository
 import com.notepay.domain.repository.TransactionRepository
@@ -59,12 +60,12 @@ class TransactionFormViewModelStepFlowTest {
             every { suggestDetailed(any(), any()) } returns null
         },
         imageScanner: LocalTransactionImageScanner = mockk(relaxed = true),
+        transactionRepo: TransactionRepository = mockk(relaxed = true),
     ): TransactionFormViewModel {
         val walletRepo = mockk<WalletRepository> {
             every { observeAll() } returns flowOf(wallets)
             every { observeActive() } returns flowOf(wallets.firstOrNull())
         }
-        val transactionRepo = mockk<TransactionRepository>(relaxed = true)
         if (existingTransaction != null && transactionId != null) {
             coEvery { transactionRepo.getById(transactionId) } returns existingTransaction
         }
@@ -74,8 +75,14 @@ class TransactionFormViewModelStepFlowTest {
             every { getString(R.string.transaction_validation_wallet) } returns "Choose wallet"
             every { getString(R.string.feedback_category_exists) } returns "Category already exists"
             every { getString(R.string.feedback_category_create_failed) } returns "Create category failed"
-            every { getString(R.string.feedback_transaction_saved) } returns "Saved"
+            every { getString(R.string.feedback_transaction_created) } returns "Transaction created"
+            every { getString(R.string.feedback_transaction_save_failed) } returns "Save failed"
+            every { getString(R.string.action_retry) } returns "Retry"
+            every { getString(R.string.action_open_ai_settings) } returns "AI Settings"
+            every { getString(R.string.budget_followup_warning_format, any(), any()) } returns "Reached 85% budget"
+            every { getString(R.string.budget_followup_exceeded_format, any(), any()) } returns "Exceeded 110% budget"
             every { getString(R.string.image_scan_reading_device) } returns "Scanning..."
+            every { getString(R.string.image_scan_read_error) } returns "Read error"
         }
         val savedStateHandle = SavedStateHandle(
             buildMap {
@@ -201,7 +208,10 @@ class TransactionFormViewModelStepFlowTest {
         assertThat(vm.state.value.canSave).isTrue()
 
         vm.onEvent(TransactionFormUiEvent.Save)
+        vm.onEvent(TransactionFormUiEvent.Save)
         coVerify(exactly = 1) { addUseCase(any()) }
+        assertThat(vm.savedTransaction.value?.transactionId).isEqualTo(15L)
+        assertThat(vm.savedTransaction.value?.feedback?.type).isEqualTo(FeedbackType.Success)
         assertThat(txSlot.captured.type).isEqualTo(TransactionType.INCOME)
         assertThat(txSlot.captured.category).isEqualTo(Category.BONUS)
         assertThat(txSlot.captured.amount).isEqualTo(Money.fromMajorUnit(150L))
@@ -317,6 +327,34 @@ class TransactionFormViewModelStepFlowTest {
     }
 
     @Test
+    fun `scanImage launched from SELECT_CATEGORY moves to DETAILS and auto-confirms suggested category`() = runTest {
+        val imageScanner = mockk<LocalTransactionImageScanner>()
+        coEvery { imageScanner.scan(any()) } returns LocalImageScanResult(
+            amountInput = "120000",
+            note = "bún bò huế",
+            message = "Đã đọc ảnh",
+        )
+        val suggestUseCase = mockk<SuggestCategoryUseCase>(relaxed = true) {
+            every { suggestDetailed("bún bò huế", false) } returns CategorySuggestion(
+                category = Category.FOOD,
+                confidence = 0.9f,
+                reason = CategorySuggestionReason.Phrase("bún bò"),
+            )
+        }
+        val vm = createViewModel(suggestCategoryUseCase = suggestUseCase, imageScanner = imageScanner)
+        assertThat(vm.state.value.step).isEqualTo(TransactionFormStep.SELECT_CATEGORY)
+
+        vm.onEvent(TransactionFormUiEvent.ImagePicked(mockk<Uri>(relaxed = true)))
+
+        val state = vm.state.value
+        assertThat(state.step).isEqualTo(TransactionFormStep.DETAILS)
+        assertThat(state.category).isEqualTo(Category.FOOD)
+        assertThat(state.isCategoryExplicitlySelected).isTrue()
+        assertThat(state.amount).isEqualTo(Money.fromMajorUnit(120_000L))
+        assertThat(state.canSave).isTrue()
+    }
+
+    @Test
     fun `zero writable wallets disables canSave, blocks save, and preserves draft`() = runTest {
         val viewerWallet = TestData.wallet(id = 7L, name = "Ví xem chung").copy(
             isShared = true,
@@ -342,5 +380,144 @@ class TransactionFormViewModelStepFlowTest {
         assertThat(vm.state.value.amount).isEqualTo(Money.fromMajorUnit(35_000L))
         assertThat(vm.state.value.note).isEqualTo("Trà đá")
         assertThat(vm.state.value.step).isEqualTo(TransactionFormStep.DETAILS)
+    }
+
+    @Test
+    fun `scanImage emits Warning when no amount found and Error on scanner exception`() = runTest {
+        val imageScanner = mockk<LocalTransactionImageScanner>()
+        coEvery { imageScanner.scan(any()) } returnsMany listOf(
+            LocalImageScanResult(amountInput = null, note = null, message = "No amount"),
+        )
+        val vm = createViewModel(imageScanner = imageScanner)
+
+        vm.feedback.test {
+            vm.onEvent(TransactionFormUiEvent.ImagePicked(mockk<Uri>(relaxed = true)))
+            val warn = awaitItem()
+            assertThat(warn.type).isEqualTo(FeedbackType.Warning)
+            assertThat(warn.message).isEqualTo("No amount")
+
+            coEvery { imageScanner.scan(any()) } throws IllegalStateException("decode failed")
+            vm.onEvent(TransactionFormUiEvent.ImagePicked(mockk<Uri>(relaxed = true)))
+            val err = awaitItem()
+            assertThat(err.type).isEqualTo(FeedbackType.Error)
+            assertThat(err.message).isEqualTo("Read error")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `saveNew persistence failure emits Error with Retry action that retries save`() = runTest {
+        val addUseCase = mockk<AddTransactionUseCase>()
+        coEvery { addUseCase.invoke(any()) } returnsMany listOf(
+            Result.failure(IllegalStateException("write error")),
+            Result.success(99L),
+        )
+        val vm = createViewModel(addTransactionUseCase = addUseCase)
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
+        enterNumber(vm, "45000")
+
+        vm.feedback.test {
+            vm.onEvent(TransactionFormUiEvent.Save)
+            val err = awaitItem()
+            assertThat(err.type).isEqualTo(FeedbackType.Error)
+            assertThat(err.actionLabel).isEqualTo("Retry")
+
+            err.onAction?.invoke()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertThat(vm.savedTransaction.value?.transactionId).isEqualTo(99L)
+    }
+
+    @Test
+    fun `edit mode on viewer shared wallet marks isSelectedWalletReadOnly and disables canSave`() = runTest {
+        val viewerWallet = TestData.wallet(id = 7L, name = "Ví xem chung").copy(
+            isShared = true,
+            sharedRole = SharedWalletRole.VIEWER,
+        )
+        val existingTx = Transaction(
+            id = 42L,
+            amount = Money.fromMajorUnit(50_000L),
+            type = TransactionType.EXPENSE,
+            category = Category.FOOD,
+            note = "Cà phê",
+            occurredAt = Instant.fromEpochMilliseconds(1_700_000_000_000L),
+            walletId = 7L,
+        )
+        val addVm = createViewModel(wallets = listOf(viewerWallet))
+        assertThat(addVm.state.value.hasReadOnlyWalletsOnly).isTrue()
+
+        val editVm = createViewModel(
+            transactionId = 42L,
+            existingTransaction = existingTx,
+            wallets = listOf(viewerWallet),
+        )
+        assertThat(editVm.state.value.isSelectedWalletReadOnly).isTrue()
+        assertThat(editVm.state.value.canSave).isFalse()
+    }
+
+    @Test
+    fun `saveNew crossing budget threshold attaches followUpWarning on save result`() = runTest {
+        val budgetedWallet = TestData.wallet(id = 1L, name = "Tiền mặt").copy(
+            budgetLimit = Money.fromMajorUnit(1_000_000L),
+        )
+        val addUseCase = mockk<AddTransactionUseCase>()
+        coEvery { addUseCase.invoke(any()) } returns Result.success(101L)
+        val txRepo = mockk<TransactionRepository>(relaxed = true) {
+            every { observeWalletStats(any(), any()) } returns flowOf(
+                listOf(
+                    WalletStats(
+                        walletId = 1L,
+                        currentMonthExpense = Money.fromMajorUnit(850_000L),
+                        currentMonthIncome = Money.ZERO,
+                        txCount = 4,
+                        allTimeExpense = Money.fromMajorUnit(850_000L),
+                        allTimeIncome = Money.ZERO,
+                    ),
+                ),
+            )
+        }
+        val vm = createViewModel(
+            wallets = listOf(budgetedWallet),
+            addTransactionUseCase = addUseCase,
+            transactionRepo = txRepo,
+        )
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
+        enterNumber(vm, "150000")
+        vm.onEvent(TransactionFormUiEvent.Save)
+
+        val saved = vm.savedTransaction.value
+        assertThat(saved).isNotNull()
+        assertThat(saved?.followUpWarning?.type).isEqualTo(FeedbackType.Warning)
+        assertThat(saved?.followUpWarning?.message).isEqualTo("Reached 85% budget")
+    }
+
+    @Test
+    fun `scanImage with AI key or quota error emits Error with AI settings action`() = runTest {
+        val imageScanner = mockk<LocalTransactionImageScanner> {
+            coEvery { scan(any()) } returns LocalImageScanResult(
+                message = "Invalid API key or quota",
+                isAiKeyOrQuotaError = true,
+            )
+        }
+        val vm = createViewModel(imageScanner = imageScanner)
+
+        vm.feedback.test {
+            vm.onEvent(TransactionFormUiEvent.ImagePicked(mockk<Uri>(relaxed = true)))
+            val err = awaitItem()
+            assertThat(err.type).isEqualTo(FeedbackType.Error)
+            err.actionLabel.let { assertThat(it).isEqualTo("AI Settings") }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `QuickAmountSelected updates calculator state and parsed amount cleanly`() = runTest {
+        val vm = createViewModel()
+        vm.onEvent(TransactionFormUiEvent.CategorySelected(Category.FOOD))
+        vm.onEvent(TransactionFormUiEvent.QuickAmountSelected(100_000L))
+
+        assertThat(vm.state.value.amount).isEqualTo(Money.fromMajorUnit(100_000L))
+        assertThat(vm.state.value.previewAmountMajorUnits).isEqualTo(100_000L)
+        assertThat(vm.state.value.canSave).isTrue()
     }
 }

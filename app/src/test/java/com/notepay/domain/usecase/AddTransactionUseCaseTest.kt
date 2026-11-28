@@ -107,5 +107,19 @@ class AddTransactionUseCaseTest {
 
         coVerify(exactly = 0) { budgetNotifier.checkAndNotify(any()) }
     }
+
+    @Test
+    fun `budget notification failure still returns committed transaction id`() = runTest(dispatcher) {
+        val budgetNotifier = mockk<BudgetAlertNotifier>()
+        val useCaseWithNotifier = AddTransactionUseCase(transactionRepo, walletRepo, dispatcher, budgetNotifier)
+        coEvery { walletRepo.getById(1L) } returns TestData.wallet()
+        coEvery { transactionRepo.upsert(any()) } returns 42L
+        coEvery { budgetNotifier.checkAndNotify(1L) } throws IllegalStateException()
+
+        val result = useCaseWithNotifier(TestTransactionFactory.expense(walletId = 1L))
+
+        assertThat(result.getOrNull()).isEqualTo(42L)
+        coVerify(exactly = 1) { transactionRepo.upsert(any()) }
+    }
 }
 

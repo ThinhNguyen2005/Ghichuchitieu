@@ -8,6 +8,7 @@ import com.notepay.data.local.model.WalletStatsProjection
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+@Suppress("TooManyFunctions")
 interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE deleted_at_epoch_ms IS NULL")
     suspend fun getAll(): List<TransactionEntity>
@@ -59,6 +60,39 @@ interface TransactionDao {
 
     @Upsert
     suspend fun upsert(entity: TransactionEntity): Long
+
+    @Query(
+        """
+        UPDATE transactions SET sync_status = 'FAILED'
+        WHERE id = :id AND operation_id = :operationId AND updated_at_epoch_ms = :updatedAt
+            AND deleted_at_epoch_ms IS NULL AND sync_status = 'PENDING'
+        """,
+    )
+    suspend fun markSyncFailed(id: Long, operationId: String, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE transactions
+        SET remote_id = COALESCE(:remoteId, remote_id),
+            sync_status = 'SYNCED',
+            created_by_user_id = COALESCE(:createdByUserId, created_by_user_id),
+            created_by_name = COALESCE(:createdByName, created_by_name),
+            updated_at_epoch_ms = MAX(updated_at_epoch_ms, :remoteUpdatedAt)
+        WHERE id = :id AND operation_id = :operationId AND updated_at_epoch_ms = :expectedUpdatedAt
+            AND deleted_at_epoch_ms IS :expectedDeletedAt
+            AND sync_status IN ('PENDING', 'FAILED')
+        """,
+    )
+    suspend fun markSyncSynced(
+        id: Long,
+        operationId: String,
+        expectedUpdatedAt: Long,
+        expectedDeletedAt: Long?,
+        remoteId: String?,
+        createdByUserId: String?,
+        createdByName: String?,
+        remoteUpdatedAt: Long,
+    )
 
     @Query(
         """

@@ -9,18 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.domain.model.Category
 import com.notepay.feature.transaction.component.CategoryGridPicker
@@ -46,13 +45,9 @@ fun CategoryPickerSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = AppTheme.shapes.sheetTop,
-        containerColor = AppTheme.colors.surface,
-        contentColor = AppTheme.colors.textPrimary,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
         modifier = modifier,
     ) {
         Column(

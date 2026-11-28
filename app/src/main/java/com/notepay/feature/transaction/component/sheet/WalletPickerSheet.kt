@@ -24,7 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.domain.model.Wallet
 import com.notepay.core.designsystem.util.WalletUiHelper
 
@@ -61,7 +61,7 @@ fun WalletPickerSheet(
     sheetState: SheetState = rememberModalBottomSheetState(),
     onAllWalletsSelected: (() -> Unit)? = null,
 ) {
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {

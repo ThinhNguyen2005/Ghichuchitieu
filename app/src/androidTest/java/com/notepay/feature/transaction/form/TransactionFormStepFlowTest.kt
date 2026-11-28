@@ -45,7 +45,7 @@ class TransactionFormStepFlowTest {
         val foodLabel = Category.FOOD.localizedName(context)
         val stepCategoryTitle = context.getString(R.string.add_transaction_step_category_title)
         val stepDetailsTitle = context.getString(R.string.add_transaction_step_details_title)
-        val changeCategoryLabel = context.getString(R.string.action_change_category)
+        val addTransactionLabel = context.getString(R.string.action_add_transaction)
         val expenseLabel = context.getString(R.string.transaction_type_expense)
         val incomeLabel = context.getString(R.string.transaction_type_income)
 
@@ -112,7 +112,6 @@ class TransactionFormStepFlowTest {
                         }
                     },
                     onBack = {},
-                    onPickImage = {},
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -127,14 +126,14 @@ class TransactionFormStepFlowTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
         composeTestRule.onNodeWithContentDescription(foodLabel).assertHasClickAction().performClick()
 
-        // Transitions in-place to Details showing selected category + "Đổi danh mục"
+        // Transitions in-place to Details showing centered selected category + full-width Add CTA
         composeTestRule.onNodeWithText(stepDetailsTitle).assertExists()
         composeTestRule.onNodeWithText(foodLabel).assertExists()
-        composeTestRule.onNodeWithText(changeCategoryLabel).assertHasClickAction()
+        composeTestRule.onNodeWithText(addTransactionLabel).assertHasClickAction()
 
-        // Enter amount digit on keypad, then return to grid and confirm selection + draft preservation
+        // Enter amount digit on keypad, tap centered category selector to return and verify selection + draft
         composeTestRule.onNodeWithText("5").performClick()
-        composeTestRule.onNodeWithText(changeCategoryLabel).performClick()
+        composeTestRule.onNodeWithText(foodLabel).performClick()
 
         composeTestRule.onNodeWithText(stepCategoryTitle).assertExists()
         composeTestRule.onNodeWithContentDescription(foodLabel).assertIsSelected().performClick()
@@ -173,7 +172,6 @@ class TransactionFormStepFlowTest {
                         }
                     },
                     onBack = {},
-                    onPickImage = {},
                     snackbarHostState = snackbarHostState,
                 )
             }

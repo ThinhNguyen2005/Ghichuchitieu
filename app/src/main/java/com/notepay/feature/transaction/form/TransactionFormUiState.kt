@@ -1,15 +1,23 @@
 package com.notepay.feature.transaction.form
 
 import androidx.compose.runtime.Immutable
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.model.Category
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
+import com.notepay.domain.shared.SharedWalletPermissionGuard
 import com.notepay.feature.transaction.form.calculator.CalculatorEngine
 import com.notepay.feature.transaction.form.calculator.CalculatorState
 import com.notepay.feature.transaction.form.validation.FieldError
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+data class TransactionFormSaveResult(
+    val transactionId: Long,
+    val feedback: UiFeedback,
+    val followUpWarning: UiFeedback? = null,
+)
 
 /**
  * Các bước trong luồng thêm giao dịch mới:
@@ -49,6 +57,7 @@ data class TransactionFormUiState(
     val occurredAt: Instant = Clock.System.now(),
     val walletId: Long? = null,
     val availableWallets: List<Wallet> = emptyList(),
+    val hasReadOnlyWalletsOnly: Boolean = false,
     val availableCategories: List<Category> = emptyList(),
 
     // ── Calculator keypad ─────────────────────────────────────────────────────
@@ -73,11 +82,18 @@ data class TransactionFormUiState(
     val isCategoryPickerOpen: Boolean = false,
     val isNoteSheetOpen: Boolean = false,
 ) {
+    val selectedWallet: Wallet?
+        get() = availableWallets.firstOrNull { it.id == walletId }
+
+    val isSelectedWalletReadOnly: Boolean
+        get() = selectedWallet?.let { !SharedWalletPermissionGuard.canAddTransaction(it) } == true
+
     val canSave: Boolean
         get() = (isEditMode || (step == TransactionFormStep.DETAILS && isCategoryExplicitlySelected)) &&
             amount != null &&
             amount.amountInCents > 0 &&
             walletId != null &&
+            !isSelectedWalletReadOnly &&
             errors.isEmpty() &&
             calcState.error == null &&
             !isSaving

@@ -1,6 +1,5 @@
 package com.notepay.feature.transaction.form
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -16,29 +15,36 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -46,7 +52,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,19 +61,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -83,7 +87,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
 import com.notepay.core.designsystem.component.effect.iosCardShadow
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarOverlay
 import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.rememberLatestFeedbackDispatcher
 import com.notepay.core.designsystem.formatter.TransactionDateLabelFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.HomeHeroCardDarkBottom
@@ -105,6 +113,8 @@ import com.notepay.feature.transaction.component.NotePreviewChip
 import com.notepay.feature.transaction.component.TransactionAmountDisplay
 import com.notepay.feature.transaction.component.TransactionCustomKeypad
 import com.notepay.feature.transaction.component.TransactionNoteField
+import com.notepay.feature.transaction.component.TransactionNumericKeypad
+import com.notepay.feature.transaction.component.TransactionPrimarySaveButton
 import com.notepay.feature.transaction.component.TransactionSuggestionChipRow
 import com.notepay.feature.transaction.component.TransactionTypeSelector
 import com.notepay.feature.transaction.component.TransactionWalletField
@@ -114,36 +124,53 @@ import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
 import com.notepay.feature.transaction.form.validation.FieldError
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionFormScreen(
-    onSaved: () -> Unit,
+    onSaved: (TransactionFormSaveResult) -> Unit,
     onBack: () -> Unit,
+    onOpenAiSettings: () -> Unit = {},
+    initialLaunchScan: Boolean = false,
+    onClearLaunchScan: () -> Unit = {},
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val savedTransaction by viewModel.savedTransaction.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
+    val openAiSettingsLabel = stringResource(R.string.action_open_ai_settings)
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri -> uri?.let { viewModel.onEvent(TransactionFormUiEvent.ImagePicked(it)) } }
 
+    LaunchedEffect(initialLaunchScan) {
+        if (initialLaunchScan) {
+            onClearLaunchScan()
+            imagePicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+            )
+        }
+    }
+
     val todayPrefix = stringResource(R.string.date_today_prefix)
     val yesterdayPrefix = stringResource(R.string.date_yesterday_prefix)
     val monthSuffixFmt = stringResource(R.string.date_month_suffix)
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(savedTransaction) {
+        savedTransaction?.let(onSaved)
+    }
+    LaunchedEffect(viewModel, feedbackDispatcher, openAiSettingsLabel, onOpenAiSettings) {
         viewModel.feedback.collect { feedback ->
-            if (feedback.type == FeedbackType.Success) {
-                onSaved()
+            val resolved = if (feedback.actionLabel == openAiSettingsLabel && feedback.onAction == null) {
+                feedback.copy(onAction = onOpenAiSettings)
             } else {
-                snackbarHostState.currentSnackbarData?.dismiss()
-                snackbarHostState.showSnackbar(feedback.message)
+                feedback
             }
+            feedbackDispatcher.show(resolved)
         }
     }
 
@@ -162,12 +189,12 @@ fun TransactionFormScreen(
         state = state,
         dateLabel = dateLabel,
         onEvent = viewModel::onEvent,
-        onBack = onBack,
-        onPickImage = {
+        onScanImage = {
             imagePicker.launch(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
             )
         },
+        onBack = { if (!viewModel.state.value.isSaving) onBack() },
         snackbarHostState = snackbarHostState,
     )
 }
@@ -179,9 +206,9 @@ internal fun TransactionFormContent(
     dateLabel: String,
     onEvent: (TransactionFormUiEvent) -> Unit,
     onBack: () -> Unit,
-    onPickImage: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
+    onScanImage: () -> Unit = {},
 ) {
     if (state.isLoading) {
         Box(modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -190,15 +217,15 @@ internal fun TransactionFormContent(
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val coroutineScope = rememberCoroutineScope()
-    val noteFocusRequester = remember { FocusRequester() }
-    val noteBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
 
     val isAddDetailsStep = !state.isEditMode && state.step == TransactionFormStep.DETAILS
-    BackHandler(enabled = isAddDetailsStep) {
-        focusManager.clearFocus(force = true)
-        keyboardController?.hide()
-        onEvent(TransactionFormUiEvent.OpenCategorySelection)
+    BackHandler(enabled = isAddDetailsStep || state.isSaving) {
+        if (!state.isSaving) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            onEvent(TransactionFormUiEvent.OpenCategorySelection)
+        }
     }
 
     LaunchedEffect(state.isEditMode, state.step) {
@@ -231,7 +258,6 @@ internal fun TransactionFormContent(
     } else {
         null
     }
-    val showOcrAction = !state.isEditMode && state.step == TransactionFormStep.DETAILS
 
     Box(modifier = modifier.fillMaxSize()) {
         AppAtmosphericBackground(
@@ -245,8 +271,7 @@ internal fun TransactionFormContent(
                 detailsAnnouncement = detailsAnnouncement,
                 isAutoCapture = state.isAutoCapture,
                 isStepAnnouncementLive = !state.isEditMode,
-                showOcrAction = showOcrAction,
-                isImageScanning = state.isImageScanning,
+                canGoBack = !state.isSaving,
                 headerPillColor = headerPillColor,
                 onBackClick = {
                     focusManager.clearFocus(force = true)
@@ -257,7 +282,6 @@ internal fun TransactionFormContent(
                         onBack()
                     }
                 },
-                onPickImage = onPickImage,
             )
 
             Box(
@@ -272,40 +296,21 @@ internal fun TransactionFormContent(
                         heroBrush = heroBrush,
                         heroRimColor = heroRimColor,
                         onEvent = onEvent,
+                        onShowFeedback = feedbackDispatcher::show,
                     )
                 } else {
                     AddModeStepContent(
                         state = state,
                         dateLabel = dateLabel,
-                        heroBrush = heroBrush,
-                        heroRimColor = heroRimColor,
-                        noteFocusRequester = noteFocusRequester,
-                        noteBringIntoViewRequester = noteBringIntoViewRequester,
-                        onNoteCalcKey = {
-                            noteFocusRequester.requestFocus()
-                            keyboardController?.show()
-                            coroutineScope.launch { noteBringIntoViewRequester.bringIntoView() }
-                        },
                         onEvent = onEvent,
-                        onShowFeedback = { msg ->
-                            coroutineScope.launch {
-                                snackbarHostState.currentSnackbarData?.dismiss()
-                                snackbarHostState.showSnackbar(msg)
-                            }
-                        },
+                        onScanImage = onScanImage,
+                        onShowFeedback = feedbackDispatcher::show,
                     )
                 }
             }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .imePadding()
-                .navigationBarsPadding(),
-        )
+        FeedbackSnackbarOverlay(hostState = snackbarHostState)
     }
 
     TransactionFormDialogs(state = state, onEvent = onEvent)
@@ -317,11 +322,9 @@ private fun TransactionFormHeader(
     detailsAnnouncement: String?,
     isAutoCapture: Boolean,
     isStepAnnouncementLive: Boolean,
-    showOcrAction: Boolean,
-    isImageScanning: Boolean,
+    canGoBack: Boolean,
     headerPillColor: Color,
     onBackClick: () -> Unit,
-    onPickImage: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -333,6 +336,7 @@ private fun TransactionFormHeader(
     ) {
         Surface(
             onClick = onBackClick,
+            enabled = canGoBack,
             shape = CircleShape,
             color = headerPillColor,
             border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
@@ -380,36 +384,6 @@ private fun TransactionFormHeader(
                 )
             }
         }
-
-        if (showOcrAction) {
-            Surface(
-                onClick = onPickImage,
-                enabled = !isImageScanning,
-                shape = CircleShape,
-                color = headerPillColor,
-                border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
-                modifier = Modifier
-                    .size(48.dp)
-                    .iosCardShadow(shape = CircleShape, elevated = false),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isImageScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = AppTheme.colors.primary,
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Rounded.PhotoLibrary,
-                            contentDescription = stringResource(R.string.scan_image_button),
-                            tint = AppTheme.colors.primary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -417,13 +391,9 @@ private fun TransactionFormHeader(
 private fun AddModeStepContent(
     state: TransactionFormUiState,
     dateLabel: String,
-    heroBrush: Brush,
-    heroRimColor: Color,
-    noteFocusRequester: FocusRequester,
-    noteBringIntoViewRequester: BringIntoViewRequester,
-    onNoteCalcKey: () -> Unit,
     onEvent: (TransactionFormUiEvent) -> Unit,
-    onShowFeedback: (String) -> Unit,
+    onScanImage: () -> Unit,
+    onShowFeedback: (UiFeedback) -> Unit,
 ) {
     val reducedMotion = rememberNotePayReducedMotion()
     val slideDistancePx = with(LocalDensity.current) { NotePayMotion.contentTranslation.roundToPx() }
@@ -486,12 +456,8 @@ private fun AddModeStepContent(
             TransactionFormStep.DETAILS -> AddTransactionDetailsStep(
                 state = state,
                 dateLabel = dateLabel,
-                heroBrush = heroBrush,
-                heroRimColor = heroRimColor,
-                noteFocusRequester = noteFocusRequester,
-                noteBringIntoViewRequester = noteBringIntoViewRequester,
-                onNoteCalcKey = onNoteCalcKey,
                 onEvent = onEvent,
+                onScanImage = onScanImage,
                 onShowFeedback = onShowFeedback,
                 modifier = stepModifier,
             )
@@ -547,19 +513,18 @@ private fun AddCategorySelectionStep(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddTransactionDetailsStep(
     state: TransactionFormUiState,
     dateLabel: String,
-    heroBrush: Brush,
-    heroRimColor: Color,
-    noteFocusRequester: FocusRequester,
-    noteBringIntoViewRequester: BringIntoViewRequester,
-    onNoteCalcKey: () -> Unit,
     onEvent: (TransactionFormUiEvent) -> Unit,
-    onShowFeedback: (String) -> Unit,
+    onScanImage: () -> Unit,
+    onShowFeedback: (UiFeedback) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val categoryName = state.category.localizedName()
+    val changeCategoryLabel = stringResource(R.string.action_change_category)
     val typeLabel = if (state.type == TransactionType.INCOME) {
         stringResource(R.string.transaction_type_income)
     } else {
@@ -567,7 +532,6 @@ private fun AddTransactionDetailsStep(
     }
     val amountInvalidMsg = stringResource(R.string.transaction_validation_amount)
     val noteTooLongMsg = stringResource(R.string.transaction_note_too_long)
-    val fieldWallet = stringResource(R.string.transaction_field_wallet)
     val noWritableWallet = stringResource(R.string.transaction_no_writable_wallet)
     val noWritableWalletDesc = stringResource(R.string.transaction_no_writable_wallet_desc)
     val noOtherWallet = stringResource(R.string.transaction_no_other_wallet)
@@ -575,156 +539,433 @@ private fun AddTransactionDetailsStep(
     val hasAmountError = state.calcState.error != null ||
         FieldError.AMOUNT_EMPTY in state.errors ||
         FieldError.AMOUNT_INVALID in state.errors
+    val hasWalletError = FieldError.WALLET_MISSING in state.errors
     val isLight = AppTheme.colors.isLight
+    val categoryColor = Color(state.category.colorArgb)
+    val isImeVisible = WindowInsets.isImeVisible
 
     Column(
         modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
             .imePadding()
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp),
     ) {
-        Surface(
-            shape = AppTheme.shapes.corner28,
-            color = Color.Transparent,
-            border = BorderStroke(1.dp, heroRimColor),
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .iosCardShadow(shape = AppTheme.shapes.corner28, elevated = true),
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 4.dp, bottom = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         ) {
+            // Centered Category + Amount Hero with unclipped soft radial halo
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(heroBrush)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(vertical = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .clip(AppTheme.shapes.corner20)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "$categoryName, $typeLabel"
+                        }
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = changeCategoryLabel,
+                            onClick = { onEvent(TransactionFormUiEvent.OpenCategorySelection) },
+                        )
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    CategoryAvatar(
-                        category = state.category,
-                        size = 44.dp,
-                        iconSize = 22.dp,
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(136.dp)
+                                .drawBehind {
+                                    val radius = size.minDimension * 0.5f
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colorStops = arrayOf(
+                                                0f to categoryColor.copy(alpha = if (isLight) 0.18f else 0.26f),
+                                                0.55f to categoryColor.copy(alpha = if (isLight) 0.05f else 0.08f),
+                                                1f to Color.Transparent,
+                                            ),
+                                            center = center,
+                                            radius = radius,
+                                        ),
+                                        radius = radius,
+                                        center = center,
+                                    )
+                                },
+                        )
+                        Box(contentAlignment = Alignment.BottomEnd) {
+                            CategoryAvatar(
+                                category = state.category,
+                                size = 60.dp,
+                                iconSize = 28.dp,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(AppTheme.colors.surface)
+                                    .border(0.75.dp, AppTheme.colors.hairline, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = null,
+                                    tint = AppTheme.colors.textPrimary,
+                                    modifier = Modifier.size(11.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         Text(
-                            text = state.category.localizedName(),
+                            text = categoryName,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = AppTheme.colors.textPrimary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            text = typeLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = AppTheme.colors.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = AppTheme.colors.textSecondary,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                    Surface(
-                        onClick = { onEvent(TransactionFormUiEvent.OpenCategorySelection) },
-                        shape = AppTheme.shapes.capsule,
-                        color = AppTheme.colors.surface.copy(alpha = if (isLight) 0.85f else 0.72f),
-                        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
-                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Edit,
-                                contentDescription = null,
-                                tint = AppTheme.colors.primary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.action_change_category),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AppTheme.colors.primary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-
-                state.imageScanMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                    )
                 }
 
                 TransactionAmountDisplay(
                     amountInput = state.displayExpression,
                     rawAmountForMagnitude = state.previewAmountMajorUnits,
                     hasError = hasAmountError,
+                    showTitle = false,
                     modifier = Modifier.semantics {
                         if (hasAmountError) {
                             error(amountInvalidMsg)
                         }
                     },
                 )
+
+                if (state.isImageScanning || state.imageScanMessage != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 2.dp),
+                    ) {
+                        if (state.isImageScanning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = AppTheme.colors.primary,
+                            )
+                        }
+                        state.imageScanMessage?.let { msg ->
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppTheme.colors.textSecondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
             }
+
+            // Single inline note card + quick note suggestions + inline scan shortcut
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TransactionNoteField(
+                    value = state.note,
+                    onValueChange = { onEvent(TransactionFormUiEvent.NoteChanged(it)) },
+                    label = stringResource(R.string.transaction_field_note),
+                    placeholder = stringResource(R.string.transaction_field_note_placeholder),
+                    isError = FieldError.NOTE_TOO_LONG in state.errors,
+                    errorText = noteTooLongMsg,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QuickNoteAndScanRow(
+                    isIncome = state.type == TransactionType.INCOME,
+                    currentNote = state.note,
+                    isScanning = state.isImageScanning,
+                    onSelectNote = { onEvent(TransactionFormUiEvent.NoteChanged(it)) },
+                    onScanImage = onScanImage,
+                )
+            }
+
+            // Compact Date + Wallet chips row directly above quick amount & keypad
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DetailsActionChip(
+                    icon = Icons.Rounded.CalendarMonth,
+                    text = dateLabel,
+                    isError = false,
+                    onClick = { onEvent(TransactionFormUiEvent.SetDatePickerVisible(true)) },
+                )
+
+                DetailsActionChip(
+                    icon = Icons.Rounded.AccountBalanceWallet,
+                    text = selectedWallet?.name ?: noWritableWallet,
+                    isError = hasWalletError,
+                    onClick = {
+                        when {
+                            state.availableWallets.isEmpty() -> onShowFeedback(
+                                UiFeedback(noWritableWalletDesc, type = FeedbackType.Warning),
+                            )
+                            state.availableWallets.size > 1 -> onEvent(TransactionFormUiEvent.SetWalletPickerVisible(true))
+                            else -> onShowFeedback(UiFeedback(noOtherWallet, type = FeedbackType.Info))
+                        }
+                    },
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+
+            if (state.availableWallets.isEmpty() && !state.hasReadOnlyWalletsOnly) {
+                Text(
+                    text = noWritableWalletDesc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (hasWalletError) AppTheme.colors.error else AppTheme.colors.textSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                        .semantics {
+                            if (hasWalletError) error(noWritableWalletDesc)
+                        },
+                )
+            }
+
+            NotePayStatusBanner(
+                visible = state.isSelectedWalletReadOnly || state.hasReadOnlyWalletsOnly,
+                message = stringResource(R.string.shared_wallet_viewer_cannot_write),
+                type = FeedbackType.Warning,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
-        TransactionNoteField(
-            value = state.note,
-            onValueChange = { onEvent(TransactionFormUiEvent.NoteChanged(it)) },
-            label = stringResource(R.string.transaction_field_note),
-            placeholder = stringResource(R.string.transaction_field_note_placeholder),
-            isError = FieldError.NOTE_TOO_LONG in state.errors,
-            errorText = noteTooLongMsg,
-            modifier = Modifier
-                .fillMaxWidth()
-                .bringIntoViewRequester(noteBringIntoViewRequester)
-                .focusRequester(noteFocusRequester),
-        )
+        // Docked quick amount presets + 4-column numeric keypad + full-width Save CTA
+        if (!isImeVisible) {
+            QuickAmountPresetRow(
+                selectedAmountMajorUnits = state.previewAmountMajorUnits,
+                onSelectAmount = { onEvent(TransactionFormUiEvent.QuickAmountSelected(it)) },
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            TransactionNumericKeypad(
+                activeOperator = state.activePendingOperator,
+                isAmountLocked = false,
+                onKey = { onEvent(TransactionFormUiEvent.CalcKeyPressed(it)) },
+                onBackspaceLong = { onEvent(TransactionFormUiEvent.BackspaceLong) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
 
-        TransactionWalletField(
-            label = fieldWallet,
-            value = selectedWallet?.name ?: noWritableWallet,
-            supportingText = if (state.availableWallets.isEmpty()) noWritableWalletDesc else null,
-            isError = FieldError.WALLET_MISSING in state.errors,
-            onClick = {
-                when {
-                    state.availableWallets.isEmpty() -> onShowFeedback(noWritableWalletDesc)
-                    state.availableWallets.size > 1 -> onEvent(TransactionFormUiEvent.SetWalletPickerVisible(true))
-                    else -> onShowFeedback(noOtherWallet)
-                }
-            },
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        TransactionCustomKeypad(
-            dateLabel = dateLabel,
-            noteLabel = state.note.take(14).ifBlank { "" },
+        TransactionPrimarySaveButton(
+            label = stringResource(R.string.action_add_transaction),
             canSave = state.canSave,
             isSaving = state.isSaving,
-            activeOperator = state.activePendingOperator,
-            isAmountLocked = false,
-            modifier = Modifier.fillMaxWidth(),
-            onKey = { key ->
-                when (key) {
-                    CalcKey.Date -> onEvent(TransactionFormUiEvent.SetDatePickerVisible(true))
-                    CalcKey.Note -> onNoteCalcKey()
-                    CalcKey.Save -> onEvent(TransactionFormUiEvent.Save)
-                    else -> onEvent(TransactionFormUiEvent.CalcKeyPressed(key))
-                }
-            },
-            onBackspaceLong = { onEvent(TransactionFormUiEvent.BackspaceLong) },
+            onClick = { onEvent(TransactionFormUiEvent.Save) },
+            modifier = Modifier.padding(bottom = 12.dp),
         )
+    }
+}
+
+@Composable
+private fun QuickNoteAndScanRow(
+    isIncome: Boolean,
+    currentNote: String,
+    isScanning: Boolean,
+    onSelectNote: (String) -> Unit,
+    onScanImage: () -> Unit,
+) {
+    val chips = if (isIncome) {
+        listOf(
+            stringResource(R.string.transaction_quick_note_salary),
+            stringResource(R.string.transaction_quick_note_bonus),
+            stringResource(R.string.transaction_quick_note_refund),
+        )
+    } else {
+        listOf(
+            stringResource(R.string.transaction_quick_note_breakfast),
+            stringResource(R.string.transaction_quick_note_lunch),
+            stringResource(R.string.transaction_quick_note_coffee),
+            stringResource(R.string.transaction_quick_note_fuel),
+            stringResource(R.string.transaction_quick_note_groceries),
+        )
+    }
+    val shape = AppTheme.shapes.capsule
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Surface(
+            onClick = onScanImage,
+            enabled = !isScanning,
+            shape = CircleShape,
+            color = AppTheme.colors.surface,
+            border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+            modifier = Modifier
+                .size(48.dp)
+                .iosCardShadow(shape = CircleShape, elevated = false),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.PhotoLibrary,
+                    contentDescription = stringResource(R.string.cd_scan_receipt_inline),
+                    tint = AppTheme.colors.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            chips.forEach { suggestion ->
+                val selected = currentNote.trim().equals(suggestion, ignoreCase = true)
+                Surface(
+                    onClick = { onSelectNote(suggestion) },
+                    shape = shape,
+                    color = if (selected) AppTheme.colors.sand else AppTheme.colors.surface,
+                    border = BorderStroke(
+                        width = 0.5.dp,
+                        color = if (selected) AppTheme.colors.sand else AppTheme.colors.hairline,
+                    ),
+                    modifier = Modifier.defaultMinSize(minHeight = 40.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = suggestion,
+                            style = AppTheme.typography.labelMedium,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) AppTheme.colors.onSand else AppTheme.colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickAmountPresetRow(
+    selectedAmountMajorUnits: Long,
+    onSelectAmount: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val presets = remember {
+        listOf(
+            20_000L to "20k",
+            50_000L to "50k",
+            100_000L to "100k",
+            200_000L to "200k",
+            500_000L to "500k",
+        )
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        presets.forEach { (amountVnd, label) ->
+            val selected = selectedAmountMajorUnits == amountVnd
+            Surface(
+                onClick = { onSelectAmount(amountVnd) },
+                shape = AppTheme.shapes.capsule,
+                color = if (selected) AppTheme.colors.sand else AppTheme.colors.surface,
+                border = BorderStroke(
+                    width = 0.5.dp,
+                    color = if (selected) AppTheme.colors.sand else AppTheme.colors.hairline,
+                ),
+                modifier = Modifier.defaultMinSize(minHeight = 40.dp),
+            ) {
+                Box(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = AppTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (selected) AppTheme.colors.onSand else AppTheme.colors.textPrimary,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsActionChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    isError: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isLight = AppTheme.colors.isLight
+    val shape = AppTheme.shapes.corner12
+    Surface(
+        onClick = onClick,
+        shape = shape,
+        color = AppTheme.colors.surface.copy(alpha = if (isLight) 0.94f else 0.88f),
+        border = BorderStroke(
+            width = if (isError) 1.dp else 0.5.dp,
+            color = if (isError) AppTheme.colors.error else AppTheme.colors.hairline,
+        ),
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .iosCardShadow(shape = shape, elevated = false),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isError) AppTheme.colors.error else AppTheme.colors.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isError) AppTheme.colors.error else AppTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -735,11 +976,11 @@ private fun EditModeFormContent(
     heroBrush: Brush,
     heroRimColor: Color,
     onEvent: (TransactionFormUiEvent) -> Unit,
+    onShowFeedback: (UiFeedback) -> Unit,
 ) {
-    val context = LocalContext.current
     val fieldWallet = stringResource(R.string.transaction_field_wallet)
     val noWalletSelected = stringResource(R.string.transaction_no_wallet_selected)
-    val noOtherWalletToast = stringResource(R.string.transaction_no_other_wallet)
+    val noOtherWalletMsg = stringResource(R.string.transaction_no_other_wallet)
     val expenseLabel = stringResource(R.string.transaction_type_expense)
     val incomeLabel = stringResource(R.string.transaction_type_income)
 
@@ -833,9 +1074,16 @@ private fun EditModeFormContent(
                 if (state.availableWallets.size > 1) {
                     onEvent(TransactionFormUiEvent.SetWalletPickerVisible(true))
                 } else {
-                    Toast.makeText(context, noOtherWalletToast, Toast.LENGTH_SHORT).show()
+                    onShowFeedback(UiFeedback(noOtherWalletMsg, type = FeedbackType.Info))
                 }
             },
+        )
+
+        NotePayStatusBanner(
+            visible = state.isSelectedWalletReadOnly,
+            message = stringResource(R.string.shared_wallet_viewer_cannot_write),
+            type = FeedbackType.Warning,
+            modifier = Modifier.fillMaxWidth(),
         )
 
         if (state.note.isNotBlank()) {

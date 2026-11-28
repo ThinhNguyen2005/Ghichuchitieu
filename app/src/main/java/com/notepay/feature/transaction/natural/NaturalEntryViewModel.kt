@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.HybridNaturalTransactionParser
+import com.notepay.core.designsystem.feedback.FeedbackDuration
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.platform.speech.VoiceTranscriptMerger
@@ -80,8 +81,6 @@ class NaturalEntryViewModel @Inject constructor(
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
-    private val _savedSuccess = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val savedSuccess = _savedSuccess.asSharedFlow()
 
     private var voiceBaseInput: String? = null
 
@@ -157,13 +156,39 @@ class NaturalEntryViewModel @Inject constructor(
                     if (state.rawInput.trim() != inputSnapshot) {
                         state.copy(isAiLoading = false)
                     } else {
+                        val fallbackWarning =
+                            aiResult.fallbackNotice == NaturalFallbackNotice.AI_UNAVAILABLE ||
+                                aiResult.fallbackNotice == NaturalFallbackNotice.AI_QUOTA_OR_KEY_ERROR
                         state.copy(
                             drafts = aiResult.drafts,
                             needsAiFallback = aiResult.needsAiFallback,
                             source = aiResult.source,
                             isAiLoading = false,
-                            showAiFallbackNotice = aiResult.fallbackNotice == NaturalFallbackNotice.AI_UNAVAILABLE,
+                            showAiFallbackNotice = fallbackWarning,
                         )
+                    }
+                }
+                if (_state.value.rawInput.trim() == inputSnapshot) {
+                    when (aiResult.fallbackNotice) {
+                        NaturalFallbackNotice.AI_QUOTA_OR_KEY_ERROR -> {
+                            _feedback.emit(
+                                UiFeedback(
+                                    message = context.getString(R.string.ocr_ai_quota_or_key_error),
+                                    type = FeedbackType.Warning,
+                                    actionLabel = context.getString(R.string.action_open_ai_settings),
+                                    duration = FeedbackDuration.Long,
+                                ),
+                            )
+                        }
+                        NaturalFallbackNotice.AI_UNAVAILABLE -> {
+                            _feedback.emit(
+                                UiFeedback(
+                                    message = context.getString(R.string.natural_entry_ai_fallback_warning),
+                                    type = FeedbackType.Warning,
+                                ),
+                            )
+                        }
+                        NaturalFallbackNotice.NONE -> Unit
                     }
                 }
             } catch (cancelled: CancellationException) {
@@ -207,18 +232,23 @@ class NaturalEntryViewModel @Inject constructor(
             try {
                 val (savedCount, failedCount) = persistDrafts(drafts, wallet.id)
                 if (failedCount == 0 && savedCount > 0) {
+                    val isShared = wallet.isShared
                     reset()
+                    val savedMessage = if (isShared) {
+                        context.getString(R.string.feedback_transaction_pending_sync)
+                    } else {
+                        context.resources.getQuantityString(
+                            R.plurals.natural_entry_saved_batch,
+                            savedCount,
+                            savedCount,
+                        )
+                    }
                     _feedback.emit(
                         UiFeedback(
-                            context.resources.getQuantityString(
-                                R.plurals.natural_entry_saved_batch,
-                                savedCount,
-                                savedCount,
-                            ),
-                            type = FeedbackType.Success,
+                            message = savedMessage,
+                            type = if (isShared) FeedbackType.Pending else FeedbackType.Success,
                         ),
                     )
-                    _savedSuccess.emit(Unit)
                 } else {
                     _state.update { it.copy(isSavingBatch = false) }
                     _feedback.emit(

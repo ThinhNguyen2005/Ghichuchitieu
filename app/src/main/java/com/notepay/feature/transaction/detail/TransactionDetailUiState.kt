@@ -10,6 +10,8 @@ data class TransactionDetailUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val canEdit: Boolean = true,
+    val isRetryingSync: Boolean = false,
+    val syncRetryFailed: Boolean = false,
 ) {
     val isAutoCapture: Boolean
         get() = transaction?.isAutoCapture == true

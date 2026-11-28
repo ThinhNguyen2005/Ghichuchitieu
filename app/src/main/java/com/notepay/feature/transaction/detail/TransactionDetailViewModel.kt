@@ -5,6 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.data.sync.SharedWalletSyncCoordinator
+import com.notepay.di.IoDispatcher
+import com.notepay.domain.model.SyncStatus
 import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
@@ -13,8 +19,11 @@ import com.notepay.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
@@ -27,6 +36,8 @@ class TransactionDetailViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     savedStateHandle: SavedStateHandle,
     @param:ApplicationContext private val context: Context,
+    private val sharedWalletSyncCoordinator: SharedWalletSyncCoordinator,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val sharedWalletRepository: SharedWalletRepository? = null,
 ) : ViewModel() {
 
@@ -39,6 +50,9 @@ class TransactionDetailViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(TransactionDetailUiState())
     val state = _state.asStateFlow()
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     private var observeJob: Job? = null
 
@@ -92,6 +106,59 @@ class TransactionDetailViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    fun retrySync() {
+        val current = _state.value
+        val transaction = current.transaction ?: return
+        if (!current.canEdit || current.isRetryingSync || transaction.syncStatus != SyncStatus.FAILED) return
+        _state.update { it.copy(isRetryingSync = true, syncRetryFailed = false) }
+        viewModelScope.launch(ioDispatcher) {
+            var failed = false
+            var offlineError = false
+            try {
+                val wallet = checkNotNull(walletRepository.getById(transaction.walletId))
+                failed = !sharedWalletSyncCoordinator.retryTransactionSync(wallet, transaction.id)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (err: Exception) {
+                failed = true
+                val msg = err.message.orEmpty()
+                offlineError = msg.contains("network", ignoreCase = true) ||
+                    msg.contains("offline", ignoreCase = true) ||
+                    msg.contains("connect", ignoreCase = true) ||
+                    msg.contains("timeout", ignoreCase = true)
+            } finally {
+                _state.update {
+                    if (it.transaction?.id == transaction.id) {
+                        it.copy(
+                            isRetryingSync = false,
+                            syncRetryFailed = failed && it.transaction.syncStatus == SyncStatus.FAILED,
+                        )
+                    } else {
+                        it
+                    }
+                }
+            }
+            if (!failed) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_transaction_sync_retried_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } else {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_transaction_sync_retry_failed),
+                        actionLabel = context.getString(R.string.action_retry_transaction_sync),
+                        type = if (offlineError) FeedbackType.Offline else FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = ::retrySync,
+                    ),
+                )
+            }
         }
     }
 }

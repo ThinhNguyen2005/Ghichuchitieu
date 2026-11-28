@@ -49,9 +49,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,8 +83,11 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarOverlay
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.rememberLatestFeedbackDispatcher
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.formatter.TransactionDateLabelFormatter
 import com.notepay.core.designsystem.theme.AppTheme
@@ -102,7 +105,6 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.natural.NaturalParseSource
 import com.notepay.domain.natural.NaturalTransactionDraft
 import com.notepay.feature.transaction.component.sheet.WalletPickerSheet
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -116,10 +118,17 @@ fun NaturalEntryBottomSheet(
     onDismiss: () -> Unit,
     onFeedback: (UiFeedback) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenAiSettings: () -> Unit = {},
     viewModel: NaturalEntryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
+    val openAiSettingsLabel = stringResource(R.string.action_open_ai_settings)
+    fun showEntryError(message: String) {
+        feedbackDispatcher.show(UiFeedback(message, type = FeedbackType.Error))
+    }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
@@ -178,7 +187,7 @@ fun NaturalEntryBottomSheet(
                 )
             } catch (_: ActivityNotFoundException) {
                 viewModel.onVoiceSessionEnded()
-                onFeedback(UiFeedback(voiceUnavailableMsg, type = FeedbackType.Error))
+                showEntryError(voiceUnavailableMsg)
             }
         }
     }
@@ -189,7 +198,7 @@ fun NaturalEntryBottomSheet(
         if (granted) {
             startVoiceRecognition()
         } else {
-            onFeedback(UiFeedback(permissionDeniedMsg, type = FeedbackType.Error))
+            showEntryError(permissionDeniedMsg)
         }
     }
 
@@ -197,7 +206,7 @@ fun NaturalEntryBottomSheet(
     val voiceErrorMsg = voiceError?.let { stringResource(it.toStringRes()) }
     LaunchedEffect(voiceError, voiceErrorMsg) {
         if (voiceError != null && voiceErrorMsg != null) {
-            onFeedback(UiFeedback(voiceErrorMsg, type = FeedbackType.Error))
+            showEntryError(voiceErrorMsg)
             viewModel.onVoiceSessionEnded()
             voiceController.clearError()
         }
@@ -205,12 +214,19 @@ fun NaturalEntryBottomSheet(
 
     var showWalletPicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel) {
-        launch {
-            viewModel.feedback.collect { onFeedback(it) }
-        }
-        launch {
-            viewModel.savedSuccess.collect { onDismiss() }
+    LaunchedEffect(viewModel, feedbackDispatcher, openAiSettingsLabel, onOpenAiSettings) {
+        viewModel.feedback.collect { feedback ->
+            val resolved = if (feedback.actionLabel == openAiSettingsLabel && feedback.onAction == null) {
+                feedback.copy(onAction = onOpenAiSettings)
+            } else {
+                feedback
+            }
+            if (resolved.type == FeedbackType.Success) {
+                onFeedback(resolved)
+                onDismiss()
+            } else {
+                feedbackDispatcher.show(resolved)
+            }
         }
     }
 
@@ -232,53 +248,52 @@ fun NaturalEntryBottomSheet(
         onDismiss()
     }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = handleDismiss,
         sheetState = sheetState,
-        shape = AppTheme.shapes.sheetTop,
-        containerColor = AppTheme.colors.surface,
-        contentColor = AppTheme.colors.textPrimary,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
         modifier = modifier,
     ) {
-        NaturalEntrySheetContent(
-            state = state,
-            voiceState = voiceState,
-            focusRequester = focusRequester,
-            onInputChanged = { input ->
-                if (voiceState.isListening) {
-                    voiceController.cancel()
-                    viewModel.onVoiceSessionEnded()
-                }
-                viewModel.onInputChanged(input)
-            },
-            onToggleVoice = {
-                if (voiceState.isListening) {
-                    voiceController.stopListening()
-                } else if (
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                    PackageManager.PERMISSION_GRANTED
-                ) {
-                    startVoiceRecognition()
-                } else {
-                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            },
-            onOpenWalletPicker = { showWalletPicker = true },
-            onAnalyzeWithAi = {
-                cancelVoiceSession()
-                keyboardController?.hide()
-                viewModel.onAnalyzeWithAi()
-            },
-            onUpdateDraft = viewModel::onUpdateDraft,
-            onRemoveDraft = viewModel::onRemoveDraft,
-            onSaveAllDrafts = {
-                cancelVoiceSession()
-                keyboardController?.hide()
-                viewModel.onSaveAllDrafts()
-            },
-            onClose = handleDismiss,
-        )
+        Box(Modifier.fillMaxWidth()) {
+            NaturalEntrySheetContent(
+                state = state,
+                voiceState = voiceState,
+                focusRequester = focusRequester,
+                onInputChanged = { input ->
+                    if (voiceState.isListening) {
+                        voiceController.cancel()
+                        viewModel.onVoiceSessionEnded()
+                    }
+                    viewModel.onInputChanged(input)
+                },
+                onToggleVoice = {
+                    if (voiceState.isListening) {
+                        voiceController.stopListening()
+                    } else if (
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
+                        startVoiceRecognition()
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                onOpenWalletPicker = { showWalletPicker = true },
+                onAnalyzeWithAi = {
+                    cancelVoiceSession()
+                    keyboardController?.hide()
+                    viewModel.onAnalyzeWithAi()
+                },
+                onUpdateDraft = viewModel::onUpdateDraft,
+                onRemoveDraft = viewModel::onRemoveDraft,
+                onSaveAllDrafts = {
+                    cancelVoiceSession()
+                    keyboardController?.hide()
+                    viewModel.onSaveAllDrafts()
+                },
+                onClose = handleDismiss,
+            )
+            FeedbackSnackbarOverlay(hostState = snackbarHostState)
+        }
     }
 
     if (showWalletPicker && state.availableWallets.size > 1) {

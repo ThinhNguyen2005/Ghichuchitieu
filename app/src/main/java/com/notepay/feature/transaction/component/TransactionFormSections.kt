@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,16 +21,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -42,16 +44,19 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
@@ -218,50 +223,77 @@ fun TransactionWalletField(
 fun TransactionNoteField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    @Suppress("UnusedParameter") label: String,
     placeholder: String,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     errorText: String? = null,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { input ->
-            if (input.length <= Transaction.MAX_NOTE_LENGTH) onValueChange(input)
-        },
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics {
-                if (isError && !errorText.isNullOrBlank()) {
-                    error(errorText)
-                }
-            },
-        label = { Text(label) },
-        placeholder = { Text(placeholder) },
-        isError = isError,
-        supportingText = if (!errorText.isNullOrBlank() && isError) {
-            { Text(errorText) }
-        } else {
-            null
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Rounded.EditNote,
-                contentDescription = null,
-                tint = if (isError) AppTheme.colors.error else MaterialTheme.colorScheme.onSurfaceVariant,
+    val focusManager = LocalFocusManager.current
+    val isLight = AppTheme.colors.isLight
+    val shape = AppTheme.shapes.corner20
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Surface(
+            shape = shape,
+            color = AppTheme.colors.surface.copy(alpha = if (isLight) 0.94f else 0.88f),
+            border = BorderStroke(
+                width = if (isError) 1.dp else 0.5.dp,
+                color = if (isError) AppTheme.colors.error else AppTheme.colors.hairline,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .iosCardShadow(shape = shape, elevated = false)
+                .semantics {
+                    if (isError && !errorText.isNullOrBlank()) {
+                        error(errorText)
+                    }
+                },
+        ) {
+            TextField(
+                value = value,
+                onValueChange = { input ->
+                    if (input.length <= Transaction.MAX_NOTE_LENGTH) onValueChange(input)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = AppTheme.colors.textMuted,
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = AppTheme.colors.textPrimary,
+                ),
+                minLines = 2,
+                maxLines = 3,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    cursorColor = AppTheme.colors.primary,
+                ),
             )
-        },
-        shape = AppTheme.shapes.corner16,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.Transparent,
-            disabledBorderColor = Color.Transparent,
-            errorBorderColor = AppTheme.colors.error,
-        ),
-        maxLines = 3,
-    )
+        }
+        if (isError && !errorText.isNullOrBlank()) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.error,
+                modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+            )
+        }
+    }
 }
 
 @Composable
