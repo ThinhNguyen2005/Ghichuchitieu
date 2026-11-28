@@ -15,6 +15,11 @@ object TransactionDateLabelFormatter {
             1L -> yesterdayPrefix
             else -> ""
         }
-        return "$prefix${target.day} ${monthSuffixFormat.format(target.month.ordinal + 1)}"
+        val normalizedPrefix = if (prefix.isNotBlank() && !prefix.endsWith(' ')) {
+            "$prefix "
+        } else {
+            prefix
+        }
+        return "$normalizedPrefix${target.day} ${monthSuffixFormat.format(target.month.ordinal + 1)}"
     }
 }

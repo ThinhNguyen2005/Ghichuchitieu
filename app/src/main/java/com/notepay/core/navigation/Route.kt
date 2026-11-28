@@ -9,6 +9,9 @@ sealed interface Route {
     data object Home : Route { override val path = "home" }
     data object AddTransaction : Route {
         override val path = "add-transaction"
+        const val ROUTE = "add-transaction?launchScan={launchScan}"
+        const val ARG_LAUNCH_SCAN = "launchScan"
+        fun withScan(): String = "add-transaction?launchScan=true"
     }
     data object TransactionList : Route { override val path = "list" }
     data object Stats : Route { override val path = "stats" }

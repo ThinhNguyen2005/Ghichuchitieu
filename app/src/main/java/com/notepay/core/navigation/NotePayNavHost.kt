@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.layout.Box
@@ -19,10 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,10 +35,16 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.notepay.feature.assets.main.QuickTransferViewModel
+import com.notepay.feature.assets.main.sheet.TransferBottomSheet
 import com.notepay.feature.transaction.natural.NaturalEntryBottomSheet
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.navigation.compose.composable
@@ -54,6 +56,7 @@ import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.NotePayAdaptive
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.component.action.CreateNewBottomSheet
+import com.notepay.core.designsystem.component.action.QuickAddAction
 import com.notepay.core.designsystem.component.button.FloatingAddButton
 import com.notepay.core.designsystem.component.effect.LocalNotePayBackdrop
 import com.notepay.feature.billsplit.billSplitGraph
@@ -64,10 +67,15 @@ import com.notepay.feature.transaction.transactionGraph
 import com.notepay.feature.debt.debtGraph
 import com.notepay.feature.utilities.utilitiesGraph
 import com.notepay.feature.assets.main.walletGraph
-import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarHost
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.feedbackSnackbarInsets
+import com.notepay.core.designsystem.feedback.rememberLatestFeedbackDispatcher
+import com.notepay.core.designsystem.feedback.showFeedback
 import com.notepay.domain.model.AuthUser
 import com.notepay.core.designsystem.util.LocalAuthUser
+import com.notepay.feature.transaction.form.TransactionFormSaveResult
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -103,8 +111,12 @@ fun NotePayNavHost(
     val isMainTab = isMainTabRoute(currentRoute)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
     var showQuickAddSheet by rememberSaveable { mutableStateOf(false) }
     var showNaturalEntrySheet by rememberSaveable { mutableStateOf(false) }
+    var quickAddAction by remember { mutableStateOf<QuickAddAction?>(null) }
+    val quickTransferViewModel: QuickTransferViewModel = hiltViewModel()
+    val viewTransactionLabel = stringResource(R.string.action_view_transaction)
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -122,20 +134,75 @@ fun NotePayNavHost(
         }
     }
 
-    suspend fun showFeedback(feedback: UiFeedback): Boolean {
-        snackbarHostState.currentSnackbarData?.dismiss()
-        val result = snackbarHostState.showSnackbar(
-            message = feedback.message,
-            actionLabel = feedback.actionLabel,
-            duration = when (feedback.duration) {
-                FeedbackDuration.Short -> SnackbarDuration.Short
-                FeedbackDuration.Long -> SnackbarDuration.Long
-                FeedbackDuration.Indefinite -> SnackbarDuration.Indefinite
+    LaunchedEffect(quickAddAction, isMainTab) {
+        val action = quickAddAction ?: return@LaunchedEffect
+        quickAddAction = null
+        if (!isMainTab) return@LaunchedEffect
+        val route = when (action) {
+            QuickAddAction.Transaction -> Route.AddTransaction.path
+            QuickAddAction.Transfer -> {
+                quickTransferViewModel.open()
+                null
+            }
+            QuickAddAction.ScanReceipt -> Route.AddTransaction.withScan()
+            QuickAddAction.NaturalEntry -> {
+                showNaturalEntrySheet = true
+                null
+            }
+            QuickAddAction.Debt -> Route.DebtManagement.withCreate()
+            QuickAddAction.BillSplit -> Route.BillSplit.path
+            QuickAddAction.Subscription -> Route.Subscription.path
+        }
+        if (route != null) navController.navigate(route) { launchSingleTop = true }
+    }
+
+    val showFeedback: suspend (UiFeedback) -> Boolean = remember(feedbackDispatcher) {
+        { feedback ->
+            feedbackDispatcher.show(feedback)
+            false
+        }
+    }
+
+    fun showFeedbackAfterReturn(source: NavBackStackEntry, feedback: UiFeedback) {
+        if (navController.currentBackStackEntry != source) return
+        val destination = navController.previousBackStackEntry ?: return
+        if (!navController.popBackStack()) return
+        coroutineScope.launch {
+            val state = destination.lifecycle.currentStateFlow.first {
+                it == Lifecycle.State.RESUMED || it == Lifecycle.State.DESTROYED
+            }
+            if (state != Lifecycle.State.RESUMED) return@launch
+            feedbackDispatcher.show(feedback)
+        }
+    }
+
+    fun onTransactionSaved(source: NavBackStackEntry, result: TransactionFormSaveResult) {
+        val primary = result.feedback.copy(
+            actionLabel = viewTransactionLabel,
+            onAction = {
+                navController.navigate(Route.TransactionDetail(result.transactionId).path) {
+                    launchSingleTop = true
+                }
             },
         )
-        val actionPerformed = result == SnackbarResult.ActionPerformed
-        if (actionPerformed) feedback.onAction?.invoke()
-        return actionPerformed
+        val followUp = result.followUpWarning
+        if (followUp == null) {
+            showFeedbackAfterReturn(source, primary)
+            return
+        }
+        if (navController.currentBackStackEntry != source) return
+        val destination = navController.previousBackStackEntry ?: return
+        if (!navController.popBackStack()) return
+        coroutineScope.launch {
+            val state = destination.lifecycle.currentStateFlow.first {
+                it == Lifecycle.State.RESUMED || it == Lifecycle.State.DESTROYED
+            }
+            if (state != Lifecycle.State.RESUMED) return@launch
+            val actionPerformed = snackbarHostState.showFeedback(primary)
+            if (!actionPerformed && destination.lifecycle.currentState == Lifecycle.State.RESUMED) {
+                feedbackDispatcher.show(followUp)
+            }
+        }
     }
 
     // Quy đổi route gốc -> trang pager. Toạ độ tab chỉ tồn tại trong `rootTabRoutes`
@@ -154,11 +221,11 @@ fun NotePayNavHost(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = {
-            SnackbarHost(
+            FeedbackSnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = if (useNavigationRail) 16.dp else 104.dp)
+                modifier = Modifier.feedbackSnackbarInsets(
+                    bottomPadding = if (isMainTab && !useNavigationRail) 104.dp else 16.dp,
+                ),
             )
         },
         modifier = Modifier.fillMaxSize()
@@ -184,43 +251,20 @@ fun NotePayNavHost(
                             startDestination = startDestination,
                             modifier = Modifier.fillMaxSize(),
                             enterTransition = {
-                                val direction = tabTransitionDirection(
-                                    initialState.destination.route,
-                                    targetState.destination.route,
+                                notePayForwardEnterTransition(
+                                    initialRoute = initialState.destination.route,
+                                    targetRoute = targetState.destination.route,
+                                    reducedMotion = reducedMotion,
+                                    tabDistancePx = motionDistancePx,
                                 )
-                                when {
-                                    reducedMotion -> EnterTransition.None
-                                    direction == null -> fadeIn(
-                                        tween(NotePayMotion.contentDurationMillis)
-                                    )
-                                    else -> fadeIn(
-                                        tween(
-                                            durationMillis = NotePayMotion.contentDurationMillis,
-                                            delayMillis = NotePayMotion.contentFadeDelayMillis,
-                                        )
-                                    ) + slideInHorizontally(
-                                        animationSpec = tween(NotePayMotion.contentDurationMillis),
-                                        initialOffsetX = { direction * motionDistancePx },
-                                    )
-                                }
                             },
                             exitTransition = {
-                                val direction = tabTransitionDirection(
-                                    initialState.destination.route,
-                                    targetState.destination.route,
+                                notePayForwardExitTransition(
+                                    initialRoute = initialState.destination.route,
+                                    targetRoute = targetState.destination.route,
+                                    reducedMotion = reducedMotion,
+                                    tabDistancePx = motionDistancePx,
                                 )
-                                when {
-                                    reducedMotion -> ExitTransition.None
-                                    direction == null -> fadeOut(
-                                        tween(NotePayMotion.contentFadeOutDurationMillis)
-                                    )
-                                    else -> fadeOut(
-                                        tween(NotePayMotion.contentFadeOutDurationMillis)
-                                    ) + slideOutHorizontally(
-                                        animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
-                                        targetOffsetX = { -direction * motionDistancePx },
-                                    )
-                                }
                             },
                             popEnterTransition = {
                                 if (reducedMotion) {
@@ -240,7 +284,7 @@ fun NotePayNavHost(
                                 } else {
                                     slideOutHorizontally(
                                         animationSpec = tween(NotePayMotion.contentFadeOutDurationMillis),
-                                        targetOffsetX = { it },
+                                        targetOffsetX = { motionDistancePx },
                                     ) + fadeOut(tween(NotePayMotion.contentFadeOutDurationMillis))
                                 }
                             },
@@ -259,7 +303,7 @@ fun NotePayNavHost(
                                 MainTabPager(
                                     pagerState = pagerState,
                                     navController = navController,
-                                    showFeedback = ::showFeedback,
+                                    showFeedback = showFeedback,
                                     reducedMotion = reducedMotion,
                                     userScrollEnabled = !useNavigationRail,
                                     contentStartInset = if (useNavigationRail) {
@@ -269,24 +313,29 @@ fun NotePayNavHost(
                                     },
                                 )
                             }
-                            transactionGraph(navController, ::showFeedback)
+                            transactionGraph(navController, showFeedback, ::onTransactionSaved)
                             statsScreen(
                                 navController = navController,
                                 onNavigateToTab = navigateToRootTab,
                             )
-                            billSplitGraph(navController, ::showFeedback)
-                            subscriptionScreen(navController)
+                            billSplitGraph(navController, showFeedback, ::showFeedbackAfterReturn)
+                            subscriptionScreen(navController, showFeedback = showFeedback)
                             walletGraph(
                                 navController = navController,
-                                showFeedback = ::showFeedback,
+                                showFeedback = showFeedback,
+                                onWalletSaved = ::showFeedbackAfterReturn,
                                 onNavigateToTab = navigateToRootTab,
                             )
                             utilitiesGraph(
                                 navController = navController,
-                                onFeedback = ::showFeedback,
+                                onFeedback = showFeedback,
                                 onNavigateToTab = navigateToRootTab,
                             )
-                            debtGraph(navController)
+                            debtGraph(
+                                navController = navController,
+                                showFeedback = showFeedback,
+                                onFeedbackAfterReturn = ::showFeedbackAfterReturn,
+                            )
                         }
                     }
                 }
@@ -328,28 +377,9 @@ fun NotePayNavHost(
                     if (showQuickAddSheet) {
                         CreateNewBottomSheet(
                             onDismissRequest = { showQuickAddSheet = false },
-                            onNavigateToAddTransaction = {
-                                navController.navigate(Route.AddTransaction.path) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToNaturalTextEntry = {
-                                showNaturalEntrySheet = true
-                            },
-                            onNavigateToAddDebt = {
-                                navController.navigate(Route.DebtManagement.withCreate()) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToBillSplit = {
-                                navController.navigate(Route.BillSplit.path) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToSubscription = {
-                                navController.navigate(Route.Subscription.path) {
-                                    launchSingleTop = true
-                                }
+                            onAction = { action ->
+                                showQuickAddSheet = false
+                                quickAddAction = action
                             },
                         )
                     }
@@ -357,14 +387,49 @@ fun NotePayNavHost(
                     if (showNaturalEntrySheet) {
                         NaturalEntryBottomSheet(
                             onDismiss = { showNaturalEntrySheet = false },
-                            onFeedback = { feedback ->
-                                coroutineScope.launch { showFeedback(feedback) }
+                            onFeedback = feedbackDispatcher::show,
+                            onOpenAiSettings = {
+                                showNaturalEntrySheet = false
+                                navController.navigate(Route.AiSettings.path) { launchSingleTop = true }
                             },
                         )
                     }
+
+                    QuickTransferSheetHost(
+                        viewModel = quickTransferViewModel,
+                        onFeedback = feedbackDispatcher::show,
+                    )
                 }
 
             }
         }
+    }
+}
+
+@Composable
+private fun QuickTransferSheetHost(
+    viewModel: QuickTransferViewModel,
+    onFeedback: (UiFeedback) -> Unit,
+) {
+    val form by viewModel.form.collectAsStateWithLifecycle()
+    val wallets by viewModel.wallets.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            onFeedback(feedback)
+        }
+    }
+
+    if (form.isVisible) {
+        TransferBottomSheet(
+            form = form,
+            wallets = wallets,
+            onDismiss = viewModel::close,
+            onFromWalletChange = viewModel::onFromWalletChanged,
+            onToWalletChange = viewModel::onToWalletChanged,
+            onAmountChange = viewModel::onAmountChanged,
+            onNoteChange = viewModel::onNoteChanged,
+            onConfirm = viewModel::executeTransfer,
+        )
     }
 }

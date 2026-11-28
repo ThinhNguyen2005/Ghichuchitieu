@@ -481,11 +481,11 @@ val LavenderDarkColorScheme: ColorScheme = darkColorScheme(
 )
 
 // Streak tier flame tokens
-val StreakSparkFlame = Color(0xFFE07A22)
-val StreakBlazeFlame = Color(0xFFEA580C)
-val StreakInfernoFlame = Color(0xFFD97706)
-val StreakFlameCore = Color(0xFFFFD166)
-val StreakInfernoDarkFlame = Color(0xFFF59E0B)
+val StreakSparkFlame = Color(0xFFFF8A1E)
+val StreakBlazeFlame = Color(0xFFFF5E1A)
+val StreakInfernoFlame = Color(0xFFFF3D00)
+val StreakFlameCore = Color(0xFFFFDF6B)
+val StreakInfernoDarkFlame = Color(0xFFFF7A29)
 
 // ==========================================
 // Theme Resolvers (mặc định "sand")
