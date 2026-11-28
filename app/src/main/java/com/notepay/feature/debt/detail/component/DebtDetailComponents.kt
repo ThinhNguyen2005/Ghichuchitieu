@@ -2,7 +2,6 @@ package com.notepay.feature.debt.detail.component
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -51,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.formatter.PresentationDateFormatter
 import com.notepay.core.designsystem.theme.AppTheme
@@ -64,6 +65,7 @@ internal fun DebtDetailOverviewCard(
     animatedProgress: Float,
     accentColor: Color,
     modifier: Modifier = Modifier,
+    onFeedback: (UiFeedback) -> Unit = {},
 ) {
     val context = LocalContext.current
     val debt = item.debt
@@ -158,11 +160,7 @@ internal fun DebtDetailOverviewCard(
                                 }
                                 context.startActivity(callIntent)
                             } catch (_: ActivityNotFoundException) {
-                                Toast.makeText(
-                                    context,
-                                    noDialerMsg,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                onFeedback(UiFeedback(noDialerMsg, type = FeedbackType.Error))
                             }
                         },
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
@@ -182,11 +180,7 @@ internal fun DebtDetailOverviewCard(
                                 }
                                 context.startActivity(smsIntent)
                             } catch (_: ActivityNotFoundException) {
-                                Toast.makeText(
-                                    context,
-                                    noSmsMsg,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                onFeedback(UiFeedback(noSmsMsg, type = FeedbackType.Error))
                             }
                         },
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
@@ -347,6 +341,7 @@ internal fun DebtDetailActionCard(
     onToggleSettled: () -> Unit,
     onShowQrRemind: () -> Unit,
     modifier: Modifier = Modifier,
+    isSubmitting: Boolean = false,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -369,6 +364,7 @@ internal fun DebtDetailActionCard(
             // Record partial repayment
             Button(
                 onClick = onRecordPayment,
+                enabled = !isSubmitting,
                 shape = AppTheme.shapes.capsule,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppTheme.colors.ink,
@@ -394,6 +390,7 @@ internal fun DebtDetailActionCard(
             // Mark settled toggle
             FilledTonalButton(
                 onClick = onToggleSettled,
+                enabled = !isSubmitting,
                 shape = AppTheme.shapes.capsule,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -447,6 +444,7 @@ internal fun DebtPaymentHistoryItem(
     accentColor: Color,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
+    deleteEnabled: Boolean = true,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -503,6 +501,7 @@ internal fun DebtPaymentHistoryItem(
 
             IconButton(
                 onClick = onDeleteClick,
+                enabled = deleteEnabled,
                 modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
             ) {
                 Icon(

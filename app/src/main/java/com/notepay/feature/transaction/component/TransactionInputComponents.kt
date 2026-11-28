@@ -115,6 +115,7 @@ fun TransactionAmountDisplay(
     modifier: Modifier = Modifier,
     rawAmountForMagnitude: Long = amountInput.replace(".", "").toLongOrNull() ?: 0L,
     hasError: Boolean = false,
+    showTitle: Boolean = true,
 ) {
     val zeroWords = stringResource(R.string.number_words_zero)
     val currencySuffix = stringResource(R.string.number_words_currency_suffix)
@@ -150,13 +151,15 @@ fun TransactionAmountDisplay(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = stringResource(R.string.amount_input_title),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+        if (showTitle) {
+            Text(
+                text = stringResource(R.string.amount_input_title),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,

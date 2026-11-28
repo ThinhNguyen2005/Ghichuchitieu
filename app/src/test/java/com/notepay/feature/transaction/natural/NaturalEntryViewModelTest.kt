@@ -15,6 +15,7 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
+import com.notepay.domain.natural.NaturalFallbackNotice
 import com.notepay.domain.natural.NaturalParseResult
 import com.notepay.domain.natural.NaturalParseSource
 import com.notepay.domain.natural.NaturalTransactionDraft
@@ -82,6 +83,8 @@ class NaturalEntryViewModelTest {
             every { getString(R.string.shared_wallet_viewer_cannot_write) } returns "Viewer cannot add"
             every { getString(R.string.transaction_validation_wallet) } returns "Select wallet"
             every { getString(R.string.natural_entry_partial_error) } returns "Partial failure"
+            every { getString(R.string.feedback_transaction_pending_sync) } returns "Pending sync"
+            every { getString(R.string.natural_entry_ai_fallback_warning) } returns "AI unavailable"
         }
 
         return NaturalEntryViewModel(
@@ -173,15 +176,11 @@ class NaturalEntryViewModelTest {
         vm.onWalletSelected(2L)
         vm.onInputChanged("an trua 45k gui xe 30k")
 
-        vm.savedSuccess.test {
-            vm.feedback.test {
-                vm.onSaveAllDrafts()
+        vm.feedback.test {
+            vm.onSaveAllDrafts()
 
-                val fb = awaitItem()
-                assertThat(fb.type).isEqualTo(FeedbackType.Success)
-                cancelAndIgnoreRemainingEvents()
-            }
-            assertThat(awaitItem()).isEqualTo(Unit)
+            val fb = awaitItem()
+            assertThat(fb.type).isEqualTo(FeedbackType.Success)
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -290,5 +289,64 @@ class NaturalEntryViewModelTest {
         vm.onVoiceSessionStarted()
         vm.onVoiceFinalTranscript("gui xe 10k")
         assertThat(vm.state.value.rawInput).isEqualTo("an sang 30k gui xe 10k")
+    }
+
+    @Test
+    fun `onSaveAllDrafts emits Pending feedback when saving to shared wallet`() = runTest {
+        val parser = mockk<HybridNaturalTransactionParser>(relaxed = true)
+        every { parser.parseOnDevice(any()) } returns NaturalParseResult(
+            drafts = listOf(draft()),
+            confidence = 0.9f,
+            needsAiFallback = false,
+        )
+        val sharedWallet = TestData.wallet(id = 5L, name = "Vi chung").copy(
+            isShared = true,
+            sharedRole = SharedWalletRole.EDITOR,
+        )
+        val addTransactionUseCase = mockk<AddTransactionUseCase> {
+            coEvery { this@mockk.invoke(any()) } returns Result.success(10L)
+        }
+        val vm = createViewModel(
+            wallets = listOf(sharedWallet),
+            activeWallet = sharedWallet,
+            parser = parser,
+            addTransactionUseCase = addTransactionUseCase,
+        )
+        vm.onInputChanged("an trua 45k")
+
+        vm.feedback.test {
+            vm.onSaveAllDrafts()
+            val fb = awaitItem()
+            assertThat(fb.type).isEqualTo(FeedbackType.Pending)
+            assertThat(fb.message).isEqualTo("Pending sync")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onAnalyzeWithAi emits Warning feedback on AI unavailable fallback`() = runTest {
+        val parser = mockk<HybridNaturalTransactionParser>(relaxed = true)
+        every { parser.parseOnDevice("ca phe") } returns NaturalParseResult(
+            drafts = emptyList(),
+            confidence = 0.2f,
+            needsAiFallback = true,
+        )
+        coEvery { parser.parseWithAi("ca phe", any(), forceAi = true) } returns NaturalParseResult(
+            drafts = listOf(draft(note = "Ca phe")),
+            confidence = 0.4f,
+            needsAiFallback = false,
+            source = NaturalParseSource.ON_DEVICE,
+            fallbackNotice = NaturalFallbackNotice.AI_UNAVAILABLE,
+        )
+        val vm = createViewModel(parser = parser, isAiConfigured = true)
+        vm.onInputChanged("ca phe")
+
+        vm.feedback.test {
+            vm.onAnalyzeWithAi()
+            val fb = awaitItem()
+            assertThat(fb.type).isEqualTo(FeedbackType.Warning)
+            assertThat(fb.message).isEqualTo("AI unavailable")
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

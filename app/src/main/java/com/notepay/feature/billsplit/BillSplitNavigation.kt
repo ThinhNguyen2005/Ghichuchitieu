@@ -2,6 +2,7 @@ package com.notepay.feature.billsplit
 
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -16,6 +17,7 @@ import com.notepay.core.navigation.Route
 fun NavGraphBuilder.billSplitGraph(
     navController: NavController,
     showFeedback: suspend (UiFeedback) -> Boolean,
+    onFeedbackAfterReturn: (NavBackStackEntry, UiFeedback) -> Unit = { _, _ -> },
 ) {
     composable(
         route = "bill-split?showCreate={showCreate}",
@@ -40,6 +42,10 @@ fun NavGraphBuilder.billSplitGraph(
                     navController.navigate(Route.DebtorDetail(debtorName).path)
                 },
                 onFeedback = showFeedback,
+                onBack = { navController.popBackStack() },
+                onAddExpense = {
+                    navController.navigate(Route.AddTransaction.path) { launchSingleTop = true }
+                },
                 initialShowCreate = showCreate,
                 onClearShowCreate = {
                     backStackEntry.savedStateHandle["showCreate"] = false
@@ -57,6 +63,7 @@ fun NavGraphBuilder.billSplitGraph(
                 debtorName = debtorName,
                 onBack = { navController.popBackStack() },
                 onFeedback = showFeedback,
+                onSettled = { feedback -> onFeedbackAfterReturn(backStackEntry, feedback) },
             )
         }
     }

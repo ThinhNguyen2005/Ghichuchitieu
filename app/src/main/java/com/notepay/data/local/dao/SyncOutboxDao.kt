@@ -31,15 +31,21 @@ interface SyncOutboxDao {
         UPDATE sync_outbox
         SET status = :status, retry_count = :retryCount, last_error = :lastError, updated_at_epoch_ms = :updatedAt
         WHERE operation_id = :operationId
+            AND updated_at_epoch_ms = :expectedUpdatedAt
+            AND payload_json = :expectedPayloadJson
+            AND status = :expectedStatus
         """,
     )
     suspend fun updateStatus(
         operationId: String,
+        expectedUpdatedAt: Long,
+        expectedPayloadJson: String,
+        expectedStatus: String,
         status: String,
         retryCount: Int,
         lastError: String?,
         updatedAt: Long,
-    )
+    ): Int
 
     @Query("DELETE FROM sync_outbox WHERE status = 'SYNCED'")
     suspend fun purgeSynced()

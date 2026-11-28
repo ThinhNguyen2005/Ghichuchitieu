@@ -1,12 +1,5 @@
 package com.notepay.feature.home.component
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,8 +44,8 @@ import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.rememberNotePayHaptic
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.analytics.SmartTipDomain
 import com.notepay.domain.analytics.SmartTipItem
 import com.notepay.domain.analytics.SmartTipKind
@@ -78,7 +71,6 @@ internal fun SmartInsightsCard(
 ) {
     val colors = AppTheme.colors
     val performHaptic = rememberNotePayHaptic()
-    val reducedMotion = rememberNotePayReducedMotion()
     val cardShape = AppTheme.shapes.corner20
 
     val visual = when (tip.domain) {
@@ -211,15 +203,8 @@ internal fun SmartInsightsCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            AnimatedContent(
+            NotePayAnimatedContent(
                 targetState = tip.kind to (title to description),
-                transitionSpec = {
-                    if (reducedMotion) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(tween(180)) togetherWith fadeOut(tween(140))
-                    }
-                },
                 label = "SmartTipContent",
                 modifier = Modifier
                     .fillMaxWidth()

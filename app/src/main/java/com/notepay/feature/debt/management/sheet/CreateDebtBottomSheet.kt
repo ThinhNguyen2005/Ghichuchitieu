@@ -2,12 +2,14 @@ package com.notepay.feature.debt.management.sheet
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,12 +38,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,9 +61,14 @@ import com.notepay.domain.money.Money
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.DebtType
 import com.notepay.core.designsystem.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarHost
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.rememberLatestFeedbackDispatcher
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.PresentationDateFormatter
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,8 +87,23 @@ fun CreateDebtBottomSheet(
         syncWithWallet: Boolean,
     ) -> Unit,
     modifier: Modifier = Modifier,
+    isSubmitting: Boolean = false,
+    feedbackFlow: Flow<UiFeedback> = emptyFlow(),
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
+
+    LaunchedEffect(feedbackFlow, feedbackDispatcher) {
+        feedbackFlow.collect { feedback ->
+            feedbackDispatcher.show(feedback)
+        }
+    }
+
+    DisposableEffect(feedbackDispatcher) {
+        onDispose {
+            feedbackDispatcher.dismiss()
+        }
+    }
 
     var selectedType by remember { mutableStateOf(DebtType.LEND) }
     var personName by remember { mutableStateOf("") }
@@ -96,21 +121,22 @@ fun CreateDebtBottomSheet(
     val rawAmount = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
     val isAmountValid = rawAmount > 0L
     val isNameValid = personName.isNotBlank()
-    val canSave = isAmountValid && isNameValid
+    val canSave = isAmountValid && isNameValid && !isSubmitting
 
     BottomSheetGlass(
         visible = true,
         onDismissRequest = onDismiss,
         modifier = modifier
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Header
             Text(
                 text = stringResource(R.string.debt_create_title),
@@ -396,9 +422,26 @@ fun CreateDebtBottomSheet(
                         contentColor = AppTheme.colors.onInk,
                     )
                 ) {
-                    Text(stringResource(R.string.action_save), fontWeight = FontWeight.Bold)
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = AppTheme.colors.onInk,
+                        )
+                    } else {
+                        Text(stringResource(R.string.action_save), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
+            }
+            FeedbackSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .imePadding(),
+                horizontalPadding = 0.dp,
+            )
         }
     }
 

@@ -108,6 +108,7 @@ class AiNaturalTransactionParser internal constructor(
         val modelsToTry = (listOf(configuredModel, AiSettingsDataStore.DEFAULT_MODEL) +
             AiSettingsDataStore.AVAILABLE_MODELS).distinct()
 
+        var sawQuotaOrAuthError = false
         for (modelName in modelsToTry) {
             try {
                 val rawJson = withTimeoutOrNull(AI_TIMEOUT_MILLIS.milliseconds) {
@@ -133,12 +134,22 @@ class AiNaturalTransactionParser internal constructor(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is GeminiApiException && e.isQuotaOrAuthError()) {
+                    sawQuotaOrAuthError = true
+                    if (e.isInvalidApiKey()) break
+                }
                 // Continue to next candidate model, then safely fall back to Tier 1.
             }
         }
 
-        tier1Result.copy(fallbackNotice = NaturalFallbackNotice.AI_UNAVAILABLE)
+        tier1Result.copy(
+            fallbackNotice = if (sawQuotaOrAuthError) {
+                NaturalFallbackNotice.AI_QUOTA_OR_KEY_ERROR
+            } else {
+                NaturalFallbackNotice.AI_UNAVAILABLE
+            },
+        )
     }
 
     internal fun parseJsonDrafts(rawJson: String, fallbackDate: LocalDate): List<NaturalTransactionDraft> {

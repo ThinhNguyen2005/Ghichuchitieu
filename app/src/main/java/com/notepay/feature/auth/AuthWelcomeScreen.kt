@@ -31,9 +31,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarOverlay
+import com.notepay.core.designsystem.feedback.showFeedback
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,8 +71,7 @@ fun AuthWelcomeScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(feedback.message, duration = SnackbarDuration.Long)
+            snackbarHostState.showFeedback(feedback.copy(duration = FeedbackDuration.Long))
         }
     }
 
@@ -254,12 +254,9 @@ fun AuthWelcomeScreen(
                 }
             }
         }
-        SnackbarHost(
+        FeedbackSnackbarOverlay(
             hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 112.dp)
+            bottomPadding = 112.dp,
         )
     }
 }

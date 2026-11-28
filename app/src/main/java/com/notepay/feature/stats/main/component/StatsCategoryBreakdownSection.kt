@@ -1,14 +1,7 @@
 package com.notepay.feature.stats.main.component
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,7 +61,7 @@ import com.notepay.R
 import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
-import com.notepay.core.navigation.rememberNotePayReducedMotion
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.money.Money
 import com.notepay.feature.category.mapper.CategoryAvatar
@@ -97,7 +90,6 @@ internal fun CategoryBreakdownAccordionCard(
     onTransactionClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reducedMotion = rememberNotePayReducedMotion()
     val categoryColor = Color(item.category.colorArgb)
     val containerColor by animateColorAsState(
         targetValue = if (isSelected) {
@@ -236,18 +228,9 @@ internal fun CategoryBreakdownAccordionCard(
             }
 
             // Nội dung mở rộng bên trong cùng Card
-            AnimatedVisibility(
+            NotePayAnimatedVisibility(
                 visible = isSelected,
-                enter = if (reducedMotion) {
-                    EnterTransition.None
-                } else {
-                    fadeIn(tween(180)) + expandVertically(tween(220))
-                },
-                exit = if (reducedMotion) {
-                    ExitTransition.None
-                } else {
-                    fadeOut(tween(120)) + shrinkVertically(tween(180))
-                },
+                label = "category-breakdown-expand",
             ) {
                 Column(
                     modifier = Modifier

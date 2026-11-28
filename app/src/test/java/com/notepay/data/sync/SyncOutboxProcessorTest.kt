@@ -10,6 +10,8 @@ import com.notepay.data.remote.supabase.SharedTransactionRemoteGateway
 import com.notepay.data.remote.supabase.dto.RemoteSharedTransactionDto
 import com.notepay.domain.model.SyncStatus
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -143,6 +145,7 @@ class SyncOutboxProcessorTest {
         assertThat(failedRow.status).isEqualTo(SyncOutboxEntity.STATUS_FAILED)
         assertThat(failedRow.retryCount).isEqualTo(1)
         assertThat(failedRow.lastError).contains("timeout")
+        assertThat(database.transactionDao().getById(txId)?.syncStatus).isEqualTo(SyncStatus.FAILED.name)
 
         // Attempt 2: online recovery -> status = SYNCED (purged), local tx gets remoteId + SYNCED
         fixedTimeMs += 5_000L
@@ -194,6 +197,55 @@ class SyncOutboxProcessorTest {
         val outcome = processor.applyRemoteTransaction(echo, walletId)
         assertThat(outcome).isEqualTo(ConflictResolutionOutcome.UPDATED_FROM_REMOTE)
         assertThat(database.transactionDao().observeByWallet(walletId).first()).hasSize(1)
+    }
+
+    @Test
+    fun `stale push completion leaves newer local edit and outbox payload pending`() = runTest {
+        val walletId = insertSharedWallet()
+        val opId = UUID.randomUUID().toString()
+        val txId = database.transactionDao().upsert(
+            TransactionEntity(
+                amountCents = 12_000L,
+                type = "EXPENSE",
+                category = "FOOD",
+                note = "Old note",
+                occurredAt = fixedTimeMs,
+                walletId = walletId,
+                createdAt = fixedTimeMs,
+                operationId = opId,
+                syncStatus = SyncStatus.PENDING.name,
+                updatedAtEpochMs = fixedTimeMs,
+            ),
+        )
+        val enteredGateway = CompletableDeferred<Unit>()
+        val releaseGateway = CompletableDeferred<Unit>()
+        val gateway = FakeRemoteGateway(isAvailable = true) {
+            enteredGateway.complete(Unit)
+            releaseGateway.await()
+        }
+        val processor = newProcessor(gateway)
+        processor.enqueueTransactionUpsert("wallet-uuid-1", database.transactionDao().getById(txId)!!)
+
+        val processing = async { processor.processPending() }
+        enteredGateway.await()
+
+        val newerVersion = database.transactionDao().getById(txId)!!.copy(
+            amountCents = 34_000L,
+            note = "New note",
+            updatedAtEpochMs = fixedTimeMs + 1,
+            syncStatus = SyncStatus.PENDING.name,
+        )
+        database.transactionDao().upsert(newerVersion)
+        processor.enqueueTransactionUpsert("wallet-uuid-1", newerVersion)
+        releaseGateway.complete(Unit)
+        processing.await()
+
+        val local = database.transactionDao().getById(txId)!!
+        val queued = database.syncOutboxDao().getByOperationId(opId)!!
+        assertThat(local.note).isEqualTo("New note")
+        assertThat(local.syncStatus).isEqualTo(SyncStatus.PENDING.name)
+        assertThat(queued.status).isEqualTo(SyncOutboxEntity.STATUS_PENDING)
+        assertThat(queued.payloadJson).contains("New note")
     }
 
     @Test
@@ -266,10 +318,12 @@ class SyncOutboxProcessorTest {
     private class FakeRemoteGateway(
         override val isAvailable: Boolean,
         private var failNextAttempts: Int = 0,
+        private val beforeUpsert: suspend () -> Unit = {},
     ) : SharedTransactionRemoteGateway {
         val upsertedPayloads = mutableListOf<RemoteSharedTransactionDto>()
 
         override suspend fun upsertTransaction(payload: RemoteSharedTransactionDto): RemoteSharedTransactionDto {
+            beforeUpsert()
             if (failNextAttempts > 0) {
                 failNextAttempts--
                 throw IOException("Network timeout")

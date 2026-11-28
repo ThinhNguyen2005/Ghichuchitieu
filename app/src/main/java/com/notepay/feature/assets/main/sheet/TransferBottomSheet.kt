@@ -1,6 +1,5 @@
 package com.notepay.feature.assets.main.sheet
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,9 +46,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.notepay.R
 import com.notepay.core.designsystem.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.core.navigation.rememberNotePayHaptic
 import com.notepay.core.navigation.shakeOnError
 import com.notepay.feature.assets.main.TransferFormState
@@ -174,7 +176,7 @@ internal fun TransferBottomSheet(
                 onSelect = onToWalletChange,
             )
 
-            AnimatedVisibility(visible = walletErrorText != null) {
+            NotePayAnimatedVisibility(visible = walletErrorText != null) {
                 Column {
                     Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceSmall))
                     Text(
@@ -212,7 +214,7 @@ internal fun TransferBottomSheet(
                 // không đổi được thành số tiền hợp lệ.
                 isError = isAmountError,
                 supportingText = {
-                    AnimatedVisibility(visible = isAmountError) {
+                    NotePayAnimatedVisibility(visible = isAmountError) {
                         Text(
                             text = stringResource(R.string.feedback_transfer_invalid_amount),
                             style = AppTheme.typography.labelMedium,
@@ -251,16 +253,14 @@ internal fun TransferBottomSheet(
                 ),
             )
 
-            AnimatedVisibility(visible = form.submitError != null) {
-                Column(modifier = Modifier.shakeOnError(submitErrorTrigger)) {
-                    Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceMedium))
-                    Text(
-                        text = stringResource(R.string.feedback_transfer_failed),
-                        style = AppTheme.typography.labelMedium,
-                        color = AppTheme.colors.error,
-                    )
-                }
-            }
+            NotePayStatusBanner(
+                visible = form.submitError != null,
+                message = stringResource(R.string.feedback_transfer_failed),
+                type = FeedbackType.Error,
+                modifier = Modifier
+                    .padding(top = AppTheme.dimensions.spaceMedium)
+                    .shakeOnError(submitErrorTrigger),
+            )
 
             Spacer(modifier = Modifier.height(AppTheme.dimensions.spaceExtraLarge))
 

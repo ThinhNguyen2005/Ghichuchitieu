@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +55,210 @@ private val KEYPAD_ROWS_FINAL: List<List<CalcKey>> = listOf(
     listOf(CalcKey.Digit(7), CalcKey.Digit(8), CalcKey.Digit(9), CalcKey.Operator('*'), CalcKey.Backspace),
     listOf(CalcKey.ThreeZeros, CalcKey.Digit(0), CalcKey.Equals, CalcKey.Operator('/'), CalcKey.Save),
 )
+
+// Clean 4-column numeric + operator layout for Add Transaction Details screen:
+//  [  1  ][  2  ][  3  ][  ÷  ]
+//  [  4  ][  5  ][  6  ][  ×  ]
+//  [  7  ][  8  ][  9  ][  −  ]
+//  [ 000 ][  0  ][  ⌫  ][  +  ]
+private val KEYPAD_ROWS_NUMERIC_4COL: List<List<CalcKey>> = listOf(
+    listOf(CalcKey.Digit(1), CalcKey.Digit(2), CalcKey.Digit(3), CalcKey.Operator('/')),
+    listOf(CalcKey.Digit(4), CalcKey.Digit(5), CalcKey.Digit(6), CalcKey.Operator('*')),
+    listOf(CalcKey.Digit(7), CalcKey.Digit(8), CalcKey.Digit(9), CalcKey.Operator('-')),
+    listOf(CalcKey.ThreeZeros, CalcKey.Digit(0), CalcKey.Backspace, CalcKey.Operator('+')),
+)
+
+/**
+ * Bàn phím số 4 cột gọn gàng cho bước Nhập chi tiết (không trùng phím Ghi chú/Ngày,
+ * đi kèm [TransactionPrimarySaveButton] toàn chiều ngang bên dưới).
+ */
+@Composable
+fun TransactionNumericKeypad(
+    onKey: (CalcKey) -> Unit,
+    onBackspaceLong: () -> Unit,
+    modifier: Modifier = Modifier,
+    activeOperator: Char? = null,
+    isAmountLocked: Boolean = false,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KEYPAD_ROWS_NUMERIC_4COL.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                row.forEach { key ->
+                    NumericKeyCell(
+                        key = key,
+                        activeOperator = activeOperator,
+                        isAmountLocked = isAmountLocked,
+                        onKey = onKey,
+                        onBackspaceLong = onBackspaceLong,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Nút CTA chính toàn chiều ngang ("Thêm giao dịch") nằm ngay dưới bàn phím số.
+ */
+@Composable
+fun TransactionPrimarySaveButton(
+    label: String,
+    canSave: Boolean,
+    isSaving: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        enabled = !isSaving,
+        shape = AppTheme.shapes.capsule,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (canSave) AppTheme.colors.primary else AppTheme.colors.surfaceSunken,
+            contentColor = if (canSave) MaterialTheme.colorScheme.onPrimary else AppTheme.colors.textMuted,
+            disabledContainerColor = AppTheme.colors.primary.copy(alpha = 0.65f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = if (canSave) 2.dp else 0.dp,
+            pressedElevation = 0.dp,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 54.dp),
+    ) {
+        if (isSaving) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NumericKeyCell(
+    key: CalcKey,
+    activeOperator: Char?,
+    isAmountLocked: Boolean,
+    onKey: (CalcKey) -> Unit,
+    onBackspaceLong: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isOperatorKey = key is CalcKey.Operator
+    val isBackspaceKey = key is CalcKey.Backspace
+    val isEnabled = !isAmountLocked
+    val isActiveOperator = key is CalcKey.Operator && key.symbol == activeOperator
+    val isLight = AppTheme.colors.isLight
+
+    val containerColor = when {
+        isActiveOperator -> AppTheme.colors.sand.copy(alpha = if (isLight) 0.72f else 0.50f)
+        isOperatorKey -> AppTheme.colors.sand.copy(alpha = if (isLight) 0.34f else 0.22f)
+        else -> AppTheme.colors.surface.copy(alpha = if (isLight) 0.94f else 0.88f)
+    }
+
+    val baseContentColor = when {
+        isOperatorKey -> AppTheme.colors.primary
+        isBackspaceKey -> AppTheme.colors.error
+        else -> AppTheme.colors.textPrimary
+    }
+    val contentColor = if (!isEnabled) baseContentColor.copy(alpha = 0.38f) else baseContentColor
+
+    val clearAllLabel = stringResource(R.string.cd_calc_clear_all)
+    val keyContentDescription = when (key) {
+        is CalcKey.Digit -> key.value.toString()
+        CalcKey.ThreeZeros -> stringResource(R.string.cd_calc_three_zeros)
+        is CalcKey.Operator -> when (key.symbol) {
+            '+' -> stringResource(R.string.cd_calc_add)
+            '-' -> stringResource(R.string.cd_calc_subtract)
+            '*' -> stringResource(R.string.cd_calc_multiply)
+            '/' -> stringResource(R.string.cd_calc_divide)
+            else -> key.symbol.toString()
+        }
+        CalcKey.Backspace -> stringResource(R.string.content_description_backspace)
+        else -> ""
+    }
+
+    val shape = AppTheme.shapes.corner16
+
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = 54.dp)
+            .iosCardShadow(shape = shape, elevated = false)
+            .clip(shape)
+            .background(containerColor)
+            .border(
+                width = if (isActiveOperator) 1.5.dp else 0.5.dp,
+                color = if (isActiveOperator) AppTheme.colors.primary else AppTheme.colors.hairline,
+                shape = shape,
+            )
+            .semantics {
+                role = Role.Button
+                contentDescription = keyContentDescription
+            }
+            .combinedClickable(
+                enabled = isEnabled,
+                onClick = { onKey(key) },
+                onLongClickLabel = if (isBackspaceKey) clearAllLabel else null,
+                onLongClick = { if (isBackspaceKey) onBackspaceLong() },
+            )
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (key) {
+            is CalcKey.Digit -> Text(
+                text = key.value.toString(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor,
+            )
+            CalcKey.ThreeZeros -> Text(
+                text = "000",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor,
+            )
+            is CalcKey.Operator -> {
+                val symbol = when (key.symbol) {
+                    '+' -> "+"
+                    '-' -> "−"
+                    '*' -> "×"
+                    '/' -> "÷"
+                    else -> key.symbol.toString()
+                }
+                Text(
+                    text = symbol,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor,
+                )
+            }
+            CalcKey.Backspace -> Icon(
+                imageVector = Icons.AutoMirrored.Rounded.Backspace,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(22.dp),
+            )
+            else -> Unit
+        }
+    }
+}
 
 // ─── Keypad composable ────────────────────────────────────────────────────────
 

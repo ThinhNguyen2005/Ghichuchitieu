@@ -1,20 +1,19 @@
 package com.notepay.feature.debt.management.sheet
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,33 +35,35 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.notepay.BuildConfig
 import com.notepay.R
 import com.notepay.domain.model.VietQrBank
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.DebtWithHistory
 import com.notepay.core.designsystem.component.effect.BottomSheetGlass
+import com.notepay.core.designsystem.component.qr.BrandedVietQrCard
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarHost
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.rememberLatestFeedbackDispatcher
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import com.notepay.core.designsystem.util.VietQrCardData
+import com.notepay.core.designsystem.util.VietQrCardRenderer
 import com.notepay.core.designsystem.util.VietQrGenerator
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +76,10 @@ fun DebtRemindBottomSheet(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val debt = debtWithHistory.debt
+    val snackbarHostState = remember { SnackbarHostState() }
+    val feedbackDispatcher = rememberLatestFeedbackDispatcher(snackbarHostState)
 
     // Find receiving wallet: prefer debt.walletId, then active wallet, then any wallet with bank info
     val receivingWallet = remember(debt.walletId, wallets) {
@@ -117,18 +121,6 @@ fun DebtRemindBottomSheet(
         )
     }
 
-    val qrImageUrl = remember(hasBankConfig, receivingWallet, debtWithHistory.remainingAmount, memo) {
-        if (hasBankConfig) {
-            VietQrGenerator.generateImageUrl(
-                bankBin = receivingWallet?.bankBin.orEmpty(),
-                accountNumber = receivingWallet?.accountNumber.orEmpty(),
-                amountCents = debtWithHistory.remainingAmount.amountInCents,
-                memo = memo,
-                accountName = receivingWallet?.accountName,
-            )
-        } else null
-    }
-
     val emvPayload = remember(hasBankConfig, receivingWallet, debtWithHistory.remainingAmount, memo) {
         if (hasBankConfig) {
             VietQrGenerator.generateEmvCoPayload(
@@ -141,20 +133,36 @@ fun DebtRemindBottomSheet(
         } else null
     }
 
+    val qrCardData = remember(emvPayload, bank, bankName, accountName, accountNumber, amountFormatted, memo) {
+        emvPayload?.let { payload ->
+            VietQrCardData(
+                emvPayload = payload,
+                bankShortName = bank?.shortName ?: bankName,
+                bankFullName = bank?.name ?: bankName,
+                bankLogoUrl = bank?.logoUrl,
+                accountName = accountName,
+                accountNumber = accountNumber,
+                amountFormatted = amountFormatted,
+                memo = memo,
+            )
+        }
+    }
+
     BottomSheetGlass(
         visible = true,
         onDismissRequest = onDismiss,
         modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -184,67 +192,11 @@ fun DebtRemindBottomSheet(
             )
 
             // QR Code Card
-            if (hasBankConfig) {
-                var remoteFailed by remember(qrImageUrl) { mutableStateOf(false) }
-                val useRemoteQr = BuildConfig.FLAVOR == "play" && !qrImageUrl.isNullOrBlank() && !remoteFailed
-                val localQrBitmap = remember(emvPayload, useRemoteQr) {
-                    if (!useRemoteQr && !emvPayload.isNullOrBlank()) {
-                        try {
-                            VietQrGenerator.generateLocalQrBitmap(emvPayload, 512, 512)
-                        } catch (_: Exception) {
-                            null
-                        }
-                    } else null
-                }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .aspectRatio(1f),
-                    shape = AppTheme.shapes.corner24,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (useRemoteQr) {
-                            AsyncImage(
-                                model = qrImageUrl,
-                                contentDescription = stringResource(R.string.cd_vietqr_logo),
-                                contentScale = ContentScale.Fit,
-                                onError = { remoteFailed = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .clip(AppTheme.shapes.corner16),
-                            )
-                        } else if (localQrBitmap != null) {
-                            Image(
-                                bitmap = localQrBitmap.asImageBitmap(),
-                                contentDescription = stringResource(R.string.cd_vietqr_logo),
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .clip(AppTheme.shapes.corner16),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.QrCode2,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
+            if (hasBankConfig && qrCardData != null) {
+                BrandedVietQrCard(
+                    data = qrCardData,
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                )
 
                 // Bank details display
                 Card(
@@ -315,8 +267,9 @@ fun DebtRemindBottomSheet(
 
             // Action Buttons
             val debtReminderTitle = stringResource(R.string.ui_debt_reminder)
-            val debtCopiedToast = stringResource(R.string.debt_copied_reminder)
+            val debtCopiedMsg = stringResource(R.string.debt_copied_reminder)
             val noSmsAppMsg = stringResource(R.string.error_no_sms_app)
+            val shareUnavailableMsg = stringResource(R.string.debt_share_unavailable)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -327,11 +280,9 @@ fun DebtRemindBottomSheet(
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                         val clip = ClipData.newPlainText(debtReminderTitle, reminderMessage)
                         clipboard?.setPrimaryClip(clip)
-                        Toast.makeText(
-                            context,
-                            debtCopiedToast,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        feedbackDispatcher.show(
+                            UiFeedback(debtCopiedMsg, type = FeedbackType.Success),
+                        )
                     },
                     shape = AppTheme.shapes.corner16,
                     modifier = Modifier
@@ -353,16 +304,39 @@ fun DebtRemindBottomSheet(
                     )
                 }
 
-                // Share message via Android Share Sheet
+                // Share QR image (or text fallback if bank not linked) via Android Share Sheet
+                val shareQrFailedMsg = stringResource(R.string.billsplit_share_qr_failed)
+                val shareQrLabel = stringResource(R.string.billsplit_share_qr_image)
                 FilledTonalButton(
                     onClick = {
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, reminderMessage)
-                            type = "text/plain"
+                        if (qrCardData != null) {
+                            scope.launch {
+                                VietQrCardRenderer.shareVietQrCardImage(
+                                    context = context,
+                                    data = qrCardData,
+                                    chooserTitle = shareQrLabel,
+                                    filePrefix = "debt_${debt.personName}",
+                                ).onFailure {
+                                    feedbackDispatcher.show(
+                                        UiFeedback(shareQrFailedMsg, type = FeedbackType.Error),
+                                    )
+                                }
+                            }
+                        } else {
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, reminderMessage)
+                                type = "text/plain"
+                            }
+                            val shareIntent = Intent.createChooser(sendIntent, null)
+                            try {
+                                context.startActivity(shareIntent)
+                            } catch (_: ActivityNotFoundException) {
+                                feedbackDispatcher.show(
+                                    UiFeedback(shareUnavailableMsg, type = FeedbackType.Error),
+                                )
+                            }
                         }
-                        val shareIntent = Intent.createChooser(sendIntent, null)
-                        context.startActivity(shareIntent)
                     },
                     shape = AppTheme.shapes.corner16,
                     modifier = Modifier
@@ -376,7 +350,7 @@ fun DebtRemindBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.content_description_share),
+                        text = if (qrCardData != null) shareQrLabel else stringResource(R.string.content_description_share),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -395,7 +369,9 @@ fun DebtRemindBottomSheet(
                             try {
                                 context.startActivity(smsIntent)
                             } catch (_: Exception) {
-                                Toast.makeText(context, noSmsAppMsg, Toast.LENGTH_SHORT).show()
+                                feedbackDispatcher.show(
+                                    UiFeedback(noSmsAppMsg, type = FeedbackType.Error),
+                                )
                             }
                         },
                         shape = AppTheme.shapes.corner16,
@@ -419,6 +395,15 @@ fun DebtRemindBottomSheet(
                     }
                 }
             }
+            }
+            FeedbackSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .imePadding(),
+                horizontalPadding = 0.dp,
+            )
         }
     }
 }

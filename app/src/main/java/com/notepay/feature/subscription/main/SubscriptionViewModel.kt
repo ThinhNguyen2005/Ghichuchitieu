@@ -1,8 +1,13 @@
 package com.notepay.feature.subscription.main
 
+import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Subscription
 import com.notepay.domain.model.Transaction
@@ -11,9 +16,12 @@ import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.feature.transaction.form.calculator.AmountParser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -60,7 +68,11 @@ data class AddSubscriptionDialogState(
 class SubscriptionViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val transactionRepository: TransactionRepository,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     private val _dialogState = MutableStateFlow(AddSubscriptionDialogState())
     private val _selectedTab = MutableStateFlow(0)
@@ -138,30 +150,100 @@ class SubscriptionViewModel @Inject constructor(
         val dialog = _dialogState.value
         if (!dialog.canSave) return
         val amount = AmountParser.parse(dialog.amountInput).amount ?: return
+        val subscription = Subscription(
+            name = dialog.name.trim(),
+            amount = amount,
+            category = dialog.category,
+            nextDueDate = Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
+            repeatMonths = dialog.repeatMonths,
+            remindDaysBefore = dialog.remindDaysBefore,
+            note = dialog.note.trim(),
+        )
+        persistSubscription(subscription, resetDialogOnSuccess = true)
+    }
 
+    private fun persistSubscription(subscription: Subscription, resetDialogOnSuccess: Boolean) {
         viewModelScope.launch {
             try {
-                val subscription = Subscription(
-                    name = dialog.name.trim(),
-                    amount = amount,
-                    category = dialog.category,
-                    nextDueDate = Instant.fromEpochMilliseconds(dialog.nextDueEpochMs),
-                    repeatMonths = dialog.repeatMonths,
-                    remindDaysBefore = dialog.remindDaysBefore,
-                    note = dialog.note.trim(),
-                )
                 subscriptionRepository.upsert(subscription)
-                hideAddDialog()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Ignore validation errors silently — UI đã guard bằng canSave
+                if (resetDialogOnSuccess) hideAddDialog()
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_saved),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_save_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { persistSubscription(subscription, resetDialogOnSuccess = false) },
+                    ),
+                )
             }
         }
     }
 
     fun deleteSubscription(id: Long) {
-        viewModelScope.launch { subscriptionRepository.delete(id) }
+        val deletedSub = state.value.allSubscriptions.firstOrNull { it.id == id }
+        viewModelScope.launch {
+            try {
+                subscriptionRepository.delete(id)
+                val canUndo = deletedSub != null
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_deleted),
+                        actionLabel = if (canUndo) context.getString(R.string.feedback_undo) else null,
+                        type = FeedbackType.Success,
+                        duration = if (canUndo) FeedbackDuration.Long else FeedbackDuration.Short,
+                        onAction = deletedSub?.let { sub -> { restoreSubscription(sub) } },
+                    ),
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_delete_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { deleteSubscription(id) },
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun restoreSubscription(subscription: Subscription) {
+        viewModelScope.launch {
+            try {
+                subscriptionRepository.upsert(subscription.copy(id = 0L))
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_restored),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_restore_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { restoreSubscription(subscription) },
+                    ),
+                )
+            }
+        }
     }
 
     // Tab selection handling

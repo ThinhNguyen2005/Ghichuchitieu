@@ -1,12 +1,18 @@
 package com.notepay.feature.transaction
 
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.notepay.core.navigation.PredictiveBackDestination
 import com.notepay.feature.transaction.form.TransactionFormScreen
+import com.notepay.feature.transaction.form.TransactionFormSaveResult
+import com.notepay.feature.transaction.form.TransactionFormViewModel
 import com.notepay.feature.transaction.detail.TransactionDetailScreen
 import com.notepay.feature.transaction.list.TransactionListRoute
 import com.notepay.core.designsystem.feedback.UiFeedback
@@ -15,25 +21,60 @@ import com.notepay.core.navigation.Route
 fun NavGraphBuilder.transactionGraph(
     navController: NavController,
     showFeedback: suspend (UiFeedback) -> Boolean,
+    onTransactionSaved: (NavBackStackEntry, TransactionFormSaveResult) -> Unit,
 ) {
-    composable(Route.AddTransaction.path) {
-        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+    composable(
+        route = Route.AddTransaction.ROUTE,
+        arguments = listOf(
+            navArgument(Route.AddTransaction.ARG_LAUNCH_SCAN) {
+                type = NavType.BoolType
+                defaultValue = false
+            },
+        ),
+    ) { entry ->
+        val launchScanArg = entry.arguments?.getBoolean(Route.AddTransaction.ARG_LAUNCH_SCAN) ?: false
+        val isHandled = entry.savedStateHandle.get<Boolean>("launchScanHandled") ?: false
+        if (launchScanArg && !isHandled) {
+            entry.savedStateHandle["launchScan"] = true
+            entry.savedStateHandle["launchScanHandled"] = true
+        } else if (!launchScanArg) {
+            entry.savedStateHandle["launchScanHandled"] = false
+        }
+        val launchScan by entry.savedStateHandle.getStateFlow("launchScan", false).collectAsStateWithLifecycle()
+
+        val viewModel: TransactionFormViewModel = hiltViewModel()
+        PredictiveBackDestination(
+            onBack = { navController.popBackStack() },
+            canGoBack = { !viewModel.state.value.isSaving },
+        ) {
             TransactionFormScreen(
-                onSaved = { navController.popBackStack() },
+                onSaved = { onTransactionSaved(entry, it) },
                 onBack = { navController.popBackStack() },
+                onOpenAiSettings = {
+                    navController.navigate(Route.AiSettings.path) { launchSingleTop = true }
+                },
+                initialLaunchScan = launchScan,
+                onClearLaunchScan = { entry.savedStateHandle["launchScan"] = false },
+                viewModel = viewModel,
             )
         }
     }
     composable(
         route = Route.EditTransaction.ROUTE,
         arguments = listOf(navArgument(Route.EditTransaction.ARG_ID) { type = NavType.LongType }),
-    ) {
-        PredictiveBackDestination(onBack = { navController.popBackStack() }) {
+    ) { entry ->
+        val viewModel: TransactionFormViewModel = hiltViewModel()
+        PredictiveBackDestination(
+            onBack = { navController.popBackStack() },
+            canGoBack = { !viewModel.state.value.isSaving },
+        ) {
             TransactionFormScreen(
-                onSaved = {
-                    navController.popBackStack()
-                },
+                onSaved = { onTransactionSaved(entry, it) },
                 onBack = { navController.popBackStack() },
+                onOpenAiSettings = {
+                    navController.navigate(Route.AiSettings.path) { launchSingleTop = true }
+                },
+                viewModel = viewModel,
             )
         }
     }
@@ -55,6 +96,7 @@ fun NavGraphBuilder.transactionGraph(
                         launchSingleTop = true
                     }
                 },
+                onFeedback = showFeedback,
             )
         }
     }

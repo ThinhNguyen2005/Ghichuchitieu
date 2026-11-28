@@ -84,6 +84,13 @@ fun NavGraphBuilder.utilitiesGraph(
             )
         }
     }
+    utilitiesSettingsDestinations(navController = navController, onFeedback = onFeedback)
+}
+
+private fun NavGraphBuilder.utilitiesSettingsDestinations(
+    navController: NavController,
+    onFeedback: suspend (UiFeedback) -> Boolean,
+) {
     composable(Route.CurrencySettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             CurrencySettingsScreen(
@@ -91,6 +98,7 @@ fun NavGraphBuilder.utilitiesGraph(
                 onOpenConverter = {
                     navController.navigate(Route.CurrencyConverter.path) { launchSingleTop = true }
                 },
+                onFeedback = onFeedback,
             )
         }
     }
@@ -101,7 +109,10 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.CategoryManagement.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            CategoryManagementScreen(onBack = { navController.popBackStack() })
+            CategoryManagementScreen(
+                onBack = { navController.popBackStack() },
+                onFeedback = onFeedback,
+            )
         }
     }
     composable(Route.AppearanceLanguage.path) {
@@ -111,7 +122,10 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.AiSettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            AiSettingsScreen(onBack = { navController.popBackStack() })
+            AiSettingsScreen(
+                onBack = { navController.popBackStack() },
+                onFeedback = onFeedback,
+            )
         }
     }
     composable(Route.BackupRestore.path) {
@@ -121,7 +135,10 @@ fun NavGraphBuilder.utilitiesGraph(
     }
     composable(Route.NotificationSettings.path) {
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
-            NotificationSettingsScreen(onBack = { navController.popBackStack() })
+            NotificationSettingsScreen(
+                onBack = { navController.popBackStack() },
+                onFeedback = onFeedback,
+            )
         }
     }
     composable(Route.About.path) {

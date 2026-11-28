@@ -24,6 +24,7 @@ enum class NaturalParseSource {
 enum class NaturalFallbackNotice {
     NONE,
     AI_UNAVAILABLE,
+    AI_QUOTA_OR_KEY_ERROR,
 }
 
 @Immutable

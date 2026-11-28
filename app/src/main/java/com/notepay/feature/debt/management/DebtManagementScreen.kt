@@ -1,7 +1,6 @@
 package com.notepay.feature.debt.management
 
 import android.content.res.Configuration
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -48,13 +47,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -74,26 +72,33 @@ import com.notepay.domain.usecase.debt.DebtSummary
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.WindowLayout
 import com.notepay.core.designsystem.adaptive.DetailPaneEmptyState
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.feature.debt.management.sheet.CreateDebtBottomSheet
 import com.notepay.feature.debt.detail.DebtDetailScreen
 import com.notepay.feature.debt.management.component.DebtItemCard
 import com.notepay.feature.debt.management.component.DebtSummaryCard
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
 import kotlin.time.Instant
+import kotlinx.coroutines.launch
 
 @Composable
 fun DebtManagementScreen(
     onBack: () -> Unit,
     onDebtClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     initialShowCreate: Boolean = false,
     onClearShowCreate: () -> Unit = {},
     viewModel: DebtViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val resources = LocalResources.current
+    val coroutineScope = rememberCoroutineScope()
+    val debtCreatedMsg = stringResource(R.string.debt_create_success)
+    val viewDebtLabel = stringResource(R.string.action_view_debt)
 
     var showCreateSheet by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -129,19 +134,32 @@ fun DebtManagementScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is DebtUiEvent.DebtCreated -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_create_success), Toast.LENGTH_SHORT).show()
                     showCreateSheet = false
-                }
-                is DebtUiEvent.PaymentRecorded -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_payment_success), Toast.LENGTH_SHORT).show()
-                }
-                is DebtUiEvent.DebtDeleted -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_delete_success), Toast.LENGTH_SHORT).show()
-                }
-                is DebtUiEvent.ShowToast -> {
-                    Toast.makeText(context, resources.getString(event.messageResId), Toast.LENGTH_SHORT).show()
+                    coroutineScope.launch {
+                        onFeedback(
+                            UiFeedback(
+                                message = debtCreatedMsg,
+                                actionLabel = viewDebtLabel,
+                                type = FeedbackType.Success,
+                                duration = FeedbackDuration.Long,
+                                onAction = {
+                                    if (isTwoPane) {
+                                        selectedDebtId = event.debtId
+                                    } else {
+                                        onDebtClick(event.debtId)
+                                    }
+                                },
+                            ),
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
         }
     }
 
@@ -160,6 +178,7 @@ fun DebtManagementScreen(
         },
         onAddClick = { showCreateSheet = true },
         onClosePane = { selectedDebtId = null },
+        onFeedback = onFeedback,
         modifier = modifier,
     )
 
@@ -178,7 +197,9 @@ fun DebtManagementScreen(
                     note = note,
                     syncWithWallet = sync
                 )
-            }
+            },
+            isSubmitting = uiState.isSubmitting,
+            feedbackFlow = viewModel.createSheetFeedback,
         )
     }
 }
@@ -202,6 +223,7 @@ fun DebtManagementContent(
     onAddClick: () -> Unit,
     onClosePane: () -> Unit,
     modifier: Modifier = Modifier,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
 ) {
     // Không còn Scaffold: màn này tự dựng top bar + FAB, nhờ vậy ở Expanded có thể chia
     // danh sách và chi tiết thành hai pane mà không sinh thêm một lớp inset lồng nhau.
@@ -289,6 +311,7 @@ fun DebtManagementContent(
                     DebtDetailPane(
                         debtId = selectedDebtId,
                         onClosePane = onClosePane,
+                        onFeedback = onFeedback,
                         modifier = Modifier
                             .weight(0.55f)
                             .fillMaxHeight(),
@@ -383,14 +406,19 @@ private fun DebtListPane(
         }
 
         // Danh sách nội dung
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (uiState.debts.isEmpty()) {
+        NotePayAnimatedContent(
+            targetState = Triple(uiState.isLoading, uiState.debts.isEmpty(), uiState.selectedTab to uiState.onlyUnsettled),
+            modifier = Modifier.fillMaxSize(),
+            label = "debt-list-content",
+        ) { (isLoading, isEmpty, _) ->
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (isEmpty) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -482,6 +510,7 @@ private fun DebtListPane(
                 }
             }
         }
+        }
     }
 }
 
@@ -534,8 +563,10 @@ private fun DebtTabPill(
 private fun DebtDetailPane(
     debtId: Long?,
     onClosePane: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     Surface(
         modifier = modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
         shape = AppTheme.shapes.corner24,
@@ -552,6 +583,11 @@ private fun DebtDetailPane(
             // Dùng lại nguyên route chi tiết: cùng ViewModel, cùng UI, chỉ khác nguồn id.
             DebtDetailScreen(
                 onBack = onClosePane,
+                onFeedback = onFeedback,
+                onDeleted = { feedback ->
+                    onClosePane()
+                    coroutineScope.launch { onFeedback(feedback) }
+                },
                 debtId = debtId,
                 paneMode = true,
             )

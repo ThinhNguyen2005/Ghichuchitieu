@@ -1,12 +1,5 @@
 package com.notepay.feature.stats.main.component
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -82,8 +75,8 @@ import com.notepay.core.designsystem.theme.HomeHeroCardDarkTop
 import com.notepay.core.designsystem.theme.HomeHeroCardLightBottom
 import com.notepay.core.designsystem.theme.HomeHeroCardLightRim
 import com.notepay.core.designsystem.theme.HomeHeroCardLightTop
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.rememberMainTabBottomClearance
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.analytics.StatsRange
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.Transaction
@@ -469,7 +462,6 @@ private fun StatsInkHeroCard(
     val counterpartTotal = if (isExpense) state.totalIncome else state.totalExpense
     val previousTotal = if (isExpense) state.previousExpense else state.previousIncome
     val difference = if (previousTotal != null) total.amountInCents - previousTotal.amountInCents else null
-    val reducedMotion = rememberNotePayReducedMotion()
     val cardShape = AppTheme.shapes.corner28
     val isLargeFont = LocalDensity.current.fontScale >= 1.45f
 
@@ -532,15 +524,8 @@ private fun StatsInkHeroCard(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                AnimatedContent(
+                NotePayAnimatedContent(
                     targetState = total to showAmounts,
-                    transitionSpec = {
-                        if (reducedMotion) {
-                            EnterTransition.None togetherWith ExitTransition.None
-                        } else {
-                            fadeIn(tween(180)) togetherWith fadeOut(tween(140))
-                        }
-                    },
                     label = "StatsHeroAmount",
                 ) { (targetAmount, visible) ->
                     Text(

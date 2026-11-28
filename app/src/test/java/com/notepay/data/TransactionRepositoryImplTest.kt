@@ -157,6 +157,17 @@ class TransactionRepositoryImplTest {
             flow.value.find { it.remoteId == remoteId }
         override suspend fun getByOperationId(operationId: String): TransactionEntity? =
             flow.value.find { it.operationId == operationId }
+        override suspend fun markSyncFailed(id: Long, operationId: String, updatedAt: Long) = Unit
+        override suspend fun markSyncSynced(
+            id: Long,
+            operationId: String,
+            expectedUpdatedAt: Long,
+            expectedDeletedAt: Long?,
+            remoteId: String?,
+            createdByUserId: String?,
+            createdByName: String?,
+            remoteUpdatedAt: Long,
+        ) = Unit
         override suspend fun markSoftDeleted(
             id: Long,
             deletedAtEpochMs: Long,

@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +54,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
+import kotlinx.coroutines.launch
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.isAppDarkTheme
 import com.notepay.domain.model.CurrencyConverter
@@ -70,9 +75,15 @@ fun CurrencySettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenConverter: () -> Unit = {},
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: CurrencySettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
 
     Scaffold(
         containerColor = AppTheme.colors.background,
@@ -116,6 +127,17 @@ fun CurrencySettingsScreen(
                     uiState = uiState,
                     onRefreshRates = { viewModel.refreshRates(forceRefresh = true) },
                 )
+            }
+
+            if (uiState.rateRefreshFailed) {
+                item {
+                    NotePayStatusBanner(
+                        message = stringResource(R.string.currency_rate_refresh_failed),
+                        type = FeedbackType.Offline,
+                        actionLabel = stringResource(R.string.action_retry),
+                        onAction = { viewModel.refreshRates(forceRefresh = true) },
+                    )
+                }
             }
 
             item {

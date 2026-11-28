@@ -78,6 +78,7 @@ import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
@@ -111,7 +112,12 @@ fun TransactionListRoute(
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
-            onFeedback(feedback)
+            launch { onFeedback(feedback) }
+        }
+    }
+    LaunchedEffect(detailViewModel) {
+        detailViewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
         }
     }
 
@@ -139,6 +145,7 @@ fun TransactionListRoute(
         onSelectWallet = viewModel::selectWallet,
         onDeleteTransaction = viewModel::delete,
         onSelectDetailTransaction = detailViewModel::select,
+        onRetryDetailSync = detailViewModel::retrySync,
     )
 }
 
@@ -168,6 +175,7 @@ fun TransactionListScreen(
     onSelectWallet: (Long?) -> Unit = {},
     onDeleteTransaction: (Transaction) -> Unit = {},
     onSelectDetailTransaction: (Long?) -> Unit = {},
+    onRetryDetailSync: () -> Unit = {},
 ) {
 
     // Xuất CSV của đúng danh sách đang nhìn thấy. Dựng nội dung ngay trước khi mở hộp chọn
@@ -317,6 +325,7 @@ fun TransactionListScreen(
                     TransactionDetailPane(
                         transactionId = resolvedTransactionId,
                         detailState = detailState,
+                        onRetrySync = onRetryDetailSync,
                         onEdit = onEditTransaction,
                         onCreateBillSplit = onCreateBillSplit,
                         onCreateSubscription = onCreateSubscription,
@@ -409,159 +418,65 @@ private fun TransactionListPane(
     // CHẾ ĐỘ LỊCH: lưới chọn ngày gọn ở trên, danh sách giao dịch cuộn liền ngay bên dưới.
     // Gộp cả hai vào một LazyColumn để lịch không chiếm trọn màn hình và để chạm một ngày là
     // cuộn tới đúng nhóm ngày đó thay vì mở dialog.
-    if (state.isCalendarView) {
-        val grid = remember(state.calendarYear, state.calendarMonth, state.transactionsByDate) {
-            buildMonthGrid(
-                year = state.calendarYear,
-                month = state.calendarMonth,
-                transactionsByDate = state.transactionsByDate,
-            )
-        }
-
-        LazyColumn(
-            state = calendarListState,
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 8.dp,
-                bottom = bottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item(key = "calendar") {
-                CompactMonthCalendar(
-                    grid = grid,
-                    selectedDate = selectedCalendarDate,
-                    onDayClick = onCalendarDayClick,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    onGoToToday = onGoToToday,
+    NotePayAnimatedContent(
+        targetState = Triple(state.isCalendarView, state.isLoading, state.isEmpty),
+        modifier = modifier,
+        label = "transaction-list-pane",
+    ) { (isCalendar, isLoading, isEmpty) ->
+        if (isCalendar) {
+            val grid = remember(state.calendarYear, state.calendarMonth, state.transactionsByDate) {
+                buildMonthGrid(
+                    year = state.calendarYear,
+                    month = state.calendarMonth,
+                    transactionsByDate = state.transactionsByDate,
                 )
             }
 
-            if (state.dayGroups.isEmpty()) {
-                item(key = "calendar-empty") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.tx_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = stringResource(R.string.tx_empty_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            } else {
-                items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
-                    DayGroupSection(
-                        dayGroup = dayGroup,
-                        walletsMap = state.walletsMap,
-                        walletsById = state.walletsById,
-                        currentUserId = state.currentUserId,
-                        selectedTransactionId = selectedTransactionId,
-                        onTransactionClick = onTransactionClick,
-                        onEditTransaction = onEditTransaction,
-                        onDeleteTransaction = onDeleteTransaction,
-                        hapticFeedbackEnabled = hapticFeedbackEnabled,
+            LazyColumn(
+                state = calendarListState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = bottomPadding,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item(key = "calendar") {
+                    CompactMonthCalendar(
+                        grid = grid,
+                        selectedDate = selectedCalendarDate,
+                        onDayClick = onCalendarDayClick,
+                        onPreviousMonth = onPreviousMonth,
+                        onNextMonth = onNextMonth,
+                        onGoToToday = onGoToToday,
                     )
                 }
-            }
-        }
-        return
-    }
 
-    Column(modifier = modifier) {
-        when {
-            state.isLoading -> {
-                // Chưa có gì để cuộn nên thẻ thống kê đứng yên như trước, tránh khoảng
-                // trống giữa thanh hành động và vòng xoay chờ.
-                SummaryStatisticsCard(
-                    totalIncome = state.totalIncome,
-                    totalExpense = state.totalExpense,
-                    transactionCount = state.transactionCount,
-                    netBalance = state.netBalance,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            }
-
-            state.isEmpty -> {
-                SummaryStatisticsCard(
-                    totalIncome = state.totalIncome,
-                    totalExpense = state.totalExpense,
-                    transactionCount = state.transactionCount,
-                    netBalance = state.netBalance,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.tx_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = stringResource(R.string.tx_empty_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                if (state.dayGroups.isEmpty()) {
+                    item(key = "calendar-empty") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.tx_empty_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = stringResource(R.string.tx_empty_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
-                }
-            }
-
-            else -> {
-                // Thẻ thống kê là mục đầu của danh sách nên cuộn xuống là nó trượt lên và
-                // biến mất, đúng lúc thanh hành động gập lại.
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = bottomPadding,
-                        top = 8.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item(key = "summary") {
-                        SummaryStatisticsCard(
-                            totalIncome = state.totalIncome,
-                            totalExpense = state.totalExpense,
-                            transactionCount = state.transactionCount,
-                            netBalance = state.netBalance,
-                            onExport = onExport,
-                        )
-                    }
+                } else {
                     items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
                         DayGroupSection(
                             dayGroup = dayGroup,
@@ -577,6 +492,101 @@ private fun TransactionListPane(
                     }
                 }
             }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                when {
+                    isLoading -> {
+                        SummaryStatisticsCard(
+                            totalIncome = state.totalIncome,
+                            totalExpense = state.totalExpense,
+                            transactionCount = state.transactionCount,
+                            netBalance = state.netBalance,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    isEmpty -> {
+                        SummaryStatisticsCard(
+                            totalIncome = state.totalIncome,
+                            totalExpense = state.totalExpense,
+                            transactionCount = state.transactionCount,
+                            netBalance = state.netBalance,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.tx_empty_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = stringResource(R.string.tx_empty_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = bottomPadding,
+                                top = 8.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            item(key = "summary") {
+                                SummaryStatisticsCard(
+                                    totalIncome = state.totalIncome,
+                                    totalExpense = state.totalExpense,
+                                    transactionCount = state.transactionCount,
+                                    netBalance = state.netBalance,
+                                    onExport = onExport,
+                                )
+                            }
+                            items(state.dayGroups, key = { it.date.toString() }) { dayGroup ->
+                                DayGroupSection(
+                                    dayGroup = dayGroup,
+                                    walletsMap = state.walletsMap,
+                                    walletsById = state.walletsById,
+                                    currentUserId = state.currentUserId,
+                                    selectedTransactionId = selectedTransactionId,
+                                    onTransactionClick = onTransactionClick,
+                                    onEditTransaction = onEditTransaction,
+                                    onDeleteTransaction = onDeleteTransaction,
+                                    hapticFeedbackEnabled = hapticFeedbackEnabled,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -589,6 +599,7 @@ private fun TransactionListPane(
 private fun TransactionDetailPane(
     transactionId: Long?,
     detailState: TransactionDetailUiState,
+    onRetrySync: () -> Unit,
     onEdit: (Long) -> Unit,
     onCreateBillSplit: (Long) -> Unit,
     onCreateSubscription: (name: String, amountCents: Long) -> Unit,
@@ -609,6 +620,7 @@ private fun TransactionDetailPane(
                 onEdit = onEdit,
                 onCreateBillSplit = onCreateBillSplit,
                 onCreateSubscription = onCreateSubscription,
+                onRetrySync = onRetrySync,
             )
         }
     }

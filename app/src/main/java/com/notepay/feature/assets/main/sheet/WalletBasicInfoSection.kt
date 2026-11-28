@@ -1,10 +1,5 @@
 package com.notepay.feature.assets.main.sheet
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -67,6 +62,7 @@ import com.notepay.R
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.WalletUiHelper
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.domain.model.AccountNature
 import com.notepay.domain.model.CurrencyConverter
 import com.notepay.domain.model.WalletPurpose
@@ -381,11 +377,7 @@ internal fun BudgetAlertSection(
                 )
             }
 
-            AnimatedVisibility(
-                visible = hasBudgetLimit,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
+            NotePayAnimatedVisibility(visible = hasBudgetLimit) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -526,11 +518,7 @@ private fun WalletPurposeAndGoalSection(
             }
         }
 
-        AnimatedVisibility(
-            visible = purpose.supportsGoalTarget,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
+        NotePayAnimatedVisibility(visible = purpose.supportsGoalTarget) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = targetAmountInput,

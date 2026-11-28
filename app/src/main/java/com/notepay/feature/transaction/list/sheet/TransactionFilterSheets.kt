@@ -24,7 +24,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.util.localizedName
 import com.notepay.domain.model.Category
 import com.notepay.domain.model.TransactionType
@@ -56,11 +56,9 @@ internal fun DateRangeBottomSheet(
     onDismiss: () -> Unit,
     onSelectPreset: (DateRangePreset) -> Unit,
 ) {
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
@@ -137,11 +135,9 @@ internal fun FilterBottomSheet(
     val expenseCategories = remember { Category.getAll().filter { !it.isIncome } }
     val incomeCategories = remember { Category.getAll().filter { it.isIncome } }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier

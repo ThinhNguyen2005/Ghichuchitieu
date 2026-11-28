@@ -20,6 +20,9 @@ internal class GeminiApiException(
             message.orEmpty().contains("API_KEY_INVALID", ignoreCase = true) ||
             message.orEmpty().contains("API key not valid", ignoreCase = true)
     }
+
+    fun isQuotaOrAuthError(): Boolean =
+        isInvalidApiKey() || httpStatus == 429 || apiStatus == "RESOURCE_EXHAUSTED"
 }
 
 /**

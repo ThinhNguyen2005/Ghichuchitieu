@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,8 +30,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -53,8 +54,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackSnackbarOverlay
 import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.core.designsystem.feedback.showFeedback
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.domain.export.ExportDatePreset
 import com.notepay.domain.export.ExportFormat
@@ -79,10 +85,12 @@ fun ExportReportBottomSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetSnackbarHostState = remember { SnackbarHostState() }
     var pickingStartDate by remember { mutableStateOf(false) }
     var pickingEndDate by remember { mutableStateOf(false) }
 
-    val successMessage = stringResource(R.string.export_success)
+    val successMessage = stringResource(R.string.export_success_with_share)
+    val exportShareLabel = stringResource(R.string.export_share_action)
     val failedMessage = stringResource(R.string.export_failed)
     val shareTitle = stringResource(R.string.export_share_chooser_title)
 
@@ -92,33 +100,50 @@ fun ExportReportBottomSheet(
         if (uri != null) {
             scope.launch {
                 val ok = viewModel.writeToUri(uri)
-                onFeedback(
-                    UiFeedback(
-                        message = if (ok) successMessage else failedMessage,
-                        type = if (ok) FeedbackType.Success else FeedbackType.Error,
-                    ),
-                )
-                if (ok) onDismiss()
+                if (ok) {
+                    sheetState.hide()
+                    if (!sheetState.isVisible) onDismiss()
+                    onFeedback(
+                        UiFeedback(
+                            message = successMessage,
+                            type = FeedbackType.Success,
+                            actionLabel = exportShareLabel,
+                            duration = FeedbackDuration.Long,
+                            onAction = {
+                                runCatching {
+                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = state.mimeType()
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, shareTitle))
+                                }
+                            },
+                        ),
+                    )
+                } else {
+                    sheetSnackbarHostState.showFeedback(
+                        UiFeedback(message = failedMessage, type = FeedbackType.Error),
+                    )
+                }
             }
         }
     }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppTheme.colors.surface,
-        shape = AppTheme.shapes.sheetTop,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             Text(
                 text = stringResource(R.string.export_report_title),
                 style = MaterialTheme.typography.titleLarge,
@@ -257,6 +282,12 @@ fun ExportReportBottomSheet(
                 overflow = TextOverflow.Ellipsis,
             )
 
+            NotePayStatusBanner(
+                visible = state.isExporting,
+                message = stringResource(R.string.export_pending_banner),
+                type = FeedbackType.Pending,
+            )
+
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -333,6 +364,8 @@ fun ExportReportBottomSheet(
                     }
                 }
             }
+        }
+        FeedbackSnackbarOverlay(hostState = sheetSnackbarHostState)
         }
     }
 

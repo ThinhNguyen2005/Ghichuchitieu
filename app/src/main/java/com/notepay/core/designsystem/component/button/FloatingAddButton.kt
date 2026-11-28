@@ -2,13 +2,12 @@ package com.notepay.core.designsystem.component.button
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +26,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.notePayPressScale
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 @Composable
 fun FloatingAddButton(
@@ -35,33 +36,33 @@ fun FloatingAddButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val reducedMotion = rememberNotePayReducedMotion()
     val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
     val transitionState = remember { MutableTransitionState(expanded) }
     transitionState.targetState = expanded
     val transition = rememberTransition(transitionState = transitionState, label = "floatingAdd")
     val iconRotation by transition.animateFloat(
-        transitionSpec = { spring(dampingRatio = 0.86f, stiffness = 500f) },
+        transitionSpec = {
+            if (reducedMotion) snap() else spring(dampingRatio = 0.86f, stiffness = 500f)
+        },
         label = "addIconRotation",
     ) { if (it) 45f else 0f }
     val expandedLift by transition.animateFloat(
-        transitionSpec = { spring(dampingRatio = 0.86f, stiffness = 500f) },
+        transitionSpec = {
+            if (reducedMotion) snap() else spring(dampingRatio = 0.86f, stiffness = 500f)
+        },
         label = "addLift",
     ) { if (it) 0.96f else 1f }
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.95f else 1f,
-        label = "addPressScale",
-    )
     val shape = CircleShape
     val buttonSurface = AppTheme.colors.ink
 
     Box(
         modifier = modifier
             .size(64.dp)
+            .notePayPressScale(interactionSource, pressedScale = 0.95f)
             .graphicsLayer {
-                val scale = pressScale * expandedLift
-                scaleX = scale
-                scaleY = scale
+                scaleX = expandedLift
+                scaleY = expandedLift
             }
             .clip(shape)
             .background(buttonSurface)

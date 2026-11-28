@@ -46,6 +46,9 @@ class BillSplitViewModel @Inject constructor(
     private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
     val feedback = _feedback.asSharedFlow()
 
+    private val _settledFeedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val settledFeedback = _settledFeedback.asSharedFlow()
+
     private val _banks = MutableStateFlow<List<VietQrBank>>(emptyList())
 
     private fun str(resId: Int): String = appContext.getString(resId)
@@ -238,7 +241,7 @@ class BillSplitViewModel @Inject constructor(
             } else {
                 str(R.string.feedback_bill_split_marked_paid)
             }
-            _feedback.emit(UiFeedback(msg, type = FeedbackType.Success))
+            _settledFeedback.emit(UiFeedback(msg, type = FeedbackType.Success))
         }
     }
 

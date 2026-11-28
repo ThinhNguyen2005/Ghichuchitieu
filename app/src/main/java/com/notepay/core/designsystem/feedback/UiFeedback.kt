@@ -1,9 +1,14 @@
 package com.notepay.core.designsystem.feedback
 
+import androidx.compose.material3.SnackbarDuration
+
 enum class FeedbackType {
     Success,
     Error,
+    Warning,
     Info,
+    Pending,
+    Offline,
 }
 
 enum class FeedbackDuration {
@@ -19,3 +24,9 @@ data class UiFeedback(
     val duration: FeedbackDuration = FeedbackDuration.Short,
     val onAction: (() -> Unit)? = null,
 )
+
+internal fun FeedbackDuration.resolveSnackbarDuration(hasAction: Boolean): SnackbarDuration = when (this) {
+    FeedbackDuration.Short -> if (hasAction) SnackbarDuration.Long else SnackbarDuration.Short
+    FeedbackDuration.Long -> SnackbarDuration.Long
+    FeedbackDuration.Indefinite -> SnackbarDuration.Indefinite
+}

@@ -5,25 +5,33 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.LegacyAiModelCleaner
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.data.datastore.AppSettingsDataStore
 import com.notepay.domain.analytics.HomeSmartTipGenerator
 import com.notepay.domain.analytics.SmartTipInput
 import com.notepay.domain.analytics.SmartTipItem
 import com.notepay.domain.analytics.SmartTipWalletSnapshot
+import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.SubscriptionRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
+import com.notepay.domain.usecase.AddTransactionUseCase
 import com.notepay.domain.usecase.DeleteTransactionUseCase
 import com.notepay.domain.usecase.GetMonthlySummaryUseCase
 import com.notepay.domain.util.StreakTrackerHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -44,6 +52,7 @@ import kotlin.time.Clock
 private const val MaxRecentTransactions = 30
 
 @HiltViewModel
+@Suppress("LongParameterList")
 class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepository,
     private val transactionRepo: TransactionRepository,
@@ -54,12 +63,91 @@ class HomeViewModel @Inject constructor(
     private val legacyModelCleaner: LegacyAiModelCleaner,
     @param:ApplicationContext private val context: Context,
     private val sharedWalletRepository: SharedWalletRepository? = null,
+    private val addTransactionUseCase: AddTransactionUseCase? = null,
 ) : ViewModel() {
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     fun deleteTransaction(transactionId: Long) {
         viewModelScope.launch {
-            deleteTransactionUseCase(transactionId)
+            val snapshot = state.value.recentTransactions.firstOrNull { it.id == transactionId }
+                ?: runCatching { transactionRepo.getById(transactionId) }.getOrNull()
+            try {
+                val result = deleteTransactionUseCase(transactionId)
+                if (result.isSuccess) {
+                    val undoable = snapshot?.takeUnless { it.isInternalTransfer }
+                    val canUndo = undoable != null && addTransactionUseCase != null
+                    _feedback.emit(
+                        UiFeedback(
+                            message = context.getString(R.string.transaction_deleted),
+                            actionLabel = if (canUndo) context.getString(R.string.feedback_undo) else null,
+                            type = FeedbackType.Success,
+                            duration = if (canUndo) FeedbackDuration.Long else FeedbackDuration.Short,
+                            onAction = if (canUndo) {
+                                { undoDeleteTransaction(undoable) }
+                            } else {
+                                null
+                            },
+                        ),
+                    )
+                } else {
+                    emitDeleteTransactionFailed(transactionId)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                emitDeleteTransactionFailed(transactionId)
+            }
         }
+    }
+
+    private fun undoDeleteTransaction(transaction: Transaction) {
+        val addUseCase = addTransactionUseCase ?: return
+        if (transaction.isInternalTransfer) return
+        viewModelScope.launch {
+            try {
+                val result = addUseCase(transaction.copy(id = 0L))
+                if (result.isSuccess) {
+                    _feedback.emit(
+                        UiFeedback(
+                            message = context.getString(R.string.feedback_transaction_restored),
+                            type = FeedbackType.Success,
+                        ),
+                    )
+                } else {
+                    emitRestoreTransactionFailed(transaction)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                emitRestoreTransactionFailed(transaction)
+            }
+        }
+    }
+
+    private fun emitDeleteTransactionFailed(transactionId: Long) {
+        _feedback.tryEmit(
+            UiFeedback(
+                message = context.getString(R.string.feedback_transaction_delete_failed),
+                actionLabel = context.getString(R.string.action_retry),
+                type = FeedbackType.Error,
+                duration = FeedbackDuration.Long,
+                onAction = { deleteTransaction(transactionId) },
+            ),
+        )
+    }
+
+    private fun emitRestoreTransactionFailed(transaction: Transaction) {
+        _feedback.tryEmit(
+            UiFeedback(
+                message = context.getString(R.string.feedback_transaction_restore_failed),
+                actionLabel = context.getString(R.string.action_retry),
+                type = FeedbackType.Error,
+                duration = FeedbackDuration.Long,
+                onAction = { undoDeleteTransaction(transaction) },
+            ),
+        )
     }
 
     init {

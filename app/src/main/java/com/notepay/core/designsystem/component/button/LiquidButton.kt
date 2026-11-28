@@ -1,7 +1,9 @@
 package com.notepay.core.designsystem.component.button
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -12,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,6 +23,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.notePayPressScale
 
 /** Solid action button; keeps existing call sites and touch geometry. */
 @Composable
@@ -45,12 +49,20 @@ fun LiquidButton(
         else -> contentColorFor(surface)
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
     CompositionLocalProvider(LocalContentColor provides resolvedContentColor) {
         Row(
             modifier = modifier
+                .notePayPressScale(interactionSource, enabled = enabled)
                 .clip(AppTheme.shapes.capsule)
                 .background(surface)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
                 // Không cố định height: nhãn 14sp ở font scale 2.0 cần nở chiều cao thay vì bị cắt.
                 .defaultMinSize(minHeight = 52.dp)
                 .padding(horizontal = 20.dp, vertical = 12.dp),

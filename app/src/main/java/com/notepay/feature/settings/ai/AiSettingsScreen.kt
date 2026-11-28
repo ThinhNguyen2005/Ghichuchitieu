@@ -1,7 +1,6 @@
 package com.notepay.feature.settings.ai
 
 import android.content.Intent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +44,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -68,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -79,6 +78,10 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.data.datastore.AiSettingsDataStore
 import com.notepay.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.launch
@@ -88,13 +91,17 @@ import kotlinx.coroutines.launch
 fun AiSettingsScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
     viewModel: AiSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val testState by viewModel.testState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
+    val apiKeySavedMsg = stringResource(R.string.feedback_ai_api_key_saved)
+    val apiKeyClearedMsg = stringResource(R.string.feedback_ai_api_key_cleared)
 
     var apiKeyInput by remember { mutableStateOf("") }
     var isApiKeyVisible by remember { mutableStateOf(false) }
@@ -129,15 +136,24 @@ fun AiSettingsScreen(
                     if (clip.isNotBlank()) {
                         apiKeyInput = clip
                         viewModel.setApiKey(clip)
+                        onFeedback(UiFeedback(apiKeySavedMsg, type = FeedbackType.Success))
                     }
                 }
             },
             onClearKey = {
                 apiKeyInput = ""
                 viewModel.setApiKey("")
+                scope.launch {
+                    onFeedback(UiFeedback(apiKeyClearedMsg, type = FeedbackType.Info))
+                }
             },
             onTestKey = { viewModel.testApiKey(apiKeyInput) },
             onDismissRequest = {
+                if (apiKeyInput.isNotBlank() && apiKeyInput != uiState.apiKey.orEmpty()) {
+                    scope.launch {
+                        onFeedback(UiFeedback(apiKeySavedMsg, type = FeedbackType.Success))
+                    }
+                }
                 viewModel.resetTestState()
                 showApiKeySheet = false
             },
@@ -147,7 +163,17 @@ fun AiSettingsScreen(
     if (showModelPickerSheet) {
         ModelPickerBottomSheet(
             selectedModel = uiState.cloudModelName,
-            onModelSelect = { viewModel.setCloudModelName(it) },
+            onModelSelect = { model ->
+                viewModel.setCloudModelName(model)
+                scope.launch {
+                    onFeedback(
+                        UiFeedback(
+                            message = resources.getString(R.string.feedback_ai_model_updated, model),
+                            type = FeedbackType.Success,
+                        ),
+                    )
+                }
+            },
             onDismissRequest = { showModelPickerSheet = false },
         )
     }
@@ -509,10 +535,8 @@ private fun ApiKeyBottomSheet(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
@@ -632,64 +656,28 @@ private fun ApiKeyBottomSheet(
             }
 
             // Test feedback banner
-            when (testState) {
-                is ApiKeyTestState.Success -> {
-                    Surface(
-                        color = AppTheme.colors.success.copy(alpha = 0.15f),
-                        shape = AppTheme.shapes.corner12,
-                        border = BorderStroke(1.dp, AppTheme.colors.success.copy(alpha = 0.35f)),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = AppTheme.colors.success,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.ai_test_success),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppTheme.colors.success,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
+            val isTestSuccess = testState is ApiKeyTestState.Success
+            val isTestFailure = testState is ApiKeyTestState.Failure
+            val testMessage = when (testState) {
+                is ApiKeyTestState.Success -> stringResource(R.string.ai_test_success)
+                is ApiKeyTestState.Failure -> if (testState.error == "empty") {
+                    stringResource(R.string.ai_test_empty_key)
+                } else {
+                    stringResource(R.string.ai_test_failure)
                 }
-                is ApiKeyTestState.Failure -> {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                        shape = AppTheme.shapes.corner12,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                text = if (testState.error == "empty") stringResource(R.string.ai_test_empty_key)
-                                else stringResource(R.string.ai_test_failure),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
-                else -> Unit
+                else -> ""
             }
+            NotePayStatusBanner(
+                visible = isTestSuccess || isTestFailure,
+                message = testMessage,
+                type = if (isTestSuccess) FeedbackType.Success else FeedbackType.Error,
+                actionLabel = if (isTestFailure && apiKeyInput.isNotBlank()) {
+                    stringResource(R.string.action_retry)
+                } else {
+                    null
+                },
+                onAction = onTestKey,
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -702,10 +690,8 @@ private fun ModelPickerBottomSheet(
     onModelSelect: (String) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier

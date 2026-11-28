@@ -1,12 +1,5 @@
 package com.notepay.feature.utilities
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -87,10 +80,10 @@ import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberMainTabBottomClearance
 import com.notepay.core.navigation.rememberNotePayHaptic
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.AuthUser
 import com.notepay.feature.auth.main.AuthViewModel
 import com.notepay.feature.auth.main.component.sheet.AccountDetailsBottomSheet
@@ -337,7 +330,6 @@ private fun UserProfileHeaderCard(
     modifier: Modifier = Modifier,
 ) {
     val performHaptic = rememberNotePayHaptic()
-    val reducedMotion = rememberNotePayReducedMotion()
     val signingInDescription = stringResource(R.string.auth_signing_in)
 
     Card(
@@ -365,15 +357,8 @@ private fun UserProfileHeaderCard(
         border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        AnimatedContent(
+        NotePayAnimatedContent(
             targetState = user to isLoading,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(140))
-                }
-            },
             label = "utilities-profile-state",
         ) { (currentUser, loading) ->
             Row(

@@ -1,17 +1,9 @@
 package com.notepay.feature.onboarding.steps
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -56,6 +47,8 @@ import com.notepay.R
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.theme.NotePayTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
+import com.notepay.core.navigation.notePayPressScale
 import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.model.CurrencyConverter
 import com.notepay.domain.money.Money
@@ -87,7 +80,7 @@ fun Step1CurrencyScreen(
             subtitle = stringResource(R.string.onboarding_currency_subtitle),
         )
 
-        Step1InkLivePreview(currencyCode = uiState.currencyCode, reducedMotion = reducedMotion)
+        Step1InkLivePreview(currencyCode = uiState.currencyCode)
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -191,7 +184,6 @@ fun Step1CurrencyScreen(
 @Composable
 private fun Step1InkLivePreview(
     currencyCode: String,
-    reducedMotion: Boolean,
 ) {
     val rate = CurrencyConverter.ratePerVnd(currencyCode)
     val decimalDigits = if (currencyCode.uppercase(Locale.ROOT) in CurrencyConverter.zeroDecimalCurrencies) {
@@ -251,15 +243,8 @@ private fun Step1InkLivePreview(
             }
         }
 
-        AnimatedContent(
+        NotePayAnimatedContent(
             targetState = balanceText,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
-                }
-            },
             label = "Step1PreviewBalance",
         ) { target ->
             Text(
@@ -326,12 +311,6 @@ private fun CurrencyGridTile(
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && !reducedMotion) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "CurrencyTileScale",
-    )
     val bgColor by animateColorAsState(
         targetValue = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
@@ -357,10 +336,7 @@ private fun CurrencyGridTile(
         onClick = onClick,
         modifier = modifier
             .defaultMinSize(minHeight = 64.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
+            .notePayPressScale(interactionSource, pressedScale = 0.96f),
     ) {
         Column(
             modifier = Modifier

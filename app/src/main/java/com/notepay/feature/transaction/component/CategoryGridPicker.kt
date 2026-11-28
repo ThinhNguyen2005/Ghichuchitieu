@@ -44,7 +44,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -87,6 +86,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notepay.R
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.localizedName
 import com.notepay.core.navigation.rememberNotePayHaptic
@@ -691,12 +691,9 @@ private fun AddCategoryBottomSheet(
     var selectedColor by remember { mutableLongStateOf(colors.first()) }
     var selectedIconId by remember { mutableStateOf(customCategoryIconOptions.first().id) }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = AppTheme.shapes.sheetTop,
-        containerColor = AppTheme.colors.surface,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
     ) {
         Column(
             modifier = Modifier

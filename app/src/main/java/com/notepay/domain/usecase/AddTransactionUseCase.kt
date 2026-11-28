@@ -61,12 +61,22 @@ class AddTransactionUseCase @Inject constructor(
                     existing = existing,
                 ) ?: transaction
 
-                val id = transactionRepo.upsert(prepared)
-                if (wallet.isShared) {
-                    sharedWalletCoordinator?.onSharedTransactionSaved(wallet, id)
+                val id = if (wallet.isShared && sharedWalletCoordinator != null) {
+                    sharedWalletCoordinator.saveSharedTransaction(wallet) {
+                        val insertedId = transactionRepo.upsert(prepared)
+                        prepared.id.takeIf { it > 0L } ?: insertedId
+                    }
+                } else {
+                    transactionRepo.upsert(prepared)
                 }
                 if (prepared.type == TransactionType.EXPENSE) {
-                    budgetAlertNotifier?.checkAndNotify(prepared.walletId)
+                    try {
+                        budgetAlertNotifier?.checkAndNotify(prepared.walletId)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        // Budget alerts run after the transaction commit.
+                    }
                 }
                 id
             },

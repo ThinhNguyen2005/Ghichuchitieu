@@ -13,6 +13,7 @@ sealed interface TransactionFormUiEvent {
 
     // ── Calculator keypad ─────────────────────────────────────────────────────
     data class CalcKeyPressed(val key: CalcKey) : TransactionFormUiEvent
+    data class QuickAmountSelected(val amountVnd: Long) : TransactionFormUiEvent
     data object BackspaceLong : TransactionFormUiEvent
 
     // ── Form fields ───────────────────────────────────────────────────────────

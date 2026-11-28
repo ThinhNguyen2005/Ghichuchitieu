@@ -5,13 +5,17 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.notepay.MainDispatcherRule
 import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.data.local.dao.SyncOutboxDao
 import com.notepay.data.remote.CurrencyRateRepository
 import com.notepay.data.remote.CurrencyRateSnapshot
 import com.notepay.domain.model.AccountNature
+import com.notepay.domain.model.SyncSummary
 import com.notepay.domain.model.Wallet
 import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletType
 import com.notepay.domain.money.Money
+import com.notepay.domain.repository.SharedWalletRepository
 import com.notepay.domain.repository.TransactionRepository
 import com.notepay.domain.repository.WalletRepository
 import com.notepay.domain.usecase.TransferBetweenWalletsUseCase
@@ -186,7 +190,7 @@ class AssetsViewModelTest {
     }
 
     @Test
-    fun `totalNetWorth and totalAssetsVnd exclude wallets with includeInTotalBalance false and filter by purpose`() = runTest {
+    fun `totalNetWorth and totalAssetsVnd exclude wallets with includeInTotalBalance false`() = runTest {
         val personalWallet = Wallet(
             id = 1L,
             name = "Ví cá nhân",
@@ -232,12 +236,65 @@ class AssetsViewModelTest {
             assertThat(current.totalNetWorth).isEqualTo(Money.fromMajorUnit(10_000_000L))
             assertThat(current.excludedWalletCount).isEqualTo(1)
             assertThat(current.assetWallets).hasSize(2)
-
-            viewModel.onPurposeFilterChanged(WalletPurpose.BUSINESS)
-            val filtered = awaitItem()
-            assertThat(filtered.selectedPurpose).isEqualTo(WalletPurpose.BUSINESS)
-            assertThat(filtered.assetWallets.map { it.wallet.id }).containsExactly(2L)
-            assertThat(filtered.wallets).hasSize(2)
+            assertThat(current.wallets).hasSize(2)
         }
+    }
+
+    @Test
+    fun `pendingSyncCount reflects outbox flow and syncPendingOutbox syncs shared wallets`() = runTest {
+        val wallet = Wallet(
+            id = 1L,
+            name = "Ví chung",
+            initialBalance = Money.fromMajorUnit(1_000_000L),
+            iconKey = "cash",
+            colorKey = "primary",
+            isShared = true,
+        )
+        val sharedWalletRepository = mockk<SharedWalletRepository>(relaxed = true) {
+            every { isCloudConfigured } returns true
+            coEvery { syncAllSharedWallets() } returns Result.success(
+                SyncSummary(pushedCount = 2, pulledWalletsCount = 1, pulledTransactionsCount = 1),
+            )
+        }
+        val syncOutboxDao = mockk<SyncOutboxDao> {
+            every { observePendingCount() } returns flowOf(3)
+        }
+        every { context.resources } returns mockk(relaxed = true) {
+            every { getQuantityString(R.plurals.shared_wallet_sync_success, 1, 2, 1) } returns "Synced 2, pulled 1"
+        }
+        coEvery { walletRepository.observeAll() } returns flowOf(listOf(wallet))
+        coEvery { transactionRepository.observeWalletStats(any(), any()) } returns flowOf(emptyList())
+        coEvery { transactionRepository.observeRecentNonTransfers(any()) } returns flowOf(emptyList())
+        coEvery { getDebtSummaryUseCase() } returns flowOf(DebtSummary(Money.ZERO, Money.ZERO, Money.ZERO, 0, 0, 0))
+        coEvery { currencyRateRepository.getVndRates() } returns CurrencyRateSnapshot("VND", emptyMap(), "", 0L)
+
+        val viewModel = AssetsViewModel(
+            context = context,
+            walletRepository = walletRepository,
+            transactionRepository = transactionRepository,
+            getDebtSummaryUseCase = getDebtSummaryUseCase,
+            transferBetweenWalletsUseCase = transferBetweenWalletsUseCase,
+            currencyRateRepository = currencyRateRepository,
+            sharedWalletRepository = sharedWalletRepository,
+            syncOutboxDao = syncOutboxDao,
+        )
+
+        viewModel.state.test {
+            var current = awaitItem()
+            while (current.isLoading) {
+                current = awaitItem()
+            }
+            assertThat(current.pendingSyncCount).isEqualTo(3)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        viewModel.feedback.test {
+            viewModel.syncPendingOutbox()
+            advanceUntilIdle()
+            val feedback = awaitItem()
+            assertThat(feedback.type).isEqualTo(FeedbackType.Success)
+            assertThat(feedback.message).isEqualTo("Synced 2, pulled 1")
+        }
+        coVerify(exactly = 1) { sharedWalletRepository.syncAllSharedWallets() }
     }
 }

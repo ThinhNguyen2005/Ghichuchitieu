@@ -7,6 +7,7 @@ import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.notepay.core.common.util.StringUtils
 import java.net.URLEncoder
 import java.util.EnumMap
@@ -133,10 +134,12 @@ object VietQrGenerator {
         content: String,
         width: Int = 512,
         height: Int = 512,
+        errorCorrectionLevel: ErrorCorrectionLevel = ErrorCorrectionLevel.H,
     ): Bitmap {
         val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
         hints[EncodeHintType.CHARACTER_SET] = "UTF-8"
         hints[EncodeHintType.MARGIN] = 1
+        hints[EncodeHintType.ERROR_CORRECTION] = errorCorrectionLevel
         val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, width, height, hints)
         val bmp = createBitmap(width, height, Bitmap.Config.ARGB_8888)
         for (x in 0 until width) {

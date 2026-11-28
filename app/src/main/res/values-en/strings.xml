@@ -29,6 +29,8 @@
     <string name="quick_add_title">Create new</string>
     <string name="quick_add_expense_title">Add expense / income</string>
     <string name="quick_add_expense_desc">Record daily shopping, food, transport…</string>
+    <string name="quick_add_scan_receipt_title">Scan receipt image</string>
+    <string name="quick_add_scan_receipt_desc">Auto-read amount and note from a receipt or transfer screenshot</string>
     <string name="quick_add_text_entry_title">Voice &amp; text entry</string>
     <string name="quick_add_text_entry_desc">Speak or type naturally to parse multiple transactions</string>
     <string name="quick_add_debt_title">Add debt entry</string>
@@ -78,7 +80,8 @@
     <string name="transaction_type_income">Income</string>
     <string name="transaction_field_wallet">Wallet</string>
     <string name="transaction_field_note">Note</string>
-    <string name="transaction_field_note_placeholder">Add transaction details…</string>
+    <string name="transaction_field_note_placeholder">Describe your transaction</string>
+    <string name="action_add_transaction">Add transaction</string>
     <string name="transaction_no_wallet_selected">No wallet selected</string>
     <string name="transaction_no_writable_wallet">No writable wallet available</string>
     <string name="transaction_no_writable_wallet_desc">Create a wallet or use one with permission to add transactions.</string>
@@ -321,7 +324,6 @@
     <string name="theme_dynamic_color">System color</string>
 
     <!-- Scan & BillSplit -->
-    <string name="scan_image_button">Scan transaction image or VietQR</string>
     <string name="billsplit_cd_back">Back to Bill Split</string>
     <string name="billsplit_tab_paid">Paid</string>
     <string name="billsplit_cd_history">View paid items</string>
@@ -356,6 +358,12 @@
     <!-- Runtime feedback and presentation strings -->
     <string name="feedback_category_exists">This category already exists</string>
     <string name="feedback_transaction_saved">Transaction saved</string>
+    <string name="feedback_transaction_created">Transaction created</string>
+    <string name="feedback_transaction_pending_sync">Saved on this device · Waiting to sync</string>
+    <string name="transaction_sync_failed">Saved on this device · Sync failed</string>
+    <string name="transaction_sync_retrying">Resubmitting sync request…</string>
+    <string name="action_retry_transaction_sync">Retry sync</string>
+    <string name="action_view_transaction">View</string>
     <string name="feedback_transaction_save_failed">Could not save transaction</string>
     <string name="feedback_transaction_updated">Transaction updated</string>
     <string name="feedback_transaction_update_failed">Could not update transaction</string>
@@ -1628,4 +1636,92 @@ Would you like to add it to recurring bills so NotePay can track it automaticall
     <string name="cd_hide_api_key">Hide API key</string>
     <string name="cd_show_api_key">Show API key</string>
     <string name="cd_clear_due_date">Clear due date</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_view_debt">View</string>
+    <string name="debt_create_failed">Couldn\'t create debt. Please try again.</string>
+    <string name="debt_payment_failed">Couldn\'t record repayment. Please try again.</string>
+    <string name="debt_delete_failed">Couldn\'t delete debt. Please try again.</string>
+    <string name="debt_payment_delete_success">Payment deleted</string>
+    <string name="debt_payment_delete_failed">Couldn\'t delete payment. Please try again.</string>
+    <string name="debt_marked_settled_success">Debt marked as settled</string>
+    <string name="debt_marked_unsettled_success">Debt marked as unsettled</string>
+    <string name="debt_mark_settled_failed">Couldn\'t update settled status</string>
+    <string name="debt_share_unavailable">No app available to share</string>
+    <string name="feedback_category_created">Category created</string>
+    <string name="feedback_category_updated">Category updated</string>
+    <string name="feedback_category_deleted">Category deleted</string>
+    <string name="feedback_category_restored">Category restored</string>
+    <string name="feedback_category_save_failed">Could not save category. Please try again.</string>
+    <string name="feedback_category_delete_failed">Could not delete category. Please try again.</string>
+    <string name="feedback_category_restore_failed">Could not restore category</string>
+    <string name="feedback_subscription_saved">Recurring reminder saved</string>
+    <string name="feedback_subscription_save_failed">Could not save recurring reminder</string>
+    <string name="feedback_subscription_deleted">Recurring reminder deleted</string>
+    <string name="feedback_subscription_delete_failed">Could not delete recurring reminder</string>
+    <string name="feedback_subscription_restored">Recurring reminder restored</string>
+    <string name="feedback_subscription_restore_failed">Could not restore recurring reminder</string>
+    <string name="feedback_advisor_failed">Could not generate insights right now. Please try again.</string>
+    <string name="feedback_transaction_sync_retried_success">Transaction synced successfully</string>
+    <string name="feedback_transaction_sync_retry_failed">Transaction sync failed. Check connection and try again.</string>
+    <string name="natural_entry_ai_fallback_warning">Cloud AI is temporarily unavailable; using the on-device parser.</string>
+    <string name="feedback_currency_rate_refreshed">Exchange rates updated</string>
+    <string name="feedback_currency_rate_offline_retry">Could not refresh exchange rates while offline</string>
+    <string name="feedback_currency_updated">Currency changed to %1$s</string>
+    <string name="feedback_ai_api_key_saved">API key saved</string>
+    <string name="feedback_ai_api_key_cleared">API key cleared</string>
+    <string name="feedback_ai_model_updated">Selected model %1$s</string>
+    <string name="feedback_reminder_time_updated">Daily reminder set for %1$s</string>
+
+    <!-- Assets Redesign, Quick Add Transfer, Shared Wallet Hub & Extended Status Feedback -->
+    <string name="quick_add_transfer_title">Transfer between wallets</string>
+    <string name="quick_add_transfer_desc">Move balance quickly between your wallets</string>
+    <string name="assets_quick_create_wallet_title">New account</string>
+    <string name="assets_quick_create_wallet_desc">Cash, bank, card…</string>
+    <string name="assets_quick_shared_wallet_title">Shared wallet</string>
+    <string name="assets_quick_shared_wallet_desc">Create a shared wallet or enter invite code</string>
+    <string name="shared_wallet_hub_title">Shared Wallet</string>
+    <string name="shared_wallet_hub_tab_create">Create</string>
+    <string name="shared_wallet_hub_tab_join">Join with code</string>
+    <string name="cd_wallet_actions_more">Options for wallet %1$s</string>
+    <string name="assets_outbox_pending_banner">%1$d transaction(s) waiting to sync</string>
+    <string name="assets_outbox_syncing_banner">Syncing %1$d transaction(s)…</string>
+    <string name="assets_type_currency_format">%1$s · %2$s</string>
+    <string name="budget_followup_warning_format">Wallet \"%1$s\" reached %2$d%% of monthly budget</string>
+    <string name="budget_followup_exceeded_format">Wallet \"%1$s\" exceeded monthly budget (%2$d%%)</string>
+    <string name="ocr_ai_quota_or_key_error">Invalid API key or AI quota exceeded</string>
+    <string name="natural_entry_ai_quota_warning">AI key or quota error (%1$s); using on-device parser.</string>
+    <string name="action_open_ai_settings">AI Settings</string>
+    <string name="export_pending_banner">Creating report file…</string>
+    <string name="export_success_with_share">Report exported</string>
+    <string name="backup_pending_export_banner">Creating backup file…</string>
+    <string name="backup_pending_import_banner">Restoring data…</string>
+    <string name="backup_share_action">Share</string>
+    <string name="dialog_delete_transaction_undoable_format">Delete \"%1$s\"? You can undo right after deleting.</string>
+    <string name="feedback_outbox_sync_noop">All shared wallets are already synced</string>
+
+    <!-- Transaction Details Polish, Branded VietQR Card & BillSplit Redesign -->
+    <string name="transaction_quick_note_breakfast">Breakfast</string>
+    <string name="transaction_quick_note_lunch">Lunch</string>
+    <string name="transaction_quick_note_coffee">Coffee</string>
+    <string name="transaction_quick_note_fuel">Fuel</string>
+    <string name="transaction_quick_note_groceries">Groceries</string>
+    <string name="transaction_quick_note_salary">Monthly salary</string>
+    <string name="transaction_quick_note_bonus">Bonus</string>
+    <string name="transaction_quick_note_refund">Refund</string>
+    <string name="cd_scan_receipt_inline">Scan receipt image</string>
+    <string name="billsplit_create_cta">Create bill split</string>
+    <string name="billsplit_share_qr_image">Share QR image</string>
+    <string name="billsplit_vietqr_ready_format">VietQR ready · %1$s</string>
+    <string name="billsplit_vietqr_not_ready">No VietQR account linked</string>
+    <string name="billsplit_setup_vietqr_short">Set up QR</string>
+    <string name="billsplit_search_tx_placeholder">Search by note or category…</string>
+    <string name="billsplit_split_include_me">Split evenly (incl. me)</string>
+    <string name="billsplit_split_group_only">Split full bill to group</string>
+    <string name="billsplit_share_qr_failed">Could not create VietQR image. Please try again.</string>
+    <string name="billsplit_step_indicator_format">Step %1$d/2</string>
+    <string name="billsplit_add_expense_shortcut">Add expense transaction</string>
+    <string name="vietqr_card_account_holder">Account holder: %1$s</string>
+    <string name="vietqr_card_account_number">Account no.: %1$s</string>
+    <string name="vietqr_card_amount_label">Amount: %1$s</string>
+    <string name="vietqr_card_memo_label">Memo: %1$s</string>
 </resources>

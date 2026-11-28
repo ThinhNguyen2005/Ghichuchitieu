@@ -2,6 +2,7 @@ package com.notepay.core.designsystem.component.effect
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -16,6 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextMotion
+import com.notepay.core.navigation.NotePayEmphasizedAccelerate
+import com.notepay.core.navigation.NotePayEmphasizedDecelerate
+import com.notepay.core.navigation.rememberNotePayReducedMotion
 
 /**
  * Hiệu ứng cuộn số (Rolling Number / Ticker) cho chuỗi tiền tệ hoặc số liệu tài chính.
@@ -29,25 +34,43 @@ fun RollingNumberTicker(
     color: Color = Color.Unspecified,
     fontWeight: FontWeight? = null,
 ) {
+    val reducedMotion = rememberNotePayReducedMotion()
+    if (reducedMotion) {
+        Text(
+            text = text,
+            modifier = modifier,
+            style = style,
+            color = color,
+            fontWeight = fontWeight ?: style.fontWeight,
+        )
+        return
+    }
+
+    val animatedStyle = style.copy(textMotion = TextMotion.Animated)
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         text.forEachIndexed { index, char ->
             if (char.isDigit()) {
                 AnimatedContent(
                     targetState = char,
                     transitionSpec = {
-                        // Trượt lên mượt mà khi đổi số
-                        (slideInVertically { height -> height } + fadeIn()) togetherWith
-                                (slideOutVertically { height -> -height } + fadeOut()) using
-                                SizeTransform(clip = false)
+                        (slideInVertically(
+                            animationSpec = tween(durationMillis = 200, easing = NotePayEmphasizedDecelerate),
+                        ) { height -> height } + fadeIn(
+                            animationSpec = tween(durationMillis = 200, easing = NotePayEmphasizedDecelerate),
+                        )) togetherWith (slideOutVertically(
+                            animationSpec = tween(durationMillis = 140, easing = NotePayEmphasizedAccelerate),
+                        ) { height -> -height } + fadeOut(
+                            animationSpec = tween(durationMillis = 140, easing = NotePayEmphasizedAccelerate),
+                        )) using SizeTransform(clip = false)
                     },
-                    label = "DigitTicker_$index"
+                    label = "DigitTicker_$index",
                 ) { targetChar ->
                     Text(
                         text = targetChar.toString(),
-                        style = style,
+                        style = animatedStyle,
                         color = color,
                         fontWeight = fontWeight ?: style.fontWeight,
                     )
@@ -55,7 +78,7 @@ fun RollingNumberTicker(
             } else {
                 Text(
                     text = char.toString(),
-                    style = style,
+                    style = animatedStyle,
                     color = color,
                     fontWeight = fontWeight ?: style.fontWeight,
                 )
