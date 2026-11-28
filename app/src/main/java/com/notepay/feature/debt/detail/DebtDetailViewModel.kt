@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notepay.R
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.data.remote.VietQrBankRepository
 import com.notepay.domain.money.Money
 import com.notepay.domain.model.Debt
@@ -34,10 +38,7 @@ import kotlin.time.Clock
 import javax.inject.Inject
 
 sealed interface DebtDetailUiEvent {
-    data class ShowToast(val messageResId: Int) : DebtDetailUiEvent
-    data object PaymentRecorded : DebtDetailUiEvent
     data object DebtDeleted : DebtDetailUiEvent
-    data object PaymentDeleted : DebtDetailUiEvent
 }
 
 @HiltViewModel
@@ -63,8 +64,12 @@ class DebtDetailViewModel @Inject constructor(
     private val _events = MutableSharedFlow<DebtDetailUiEvent>()
     val events = _events.asSharedFlow()
 
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
+
     private val _isDeleted = MutableStateFlow(false)
     private val _banks = MutableStateFlow(VietQrBankRepository.FALLBACK)
+    private val _isSubmitting = MutableStateFlow(false)
 
     /**
      * `true` trong khoảng thời gian giữa lúc đổi lựa chọn và lúc Room phát bản ghi mới.
@@ -107,15 +112,15 @@ class DebtDetailViewModel @Inject constructor(
         },
         walletRepository.observeAll(),
         _banks,
-        _isDeleted,
-        _isSwitching,
-    ) { debtWithHistory, wallets, banks, isDeleted, isSwitching ->
+        combine(_isDeleted, _isSwitching, _isSubmitting, ::Triple),
+    ) { debtWithHistory, wallets, banks, (isDeleted, isSwitching, isSubmitting) ->
         DebtDetailUiState(
             debtWithHistory = if (isSwitching) null else debtWithHistory,
             wallets = wallets,
             banks = banks,
             isLoading = isSwitching,
             isDeleted = isDeleted,
+            isSubmitting = isSubmitting,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -130,23 +135,52 @@ class DebtDetailViewModel @Inject constructor(
         note: String,
         syncWithWallet: Boolean,
     ) {
+        if (!_isSubmitting.compareAndSet(false, true)) return
         viewModelScope.launch {
-            val trimmedNote = note.trim()
-            val payment = DebtPayment(
-                id = 0L,
-                debtId = debt.id,
-                amount = amount,
-                walletId = walletId,
-                paidAt = Clock.System.now(),
-                note = trimmedNote,
-            )
-            val transactionNote = if (syncWithWallet) {
-                context.debtPaymentTransactionNote(debt.type, debt.personName, trimmedNote)
-            } else ""
+            try {
+                val trimmedNote = note.trim()
+                val payment = DebtPayment(
+                    id = 0L,
+                    debtId = debt.id,
+                    amount = amount,
+                    walletId = walletId,
+                    paidAt = Clock.System.now(),
+                    note = trimmedNote,
+                )
+                val transactionNote = if (syncWithWallet) {
+                    context.debtPaymentTransactionNote(debt.type, debt.personName, trimmedNote)
+                } else ""
 
-            val result = recordDebtPaymentUseCase(debt, payment, syncWithWallet, transactionNote)
-            if (result.isSuccess) {
-                _events.emit(DebtDetailUiEvent.PaymentRecorded)
+                val result = recordDebtPaymentUseCase(debt, payment, syncWithWallet, transactionNote)
+                _isSubmitting.value = false
+                result.onSuccess {
+                    _feedback.emit(
+                        UiFeedback(
+                            message = context.getString(R.string.debt_payment_success),
+                            type = FeedbackType.Success,
+                        ),
+                    )
+                }.onFailure {
+                    _feedback.emit(
+                        UiFeedback(
+                            message = context.getString(R.string.debt_payment_failed),
+                            actionLabel = context.getString(R.string.action_retry),
+                            type = FeedbackType.Error,
+                            duration = FeedbackDuration.Long,
+                            onAction = {
+                                recordPayment(
+                                    debt = debt,
+                                    amount = amount,
+                                    walletId = walletId,
+                                    note = note,
+                                    syncWithWallet = syncWithWallet,
+                                )
+                            },
+                        ),
+                    )
+                }
+            } finally {
+                _isSubmitting.value = false
             }
         }
     }
@@ -154,24 +188,129 @@ class DebtDetailViewModel @Inject constructor(
     fun toggleSettled() {
         val current = uiState.value.debtWithHistory ?: return
         val id = selectedDebtId.value ?: return
+        if (!_isSubmitting.compareAndSet(false, true)) return
+        val previousSettled = current.debt.isSettled
+        val newSettled = !previousSettled
         viewModelScope.launch {
-            debtRepository.markSettled(id, !current.debt.isSettled)
+            try {
+                debtRepository.markSettled(id, newSettled)
+                _isSubmitting.value = false
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(
+                            if (newSettled) {
+                                R.string.debt_marked_settled_success
+                            } else {
+                                R.string.debt_marked_unsettled_success
+                            },
+                        ),
+                        actionLabel = context.getString(R.string.feedback_undo),
+                        type = FeedbackType.Success,
+                        duration = FeedbackDuration.Long,
+                        onAction = { restoreSettled(id, previousSettled) },
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _isSubmitting.value = false
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.debt_mark_settled_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { toggleSettled() },
+                    ),
+                )
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    private fun restoreSettled(debtId: Long, previousSettled: Boolean) {
+        if (!_isSubmitting.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            try {
+                debtRepository.markSettled(debtId, previousSettled)
+                _isSubmitting.value = false
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _isSubmitting.value = false
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.debt_mark_settled_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { restoreSettled(debtId, previousSettled) },
+                    ),
+                )
+            } finally {
+                _isSubmitting.value = false
+            }
         }
     }
 
     fun deletePayment(paymentId: Long) {
+        if (!_isSubmitting.compareAndSet(false, true)) return
         viewModelScope.launch {
-            debtRepository.deletePayment(paymentId)
-            _events.emit(DebtDetailUiEvent.PaymentDeleted)
+            try {
+                debtRepository.deletePayment(paymentId)
+                _isSubmitting.value = false
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.debt_payment_delete_success),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _isSubmitting.value = false
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.debt_payment_delete_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { deletePayment(paymentId) },
+                    ),
+                )
+            } finally {
+                _isSubmitting.value = false
+            }
         }
     }
 
     fun deleteDebt() {
         val id = selectedDebtId.value ?: return
+        if (_isDeleted.value) return
+        if (!_isSubmitting.compareAndSet(false, true)) return
         viewModelScope.launch {
-            deleteDebtUseCase(id)
-            _isDeleted.update { true }
-            _events.emit(DebtDetailUiEvent.DebtDeleted)
+            try {
+                val result = deleteDebtUseCase(id)
+                result.onSuccess {
+                    _isDeleted.update { true }
+                    _isSubmitting.value = false
+                    _events.emit(DebtDetailUiEvent.DebtDeleted)
+                }.onFailure {
+                    _isSubmitting.value = false
+                    _feedback.emit(
+                        UiFeedback(
+                            message = context.getString(R.string.debt_delete_failed),
+                            actionLabel = context.getString(R.string.action_retry),
+                            type = FeedbackType.Error,
+                            duration = FeedbackDuration.Long,
+                            onAction = { deleteDebt() },
+                        ),
+                    )
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
         }
     }
 }

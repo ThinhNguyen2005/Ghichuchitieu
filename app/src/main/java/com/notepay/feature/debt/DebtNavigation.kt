@@ -2,11 +2,13 @@ package com.notepay.feature.debt
 
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.feature.debt.detail.DebtDetailScreen
 import com.notepay.feature.debt.management.DebtManagementScreen
 import com.notepay.core.navigation.PredictiveBackDestination
@@ -14,6 +16,8 @@ import com.notepay.core.navigation.Route
 
 fun NavGraphBuilder.debtGraph(
     navController: NavController,
+    showFeedback: suspend (UiFeedback) -> Boolean,
+    onFeedbackAfterReturn: (NavBackStackEntry, UiFeedback) -> Unit,
 ) {
     composable(
         route = Route.DebtManagement.ROUTE,
@@ -43,6 +47,7 @@ fun NavGraphBuilder.debtGraph(
                 onDebtClick = { debtId ->
                     navController.navigate(Route.DebtDetail(debtId).path)
                 },
+                onFeedback = showFeedback,
                 initialShowCreate = showCreate,
                 onClearShowCreate = {
                     backStackEntry.savedStateHandle["showCreate"] = false
@@ -56,10 +61,12 @@ fun NavGraphBuilder.debtGraph(
         arguments = listOf(
             navArgument(Route.DebtDetail.ARG_ID) { type = NavType.LongType }
         )
-    ) {
+    ) { entry ->
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             DebtDetailScreen(
                 onBack = { navController.popBackStack() },
+                onFeedback = showFeedback,
+                onDeleted = { feedback -> onFeedbackAfterReturn(entry, feedback) },
             )
         }
     }

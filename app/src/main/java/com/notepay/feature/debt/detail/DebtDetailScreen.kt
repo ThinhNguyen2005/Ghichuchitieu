@@ -1,6 +1,5 @@
 package com.notepay.feature.debt.detail
 
-import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,12 +31,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +44,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.core.designsystem.component.bar.GradientTopAppBar
 import com.notepay.core.designsystem.component.dialog.ConfirmDeleteDialog
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.domain.model.DebtPayment
 import com.notepay.domain.model.DebtType
@@ -54,20 +54,23 @@ import com.notepay.feature.debt.detail.component.DebtDetailOverviewCard
 import com.notepay.feature.debt.detail.component.DebtPaymentHistoryItem
 import com.notepay.feature.debt.management.sheet.DebtRemindBottomSheet
 import com.notepay.feature.debt.management.sheet.RecordPaymentDialog
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebtDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onFeedback: suspend (UiFeedback) -> Boolean = { false },
+    onDeleted: ((UiFeedback) -> Unit)? = null,
     // Pane phải truyền id đang chọn; route độc lập đã có id trong nav args nên để null.
     debtId: Long? = null,
     paneMode: Boolean = false,
     viewModel: DebtDetailViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val debtDeletedMsg = stringResource(R.string.debt_delete_success)
 
     var showPaymentDialog by remember { mutableStateOf(false) }
     var showQrSheet by remember { mutableStateOf(false) }
@@ -80,21 +83,22 @@ fun DebtDetailScreen(
         if (debtId != null) viewModel.select(debtId)
     }
 
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
+
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
             when (event) {
                 is DebtDetailUiEvent.DebtDeleted -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_delete_success), Toast.LENGTH_SHORT).show()
-                    onBack()
-                }
-                is DebtDetailUiEvent.PaymentRecorded -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_payment_success), Toast.LENGTH_SHORT).show()
-                }
-                is DebtDetailUiEvent.PaymentDeleted -> {
-                    Toast.makeText(context, resources.getString(R.string.debt_delete_success), Toast.LENGTH_SHORT).show()
-                }
-                is DebtDetailUiEvent.ShowToast -> {
-                    Toast.makeText(context, resources.getString(event.messageResId), Toast.LENGTH_SHORT).show()
+                    val feedback = UiFeedback(debtDeletedMsg, type = FeedbackType.Success)
+                    if (onDeleted != null) {
+                        onDeleted(feedback)
+                    } else {
+                        onBack()
+                    }
                 }
             }
         }
@@ -130,6 +134,7 @@ fun DebtDetailScreen(
                 if (uiState.debtWithHistory != null) {
                     IconButton(
                         onClick = { showDeleteDebtDialog = true },
+                        enabled = !uiState.isSubmitting && !uiState.isDeleted,
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                     ) {
                         Icon(
@@ -186,6 +191,7 @@ fun DebtDetailScreen(
                             item = item,
                             animatedProgress = animatedProgress,
                             accentColor = accentColor,
+                            onFeedback = { feedback -> coroutineScope.launch { onFeedback(feedback) } },
                         )
                     }
 
@@ -194,6 +200,7 @@ fun DebtDetailScreen(
                         DebtDetailActionCard(
                             isSettled = debt.isSettled,
                             isLend = isLend,
+                            isSubmitting = uiState.isSubmitting,
                             onRecordPayment = { showPaymentDialog = true },
                             onToggleSettled = { viewModel.toggleSettled() },
                             onShowQrRemind = { showQrSheet = true },
@@ -242,6 +249,7 @@ fun DebtDetailScreen(
                             DebtPaymentHistoryItem(
                                 payment = payment,
                                 accentColor = accentColor,
+                                deleteEnabled = !uiState.isSubmitting,
                                 onDeleteClick = { paymentToDelete = payment },
                             )
                         }
@@ -257,16 +265,19 @@ fun DebtDetailScreen(
         RecordPaymentDialog(
             debtWithHistory = debtWithHistory,
             wallets = uiState.wallets,
+            isSubmitting = uiState.isSubmitting,
             onDismiss = { showPaymentDialog = false },
             onConfirm = { amount, walletId, note, syncWithWallet ->
-                viewModel.recordPayment(
-                    debtWithHistory.debt,
-                    amount,
-                    walletId,
-                    note,
-                    syncWithWallet
-                )
-                showPaymentDialog = false
+                if (!uiState.isSubmitting) {
+                    viewModel.recordPayment(
+                        debtWithHistory.debt,
+                        amount,
+                        walletId,
+                        note,
+                        syncWithWallet
+                    )
+                    showPaymentDialog = false
+                }
             }
         )
     }
@@ -288,7 +299,7 @@ fun DebtDetailScreen(
             title = stringResource(R.string.debt_confirm_delete_title),
             itemName = debtWithHistory?.debt?.personName.orEmpty(),
             message = stringResource(R.string.debt_confirm_delete_desc),
-            onConfirm = { viewModel.deleteDebt() },
+            onConfirm = { if (!uiState.isSubmitting) viewModel.deleteDebt() },
             onDismiss = { showDeleteDebtDialog = false },
         )
     }
@@ -299,7 +310,7 @@ fun DebtDetailScreen(
             title = stringResource(R.string.debt_delete_payment_title),
             itemName = "",
             message = stringResource(R.string.debt_delete_payment_desc),
-            onConfirm = { viewModel.deletePayment(payment.id) },
+            onConfirm = { if (!uiState.isSubmitting) viewModel.deletePayment(payment.id) },
             onDismiss = { paymentToDelete = null },
         )
     }

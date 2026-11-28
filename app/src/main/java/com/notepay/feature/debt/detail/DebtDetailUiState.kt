@@ -12,4 +12,5 @@ data class DebtDetailUiState(
     val banks: List<VietQrBank> = emptyList(),
     val isLoading: Boolean = true,
     val isDeleted: Boolean = false,
+    val isSubmitting: Boolean = false,
 )

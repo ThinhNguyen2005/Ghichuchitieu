@@ -15,4 +15,5 @@ data class DebtUiState(
     val summary: DebtSummary? = null,
     val wallets: List<Wallet> = emptyList(),
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
 )

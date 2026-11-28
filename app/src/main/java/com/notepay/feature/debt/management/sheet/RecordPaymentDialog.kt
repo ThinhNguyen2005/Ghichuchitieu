@@ -54,6 +54,7 @@ fun RecordPaymentDialog(
         syncWithWallet: Boolean,
     ) -> Unit,
     modifier: Modifier = Modifier,
+    isSubmitting: Boolean = false,
 ) {
     val remainingCents = debtWithHistory.remainingAmount.amountInCents
     val remainingMajor = remainingCents / 100
@@ -214,7 +215,7 @@ fun RecordPaymentDialog(
                         syncWithWallet,
                     )
                 },
-                enabled = isAmountValid,
+                enabled = isAmountValid && !isSubmitting,
                 shape = AppTheme.shapes.corner16,
             ) {
                 Text(stringResource(R.string.action_done), fontWeight = FontWeight.Bold)
