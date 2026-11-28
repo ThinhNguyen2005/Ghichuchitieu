@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.ai.OnDeviceBudgetAdvisor
+import com.notepay.core.designsystem.feedback.FeedbackDuration
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.PresentationDateFormatter
 import com.notepay.core.designsystem.util.localizedName
 import com.notepay.data.datastore.AdvisorFeedbackStore
@@ -43,9 +46,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -96,6 +101,9 @@ class StatsViewModel @Inject constructor(
 
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+
+    private val _feedback = MutableSharedFlow<UiFeedback>(extraBufferCapacity = 1)
+    val feedback = _feedback.asSharedFlow()
 
     private val _trendWindow = MutableStateFlow(TrendWindow.SIX_MONTHS)
 
@@ -434,6 +442,15 @@ class StatsViewModel @Inject constructor(
                 throw cancelled
             } catch (_: Throwable) {
                 resetLocalAdviceAfterFailure(request)
+                _feedback.tryEmit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_advisor_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = ::generateLocalAdvice,
+                    ),
+                )
             }
         }
     }
@@ -612,19 +629,42 @@ class StatsViewModel @Inject constructor(
         // tránh tạo Subscription với amount <= 0 (ràng buộc require trong domain model).
         val amount = AmountParser.parse(form.amountInput).amount ?: return
 
+        val subscription = Subscription(
+            name = form.name.trim(),
+            amount = amount,
+            category = form.category,
+            nextDueDate = Instant.fromEpochMilliseconds(form.nextDueEpochMs),
+            repeatMonths = form.repeatMonths,
+            remindDaysBefore = form.remindDaysBefore,
+            note = form.note,
+        )
+        persistSubscription(subscription, dismissOnSuccess = true)
+    }
+
+    private fun persistSubscription(subscription: Subscription, dismissOnSuccess: Boolean) {
         viewModelScope.launch {
-            subscriptionRepo.upsert(
-                Subscription(
-                    name = form.name.trim(),
-                    amount = amount,
-                    category = form.category,
-                    nextDueDate = Instant.fromEpochMilliseconds(form.nextDueEpochMs),
-                    repeatMonths = form.repeatMonths,
-                    remindDaysBefore = form.remindDaysBefore,
-                    note = form.note,
-                ),
-            )
-            dismissSubForm()
+            try {
+                subscriptionRepo.upsert(subscription)
+                if (dismissOnSuccess) dismissSubForm()
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_saved),
+                        type = FeedbackType.Success,
+                    ),
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _feedback.emit(
+                    UiFeedback(
+                        message = context.getString(R.string.feedback_subscription_save_failed),
+                        actionLabel = context.getString(R.string.action_retry),
+                        type = FeedbackType.Error,
+                        duration = FeedbackDuration.Long,
+                        onAction = { persistSubscription(subscription, dismissOnSuccess = false) },
+                    ),
+                )
+            }
         }
     }
 

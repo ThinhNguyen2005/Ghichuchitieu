@@ -1,12 +1,5 @@
 package com.notepay.feature.stats.main
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,8 +51,8 @@ import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
+import com.notepay.core.navigation.NotePayAnimatedContent
 import com.notepay.core.navigation.rememberMainTabBottomClearance
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.domain.money.Money
 import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.stats.main.component.AiInsightsCarousel
@@ -68,6 +62,7 @@ import com.notepay.feature.stats.main.component.StatsDashboard
 import com.notepay.feature.stats.main.component.StatsMetric
 import com.notepay.feature.subscription.main.AddSubscriptionDialogState
 import com.notepay.feature.subscription.main.sheet.AddSubscriptionBottomSheet
+import kotlinx.coroutines.launch
 
 /**
  * Chuẩn hóa số liệu thẳng hàng dọc (Tabular figures).
@@ -108,9 +103,13 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addSubFormState by viewModel.addSubForm.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onFeedback) {
+        viewModel.feedback.collect { feedback ->
+            launch { onFeedback(feedback) }
+        }
+    }
     var showAmounts by rememberSaveable { mutableStateOf(true) }
     var isExportSheetVisible by rememberSaveable { mutableStateOf(false) }
-    val reducedMotion = rememberNotePayReducedMotion()
 
     val contentState = when {
         state.isLoading -> StatsContentState.LOADING
@@ -132,16 +131,8 @@ fun StatsScreen(
                 onToggleAmounts = { showAmounts = !showAmounts },
             )
 
-            AnimatedContent(
+            NotePayAnimatedContent(
                 targetState = contentState,
-                transitionSpec = {
-                    if (reducedMotion) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(animationSpec = tween(180)) togetherWith
-                            fadeOut(animationSpec = tween(140))
-                    }
-                },
                 label = "stats-content",
                 modifier = Modifier
                     .weight(1f)
