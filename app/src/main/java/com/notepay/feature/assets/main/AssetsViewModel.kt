@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.notepay.R
 import com.notepay.core.designsystem.feedback.FeedbackType
 import com.notepay.core.designsystem.feedback.UiFeedback
+import com.notepay.data.local.dao.SyncOutboxDao
 import com.notepay.data.remote.CurrencyRateRepository
 import com.notepay.data.remote.CurrencyRateSnapshot
 import com.notepay.domain.model.CurrencyConverter
@@ -13,7 +14,6 @@ import com.notepay.domain.model.Transaction
 import com.notepay.domain.model.TransactionNotePolicy
 import com.notepay.domain.model.TransactionType
 import com.notepay.domain.model.Wallet
-import com.notepay.domain.model.WalletPurpose
 import com.notepay.domain.model.WalletStats
 import com.notepay.domain.money.Money
 import com.notepay.domain.repository.SharedWalletRepository
@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -52,6 +53,7 @@ class AssetsViewModel @Inject constructor(
     private val transferBetweenWalletsUseCase: TransferBetweenWalletsUseCase,
     private val currencyRateRepository: CurrencyRateRepository,
     private val sharedWalletRepository: SharedWalletRepository?,
+    private val syncOutboxDao: SyncOutboxDao?,
 ) : ViewModel() {
 
     internal constructor(
@@ -69,6 +71,7 @@ class AssetsViewModel @Inject constructor(
         transferBetweenWalletsUseCase = transferBetweenWalletsUseCase,
         currencyRateRepository = currencyRateRepository,
         sharedWalletRepository = null,
+        syncOutboxDao = null,
     )
 
     private val _transferForm = MutableStateFlow(TransferFormState())
@@ -76,8 +79,8 @@ class AssetsViewModel @Inject constructor(
     private val _allocationMode = MutableStateFlow(AllocationMode.ASSET)
     private val _adjustBalanceWallet = MutableStateFlow<WalletAssetItem?>(null)
     private val _ratesSnapshot = MutableStateFlow<CurrencyRateSnapshot?>(null)
-    private val _selectedPurpose = MutableStateFlow<WalletPurpose?>(null)
     private val _isSharedActionSubmitting = MutableStateFlow(false)
+    private val _isSyncingOutbox = MutableStateFlow(false)
 
     val transferForm: StateFlow<TransferFormState> = _transferForm.asStateFlow()
 
@@ -93,27 +96,21 @@ class AssetsViewModel @Inject constructor(
         }
     }
 
+    private val pendingSyncCountFlow: Flow<Int> = syncOutboxDao?.observePendingCount() ?: flowOf(0)
+
     val state: StateFlow<AssetsUiState> = combine(
         observeAssets(),
-        _selectedPurpose,
         _isSharedActionSubmitting,
-    ) { base, purpose, sharedSubmitting ->
+        pendingSyncCountFlow,
+        _isSyncingOutbox,
+    ) { base, sharedSubmitting, pendingCount, syncingOutbox ->
         val cloudConfigured = sharedWalletRepository?.isCloudConfigured == true
-        if (base.isLoading || base.hasError || purpose == null) {
-            base.copy(
-                selectedPurpose = purpose,
-                isCloudConfigured = cloudConfigured,
-                isSharedActionSubmitting = sharedSubmitting,
-            )
-        } else {
-            base.copy(
-                selectedPurpose = purpose,
-                assetWallets = base.assetWallets.filter { it.wallet.purpose == purpose },
-                liabilityWallets = base.liabilityWallets.filter { it.wallet.purpose == purpose },
-                isCloudConfigured = cloudConfigured,
-                isSharedActionSubmitting = sharedSubmitting,
-            )
-        }
+        base.copy(
+            isCloudConfigured = cloudConfigured,
+            isSharedActionSubmitting = sharedSubmitting,
+            pendingSyncCount = pendingCount,
+            isSyncingOutbox = syncingOutbox,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -154,7 +151,6 @@ class AssetsViewModel @Inject constructor(
                 allocationMode = tuple.allocMode,
                 adjustWallet = tuple.adjustWallet,
                 ratesSnapshot = tuple.ratesSnapshot,
-                selectedPurpose = null,
             )
         }.onStart { emit(AssetsUiState()) }
             .catch { error ->
@@ -175,7 +171,6 @@ class AssetsViewModel @Inject constructor(
         allocationMode: AllocationMode,
         adjustWallet: WalletAssetItem?,
         ratesSnapshot: CurrencyRateSnapshot?,
-        selectedPurpose: WalletPurpose?,
     ): AssetsUiState {
         val statsByWallet = walletStats.associateBy { it.walletId }
         val rates = ratesSnapshot?.rates
@@ -211,13 +206,8 @@ class AssetsViewModel @Inject constructor(
             .filter { it.wallet.isAsset && it.convertedBalanceVnd.amountInCents > 0L }
             .sumOf { it.convertedBalanceVnd.amountInCents }
 
-        val visibleItems = if (selectedPurpose == null) {
-            activeItems
-        } else {
-            activeItems.filter { it.wallet.purpose == selectedPurpose }
-        }
-        val assetItemsRaw = visibleItems.filter { it.wallet.isAsset }
-        val liabilityItemsRaw = visibleItems.filter { it.wallet.isLiability }
+        val assetItemsRaw = activeItems.filter { it.wallet.isAsset }
+        val liabilityItemsRaw = activeItems.filter { it.wallet.isLiability }
 
         val assetItems = assetItemsRaw.map { item ->
             val pct = if (item.wallet.includeInTotalBalance && totalPositiveAssetVnd > 0L && item.convertedBalanceVnd.amountInCents > 0L) {
@@ -294,13 +284,52 @@ class AssetsViewModel @Inject constructor(
             hasForeignCurrency = hasForeign,
             ratesLastUpdated = ratesUpdatedString,
             adjustBalanceWallet = adjustWallet,
-            selectedPurpose = selectedPurpose,
             excludedWalletCount = excludedCount,
         )
     }
 
-    fun onPurposeFilterChanged(purpose: WalletPurpose?) {
-        _selectedPurpose.value = purpose
+    fun syncPendingOutbox() {
+        val repo = sharedWalletRepository ?: return
+        if (_isSyncingOutbox.value) return
+        _isSyncingOutbox.value = true
+        viewModelScope.launch {
+            try {
+                repo.syncAllSharedWallets().fold(
+                    onSuccess = { summary ->
+                        val feedback = if (summary.pushedCount == 0 && summary.pulledTransactionsCount == 0) {
+                            UiFeedback(
+                                message = context.getString(R.string.feedback_outbox_sync_noop),
+                                type = FeedbackType.Info,
+                            )
+                        } else {
+                            UiFeedback(
+                                message = context.resources.getQuantityString(
+                                    R.plurals.shared_wallet_sync_success,
+                                    summary.pulledTransactionsCount,
+                                    summary.pushedCount,
+                                    summary.pulledTransactionsCount,
+                                ),
+                                type = FeedbackType.Success,
+                            )
+                        }
+                        _feedback.emit(feedback)
+                    },
+                    onFailure = { err ->
+                        _feedback.emit(
+                            UiFeedback(
+                                message = context.getString(
+                                    R.string.shared_wallet_action_failed,
+                                    err.message.orEmpty(),
+                                ),
+                                type = FeedbackType.Error,
+                            ),
+                        )
+                    },
+                )
+            } finally {
+                _isSyncingOutbox.value = false
+            }
+        }
     }
 
     fun createSharedWallet(

@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.notepay.R
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
 import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
@@ -293,6 +294,17 @@ private fun SharedMembersBody(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (state.errorMessage != null && state.members.isNotEmpty()) {
+                item(key = "members_inline_error") {
+                    NotePayStatusBanner(
+                        message = state.errorMessage,
+                        type = FeedbackType.Error,
+                        actionLabel = stringResource(R.string.action_retry_assets),
+                        onAction = onRetry,
+                    )
+                }
+            }
+
             item(key = "members_header") {
                 Text(
                     text = stringResource(R.string.shared_wallet_members_section, state.members.size),

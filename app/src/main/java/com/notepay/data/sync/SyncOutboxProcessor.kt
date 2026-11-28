@@ -154,8 +154,10 @@ class SyncOutboxProcessor internal constructor(
                 continue
             }
             val now = nowEpochMs()
+            var decodedPayload: OutboxTransactionPayload? = null
             try {
                 val payload = json.decodeFromString(OutboxTransactionPayload.serializer(), item.payloadJson)
+                decodedPayload = payload
                 val remoteDto = RemoteSharedTransactionDto(
                     operationId = payload.operationId,
                     walletId = payload.walletRemoteId,
@@ -169,9 +171,21 @@ class SyncOutboxProcessor internal constructor(
                     deletedAt = payload.deletedAtEpochMs?.let { Instant.fromEpochMilliseconds(it).toString() },
                 )
                 val savedRemote = remoteGateway.upsertTransaction(remoteDto)
-                markLocalTransactionSynced(payload, savedRemote)
+                transactionDao.markSyncSynced(
+                    id = payload.localTransactionId,
+                    operationId = payload.operationId,
+                    expectedUpdatedAt = payload.updatedAtEpochMs,
+                    expectedDeletedAt = payload.deletedAtEpochMs,
+                    remoteId = savedRemote.id,
+                    createdByUserId = savedRemote.createdBy,
+                    createdByName = savedRemote.createdByName.ifBlank { null },
+                    remoteUpdatedAt = parseEpochMsOrZero(savedRemote.updatedAt),
+                )
                 outboxDao.updateStatus(
                     operationId = item.operationId,
+                    expectedUpdatedAt = item.updatedAtEpochMs,
+                    expectedPayloadJson = item.payloadJson,
+                    expectedStatus = item.status,
                     status = SyncOutboxEntity.STATUS_SYNCED,
                     retryCount = item.retryCount,
                     lastError = null,
@@ -182,13 +196,25 @@ class SyncOutboxProcessor internal constructor(
                 throw cancelled
             } catch (error: Throwable) {
                 failed++
-                outboxDao.updateStatus(
+                val markedFailed = outboxDao.updateStatus(
                     operationId = item.operationId,
+                    expectedUpdatedAt = item.updatedAtEpochMs,
+                    expectedPayloadJson = item.payloadJson,
+                    expectedStatus = item.status,
                     status = SyncOutboxEntity.STATUS_FAILED,
                     retryCount = item.retryCount + 1,
                     lastError = error.message?.take(MAX_ERROR_LENGTH) ?: error::class.simpleName,
                     updatedAt = now,
                 )
+                if (markedFailed > 0) {
+                    decodedPayload?.let { payload ->
+                        transactionDao.markSyncFailed(
+                            payload.localTransactionId,
+                            payload.operationId,
+                            payload.updatedAtEpochMs,
+                        )
+                    }
+                }
             }
         }
 
@@ -248,28 +274,6 @@ class SyncOutboxProcessor internal constructor(
             existing == null -> ConflictResolutionOutcome.INSERTED
             else -> ConflictResolutionOutcome.UPDATED_FROM_REMOTE
         }
-    }
-
-    private suspend fun markLocalTransactionSynced(
-        payload: OutboxTransactionPayload,
-        savedRemote: RemoteSharedTransactionDto,
-    ) {
-        val existing = transactionDao.getByOperationId(payload.operationId)
-            ?: transactionDao.getById(payload.localTransactionId)
-            ?: return
-
-        val remoteUpdated = parseEpochMsOrZero(savedRemote.updatedAt)
-        transactionDao.upsert(
-            existing.copy(
-                remoteId = savedRemote.id ?: existing.remoteId,
-                operationId = payload.operationId,
-                syncStatus = SyncStatus.SYNCED.name,
-                createdByUserId = savedRemote.createdBy ?: existing.createdByUserId,
-                createdByName = savedRemote.createdByName.ifBlank { existing.createdByName.orEmpty() }
-                    .ifBlank { null },
-                updatedAtEpochMs = maxOf(existing.updatedAtEpochMs, remoteUpdated),
-            ),
-        )
     }
 
     private fun parseEpochMsOrZero(raw: String?): Long {

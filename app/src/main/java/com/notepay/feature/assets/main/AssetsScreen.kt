@@ -1,27 +1,18 @@
 package com.notepay.feature.assets.main
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,22 +32,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.rounded.AddCard
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.GroupAdd
-import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -91,25 +81,26 @@ import com.notepay.core.designsystem.adaptive.LocalContentGutter
 import com.notepay.core.designsystem.adaptive.LocalWindowLayout
 import com.notepay.core.designsystem.adaptive.usesNavigationRail
 import com.notepay.core.designsystem.component.effect.AppAtmosphericBackground
+import com.notepay.core.designsystem.component.effect.NotePayModalBottomSheet
 import com.notepay.core.designsystem.component.effect.iosCardShadow
 import com.notepay.core.designsystem.component.feedback.EmptyStateWithAction
+import com.notepay.core.designsystem.feedback.FeedbackType
+import com.notepay.core.designsystem.feedback.NotePayStatusBanner
 import com.notepay.core.designsystem.feedback.UiFeedback
 import com.notepay.core.designsystem.formatter.MoneyFormatter
 import com.notepay.core.designsystem.theme.AppTheme
 import com.notepay.core.designsystem.util.VietnamCurrencyVisualTransformation
-import com.notepay.core.designsystem.util.WalletUiHelper
+import com.notepay.core.navigation.NotePayAnimatedContent
+import com.notepay.core.navigation.NotePayAnimatedVisibility
 import com.notepay.core.navigation.NotePayStaggeredEntrance
 import com.notepay.core.navigation.rememberMainTabBottomClearance
-import com.notepay.core.navigation.rememberNotePayReducedMotion
 import com.notepay.core.navigation.shakeOnError
 import com.notepay.domain.model.CurrencyConverter
-import com.notepay.domain.model.WalletPurpose
 import com.notepay.feature.assets.export.ExportReportBottomSheet
 import com.notepay.feature.assets.main.component.AssetsInkHeroCard
 import com.notepay.feature.assets.main.component.WalletAssetCard
 import com.notepay.feature.assets.main.sheet.TransferBottomSheet
-import com.notepay.feature.assets.shared.CreateSharedWalletDialog
-import com.notepay.feature.assets.shared.JoinSharedWalletDialog
+import com.notepay.feature.assets.shared.SharedWalletHubSheet
 import com.notepay.feature.debt.management.component.DebtSummaryCard
 
 private val AssetCardMinWidth = 320.dp
@@ -134,14 +125,12 @@ fun AssetsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transferForm by viewModel.transferForm.collectAsStateWithLifecycle()
-    val reducedMotion = rememberNotePayReducedMotion()
     val contentGutter = LocalContentGutter.current
     val bottomClearance = rememberMainTabBottomClearance(LocalWindowLayout.current.usesNavigationRail)
 
     var isArchivedExpanded by remember { mutableStateOf(false) }
     var isExportSheetVisible by remember { mutableStateOf(false) }
-    var showCreateSharedDialog by remember { mutableStateOf(false) }
-    var showJoinSharedDialog by remember { mutableStateOf(false) }
+    var showSharedWalletHub by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.feedback.collect { feedback ->
@@ -162,15 +151,8 @@ fun AssetsScreen(
             forceSoftBlurOnPhoto = true,
         )
 
-        AnimatedContent(
+        NotePayAnimatedContent(
             targetState = contentState,
-            transitionSpec = {
-                if (reducedMotion) {
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(140))
-                }
-            },
             label = "assets-content",
             modifier = Modifier.fillMaxSize(),
         ) { target ->
@@ -309,21 +291,31 @@ fun AssetsScreen(
                                         allocationMode = state.allocationMode,
                                         onAllocationModeChanged = viewModel::onAllocationModeChanged,
                                         allocationItems = state.allocationItems,
-                                        canTransfer = state.wallets.size >= 2,
                                         hasForeignCurrency = state.hasForeignCurrency,
                                         ratesLastUpdated = state.ratesLastUpdated,
-                                        onAddWallet = onAddWallet,
-                                        onTransferClick = { viewModel.openTransferSheet() },
                                     )
+                                    if (state.pendingSyncCount > 0) {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        NotePayStatusBanner(
+                                            visible = true,
+                                            message = if (state.isSyncingOutbox) {
+                                                stringResource(R.string.assets_outbox_syncing_banner, state.pendingSyncCount)
+                                            } else {
+                                                stringResource(R.string.assets_outbox_pending_banner, state.pendingSyncCount)
+                                            },
+                                            type = FeedbackType.Pending,
+                                            actionLabel = if (state.isSyncingOutbox) {
+                                                null
+                                            } else {
+                                                stringResource(R.string.shared_wallet_sync_now)
+                                            },
+                                            onAction = viewModel::syncPendingOutbox,
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    PurposeFilterChipRow(
-                                        selectedPurpose = state.selectedPurpose,
-                                        onPurposeSelected = viewModel::onPurposeFilterChanged,
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    SharedWalletQuickActionsRow(
-                                        onCreateSharedWallet = { showCreateSharedDialog = true },
-                                        onJoinByInviteCode = { showJoinSharedDialog = true },
+                                    AssetsQuickActionsRow(
+                                        onAddWallet = onAddWallet,
+                                        onOpenSharedWalletHub = { showSharedWalletHub = true },
                                     )
                                 }
                             }
@@ -539,28 +531,20 @@ fun AssetsScreen(
             )
         }
 
-        if (showCreateSharedDialog) {
-            CreateSharedWalletDialog(
+        if (showSharedWalletHub) {
+            SharedWalletHubSheet(
                 isCloudConfigured = state.isCloudConfigured,
                 isSubmitting = state.isSharedActionSubmitting,
-                onDismiss = { showCreateSharedDialog = false },
-                onConfirm = { name, currency, budgetMinor ->
+                onDismiss = { showSharedWalletHub = false },
+                onCreateWallet = { name, currency, budgetMinor ->
                     viewModel.createSharedWallet(name, currency, budgetMinor) { walletId ->
-                        showCreateSharedDialog = false
+                        showSharedWalletHub = false
                         onOpenSharedMembers(walletId)
                     }
                 },
-            )
-        }
-
-        if (showJoinSharedDialog) {
-            JoinSharedWalletDialog(
-                isCloudConfigured = state.isCloudConfigured,
-                isSubmitting = state.isSharedActionSubmitting,
-                onDismiss = { showJoinSharedDialog = false },
-                onConfirm = { code, displayName ->
+                onJoinWallet = { code, displayName ->
                     viewModel.joinSharedWallet(code, displayName) { walletId ->
-                        showJoinSharedDialog = false
+                        showSharedWalletHub = false
                         onOpenSharedMembers(walletId)
                     }
                 },
@@ -570,123 +554,152 @@ fun AssetsScreen(
 }
 
 @Composable
-private fun SharedWalletQuickActionsRow(
-    onCreateSharedWallet: () -> Unit,
-    onJoinByInviteCode: () -> Unit,
+private fun AssetsQuickActionsRow(
+    onAddWallet: () -> Unit,
+    onOpenSharedWalletHub: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SharedWalletActionPill(
-            icon = Icons.Rounded.GroupAdd,
-            label = stringResource(R.string.shared_wallet_create_action),
-            onClick = onCreateSharedWallet,
-            modifier = Modifier.weight(1f),
-        )
-        SharedWalletActionPill(
-            icon = Icons.Rounded.Key,
-            label = stringResource(R.string.shared_wallet_join_action),
-            onClick = onJoinByInviteCode,
-            modifier = Modifier.weight(1f),
-        )
+    val stackVertically = LocalDensity.current.fontScale >= 1.45f
+    val createTitle = stringResource(R.string.assets_quick_create_wallet_title)
+    val createDesc = stringResource(R.string.assets_quick_create_wallet_desc)
+    val sharedTitle = stringResource(R.string.assets_quick_shared_wallet_title)
+    val sharedDesc = stringResource(R.string.assets_quick_shared_wallet_desc)
+
+    if (stackVertically) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AssetsQuickActionCard(
+                icon = Icons.Rounded.AddCard,
+                title = createTitle,
+                description = createDesc,
+                containerColor = AppTheme.colors.ink,
+                contentColor = AppTheme.colors.onInk,
+                iconContainerColor = AppTheme.colors.onInk.copy(alpha = 0.14f),
+                iconTint = AppTheme.colors.onInk,
+                onClick = onAddWallet,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AssetsQuickActionCard(
+                icon = Icons.Rounded.Groups,
+                title = sharedTitle,
+                description = sharedDesc,
+                containerColor = AppTheme.colors.surface,
+                contentColor = AppTheme.colors.textPrimary,
+                iconContainerColor = AppTheme.colors.primary.copy(alpha = 0.12f),
+                iconTint = AppTheme.colors.primary,
+                border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                onClick = onOpenSharedWalletHub,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AssetsQuickActionCard(
+                icon = Icons.Rounded.AddCard,
+                title = createTitle,
+                description = createDesc,
+                containerColor = AppTheme.colors.ink,
+                contentColor = AppTheme.colors.onInk,
+                iconContainerColor = AppTheme.colors.onInk.copy(alpha = 0.14f),
+                iconTint = AppTheme.colors.onInk,
+                onClick = onAddWallet,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+            AssetsQuickActionCard(
+                icon = Icons.Rounded.Groups,
+                title = sharedTitle,
+                description = sharedDesc,
+                containerColor = AppTheme.colors.surface,
+                contentColor = AppTheme.colors.textPrimary,
+                iconContainerColor = AppTheme.colors.primary.copy(alpha = 0.12f),
+                iconTint = AppTheme.colors.primary,
+                border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+                onClick = onOpenSharedWalletHub,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            )
+        }
     }
 }
 
 @Composable
-private fun SharedWalletActionPill(
+private fun AssetsQuickActionCard(
     icon: ImageVector,
-    label: String,
+    title: String,
+    description: String,
+    containerColor: Color,
+    contentColor: Color,
+    iconContainerColor: Color,
+    iconTint: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    border: BorderStroke? = null,
 ) {
     Surface(
         onClick = onClick,
-        shape = AppTheme.shapes.corner16,
-        color = AppTheme.colors.surface,
-        border = BorderStroke(0.5.dp, AppTheme.colors.hairline),
+        shape = AppTheme.shapes.corner20,
+        color = containerColor,
+        contentColor = contentColor,
+        border = border,
         modifier = modifier
-            .defaultMinSize(minHeight = 48.dp)
-            .iosCardShadow(shape = AppTheme.shapes.corner16, elevated = false),
+            .defaultMinSize(minHeight = 84.dp)
+            .iosCardShadow(shape = AppTheme.shapes.corner20, elevated = false),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.Center,
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = AppTheme.colors.textPrimary,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = AppTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PurposeFilterChipRow(
-    selectedPurpose: WalletPurpose?,
-    onPurposeSelected: (WalletPurpose?) -> Unit,
-) {
-    val purposes = remember {
-        listOf<WalletPurpose?>(
-            null,
-            WalletPurpose.PERSONAL,
-            WalletPurpose.BUSINESS,
-            WalletPurpose.SAVINGS_GOAL,
-            WalletPurpose.TRAVEL,
-            WalletPurpose.SHARED,
-        )
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        purposes.forEach { purpose ->
-            val selected = selectedPurpose == purpose
-            val label = if (purpose == null) {
-                stringResource(R.string.wallet_purpose_all)
-            } else {
-                stringResource(WalletUiHelper.getPurposeTitleRes(purpose))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(AppTheme.shapes.corner12)
+                    .background(iconContainerColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            FilterChip(
-                selected = selected,
-                onClick = { onPurposeSelected(purpose) },
-                label = {
-                    Text(
-                        text = label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                shape = AppTheme.shapes.capsule,
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = selected,
-                    borderColor = AppTheme.colors.hairline,
-                    selectedBorderColor = AppTheme.colors.sand,
-                ),
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = AppTheme.colors.surface,
-                    labelColor = AppTheme.colors.textSecondary,
-                    selectedContainerColor = AppTheme.colors.sand,
-                    selectedLabelColor = AppTheme.colors.onSand,
-                ),
-                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = AppTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = description,
+                    style = AppTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.78f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.65f),
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -711,12 +724,9 @@ private fun AdjustBalanceBottomSheet(
     var hasError by remember { mutableStateOf(false) }
     var shakeTrigger by remember { mutableIntStateOf(0) }
 
-    ModalBottomSheet(
+    NotePayModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = AppTheme.colors.surface,
-        shape = AppTheme.shapes.sheetTop,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
     ) {
         Column(
             modifier = Modifier
@@ -759,7 +769,7 @@ private fun AdjustBalanceBottomSheet(
                 singleLine = true,
                 isError = hasError,
                 supportingText = {
-                    AnimatedVisibility(visible = hasError) {
+                    NotePayAnimatedVisibility(visible = hasError) {
                         Text(text = stringResource(R.string.wallet_adjust_error_invalid))
                     }
                 },

@@ -1,6 +1,8 @@
 package com.notepay.data.sync
 
 import android.content.Context
+import androidx.room.withTransaction
+import com.notepay.data.local.NotePayDatabase
 import com.notepay.data.local.dao.TransactionDao
 import com.notepay.data.mapper.TransactionMapper
 import com.notepay.data.remote.supabase.SupabaseClientProvider
@@ -29,6 +31,7 @@ class SharedWalletSyncCoordinator @Inject constructor(
     private val transactionMapper: TransactionMapper,
     private val authRepository: AuthRepository,
     private val supabaseClientProvider: SupabaseClientProvider,
+    private val database: NotePayDatabase,
 ) {
     fun currentEffectiveUserId(): String? =
         supabaseClientProvider.client?.auth?.currentUserOrNull()?.id
@@ -72,16 +75,39 @@ class SharedWalletSyncCoordinator @Inject constructor(
             syncStatus = SyncStatus.PENDING,
             createdByUserId = existing?.createdByUserId ?: incoming.createdByUserId ?: userId,
             createdByName = displayName,
-            updatedAtEpochMs = maxOf(nowEpochMs, incoming.updatedAtEpochMs),
+            updatedAtEpochMs = maxOf(nowEpochMs, incoming.updatedAtEpochMs, (existing?.updatedAtEpochMs ?: 0L) + 1L),
             deletedAtEpochMs = null,
         )
     }
 
-    suspend fun onSharedTransactionSaved(wallet: Wallet, savedId: Long) {
-        val remoteWalletId = wallet.remoteId?.takeIf { wallet.isShared && it.isNotBlank() } ?: return
-        val entity = transactionDao.getById(savedId) ?: return
-        outboxProcessor.enqueueTransactionUpsert(remoteWalletId, entity)
+    suspend fun saveSharedTransaction(wallet: Wallet, write: suspend () -> Long): Long {
+        val remoteWalletId = requireNotNull(wallet.remoteId?.takeIf { it.isNotBlank() })
+        val id = database.withTransaction {
+            val savedId = write()
+            val entity = checkNotNull(transactionDao.getById(savedId))
+            outboxProcessor.enqueueTransactionUpsert(remoteWalletId, entity)
+            savedId
+        }
         SharedWalletSyncWorker.enqueueOneTime(context)
+        return id
+    }
+
+    suspend fun retryTransactionSync(wallet: Wallet, transactionId: Long): Boolean {
+        val remoteWalletId = requireNotNull(wallet.remoteId?.takeIf { wallet.isShared && it.isNotBlank() })
+        val scheduled = database.withTransaction {
+            val entity = transactionDao.getById(transactionId) ?: return@withTransaction false
+            if (
+                entity.walletId != wallet.id || entity.deletedAtEpochMs != null ||
+                entity.syncStatus != SyncStatus.FAILED.name
+            ) {
+                return@withTransaction false
+            }
+            outboxProcessor.enqueueTransactionUpsert(remoteWalletId, entity)
+            transactionDao.upsert(entity.copy(syncStatus = SyncStatus.PENDING.name))
+            true
+        }
+        if (scheduled) SharedWalletSyncWorker.enqueueOneTime(context)
+        return scheduled
     }
 
     suspend fun deleteSharedTransaction(

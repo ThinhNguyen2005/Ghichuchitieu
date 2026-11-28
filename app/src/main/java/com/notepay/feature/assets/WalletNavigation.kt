@@ -1,6 +1,7 @@
 package com.notepay.feature.assets.main
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -15,6 +16,7 @@ import com.notepay.core.navigation.Route
 fun NavGraphBuilder.walletGraph(
     navController: NavController,
     showFeedback: suspend (UiFeedback) -> Boolean,
+    onWalletSaved: (NavBackStackEntry, UiFeedback) -> Unit,
     onNavigateToTab: ((Route) -> Unit)? = null,
 ) {
     composable(Route.Assets.path) {
@@ -43,13 +45,10 @@ fun NavGraphBuilder.walletGraph(
             )
         }
     }
-    composable(Route.AddWallet.path) {
+    composable(Route.AddWallet.path) { entry ->
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AddWalletScreen(
-                onSaved = { feedback ->
-                    navController.popBackStack()
-                    showFeedback(feedback)
-                },
+                onSaved = { onWalletSaved(entry, it) },
                 onBack = { navController.popBackStack() },
                 onFeedback = showFeedback,
             )
@@ -60,13 +59,10 @@ fun NavGraphBuilder.walletGraph(
         arguments = listOf(
             navArgument(Route.EditWallet.ARG_ID) { type = NavType.LongType }
         )
-    ) {
+    ) { entry ->
         PredictiveBackDestination(onBack = { navController.popBackStack() }) {
             AddWalletScreen(
-                onSaved = { feedback ->
-                    navController.popBackStack()
-                    showFeedback(feedback)
-                },
+                onSaved = { onWalletSaved(entry, it) },
                 onBack = { navController.popBackStack() },
                 onFeedback = showFeedback,
             )
